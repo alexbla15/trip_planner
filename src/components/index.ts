@@ -4,3 +4,8 @@ export { NewTripCard } from "./NewTripCard/NewTripCard";
 export { ExploreCard } from "./ExploreCard/ExploreCard";
 export { ExploreSection } from "./ExploreSection/ExploreSection";
 export { MoodTagChip } from "./MoodTagChip/MoodTagChip";
+export { NewAttractionModal } from "./NewAttractionModal/NewAttractionModal";
+export type { AttractionFormData, NewAttractionModalProps } from "./NewAttractionModal/attraction.types";
+export { MoodTagButton } from "./MoodTagButton/MoodTagButton";
+export { AttractionPickerModal } from "./AttractionPickerModal/AttractionPickerModal";
+export { Footer } from "./Footer/Footer";

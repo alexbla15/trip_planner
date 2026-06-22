@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { Navbar } from "@/components/Navbar/Navbar";
+import { Footer } from "@/components/Footer/Footer";
+import { Providers } from "./Providers";
 import "./globals.css";
+import styles from "./layout.module.css";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -40,7 +44,20 @@ export default function RootLayout({
           {themeScript}
         </Script>
       </head>
-      <body>{children}</body>
+      <body>
+        <Providers>
+          <div className={styles.wrapper}>
+            <a href="#main-content" className="srOnly">
+              Skip to main content
+            </a>
+            <Navbar />
+            <div className={styles.content}>
+              {children}
+            </div>
+            <Footer />
+          </div>
+        </Providers>
+      </body>
     </html>
   );
 }
