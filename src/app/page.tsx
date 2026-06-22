@@ -1,4 +1,6 @@
-import { Plus, Compass, ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { MapPinned, Compass, ArrowRight } from "lucide-react";
+
 import { TripCard } from "@/components/TripCard/TripCard";
 import { NewTripCard } from "@/components/NewTripCard/NewTripCard";
 import { ExploreSection } from "@/components/ExploreSection/ExploreSection";
@@ -28,14 +30,14 @@ export default function Home() {
             Where will your next adventure take you?
           </p>
           <div className={styles.heroCtas}>
-            <a
-              href="#my-trips"
+            <Link
+              href="/new-trip"
               className={styles.btnPrimary}
               aria-label="Plan a new trip"
             >
-              <Plus size={18} aria-hidden="true" />
+              <MapPinned size={18} aria-hidden="true" />
               Plan a New Trip
-            </a>
+            </Link>
             <a
               href="#explore"
               className={styles.btnGhost}
@@ -62,15 +64,17 @@ export default function Home() {
             <span className={styles.sectionCount} aria-label={`${mockTrips.length} trips`}>
               ({mockTrips.length})
             </span>
-            <a href="#" className={styles.sectionSeeAll} aria-label="See all trips">
+            <Link href="/trips" className={styles.sectionSeeAll} aria-label="See all trips">
               See all <ArrowRight size={14} aria-hidden="true" />
-            </a>
+            </Link>
           </div>
 
           <div className={styles.tripsGrid}>
             <NewTripCard />
             {mockTrips.map((trip) => (
-              <TripCard key={trip.id} trip={trip} />
+              <Link key={trip.id} href={`/trips/${trip.id}`} className={styles.cardLink}>
+                <TripCard trip={trip} />
+              </Link>
             ))}
           </div>
         </div>

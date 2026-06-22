@@ -4,6 +4,9 @@
 
 - **Dashboard is the root page (`/`)** — future tasks that add new top-level screens (Trip Detail, Explore page, Auth) should be separate routes under `src/app/`, not added to `page.tsx`.
 - **Mood tags are the core UX differentiator** — every feature touching discovery or trip display should surface mood tags prominently; they are not decorative.
+- **Interactive chips must have icons** — any toggleable chip (mood tags, attraction types) should pair an icon with its label. Text-only chips look unfinished and fail the design-system "Buttons must include icons" rule.
+- **Shared entity stores belong in layout-level context** — attractions (and future entities like trips) are needed across multiple pages and entry points; wire them through a React context in `Providers.tsx` from day one, not as ad-hoc prop drilling.
+- **Navbar + Footer go in `layout.tsx`, not per-page** — placing them per-page causes duplication and means new routes launch without them. Move to layout once and done.
 
 ## Development
 

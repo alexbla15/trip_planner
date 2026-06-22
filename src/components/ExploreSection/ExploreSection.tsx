@@ -11,6 +11,9 @@ import {
   Mountain,
   Waves,
   UtensilsCrossed,
+  Search,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { ExploreCard } from "@/components/ExploreCard/ExploreCard";
 import { ALL_MOOD_TAGS } from "@/types/trip";
@@ -28,11 +31,33 @@ const TAG_ICONS: Record<string, LucideIcon> = {
   "Food & Wine": UtensilsCrossed,
 };
 
+const PAGE_SIZE = 6;
+
 export function ExploreSection({ items }: ExploreSectionProps) {
   const [activeTag, setActiveTag] = useState<string>("All");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
-  const filtered =
-    activeTag === "All" ? items : items.filter((i) => i.tag === activeTag);
+  function handleTagChange(tag: string) {
+    setActiveTag(tag);
+    setPage(1);
+  }
+
+  function handleSearchChange(value: string) {
+    setSearch(value);
+    setPage(1);
+  }
+
+  const byTag = activeTag === "All" ? items : items.filter((i) => i.tag === activeTag);
+
+  const query = search.trim().toLowerCase();
+  const filtered = query
+    ? byTag.filter((i) => i.destination.toLowerCase().includes(query))
+    : byTag;
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
     <section className={styles.section} id="explore" aria-labelledby="explore-heading">
@@ -44,6 +69,20 @@ export function ExploreSection({ items }: ExploreSectionProps) {
           <p className={styles.subtitle}>
             Discover trips and attractions shared by the community
           </p>
+        </div>
+
+        <div className={styles.searchRow}>
+          <div className={styles.searchWrapper}>
+            <Search size={16} className={styles.searchIcon} aria-hidden="true" />
+            <input
+              type="search"
+              className={styles.searchInput}
+              placeholder="Search destinations…"
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              aria-label="Search destinations"
+            />
+          </div>
         </div>
 
         <div
@@ -63,7 +102,7 @@ export function ExploreSection({ items }: ExploreSectionProps) {
                   .filter(Boolean)
                   .join(" ")}
                 aria-pressed={activeTag === tag}
-                onClick={() => setActiveTag(tag)}
+                onClick={() => handleTagChange(tag)}
               >
                 <Icon size={14} aria-hidden="true" />
                 {tag}
@@ -72,15 +111,41 @@ export function ExploreSection({ items }: ExploreSectionProps) {
           })}
         </div>
 
-        <div className={styles.grid}>
-          {filtered.length > 0 ? (
-            filtered.map((item) => <ExploreCard key={item.id} item={item} />)
+        <div className={styles.grid} aria-live="polite" aria-atomic="false">
+          {paginated.length > 0 ? (
+            paginated.map((item) => <ExploreCard key={item.id} item={item} />)
           ) : (
             <p className={styles.emptyState}>
               No trips found for this vibe yet. Check back soon!
             </p>
           )}
         </div>
+
+        {totalPages > 1 && (
+          <div className={styles.pagination} role="navigation" aria-label="Pagination">
+            <button
+              className={styles.pageBtn}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={safePage === 1}
+              aria-label="Previous page"
+            >
+              <ChevronLeft size={16} aria-hidden="true" />
+              Prev
+            </button>
+            <span className={styles.pageInfo} aria-live="polite">
+              {safePage} / {totalPages}
+            </span>
+            <button
+              className={styles.pageBtn}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage === totalPages}
+              aria-label="Next page"
+            >
+              Next
+              <ChevronRight size={16} aria-hidden="true" />
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );

@@ -26,6 +26,29 @@ import type { AttractionFormData } from "@/components/NewAttractionModal/attract
 import { COUNTRIES } from "@/components/NewAttractionModal/attraction.constants";
 import styles from "./NewTripClient.module.css";
 
+const CURRENCIES = [
+  { code: "USD", symbol: "$", name: "US Dollar" },
+  { code: "EUR", symbol: "€", name: "Euro" },
+  { code: "GBP", symbol: "£", name: "British Pound" },
+  { code: "JPY", symbol: "¥", name: "Japanese Yen" },
+  { code: "CAD", symbol: "CA$", name: "Canadian Dollar" },
+  { code: "AUD", symbol: "A$", name: "Australian Dollar" },
+  { code: "CHF", symbol: "Fr", name: "Swiss Franc" },
+  { code: "CNY", symbol: "¥", name: "Chinese Yuan" },
+  { code: "INR", symbol: "₹", name: "Indian Rupee" },
+  { code: "MXN", symbol: "MX$", name: "Mexican Peso" },
+  { code: "BRL", symbol: "R$", name: "Brazilian Real" },
+  { code: "SEK", symbol: "kr", name: "Swedish Krona" },
+  { code: "NOK", symbol: "kr", name: "Norwegian Krone" },
+  { code: "PLN", symbol: "zł", name: "Polish Zloty" },
+  { code: "TRY", symbol: "₺", name: "Turkish Lira" },
+  { code: "SGD", symbol: "S$", name: "Singapore Dollar" },
+  { code: "HKD", symbol: "HK$", name: "Hong Kong Dollar" },
+  { code: "KRW", symbol: "₩", name: "South Korean Won" },
+  { code: "THB", symbol: "฿", name: "Thai Baht" },
+  { code: "AED", symbol: "د.إ", name: "UAE Dirham" },
+];
+
 const MOOD_TAGS = [
   "Hidden Gems",
   "Instagrammable",
@@ -67,6 +90,7 @@ export function NewTripClient() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [budget, setBudget] = useState("");
+  const [currency, setCurrency] = useState("USD");
   const [moods, setMoods] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [attractions, setAttractions] = useState<AttractionFormData[]>([]);
@@ -108,7 +132,7 @@ export function NewTripClient() {
     setTouched({ tripName: true, country: true, startDate: true, endDate: true, moods: true });
     if (!isValid) return;
     // Task 2 will handle routing to the attraction picker
-    console.log("Trip details:", { tripName, country, startDate, endDate, budget, moods, notes, attractions });
+    console.log("Trip details:", { tripName, country, startDate, endDate, budget, currency, moods, notes, attractions });
   }
 
   const showMoodError = touched.moods && moods.length === 0;
@@ -256,7 +280,22 @@ export function NewTripClient() {
                   Budget
                 </label>
                 <div className={styles.currencyRow}>
-                  <span className={styles.currencyPrefix} aria-hidden="true">$</span>
+                  <div className={styles.currencySelectWrapper}>
+                    <select
+                      id="trip-currency"
+                      value={currency}
+                      onChange={(e) => setCurrency(e.target.value)}
+                      className={styles.currencySelect}
+                      aria-label="Currency"
+                    >
+                      {CURRENCIES.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.symbol} {c.code}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} className={styles.currencySelectIcon} aria-hidden="true" />
+                  </div>
                   <input
                     id="trip-budget"
                     type="number"
@@ -266,7 +305,7 @@ export function NewTripClient() {
                     value={budget}
                     onChange={(e) => setBudget(e.target.value)}
                     className={styles.currencyInput}
-                    aria-label="Total budget in dollars"
+                    aria-label="Total budget amount"
                   />
                 </div>
               </div>

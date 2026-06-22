@@ -5,7 +5,7 @@ Status: in progress
 End-to-end flow for creating a new trip — from filling in trip details to building an itinerary of attractions.
 
 ## Tasks
-- [ ] .claude/tasks/new-trip-page.md
+- [x] .claude/tasks/new-trip-page.done.md
 - [ ] .claude/tasks/new-trip-attraction-picker.md
 
 ## Plan

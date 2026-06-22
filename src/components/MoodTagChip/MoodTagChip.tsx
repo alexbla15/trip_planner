@@ -1,9 +1,10 @@
 import styles from "./MoodTagChip.module.css";
-import { TAG_CLASS_MAP } from "./MoodTagChip.constants";
+import { TAG_CLASS_MAP, TAG_ICON_MAP } from "./MoodTagChip.constants";
 import type { MoodTagChipProps } from "./MoodTagChip.types";
 
 export function MoodTagChip({ tag, className }: MoodTagChipProps) {
   const tagClass = TAG_CLASS_MAP[tag] ?? "tagHiddenGems";
+  const Icon = TAG_ICON_MAP[tag];
 
   return (
     <span
@@ -11,6 +12,7 @@ export function MoodTagChip({ tag, className }: MoodTagChipProps) {
         .filter(Boolean)
         .join(" ")}
     >
+      {Icon && <Icon size={11} aria-hidden="true" />}
       {tag}
     </span>
   );

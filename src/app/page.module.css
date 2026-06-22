@@ -187,6 +187,11 @@
   }
 }
 
+.cardLink {
+  text-decoration: none;
+  display: block;
+}
+
 /* ── Footer ───────────────────────────────── */
 
 .footer {

@@ -232,18 +232,41 @@
   align-items: stretch;
 }
 
-.currencyPrefix {
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
+.currencySelectWrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.currencySelect {
+  height: 44px;
+  padding: 0 32px 0 12px;
   background: var(--color-bg-subtle);
   border: 1px solid var(--color-border);
   border-right: none;
   border-radius: var(--radius-md) 0 0 var(--radius-md);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--color-text-secondary);
-  flex-shrink: 0;
+  font-family: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--easing-out);
+}
+
+.currencySelect:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.currencySelectIcon {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-tertiary);
+  pointer-events: none;
 }
 
 .currencyInput {

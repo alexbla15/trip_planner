@@ -1,6 +1,6 @@
 # Task: New Trip Page — General Details
 
-Status: reviewing
+Status: done
 
 Track: A
 Track reason: new full-page route with a multi-section form layout, mood-tag multi-select, and date-range picker — no existing design-system pattern covers this surface
@@ -360,3 +360,6 @@ Use `TAG_CLASS_MAP` from `MoodTagChip.constants.ts` to resolve tag → class nam
 - Files modified: `src/components/Navbar/Navbar.tsx` (Link wiring + Link import), `src/components/index.ts` (MoodTagButton export), `src/components/NewAttractionModal/AttractionTypeChip.tsx` (exported ICONS map)
 - Deviations from brief: Added "Add Another Attraction" ghost button below the attraction list (when attractions > 0) to give a non-empty-state entry point to the modal. Duration pill is wrapped in `aria-live="polite"` div per brief.
 - New design tokens used: none — all values from existing token set
+
+## Completion Summary
+Built the `/new-trip` route with a two-column layout: a Trip Details form (trip name, destination, dates with auto-calculated duration, budget, travel mood multi-select with icons, notes with char counter) and an Attractions panel (empty state + list). Added `AttractionPickerModal` for browsing and filtering saved attractions by country/city before adding to a trip, with inline creation of new ones. Introduced `AttractionsContext` with localStorage persistence so attractions saved from any entry point (Navbar or picker) are globally available. Moved Navbar and Footer into `layout.tsx` so they appear on every page. Mood tag chips now show contextual Lucide icons. Confirmed by user on 2026-06-22.

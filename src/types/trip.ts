@@ -1,10 +1,13 @@
 export interface Trip {
   id: string;
   destination: string;
+  country: string;
   coverImage: string;
   startDate: string;
   endDate: string;
   tags: string[];
+  budget?: string;
+  currency?: string;
 }
 
 export interface ExploreItem {
