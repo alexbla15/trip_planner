@@ -43,3 +43,40 @@
   background: #fef2f2;
   color: #dc2626;
 }
+
+/* ── Dark mode overrides ─────────────────────── */
+
+:global([data-theme="dark"]) .tagHiddenGems {
+  background: #064e3b;
+  color: #6ee7b7;
+}
+
+:global([data-theme="dark"]) .tagInstagrammable {
+  background: #3b0a18;
+  color: #fda4af;
+}
+
+:global([data-theme="dark"]) .tagVibrantNightlife {
+  background: #2e1065;
+  color: #c4b5fd;
+}
+
+:global([data-theme="dark"]) .tagCulturalHeritage {
+  background: #431407;
+  color: #fcd34d;
+}
+
+:global([data-theme="dark"]) .tagAdventure {
+  background: #431407;
+  color: #fdba74;
+}
+
+:global([data-theme="dark"]) .tagBeachLife {
+  background: #083344;
+  color: #67e8f9;
+}
+
+:global([data-theme="dark"]) .tagFoodWine {
+  background: #450a0a;
+  color: #fca5a5;
+}

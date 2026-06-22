@@ -1,10 +1,32 @@
 "use client";
 
 import { useState } from "react";
+import type { LucideIcon } from "lucide-react";
+import {
+  Globe,
+  Gem,
+  Camera,
+  Moon,
+  Landmark,
+  Mountain,
+  Waves,
+  UtensilsCrossed,
+} from "lucide-react";
 import { ExploreCard } from "@/components/ExploreCard/ExploreCard";
 import { ALL_MOOD_TAGS } from "@/types/trip";
 import styles from "./ExploreSection.module.css";
 import type { ExploreSectionProps } from "./ExploreSection.types";
+
+const TAG_ICONS: Record<string, LucideIcon> = {
+  All: Globe,
+  "Hidden Gems": Gem,
+  Instagrammable: Camera,
+  "Vibrant Nightlife": Moon,
+  "Cultural Heritage": Landmark,
+  Adventure: Mountain,
+  "Beach Life": Waves,
+  "Food & Wine": UtensilsCrossed,
+};
 
 export function ExploreSection({ items }: ExploreSectionProps) {
   const [activeTag, setActiveTag] = useState<string>("All");
@@ -29,33 +51,25 @@ export function ExploreSection({ items }: ExploreSectionProps) {
           role="group"
           aria-label="Filter by mood"
         >
-          <button
-            className={[
-              styles.filterChip,
-              activeTag === "All" ? styles.filterChipActive : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            aria-pressed={activeTag === "All"}
-            onClick={() => setActiveTag("All")}
-          >
-            All
-          </button>
-          {ALL_MOOD_TAGS.map((tag) => (
-            <button
-              key={tag}
-              className={[
-                styles.filterChip,
-                activeTag === tag ? styles.filterChipActive : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              aria-pressed={activeTag === tag}
-              onClick={() => setActiveTag(tag)}
-            >
-              {tag}
-            </button>
-          ))}
+          {(["All", ...ALL_MOOD_TAGS] as const).map((tag) => {
+            const Icon = TAG_ICONS[tag];
+            return (
+              <button
+                key={tag}
+                className={[
+                  styles.filterChip,
+                  activeTag === tag ? styles.filterChipActive : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                aria-pressed={activeTag === tag}
+                onClick={() => setActiveTag(tag)}
+              >
+                <Icon size={14} aria-hidden="true" />
+                {tag}
+              </button>
+            );
+          })}
         </div>
 
         <div className={styles.grid}>

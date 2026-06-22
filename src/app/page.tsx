@@ -1,4 +1,4 @@
-import { Plus, Compass } from "lucide-react";
+import { Plus, Compass, ArrowRight } from "lucide-react";
 import { Navbar } from "@/components/Navbar/Navbar";
 import { TripCard } from "@/components/TripCard/TripCard";
 import { NewTripCard } from "@/components/NewTripCard/NewTripCard";
@@ -71,7 +71,7 @@ export default function Home() {
                 ({mockTrips.length})
               </span>
               <a href="#" className={styles.sectionSeeAll} aria-label="See all trips">
-                See all →
+                See all <ArrowRight size={14} aria-hidden="true" />
               </a>
             </div>
 

@@ -1,7 +1,7 @@
 .card {
   background: var(--color-bg-subtle);
   border-radius: var(--radius-lg);
-  border: 2px dashed #cbd5e1;
+  border: 2px dashed var(--color-border);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -28,8 +28,12 @@
 }
 
 .icon {
-  color: #7dd3fc;
+  color: var(--color-primary-light);
   transition: color var(--duration-base) var(--easing-out);
+}
+
+:global([data-theme="dark"]) .icon {
+  color: var(--color-primary);
 }
 
 .card:hover .icon,

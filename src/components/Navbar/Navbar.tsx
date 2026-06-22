@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plane, Plus, Menu, X } from "lucide-react";
+import { Plane, Plus, Menu, X, Compass, Map } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle/ThemeToggle";
 import styles from "./Navbar.module.css";
 
 export function Navbar() {
@@ -23,17 +24,20 @@ export function Navbar() {
           <ul className={styles.nav} role="list">
             <li>
               <a href="#explore" className={styles.navLink}>
+                <Compass size={16} aria-hidden="true" />
                 Explore
               </a>
             </li>
             <li>
               <a href="#my-trips" className={styles.navLink}>
+                <Map size={16} aria-hidden="true" />
                 My Trips
               </a>
             </li>
           </ul>
 
           <div className={styles.actions}>
+            <ThemeToggle />
             <button className={styles.newTripBtn} aria-label="Plan a new trip">
               <Plus size={16} aria-hidden="true" />
               New Trip
@@ -68,6 +72,7 @@ export function Navbar() {
             className={styles.mobileNavLink}
             onClick={() => setMenuOpen(false)}
           >
+            <Compass size={18} aria-hidden="true" />
             Explore
           </a>
           <a
@@ -75,6 +80,7 @@ export function Navbar() {
             className={styles.mobileNavLink}
             onClick={() => setMenuOpen(false)}
           >
+            <Map size={18} aria-hidden="true" />
             My Trips
           </a>
           <button className={styles.mobileNewTripBtn} aria-label="Plan a new trip">

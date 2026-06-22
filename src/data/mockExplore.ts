@@ -32,7 +32,7 @@ export const mockExplore: ExploreItem[] = [
     id: "e4",
     destination: "Amalfi Coast, Italy",
     coverImage:
-      "https://images.unsplash.com/photo-1533934978-6f7d60e00651?w=600&q=80",
+      "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=600&q=80",
     tag: "Hidden Gems",
     user: "italyvibes",
     likes: 187,
@@ -59,7 +59,7 @@ export const mockExplore: ExploreItem[] = [
     id: "e7",
     destination: "Lyon, France",
     coverImage:
-      "https://images.unsplash.com/photo-1556559911-b8b97b789baa?w=600&q=80",
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80",
     tag: "Food & Wine",
     user: "frenchfoodie",
     likes: 156,

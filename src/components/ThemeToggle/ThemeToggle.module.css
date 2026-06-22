@@ -1,0 +1,43 @@
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  min-height: 44px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
+  transition: background var(--duration-fast) var(--easing-out),
+    color var(--duration-fast) var(--easing-out);
+  flex-shrink: 0;
+}
+
+.toggle:hover {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-primary);
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Show Moon in light mode, Sun in dark mode */
+.moonIcon {
+  display: flex;
+}
+
+.sunIcon {
+  display: none;
+}
+
+:global([data-theme="dark"]) .moonIcon {
+  display: none;
+}
+
+:global([data-theme="dark"]) .sunIcon {
+  display: flex;
+}

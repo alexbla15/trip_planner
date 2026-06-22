@@ -1,6 +1,6 @@
 # Task: Main Dashboard
 
-Status: reviewing
+Status: done
 
 Track: A
 Track reason: new primary UI surface with multiple sections, interaction patterns, and layout — no existing design system
@@ -243,3 +243,6 @@ const TAG_COLORS: Record<string, { bg: string; text: string }> = {
   - Remote images use `fill` prop + `position: relative` parent rather than explicit `width`/`height` — better for responsive card grids without CLS
   - Greeting computed server-side in `page.tsx` (Server Component), not client-side
 - New design tokens used: none beyond what was defined in `docs/DESIGN_SYSTEM.md`
+
+## Completion Summary
+Built the full main dashboard for TripPlanner: sticky Navbar with mobile menu, hero greeting strip, My Trips section (4-col desktop grid / horizontal scroll on mobile, New Trip CTA card + 3 mock trip cards), Explore the World section with live mood-tag filtering (8 community cards, 7 filter options), and a minimal footer. Design system established in `docs/DESIGN_SYSTEM.md` and CSS custom properties. Confirmed by the user on 2026-06-22.
