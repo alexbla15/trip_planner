@@ -1,0 +1,51 @@
+.card {
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-lg);
+  border: 2px dashed #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 24px;
+  cursor: pointer;
+  transition: border-color var(--duration-base) var(--easing-out),
+    background var(--duration-base) var(--easing-out),
+    box-shadow var(--duration-base) var(--easing-out);
+  min-height: 200px;
+  outline: none;
+}
+
+.card:hover,
+.card:focus-visible {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  box-shadow: var(--shadow-lg);
+}
+
+.card:focus-visible {
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.35);
+}
+
+.icon {
+  color: #7dd3fc;
+  transition: color var(--duration-base) var(--easing-out);
+}
+
+.card:hover .icon,
+.card:focus-visible .icon {
+  color: var(--color-primary-dark);
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-align: center;
+  transition: color var(--duration-base) var(--easing-out);
+}
+
+.card:hover .label,
+.card:focus-visible .label {
+  color: var(--color-primary-dark);
+}
