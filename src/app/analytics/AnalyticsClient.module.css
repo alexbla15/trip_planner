@@ -57,7 +57,7 @@
   gap: 32px;
 }
 
-/* ── Shared card shell ── */
+/* ── Shared card ── */
 .card {
   background: var(--color-surface);
   border-radius: var(--radius-xl);
@@ -65,7 +65,7 @@
   padding: 28px;
 }
 
-/* ── Section heading row ── */
+/* ── Section heading ── */
 .sectionHeadingRow {
   display: flex;
   align-items: center;
@@ -108,9 +108,15 @@
   gap: 16px;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .statsGrid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .statsGrid {
+    grid-template-columns: repeat(5, 1fr);
   }
 }
 
@@ -151,50 +157,109 @@
   color: var(--color-text-secondary);
 }
 
-/* ── Bar chart ── */
-.barRow {
+/* ── Pie chart ── */
+.pieSection {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+}
+
+@media (max-width: 640px) {
+  .pieSection {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+.pieSvg {
+  flex-shrink: 0;
+  overflow: visible; /* allow hovered slices to translate outside viewBox */
+}
+
+.slice {
+  cursor: pointer;
+  transition: filter var(--duration-fast) var(--easing-out),
+    stroke-width var(--duration-fast) var(--easing-out);
+}
+
+/* Brighter on hover — slice stays in place so the cursor never "falls off" */
+.sliceHovered {
+  cursor: pointer;
+  filter: brightness(1.18) drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+  stroke-width: 3;
+  transition: filter var(--duration-fast) var(--easing-out),
+    stroke-width var(--duration-fast) var(--easing-out);
+}
+
+/* ── Pie legend ── */
+.pieLegend {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.legendItem {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--color-border-subtle);
+  gap: 6px;
+  cursor: default;
+  padding: 3px 6px;
+  border-radius: var(--radius-md);
+  transition: background var(--duration-fast) var(--easing-out);
 }
 
-.barRowLast {
-  border-bottom: none;
+.legendItemHovered {
+  background: var(--color-bg-subtle);
 }
 
-.barLabel {
+.legendItemHovered .legendName {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.legendItemHovered .legendCount {
+  color: var(--color-primary);
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--dot-color, var(--color-primary));
+  flex-shrink: 0;
+}
+
+.legendIcon {
+  display: flex;
+  align-items: center;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.legendName {
   font-size: 13px;
   font-weight: 500;
   color: var(--color-text-secondary);
-  min-width: 110px;
-  flex-shrink: 0;
+  transition: font-weight var(--duration-fast) var(--easing-out),
+    color var(--duration-fast) var(--easing-out);
 }
 
-.barTrack {
-  flex: 1;
-  height: 8px;
-  background: var(--color-bg-subtle);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-}
-
-.barFill {
-  height: 100%;
-  width: var(--bar-width, 0%);
-  background: var(--color-primary);
-  border-radius: var(--radius-full);
-  transition: width 600ms cubic-bezier(0, 0, 0.2, 1);
-}
-
-.barCount {
+.legendCount {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-text-secondary);
-  min-width: 36px;
-  text-align: right;
-  flex-shrink: 0;
+  color: var(--color-text-primary);
+  margin-left: 2px;
+  transition: color var(--duration-fast) var(--easing-out);
+}
+
+.legendPct {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin-left: 2px;
 }
 
 /* ── Table ── */
@@ -258,9 +323,9 @@
 
 .explorerCell {
   padding: 12px;
-  font-family: monospace;
-  font-size: 13px;
-  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary);
 }
 
 .numCell {
@@ -299,22 +364,59 @@
   width: 110px;
 }
 
-.skeletonBarLabel {
-  height: 13px;
-  min-width: 110px;
-  width: 110px;
+/* ── Pie skeleton ── */
+.pieSkeleton {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
 }
 
-.skeletonBarTrack {
+@media (max-width: 640px) {
+  .pieSkeleton {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+.skeletonPieCircle {
+  width: 220px;
+  height: 220px;
+  border-radius: 50% !important;
+  flex-shrink: 0;
+}
+
+.skeletonLegend {
   flex: 1;
-  height: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
 }
 
-.skeletonBarCount {
+.skeletonLegendRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.skeletonDot {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-full) !important;
+  flex-shrink: 0;
+}
+
+.skeletonLegendText {
+  flex: 1;
   height: 13px;
-  width: 36px;
 }
 
+.skeletonLegendCount {
+  height: 13px;
+  width: 40px;
+}
+
+/* table skeleton */
 .tableSkeletonRow {
   display: flex;
   align-items: center;

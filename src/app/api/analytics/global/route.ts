@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongoose";
 import { Trip } from "@/models/Trip";
 import { Attraction } from "@/models/Attraction";
+import { User } from "@/models/User";
 
 export async function GET() {
   try {
@@ -10,6 +11,7 @@ export async function GET() {
     const [
       totalTrips,
       totalAttractions,
+      totalUsers,
       uniqueCities,
       uniqueCountries,
       budgetResult,
@@ -18,6 +20,7 @@ export async function GET() {
     ] = await Promise.all([
       Trip.countDocuments(),
       Attraction.countDocuments(),
+      User.countDocuments(),
       Attraction.distinct("city"),
       Trip.distinct("country"),
       Trip.aggregate([{ $group: { _id: null, total: { $sum: "$budget" } } }]),
@@ -34,9 +37,25 @@ export async function GET() {
             cities: { $addToSet: "$city" },
           },
         },
+        // Look up the user's name
+        {
+          $lookup: {
+            from: "users",
+            localField: "_id",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+        {
+          $unwind: {
+            path: "$user",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
         {
           $project: {
             ownerId: { $toString: "$_id" },
+            name: { $ifNull: ["$user.name", "Anonymous"] },
             attractionsCount: 1,
             countriesCount: { $size: "$cities" },
           },
@@ -50,6 +69,7 @@ export async function GET() {
       summary: {
         totalTrips,
         totalAttractions,
+        totalUsers,
         uniqueCitiesCovered: uniqueCities.length,
         uniqueCountriesCovered: uniqueCountries.length,
         totalPlatformBudget: (budgetResult[0]?.total as number) ?? 0,
