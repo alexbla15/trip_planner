@@ -2,7 +2,9 @@
 
 import {
   Utensils, Wine, Coffee, Building2, Image, TreePine, Waves,
-  Landmark, ShoppingBag, Music, Ticket, Sparkles,
+  Landmark, ShoppingBag, Music, Ticket, Sparkles, Clapperboard,
+  Mic2, Dices, FerrisWheel, Footprints, Church, Hotel as HotelIcon,
+  Plane, TrainFront, Car, Ship,
 } from "lucide-react";
 import type { AttractionType } from "./attraction.types";
 import styles from "./AttractionTypeChip.module.css";
@@ -11,17 +13,28 @@ const ICON_SIZE = 13;
 
 export const ICONS: Record<AttractionType, React.ReactNode> = {
   Restaurant: <Utensils size={ICON_SIZE} aria-hidden="true" />,
-  Bar:        <Wine size={ICON_SIZE} aria-hidden="true" />,
-  Café:       <Coffee size={ICON_SIZE} aria-hidden="true" />,
-  Museum:     <Building2 size={ICON_SIZE} aria-hidden="true" />,
-  Gallery:    <Image size={ICON_SIZE} aria-hidden="true" />,
-  Park:       <TreePine size={ICON_SIZE} aria-hidden="true" />,
-  Beach:      <Waves size={ICON_SIZE} aria-hidden="true" />,
-  Landmark:   <Landmark size={ICON_SIZE} aria-hidden="true" />,
-  Shopping:   <ShoppingBag size={ICON_SIZE} aria-hidden="true" />,
-  Nightclub:  <Music size={ICON_SIZE} aria-hidden="true" />,
-  Theatre:    <Ticket size={ICON_SIZE} aria-hidden="true" />,
-  Spa:        <Sparkles size={ICON_SIZE} aria-hidden="true" />,
+  Bar: <Wine size={ICON_SIZE} aria-hidden="true" />,
+  Café: <Coffee size={ICON_SIZE} aria-hidden="true" />,
+  Museum: <Building2 size={ICON_SIZE} aria-hidden="true" />,
+  Gallery: <Image size={ICON_SIZE} aria-hidden="true" />,
+  Park: <TreePine size={ICON_SIZE} aria-hidden="true" />,
+  Beach: <Waves size={ICON_SIZE} aria-hidden="true" />,
+  Landmark: <Landmark size={ICON_SIZE} aria-hidden="true" />,
+  Shopping: <ShoppingBag size={ICON_SIZE} aria-hidden="true" />,
+  Nightclub: <Music size={ICON_SIZE} aria-hidden="true" />,
+  Theatre: <Ticket size={ICON_SIZE} aria-hidden="true" />,
+  Spa: <Sparkles size={ICON_SIZE} aria-hidden="true" />,
+  Cinema: <Clapperboard size={ICON_SIZE} aria-hidden="true" />,
+  Concert: <Mic2 size={ICON_SIZE} aria-hidden="true" />,
+  Casino: <Dices size={ICON_SIZE} aria-hidden="true" />,
+  "Amusement Park": <FerrisWheel size={ICON_SIZE} aria-hidden="true" />,
+  Zoo: <Footprints size={ICON_SIZE} aria-hidden="true" />,
+  Religious: <Church size={ICON_SIZE} aria-hidden="true" />,
+  Hotel: <HotelIcon size={ICON_SIZE} aria-hidden="true" />,
+  Flight: <Plane size={ICON_SIZE} aria-hidden="true" />,
+  Train: <TrainFront size={ICON_SIZE} aria-hidden="true" />,
+  "Car Rental": <Car size={ICON_SIZE} aria-hidden="true" />,
+  "Cruise / Port": <Ship size={ICON_SIZE} aria-hidden="true" />,
 };
 
 interface AttractionTypeChipProps {

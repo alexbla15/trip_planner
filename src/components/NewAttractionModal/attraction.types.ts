@@ -10,7 +10,18 @@ export type AttractionType =
   | "Shopping"
   | "Nightclub"
   | "Theatre"
-  | "Spa";
+  | "Spa"
+  | "Cinema"
+  | "Concert"
+  | "Casino"
+  | "Amusement Park"
+  | "Zoo"
+  | "Religious"
+  | "Hotel"
+  | "Flight"
+  | "Train"
+  | "Car Rental"
+  | "Cruise / Port";
 
 export type DurationUnit = "minutes" | "hours";
 

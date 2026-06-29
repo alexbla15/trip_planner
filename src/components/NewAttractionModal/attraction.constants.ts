@@ -13,6 +13,17 @@ export const ATTRACTION_TYPES: AttractionType[] = [
   "Nightclub",
   "Theatre",
   "Spa",
+  "Cinema",
+  "Concert",
+  "Casino",
+  "Amusement Park",
+  "Zoo",
+  "Religious",
+  "Hotel",
+  "Flight",
+  "Train",
+  "Car Rental",
+  "Cruise / Port",
 ];
 
 export const DAY_KEYS: DayKey[] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -159,7 +170,6 @@ export const COUNTRIES: string[] = [
   "Oman",
   "Pakistan",
   "Palau",
-  "Palestine",
   "Panama",
   "Papua New Guinea",
   "Paraguay",
