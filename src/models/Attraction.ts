@@ -21,6 +21,10 @@ export interface IAttraction extends Document {
   openingHours?: Record<string, IOpeningHoursDay>;
   notes?: string;
   photoUrl?: string;
+  plannedDate?: string | null;
+  plannedTime?: string | null;
+  actualDurationValue?: string;
+  actualDurationUnit?: "minutes" | "hours";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,6 +51,10 @@ const AttractionSchema = new Schema<IAttraction>(
     price: { type: Number, default: null },
     notes: { type: String },
     photoUrl: { type: String },
+    plannedDate: { type: String, default: null },
+    plannedTime: { type: String, default: null },
+    actualDurationValue: { type: String },
+    actualDurationUnit: { type: String, enum: ["minutes", "hours"] },
     openingHours: {
       Mon: { type: OpeningHoursDaySchema },
       Tue: { type: OpeningHoursDaySchema },
@@ -83,6 +91,10 @@ export function formatAttraction(doc: IAttraction): AttractionShape {
     openingHours: doc.openingHours as AttractionShape["openingHours"],
     notes: doc.notes,
     photoUrl: doc.photoUrl,
+    plannedDate: doc.plannedDate ?? null,
+    plannedTime: doc.plannedTime ?? null,
+    actualDurationValue: doc.actualDurationValue,
+    actualDurationUnit: doc.actualDurationUnit,
     createdAt: doc.createdAt?.toISOString(),
     updatedAt: doc.updatedAt?.toISOString(),
   };

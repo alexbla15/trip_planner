@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { MoodTagChip } from "@/components/MoodTagChip/MoodTagChip";
 import { NewAttractionModal } from "@/components/NewAttractionModal/NewAttractionModal";
+import { CalendarSection } from "./CalendarSection";
 import { AttractionDetailModal } from "@/components/AttractionDetailModal/AttractionDetailModal";
 import { AttractionSearchModal } from "@/components/AttractionSearchModal/AttractionSearchModal";
 import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
@@ -406,6 +407,15 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
             )}
           </div>
         </div>
+
+        {/* ── Calendar / Itinerary section ── */}
+        <CalendarSection
+          trip={trip}
+          attractions={attractions}
+          onAttractionsChange={setAttractions}
+          token={token ?? ""}
+          isOwner={isOwner}
+        />
       </main>
 
       <AttractionSearchModal

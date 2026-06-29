@@ -52,6 +52,9 @@ Two action cards:
 - Reuse stat card and bar chart CSS patterns from analytics page (or accept some duplication)
 - AuthContext must be updated after profile edit so the Navbar name updates immediately
 
+## Completion Summary
+Personal profile page confirmed by user on 2026-06-29. Includes profile card with inline name/avatar editing (AuthContext re-hydrated on save so Navbar updates instantly), 5 personal stats cards, interactive SVG donut chart scoped to the user's attractions, and quick-link cards. Avatar image now renders when avatarUrl is set (fixed in both profile page and Navbar). Non-owners can view trip attractions without edit controls.
+
 ## Implementation Notes
 - Files created: `src/app/profile/page.tsx`, `src/app/profile/ProfileClient.tsx`, `src/app/profile/ProfileClient.module.css`
 - Files modified: `src/components/Navbar/Navbar.tsx` (User import, profileLink + divider in dropdown, mobile My Profile link), `src/components/Navbar/Navbar.module.css` (`.profileLink`, `.dropdownDivider`)

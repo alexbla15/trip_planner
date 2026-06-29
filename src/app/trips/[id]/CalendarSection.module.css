@@ -1,0 +1,455 @@
+/* ── Card shell ── */
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  padding: 28px;
+}
+
+.sectionHeadingRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.sectionIconCircle {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sectionHeading {
+  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+/* Fix #3 — global budget/time summary badges next to heading */
+.summaryBadges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.summaryBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-subtle);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.summaryBadge.budgetOver {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.saveError {
+  font-size: 12px;
+  color: var(--color-error);
+  margin: -8px 0 12px;
+  padding: 8px 12px;
+  background: rgba(239, 68, 68, 0.06);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* ── Empty state ── */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.emptyIcon { color: var(--color-text-tertiary); }
+.emptyText { font-size: 14px; color: var(--color-text-tertiary); margin: 0; }
+
+/* ── Two-panel layout ── */
+.calendarBody {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+@media (max-width: 768px) {
+  .calendarBody { flex-direction: column; }
+}
+
+/* ── Unscheduled sidebar (owner-only) ── */
+.unscheduledPanel {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .unscheduledPanel { width: 100%; }
+}
+
+.panelLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 4px;
+}
+
+.panelEmpty {
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+  text-align: center;
+  padding: 16px 8px;
+  margin: 0;
+}
+
+.unscheduledCard {
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Day columns wrapper (Fix #4) ── */
+.dayColumnsWrapper {
+  flex: 1;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  padding-bottom: 4px;
+}
+
+.dayColumns {
+  display: flex;
+  gap: 12px;
+  min-width: max-content;
+  align-items: flex-start;
+}
+
+/* ── Individual day column ── */
+.dayColumn {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.dayHeader {
+  padding: 8px 10px;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: var(--color-primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.dayTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.dayHours {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-primary);
+  opacity: 0.75;
+}
+
+.dayHoursWarning {
+  color: var(--color-warning);
+  opacity: 1;
+}
+
+/* ── Hour-by-hour timeline ── */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border-subtle);
+  border-top: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  overflow: hidden;
+}
+
+.timeSlot {
+  display: flex;
+  align-items: flex-start;
+  min-height: 36px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.timeSlot:last-child {
+  border-bottom: none;
+}
+
+.timeLabel {
+  width: 44px;
+  flex-shrink: 0;
+  padding: 8px 4px 8px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  border-right: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-subtle);
+  align-self: stretch;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 10px;
+}
+
+.slotContent {
+  flex: 1;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 36px;
+}
+
+/* ── Attractions without a time ── */
+.untimedSection {
+  border: 1px solid var(--color-border-subtle);
+  border-top: 2px dashed var(--color-border);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--color-bg-subtle);
+}
+
+.untimedLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin: 0 0 2px;
+  padding: 0 4px;
+}
+
+.dayEmpty {
+  padding: 20px 10px;
+  text-align: center;
+  border: 1px dashed var(--color-border-subtle);
+  border-top: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Attraction card (inside slot or untimed) ── */
+.dayAttractionCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  position: relative;
+  box-shadow: var(--shadow-sm);
+}
+
+.unassignBtn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--duration-fast) var(--easing-out),
+    background var(--duration-fast) var(--easing-out);
+}
+
+.unassignBtn:hover {
+  color: var(--color-error);
+  background: var(--color-bg-subtle);
+}
+
+.unassignBtn:focus-visible {
+  outline: 2px solid var(--color-error);
+  outline-offset: 1px;
+}
+
+/* ── Shared card internals ── */
+.cardTopRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 20px;
+}
+
+.typeIconCircle {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cardName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recDuration {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Assign select (sidebar) ── */
+.assignSelect {
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--color-text-secondary);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  width: 100%;
+  transition: border-color var(--duration-fast) var(--easing-out);
+}
+
+.assignSelect:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+/* ── Time select (on card, Fix #4) ── */
+.timeSelect {
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--color-primary);
+  font-weight: 600;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  width: 100%;
+  transition: border-color var(--duration-fast) var(--easing-out);
+}
+
+.timeSelect:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+/* ── Planned duration inputs ── */
+.durationRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.durationLabel {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.durationInput {
+  width: 40px;
+  height: 24px;
+  padding: 0 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--color-text-primary);
+  text-align: center;
+  transition: border-color var(--duration-fast) var(--easing-out);
+}
+
+.durationInput:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+.unitSelect {
+  height: 24px;
+  padding: 0 3px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--color-text-secondary);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--easing-out);
+}
+
+.unitSelect:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+/* ── Budget colours ── */
+.budgetOver { color: var(--color-error) !important; }
