@@ -1,19 +1,48 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Calendar, X, Clock } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Calendar, Search, X, Clock, Save, Loader2 } from "lucide-react";
 import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
 import type { AttractionType } from "@/components/NewAttractionModal/attraction.types";
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
 import styles from "./CalendarSection.module.css";
 
-// ── Pure utils ────────────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
 
-const HOUR_SLOTS = Array.from({ length: 16 }, (_, i) => {
-  const h = 7 + i; // 07:00 – 22:00
+const TIME_START  = 7;
+const TIME_END    = 23;
+const SLOT_HEIGHT = 60;     // px per hour
+const MIN_CARD_H  = 20;
+
+const HOUR_SLOTS = Array.from({ length: TIME_END - TIME_START }, (_, i) => {
+  const h = TIME_START + i;
   return `${String(h).padStart(2, "0")}:00`;
 });
+
+/** Color per attraction type — same palette as analytics donut chart */
+const TYPE_COLORS: Record<string, string> = {
+  Restaurant: "#0EA5E9",
+  Bar:        "#7C3AED",
+  Café:       "#F59E0B",
+  Museum:     "#D97706",
+  Gallery:    "#E11D48",
+  Park:       "#059669",
+  Beach:      "#0891B2",
+  Landmark:   "#EA580C",
+  Shopping:   "#DC2626",
+  Nightclub:  "#6D28D9",
+  Theatre:    "#4F46E5",
+  Spa:        "#10B981",
+};
+
+function typeColor(types: string[]): string {
+  return TYPE_COLORS[types?.[0]] ?? "#64748B";
+}
+
+type SidebarFilter = "all" | "scheduled" | "unscheduled";
+
+// ── Pure utils ────────────────────────────────────────────────────────────────
 
 function getTripDays(start: string, end: string): string[] {
   const days: string[] = [];
@@ -28,28 +57,155 @@ function getTripDays(start: string, end: string): string[] {
 
 function formatDayLabel(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
+    weekday: "short", month: "short", day: "numeric", timeZone: "UTC",
   });
 }
 
+/** px from timeline top for a "HH:MM" string — supports minutes */
+function slotTop(time: string): number {
+  const [h, m] = time.split(":").map(Number);
+  return ((h - TIME_START) + (m || 0) / 60) * SLOT_HEIGHT;
+}
+
+/** Card height in px from duration */
+function cardPx(a: Attraction): number {
+  const raw = parseFloat(a.actualDurationValue ?? a.durationValue ?? "");
+  if (isNaN(raw) || raw <= 0) return MIN_CARD_H;
+  const unit = a.actualDurationUnit ?? a.durationUnit ?? "hours";
+  const hours = unit === "minutes" ? raw / 60 : raw;
+  return Math.max(hours * SLOT_HEIGHT, MIN_CARD_H);
+}
+
+// ── Overlap layout ────────────────────────────────────────────────────────────
+
+const MIN_BLOCK_W = 110; // px — minimum block width when side-by-side
+
+interface LayoutItem {
+  attraction: Attraction;
+  startMins: number;
+  endMins: number;
+  col: number;     // 0-based column index within overlapping group
+  numCols: number; // total columns in the widest overlap
+}
+
+function timeToMins(time: string): number {
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + (m || 0);
+}
+
+function endMins(a: Attraction): number {
+  const start = timeToMins(a.plannedTime!);
+  const val   = parseFloat(a.actualDurationValue ?? a.durationValue ?? "0");
+  const unit  = a.actualDurationUnit ?? a.durationUnit ?? "hours";
+  const dur   = unit === "hours" ? val * 60 : val;
+  return start + Math.max(dur, 30); // min 30 min so tiny items still overlap
+}
+
+/**
+ * Assigns each timed attraction a column index (col) and the total
+ * number of columns it shares with overlapping peers (numCols).
+ */
+function layoutTimed(timed: Attraction[]): LayoutItem[] {
+  if (timed.length === 0) return [];
+
+  const items: LayoutItem[] = timed
+    .filter((a) => !!a.plannedTime)
+    .map((a) => ({
+      attraction: a,
+      startMins:  timeToMins(a.plannedTime!),
+      endMins:    endMins(a),
+      col: 0,
+      numCols: 1,
+    }))
+    .sort((a, b) => a.startMins - b.startMins);
+
+  // Interval-graph colouring: assign each item the lowest free column
+  const colEnd: number[] = []; // colEnd[c] = end time of last item placed in column c
+  for (const item of items) {
+    const freeCol = colEnd.findIndex((e) => e <= item.startMins);
+    if (freeCol !== -1) {
+      item.col = freeCol;
+      colEnd[freeCol] = item.endMins;
+    } else {
+      item.col = colEnd.length;
+      colEnd.push(item.endMins);
+    }
+  }
+
+  // Post-pass: set numCols = max columns used by any set of concurrent items
+  for (const item of items) {
+    const concurrent = items.filter(
+      (o) => o.startMins < item.endMins && o.endMins > item.startMins,
+    );
+    item.numCols = Math.max(...concurrent.map((o) => o.col + 1));
+  }
+
+  return items;
+}
+
+/**
+ * Returns the earliest "HH:MM" that fits a new attraction of `durationMins`
+ * without overlapping any already-timed attraction on the same day.
+ */
+function findEarliestFreeSlot(timedOnDay: Attraction[], durationMins: number): string {
+  const events = timedOnDay
+    .filter((a) => !!a.plannedTime)
+    .map((a) => ({ start: timeToMins(a.plannedTime!), end: endMins(a) }))
+    .sort((a, b) => a.start - b.start);
+
+  let candidate = TIME_START * 60; // start at 07:00
+
+  for (const ev of events) {
+    // If the new block fits before this event, stop
+    if (candidate + durationMins <= ev.start) break;
+    // Otherwise push candidate to the end of this event
+    candidate = Math.max(candidate, ev.end);
+  }
+
+  // Clamp to within the visible range
+  candidate = Math.min(candidate, (TIME_END - 1) * 60);
+
+  const h = Math.floor(candidate / 60);
+  const m = candidate % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+/** Width in px of a day column given its max concurrent overlaps */
+function dayColumnWidth(maxOverlap: number): number {
+  const LABEL_W = 46; // px for time labels + divider
+  const PAD_R   = 4;
+  return Math.max(200, LABEL_W + maxOverlap * MIN_BLOCK_W + PAD_R);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function calcTotalMinutes(items: Attraction[]): number {
   return items.reduce((sum, a) => {
-    if (!a.actualDurationValue) return sum;
-    const val = parseFloat(a.actualDurationValue);
+    const val = parseFloat(a.actualDurationValue ?? "");
     if (isNaN(val)) return sum;
     return sum + (a.actualDurationUnit === "hours" ? val * 60 : val);
   }, 0);
 }
 
-function calcTotalSpend(items: Attraction[]): number {
-  return items.reduce((sum, a) => sum + (a.price ?? 0), 0);
+function calcSpend(items: Attraction[]): number {
+  return items.reduce((s, a) => s + (a.price ?? 0), 0);
 }
 
 function fmt(n: number): string {
   return n % 1 === 0 ? String(n) : n.toFixed(1);
+}
+
+// ── Popup state type ──────────────────────────────────────────────────────────
+
+interface PopupState {
+  attractionId: string;
+  name: string;
+  color: string;
+  x: number;
+  y: number;
+  plannedTime: string;
+  durationValue: string;
+  durationUnit: "minutes" | "hours";
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -62,122 +218,145 @@ interface CalendarSectionProps {
   isOwner: boolean;
 }
 
-export function CalendarSection({
-  trip,
-  attractions,
-  onAttractionsChange,
-  token,
-  isOwner,
-}: CalendarSectionProps) {
-  const [local, setLocal] = useState<Attraction[]>(attractions);
+export function CalendarSection({ trip, attractions, onAttractionsChange, token, isOwner }: CalendarSectionProps) {
+  const [local, setLocal]         = useState<Attraction[]>(attractions);
+  const [pending, setPending]     = useState<Map<string, Partial<Attraction>>>(new Map());
+  const [saving, setSaving]       = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [popup, setPopup]         = useState<PopupState | null>(null);
+
+  // Sidebar
+  const [filter, setFilter]       = useState<SidebarFilter>("unscheduled");
+  const [search, setSearch]       = useState("");
 
   useEffect(() => { setLocal(attractions); }, [attractions]);
 
-  const days = trip.startDate && trip.endDate
-    ? getTripDays(trip.startDate, trip.endDate)
-    : [];
-
+  const days       = trip.startDate && trip.endDate ? getTripDays(trip.startDate, trip.endDate) : [];
+  const scheduled  = local.filter((a) => !!a.plannedDate);
   const unscheduled = local.filter((a) => !a.plannedDate);
-  const scheduled = local.filter((a) => !!a.plannedDate);
-  const totalSpend = calcTotalSpend(scheduled);
-  const totalMinsAll = calcTotalMinutes(scheduled);
+  const totalMins  = calcTotalMinutes(scheduled);
+  const totalSpend = calcSpend(scheduled);
 
-  // Fix #1 — throw on non-OK so catch blocks actually fire
-  async function putAttraction(id: string, patch: Partial<Attraction>) {
+  const sidebarList = useMemo(() => {
+    let list = local;
+    if (filter === "scheduled")   list = scheduled;
+    if (filter === "unscheduled") list = unscheduled;
+    const q = search.trim().toLowerCase();
+    return q ? list.filter((a) => a.name.toLowerCase().includes(q)) : list;
+  }, [local, scheduled, unscheduled, filter, search]);
+
+  // ── API ───────────────────────────────────────────────────────────────────
+
+  async function putOne(id: string, patch: Partial<Attraction>) {
     const res = await fetch(`/api/attractions/${id}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(patch),
     });
     if (!res.ok) throw new Error(`Save failed (${res.status})`);
   }
 
-  function applyOptimistic(updated: Attraction[]) {
+  function addPending(id: string, patch: Partial<Attraction>) {
+    setPending((prev) => {
+      const next = new Map(prev);
+      next.set(id, { ...(next.get(id) ?? {}), ...patch });
+      return next;
+    });
+  }
+
+  function applyLocal(updated: Attraction[]) {
     setLocal(updated);
     onAttractionsChange(updated);
   }
 
-  async function handleAssign(attractionId: string, dayIso: string) {
+  // ── Change 3: Batch save ────────────────────────────────────────────────────
+
+  async function handleSaveAll() {
+    if (pending.size === 0) return;
+    setSaving(true);
+    setSaveError("");
+    try {
+      await Promise.all([...pending.entries()].map(([id, patch]) => putOne(id, patch)));
+      setPending(new Map());
+    } catch (e) {
+      setSaveError((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // ── Assign / Unassign (now just local + pending, no immediate PUT) ─────────
+
+  function handleAssign(id: string, dayIso: string) {
     if (!dayIso) return;
-    setSaveError("");
-    const snapshot = [...local];
-    const updated = local.map((a) =>
-      a._id === attractionId ? { ...a, plannedDate: dayIso, plannedTime: null } : a
-    );
-    applyOptimistic(updated);
-    try {
-      await putAttraction(attractionId, { plannedDate: dayIso, plannedTime: null });
-    } catch (e) {
-      applyOptimistic(snapshot);
-      setSaveError((e as Error).message);
-    }
+
+    // Resolve the attraction's duration in minutes
+    const attraction  = local.find((a) => a._id === id);
+    const rawVal      = parseFloat(attraction?.actualDurationValue ?? attraction?.durationValue ?? "");
+    const unit        = attraction?.actualDurationUnit ?? attraction?.durationUnit ?? "hours";
+    const durationMins = isNaN(rawVal) || rawVal <= 0 ? 60 : unit === "hours" ? rawVal * 60 : rawVal;
+
+    // Find all already-timed attractions on this day (excluding the one being moved)
+    const timedOnDay = local.filter((a) => a.plannedDate === dayIso && !!a.plannedTime && a._id !== id);
+
+    // Auto-schedule at the earliest free slot
+    const plannedTime = findEarliestFreeSlot(timedOnDay, durationMins);
+
+    const patch = { plannedDate: dayIso, plannedTime };
+    applyLocal(local.map((a) => a._id === id ? { ...a, ...patch } : a));
+    addPending(id, patch);
   }
 
-  async function handleUnassign(attractionId: string) {
-    setSaveError("");
-    const snapshot = [...local];
-    const updated = local.map((a) =>
-      a._id === attractionId ? { ...a, plannedDate: null, plannedTime: null } : a
-    );
-    applyOptimistic(updated);
-    try {
-      await putAttraction(attractionId, { plannedDate: null, plannedTime: null });
-    } catch (e) {
-      applyOptimistic(snapshot);
-      setSaveError((e as Error).message);
-    }
+  function handleUnassign(id: string) {
+    const patch = { plannedDate: null, plannedTime: null };
+    applyLocal(local.map((a) => a._id === id ? { ...a, ...patch } : a));
+    addPending(id, patch);
   }
 
-  async function handleTimeChange(attractionId: string, time: string) {
-    setSaveError("");
-    const snapshot = [...local];
-    const updated = local.map((a) =>
-      a._id === attractionId ? { ...a, plannedTime: time || null } : a
-    );
-    applyOptimistic(updated);
-    try {
-      await putAttraction(attractionId, { plannedTime: time || null });
-    } catch (e) {
-      applyOptimistic(snapshot);
-      setSaveError((e as Error).message);
-    }
+  // ── Change 1: Apply popup edits ────────────────────────────────────────────
+
+  function applyPopup() {
+    if (!popup) return;
+    const { attractionId, plannedTime, durationValue, durationUnit } = popup;
+    const patch: Partial<Attraction> = {
+      plannedTime: plannedTime || null,
+      actualDurationValue: durationValue || undefined,
+      actualDurationUnit: durationUnit,
+    };
+    applyLocal(local.map((a) => a._id === attractionId ? { ...a, ...patch } : a));
+    addPending(attractionId, patch);
+    setPopup(null);
   }
 
-  function handleDurationLocalChange(id: string, value: string, unit: "minutes" | "hours") {
-    setLocal((prev) =>
-      prev.map((a) =>
-        a._id === id ? { ...a, actualDurationValue: value, actualDurationUnit: unit } : a
-      )
-    );
+  function openPopup(e: React.MouseEvent, a: Attraction) {
+    e.stopPropagation();
+    const POPUP_W = 230;
+    const POPUP_H = 210;
+    const rawX = e.clientX + 12;
+    const rawY = e.clientY - 20;
+    const x = Math.min(rawX, window.innerWidth  - POPUP_W - 8);
+    const y = Math.min(rawY, window.innerHeight - POPUP_H - 8);
+    setPopup({
+      attractionId: a._id,
+      name: a.name,
+      color: typeColor(a.types),
+      x: Math.max(8, x),
+      y: Math.max(8, y),
+      plannedTime:   a.plannedTime   ?? "",
+      durationValue: a.actualDurationValue ?? a.durationValue ?? "",
+      durationUnit:  a.actualDurationUnit  ?? a.durationUnit  ?? "hours",
+    });
   }
 
-  async function handleDurationBlur(id: string, value: string, unit: "minutes" | "hours") {
-    setSaveError("");
-    const updated = local.map((a) =>
-      a._id === id ? { ...a, actualDurationValue: value, actualDurationUnit: unit } : a
-    );
-    onAttractionsChange(updated);
-    try {
-      await putAttraction(id, {
-        actualDurationValue: value || undefined,
-        actualDurationUnit: unit,
-      });
-    } catch (e) {
-      setSaveError((e as Error).message);
-    }
-  }
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  const hasPending = pending.size > 0;
 
   if (attractions.length === 0) {
     return (
       <div className={styles.card}>
-        <div className={styles.sectionHeadingRow}>
-          <div className={styles.sectionIconCircle}><Calendar size={18} aria-hidden="true" /></div>
-          <h2 className={styles.sectionHeading}>Trip Itinerary</h2>
-        </div>
+        <Header totalMins={totalMins} totalSpend={totalSpend} trip={trip}
+          hasPending={false} saving={false} onSave={() => {}} />
         <div className={styles.emptyState}>
           <Calendar size={36} className={styles.emptyIcon} aria-hidden="true" />
           <p className={styles.emptyText}>Add attractions to start planning your itinerary.</p>
@@ -187,243 +366,320 @@ export function CalendarSection({
   }
 
   return (
-    <div className={styles.card}>
-      {/* Section heading + global budget summary */}
-      <div className={styles.sectionHeadingRow}>
-        <div className={styles.sectionIconCircle}><Calendar size={18} aria-hidden="true" /></div>
-        <h2 className={styles.sectionHeading}>Trip Itinerary</h2>
-        <div className={styles.summaryBadges}>
-          <span className={styles.summaryBadge}>
-            <Clock size={12} aria-hidden="true" />
-            {fmt(totalMinsAll / 60)}h total
-          </span>
-          {/* Fix #3 — budget is for the whole trip, not divided per day */}
-          {trip.budget ? (
-            <span className={`${styles.summaryBadge} ${totalSpend > trip.budget ? styles.budgetOver : ""}`}>
-              {trip.currency ?? "$"}{totalSpend.toFixed(0)} / {trip.currency ?? "$"}{trip.budget.toLocaleString()} budget
-            </span>
-          ) : null}
-        </div>
-      </div>
+    <>
+      <div className={styles.card}>
+        <Header totalMins={totalMins} totalSpend={totalSpend} trip={trip}
+          hasPending={hasPending} saving={saving} onSave={handleSaveAll} />
 
-      {saveError && (
-        <p className={styles.saveError} role="alert">{saveError}</p>
-      )}
+        {saveError && <p className={styles.saveError} role="alert">{saveError}</p>}
+        {hasPending && !saving && (
+          <p className={styles.pendingHint}>{pending.size} unsaved change{pending.size > 1 ? "s" : ""} — click Save to persist.</p>
+        )}
 
-      <div className={styles.calendarBody}>
-        {/* Fix #2 — Unscheduled panel only shown to owner */}
-        {isOwner && (
-          <div className={styles.unscheduledPanel}>
-            <p className={styles.panelLabel}>Unscheduled ({unscheduled.length})</p>
-            {unscheduled.length === 0 ? (
-              <p className={styles.panelEmpty}>All attractions scheduled!</p>
-            ) : (
-              unscheduled.map((a) => {
+        <div className={styles.calendarBody}>
+          {/* ── Sidebar ── */}
+          <div className={styles.sidebar}>
+            <div className={styles.searchWrapper}>
+              <Search size={13} className={styles.searchIcon} aria-hidden="true" />
+              <input type="search" className={styles.searchInput}
+                placeholder="Search attractions…" value={search}
+                onChange={(e) => setSearch(e.target.value)} aria-label="Search" />
+            </div>
+
+            <div className={styles.filterChips} role="group" aria-label="Filter">
+              {(["all", "unscheduled", "scheduled"] as SidebarFilter[]).map((f) => (
+                <button key={f} type="button"
+                  className={`${styles.filterChip} ${filter === f ? styles.filterChipActive : ""}`}
+                  aria-pressed={filter === f} onClick={() => setFilter(f)}
+                >
+                  {f === "all" ? `All (${local.length})`
+                    : f === "unscheduled" ? `Unsched. (${unscheduled.length})`
+                    : `Sched. (${scheduled.length})`}
+                </button>
+              ))}
+            </div>
+
+            <div className={styles.sidebarList}>
+              {sidebarList.length === 0 ? (
+                <p className={styles.panelEmpty}>No attractions match.</p>
+              ) : sidebarList.map((a) => {
                 const icon = ICONS[a.types?.[0] as AttractionType];
+                const isScheduled = !!a.plannedDate;
+                const color = typeColor(a.types);
                 return (
-                  <div key={a._id} className={styles.unscheduledCard}>
+                  <div key={a._id}
+                    className={`${styles.sidebarCard} ${isScheduled ? styles.sidebarCardScheduled : ""}`}
+                    style={{ ["--type-color" as string]: color }}
+                  >
                     <div className={styles.cardTopRow}>
                       <div className={styles.typeIconCircle} aria-hidden="true">{icon}</div>
                       <span className={styles.cardName}>{a.name}</span>
                     </div>
-                    {a.durationValue && (
-                      <span className={styles.recDuration}>
-                        Recommended: {a.durationValue} {a.durationUnit}
+                    {isScheduled && a.plannedDate && (
+                      <span className={styles.dayBadge}>
+                        {formatDayLabel(a.plannedDate)}{a.plannedTime ? ` · ${a.plannedTime}` : ""}
                       </span>
                     )}
-                    <select
-                      className={styles.assignSelect}
-                      defaultValue=""
-                      aria-label={`Assign ${a.name} to a day`}
-                      onChange={(e) => handleAssign(a._id, e.target.value)}
-                    >
-                      <option value="" disabled>Assign to day…</option>
-                      {days.map((day) => (
-                        <option key={day} value={day}>{formatDayLabel(day)}</option>
-                      ))}
-                    </select>
+                    {a.durationValue && (
+                      <span className={styles.recDuration}>Rec: {a.durationValue} {a.durationUnit}</span>
+                    )}
+                    {isOwner && (
+                      <select className={styles.assignSelect}
+                        value={a.plannedDate ?? ""}
+                        aria-label={`${isScheduled ? "Reassign" : "Assign"} ${a.name}`}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "__unassign__") handleUnassign(a._id);
+                          else handleAssign(a._id, val);
+                        }}
+                      >
+                        <option value="" disabled={isScheduled}>
+                          {isScheduled ? "Move to day…" : "Assign to day…"}
+                        </option>
+                        {isScheduled && <option value="__unassign__">— Unassign</option>}
+                        {days.map((day) => (
+                          <option key={day} value={day}>{formatDayLabel(day)}</option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 );
-              })
-            )}
+              })}
+            </div>
           </div>
-        )}
 
-        {/* Fix #4 — Day columns with hourly time axis */}
-        <div className={styles.dayColumnsWrapper} role="region" aria-label="Itinerary calendar">
-          <div className={styles.dayColumns}>
-            {days.map((dayIso) => {
-              const assigned = local.filter((a) => a.plannedDate === dayIso);
-              const timedAttractions = assigned.filter((a) => a.plannedTime);
-              const untimedAttractions = assigned.filter((a) => !a.plannedTime);
-              const totalMins = calcTotalMinutes(assigned);
-              const isOverloaded = totalMins > 480;
-              const dayLabel = formatDayLabel(dayIso);
+          {/* ── Day columns ── */}
+          <div className={styles.dayColumnsWrapper} role="region" aria-label="Itinerary calendar">
+            <div className={styles.dayColumns}>
+              {days.map((dayIso) => {
+                const dayAttractions = local.filter((a) => a.plannedDate === dayIso);
+                const untimed = dayAttractions.filter((a) => !a.plannedTime);
+                const dayMins = calcTotalMinutes(dayAttractions);
+                const isOverloaded = dayMins > 480;
+                const dayLabel = formatDayLabel(dayIso);
 
-              return (
-                <div key={dayIso} className={styles.dayColumn}>
-                  {/* Column header */}
-                  <div className={styles.dayHeader}>
-                    <h3 className={styles.dayTitle}>{dayLabel}</h3>
-                    <span className={`${styles.dayHours} ${isOverloaded ? styles.dayHoursWarning : ""}`}>
-                      {fmt(totalMins / 60)}h
-                    </span>
-                  </div>
+                // Overlap-aware layout
+                const layout     = layoutTimed(dayAttractions);
+                const maxOverlap = layout.length > 0 ? Math.max(...layout.map((l) => l.numCols)) : 1;
+                const colWidth   = dayColumnWidth(maxOverlap);
+                const LABEL_W    = 46;
+                const PAD_R      = 4;
+                const availW     = colWidth - LABEL_W - PAD_R;
 
-                  {/* Hour-by-hour timeline */}
-                  <div className={styles.timeline}>
-                    {HOUR_SLOTS.map((slot) => {
-                      const slotItems = timedAttractions.filter((a) => a.plannedTime === slot);
-                      return (
-                        <div key={slot} className={styles.timeSlot}>
-                          <span className={styles.timeLabel}>{slot}</span>
-                          <div className={styles.slotContent}>
-                            {slotItems.map((a) => (
-                              <AttractionCardInSlot
-                                key={a._id}
-                                attraction={a}
-                                dayLabel={dayLabel}
-                                isOwner={isOwner}
-                                onUnassign={() => handleUnassign(a._id)}
-                                onTimeChange={(t) => handleTimeChange(a._id, t)}
-                                onDurationLocalChange={(v, u) => handleDurationLocalChange(a._id, v, u)}
-                                onDurationBlur={(v, u) => handleDurationBlur(a._id, v, u)}
-                                days={days}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Attractions without a time */}
-                  {untimedAttractions.length > 0 && (
-                    <div className={styles.untimedSection}>
-                      <p className={styles.untimedLabel}>No time set</p>
-                      {untimedAttractions.map((a) => (
-                        <AttractionCardInSlot
-                          key={a._id}
-                          attraction={a}
-                          dayLabel={dayLabel}
-                          isOwner={isOwner}
-                          onUnassign={() => handleUnassign(a._id)}
-                          onTimeChange={(t) => handleTimeChange(a._id, t)}
-                          onDurationLocalChange={(v, u) => handleDurationLocalChange(a._id, v, u)}
-                          onDurationBlur={(v, u) => handleDurationBlur(a._id, v, u)}
-                          days={days}
-                        />
-                      ))}
+                return (
+                  <div key={dayIso} className={styles.dayColumn}
+                    style={{ ["--day-width" as string]: `${colWidth}px` }}>
+                    <div className={styles.dayHeader}>
+                      <h3 className={styles.dayTitle}>{dayLabel}</h3>
+                      <span className={`${styles.dayHours} ${isOverloaded ? styles.dayHoursWarning : ""}`}>
+                        {fmt(dayMins / 60)}h
+                      </span>
                     </div>
-                  )}
 
-                  {assigned.length === 0 && (
-                    <div className={styles.dayEmpty}>No attractions</div>
-                  )}
-                </div>
-              );
-            })}
+                    {/* Timeline */}
+                    <div className={styles.timeline}
+                      style={{ ["--slot-height" as string]: `${SLOT_HEIGHT}px`, ["--num-slots" as string]: String(TIME_END - TIME_START) }}>
+                      {HOUR_SLOTS.map((slot) => (
+                        <div key={slot} className={styles.hourGuide}>
+                          <span className={styles.timeLabel}>{slot}</span>
+                          <div className={styles.hourLine} />
+                        </div>
+                      ))}
+
+                      {/* Side-by-side overlap layout */}
+                      {layout.map(({ attraction: a, col, numCols }) => {
+                        if (!a.plannedTime) return null;
+                        const top       = slotTop(a.plannedTime);
+                        const height    = cardPx(a);
+                        const color     = typeColor(a.types);
+                        const icon      = ICONS[a.types?.[0] as AttractionType];
+                        const isPending = pending.has(a._id);
+                        const blockW    = availW / numCols;
+                        const blockL    = LABEL_W + col * blockW;
+                        return (
+                          <div
+                            key={a._id}
+                            className={`${styles.attractionBlock} ${isPending ? styles.blockPending : ""}`}
+                            style={{
+                              ["--block-top"    as string]: `${top}px`,
+                              ["--block-height" as string]: `${height}px`,
+                              ["--block-color"  as string]: color,
+                              ["--block-left"   as string]: `${blockL}px`,
+                              ["--block-width"  as string]: `${blockW - 3}px`,
+                            }}
+                            role={isOwner ? "button" : undefined}
+                            tabIndex={isOwner ? 0 : undefined}
+                            onClick={(e) => isOwner && openPopup(e, a)}
+                            onKeyDown={(e) => {
+                              if (isOwner && (e.key === "Enter" || e.key === " ")) {
+                                e.preventDefault();
+                                openPopup(e as unknown as React.MouseEvent, a);
+                              }
+                            }}
+                            aria-label={`${a.name} at ${a.plannedTime}${isOwner ? " — click to edit" : ""}`}
+                          >
+                            <div className={styles.blockTopRow}>
+                              {icon && <span className={styles.blockIcon} aria-hidden="true">{icon}</span>}
+                              <span className={styles.blockTime}>{a.plannedTime}</span>
+                            </div>
+                            <span className={styles.blockName}>{a.name}</span>
+                            {isOwner && (
+                              <button type="button" className={styles.unassignBtnBlock}
+                                onClick={(e) => { e.stopPropagation(); handleUnassign(a._id); }}
+                                aria-label={`Remove ${a.name}`}>
+                                <X size={9} aria-hidden="true" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Untimed */}
+                    {untimed.length > 0 && (
+                      <div className={styles.untimedSection}>
+                        <p className={styles.untimedLabel}>No time ({untimed.length})</p>
+                        {untimed.map((a) => {
+                          const icon = ICONS[a.types?.[0] as AttractionType];
+                          const color = typeColor(a.types);
+                          return (
+                            <div key={a._id} className={styles.untimedCard}
+                              style={{ ["--type-color" as string]: color }}>
+                              <div className={styles.cardTopRow}>
+                                <div className={styles.typeIconCircle} aria-hidden="true">{icon}</div>
+                                <span className={styles.cardName}>{a.name}</span>
+                                {isOwner && (
+                                  <button type="button" className={styles.unassignBtnSmall}
+                                    onClick={() => handleUnassign(a._id)} aria-label={`Remove ${a.name}`}>
+                                    <X size={10} aria-hidden="true" />
+                                  </button>
+                                )}
+                              </div>
+                              {isOwner && (
+                                <button type="button" className={styles.setTimeBtn}
+                                  onClick={(e) => openPopup(e, a)}>
+                                  <Clock size={11} aria-hidden="true" />
+                                  Set time & duration
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {dayAttractions.length === 0 && (
+                      <div className={styles.dayEmpty}>No attractions</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Change 1: Edit popup — rendered outside card to avoid clipping */}
+      {popup && isOwner && (
+        <>
+          <div className={styles.popupBackdrop} onClick={() => setPopup(null)} />
+          <div
+            className={styles.popup}
+            style={{
+              ["--popup-x" as string]: `${popup.x}px`,
+              ["--popup-y" as string]: `${popup.y}px`,
+            }}
+            role="dialog"
+            aria-label={`Edit ${popup.name}`}
+          >
+            <div className={styles.popupHeader} style={{ ["--popup-color" as string]: popup.color }}>
+              <span className={styles.popupTitle}>{popup.name}</span>
+              <button type="button" className={styles.popupClose} onClick={() => setPopup(null)} aria-label="Close">
+                <X size={14} aria-hidden="true" />
+              </button>
+            </div>
+            <div className={styles.popupBody}>
+              <label className={styles.popupLabel} htmlFor="popup-time">Start time</label>
+              <input
+                id="popup-time"
+                type="time"
+                className={styles.popupInput}
+                value={popup.plannedTime}
+                onChange={(e) => setPopup((p) => p ? { ...p, plannedTime: e.target.value } : p)}
+              />
+              <label className={styles.popupLabel}>Duration</label>
+              <div className={styles.popupDurRow}>
+                <input
+                  type="number" min="0" step="0.5"
+                  className={styles.popupDurInput}
+                  value={popup.durationValue}
+                  onChange={(e) => setPopup((p) => p ? { ...p, durationValue: e.target.value } : p)}
+                  aria-label="Duration value"
+                />
+                <select
+                  className={styles.popupDurUnit}
+                  value={popup.durationUnit}
+                  onChange={(e) => setPopup((p) => p ? { ...p, durationUnit: e.target.value as "minutes" | "hours" } : p)}
+                  aria-label="Duration unit"
+                >
+                  <option value="hours">hours</option>
+                  <option value="minutes">minutes</option>
+                </select>
+              </div>
+              <div className={styles.popupActions}>
+                <button type="button" className={styles.popupCancel} onClick={() => setPopup(null)}>Cancel</button>
+                <button type="button" className={styles.popupApply} onClick={applyPopup}>
+                  <Clock size={13} aria-hidden="true" />
+                  Apply
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </>
   );
 }
 
-// ── Attraction card sub-component ─────────────────────────────────────────────
+// ── Header sub-component ──────────────────────────────────────────────────────
 
-interface AttractionCardProps {
-  attraction: Attraction;
-  dayLabel: string;
-  isOwner: boolean;
-  onUnassign: () => void;
-  onTimeChange: (time: string) => void;
-  onDurationLocalChange: (value: string, unit: "minutes" | "hours") => void;
-  onDurationBlur: (value: string, unit: "minutes" | "hours") => void;
-  days: string[];
+interface HeaderProps {
+  totalMins: number;
+  totalSpend: number;
+  trip: Trip;
+  hasPending: boolean;
+  saving: boolean;
+  onSave: () => void;
 }
 
-function AttractionCardInSlot({
-  attraction: a,
-  dayLabel,
-  isOwner,
-  onUnassign,
-  onTimeChange,
-  onDurationLocalChange,
-  onDurationBlur,
-}: AttractionCardProps) {
-  const icon = ICONS[a.types?.[0] as AttractionType];
-
+function Header({ totalMins, totalSpend, trip, hasPending, saving, onSave }: HeaderProps) {
   return (
-    <div className={styles.dayAttractionCard}>
-      {isOwner && (
+    <div className={styles.sectionHeadingRow}>
+      <div className={styles.sectionIconCircle}><Calendar size={18} aria-hidden="true" /></div>
+      <h2 className={styles.sectionHeading}>Trip Itinerary</h2>
+      <div className={styles.summaryBadges}>
+        <span className={styles.summaryBadge}>
+          <Clock size={12} aria-hidden="true" />
+          {fmt(totalMins / 60)}h planned
+        </span>
+        {trip.budget ? (
+          <span className={`${styles.summaryBadge} ${totalSpend > trip.budget ? styles.budgetOver : ""}`}>
+            {trip.currency ?? "$"}{totalSpend.toFixed(0)} / {trip.currency ?? "$"}{trip.budget.toLocaleString()}
+          </span>
+        ) : null}
+        {/* Change 3: Save button */}
         <button
           type="button"
-          className={styles.unassignBtn}
-          onClick={onUnassign}
-          aria-label={`Remove ${a.name} from ${dayLabel}`}
+          className={`${styles.saveBtn} ${hasPending ? styles.saveBtnActive : ""}`}
+          onClick={onSave}
+          disabled={!hasPending || saving}
+          aria-disabled={!hasPending || saving}
         >
-          <X size={12} aria-hidden="true" />
+          {saving
+            ? <><Loader2 size={13} className={styles.spinnerIcon} aria-hidden="true" /> Saving…</>
+            : <><Save size={13} aria-hidden="true" /> {hasPending ? "Save *" : "Save"}</>}
         </button>
-      )}
-      <div className={styles.cardTopRow}>
-        <div className={styles.typeIconCircle} aria-hidden="true">{icon}</div>
-        <span className={styles.cardName}>{a.name}</span>
       </div>
-      {a.durationValue && (
-        <span className={styles.recDuration}>Rec: {a.durationValue} {a.durationUnit}</span>
-      )}
-      {/* Time selector */}
-      {isOwner && (
-        <select
-          className={styles.timeSelect}
-          value={a.plannedTime ?? ""}
-          aria-label={`Start time for ${a.name}`}
-          onChange={(e) => onTimeChange(e.target.value)}
-        >
-          <option value="">Set time…</option>
-          {HOUR_SLOTS.map((slot) => (
-            <option key={slot} value={slot}>{slot}</option>
-          ))}
-        </select>
-      )}
-      {!isOwner && a.plannedTime && (
-        <span className={styles.recDuration}>{a.plannedTime}</span>
-      )}
-      {/* Planned duration */}
-      {isOwner && (
-        <div className={styles.durationRow}>
-          <span className={styles.durationLabel}>Planned:</span>
-          <input
-            type="number"
-            min="0"
-            step="1"
-            className={styles.durationInput}
-            value={a.actualDurationValue ?? ""}
-            aria-label={`Planned duration for ${a.name}`}
-            onChange={(e) => onDurationLocalChange(e.target.value, a.actualDurationUnit ?? "hours")}
-            onBlur={(e) => onDurationBlur(e.target.value, a.actualDurationUnit ?? "hours")}
-          />
-          <select
-            className={styles.unitSelect}
-            value={a.actualDurationUnit ?? "hours"}
-            aria-label={`Duration unit for ${a.name}`}
-            onChange={(e) => {
-              const unit = e.target.value as "minutes" | "hours";
-              onDurationLocalChange(a.actualDurationValue ?? "", unit);
-              onDurationBlur(a.actualDurationValue ?? "", unit);
-            }}
-          >
-            <option value="minutes">min</option>
-            <option value="hours">h</option>
-          </select>
-        </div>
-      )}
-      {!isOwner && a.actualDurationValue && (
-        <span className={styles.recDuration}>
-          Planned: {a.actualDurationValue} {a.actualDurationUnit ?? "h"}
-        </span>
-      )}
     </div>
   );
 }
