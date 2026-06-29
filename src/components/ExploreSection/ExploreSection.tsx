@@ -48,7 +48,10 @@ export function ExploreSection({ items }: ExploreSectionProps) {
     setPage(1);
   }
 
-  const byTag = activeTag === "All" ? items : items.filter((i) => i.tag === activeTag);
+  const byTag =
+    activeTag === "All"
+      ? items
+      : items.filter((i) => (i.tags ?? [i.tag]).includes(activeTag));
 
   const query = search.trim().toLowerCase();
   const filtered = query

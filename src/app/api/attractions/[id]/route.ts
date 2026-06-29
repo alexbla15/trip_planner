@@ -20,7 +20,7 @@ export async function PUT(req: Request, { params }: RouteContext) {
     }
 
     const body = await req.json();
-    const { name, country, city, coordinates, types, durationValue, durationUnit, price, openingHours } =
+    const { name, country, city, coordinates, types, durationValue, durationUnit, price, openingHours, notes, photoUrl } =
       body as Record<string, unknown>;
 
     if (name) attraction.name = name as string;
@@ -35,6 +35,8 @@ export async function PUT(req: Request, { params }: RouteContext) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       attraction.openingHours = openingHours as any;
     }
+    if (notes !== undefined) attraction.notes = notes as string;
+    if (photoUrl !== undefined) attraction.photoUrl = photoUrl as string;
 
     await attraction.save();
     return NextResponse.json(formatAttraction(attraction));

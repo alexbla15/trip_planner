@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Plane, MapPinned, Menu, X, Compass, Map, LogIn, LogOut } from "lucide-react";
+import { Plane, MapPinned, Menu, X, Compass, Map, LogIn, LogOut, BarChart2 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import styles from "./Navbar.module.css";
@@ -64,6 +64,12 @@ export function Navbar() {
                 <Map size={16} aria-hidden="true" />
                 My Trips
               </a>
+            </li>
+            <li>
+              <Link href="/analytics" className={styles.navLink}>
+                <BarChart2 size={16} aria-hidden="true" />
+                Analytics
+              </Link>
             </li>
           </ul>
 
@@ -148,6 +154,14 @@ export function Navbar() {
             <Map size={18} aria-hidden="true" />
             My Trips
           </a>
+          <Link
+            href="/analytics"
+            className={styles.mobileNavLink}
+            onClick={() => setMenuOpen(false)}
+          >
+            <BarChart2 size={18} aria-hidden="true" />
+            Analytics
+          </Link>
 
           {user ? (
             <>

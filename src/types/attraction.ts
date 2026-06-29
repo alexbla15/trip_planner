@@ -11,6 +11,8 @@ export interface Attraction {
   durationUnit?: "minutes" | "hours";
   price?: number | null;
   openingHours?: Record<string, { closed: boolean; open: string; close: string }>;
+  notes?: string;
+  photoUrl?: string;
   createdAt?: string;
   updatedAt?: string;
 }

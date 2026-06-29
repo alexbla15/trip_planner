@@ -1,0 +1,355 @@
+.page {
+  min-height: 100dvh;
+  background: var(--color-bg-subtle);
+}
+
+/* ── Hero ── */
+.heroSection {
+  background: var(--hero-gradient);
+  padding: 48px 0 56px;
+}
+
+.heroInner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.heroTitle {
+  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 800;
+  color: var(--color-text-primary);
+  letter-spacing: -0.5px;
+  margin: 0 0 4px;
+}
+
+.heroSubtitle {
+  font-size: 16px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.publicBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 600;
+  width: fit-content;
+}
+
+/* ── Content ── */
+.content {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* ── Shared card shell ── */
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  padding: 28px;
+}
+
+/* ── Section heading row ── */
+.sectionHeadingRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.sectionIconCircle {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sectionHeading {
+  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.sectionEmpty {
+  font-size: 14px;
+  color: var(--color-text-tertiary);
+  text-align: center;
+  padding: 24px 0;
+  margin: 0;
+}
+
+/* ── Stat cards ── */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (min-width: 1024px) {
+  .statsGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.statCard {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.statIconCircle {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.statValue {
+  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+
+.statLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+/* ── Bar chart ── */
+.barRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.barRowLast {
+  border-bottom: none;
+}
+
+.barLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  min-width: 110px;
+  flex-shrink: 0;
+}
+
+.barTrack {
+  flex: 1;
+  height: 8px;
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  width: var(--bar-width, 0%);
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  transition: width 600ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.barCount {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  min-width: 36px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── Table ── */
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.th {
+  padding: 0 12px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  text-align: left;
+  border-bottom: 2px solid var(--color-border-subtle);
+}
+
+.thRight {
+  text-align: right;
+}
+
+.row {
+  border-bottom: 1px solid var(--color-border-subtle);
+  transition: background var(--duration-fast) var(--easing-out);
+}
+
+.row:hover {
+  background: var(--color-bg-subtle);
+}
+
+.rowGold {
+  background: linear-gradient(to right, rgba(245, 158, 11, 0.06), transparent);
+  border-left: 3px solid var(--color-accent);
+}
+
+.rowGold:hover {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.rankCell {
+  padding: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+  width: 44px;
+}
+
+.goldRank {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-accent);
+}
+
+.explorerCell {
+  padding: 12px;
+  font-family: monospace;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.numCell {
+  padding: 12px;
+  color: var(--color-text-primary);
+  font-weight: 500;
+  text-align: right;
+}
+
+/* ── Skeletons ── */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, var(--color-bg-subtle) 25%, var(--color-border-subtle) 50%, var(--color-bg-subtle) 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+.skeletonCircle {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full) !important;
+}
+
+.skeletonNumber {
+  height: 36px;
+  width: 80px;
+}
+
+.skeletonLabel {
+  height: 14px;
+  width: 110px;
+}
+
+.skeletonBarLabel {
+  height: 13px;
+  min-width: 110px;
+  width: 110px;
+}
+
+.skeletonBarTrack {
+  flex: 1;
+  height: 8px;
+}
+
+.skeletonBarCount {
+  height: 13px;
+  width: 36px;
+}
+
+.tableSkeletonRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.skeletonCell {
+  height: 14px;
+  flex: 1;
+}
+
+.skeletonCellSmall {
+  height: 14px;
+  width: 60px;
+  flex-shrink: 0;
+}
+
+/* ── Empty / error ── */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 80px 24px;
+  text-align: center;
+}
+
+.emptyIcon {
+  color: var(--color-text-tertiary);
+}
+
+.emptyText {
+  font-size: 15px;
+  color: var(--color-text-tertiary);
+  margin: 0;
+}

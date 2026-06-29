@@ -8,7 +8,7 @@ import {
   type ChangeEvent,
 } from "react";
 import { createPortal } from "react-dom";
-import { X, MapPin, Clock, ChevronDown, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check } from "lucide-react";
+import { X, MapPin, Clock, ChevronDown, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check, FileText, ImageIcon } from "lucide-react";
 import type {
   AttractionFormData,
   AttractionType,
@@ -48,9 +48,11 @@ interface FieldErrors {
   types?: string;
 }
 
-export function NewAttractionModal({ isOpen, onClose, onSave }: NewAttractionModalProps) {
+export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, initialData }: NewAttractionModalProps) {
+  const isEditMode = Boolean(initialData);
+
   const [name, setName] = useState("");
-  const [country, setCountry] = useState("");
+  const [country, setCountry] = useState(defaultCountry ?? "");
   const [city, setCity] = useState("");
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [selectedTypes, setSelectedTypes] = useState<AttractionType[]>([]);
@@ -58,6 +60,8 @@ export function NewAttractionModal({ isOpen, onClose, onSave }: NewAttractionMod
   const [durationUnit, setDurationUnit] = useState<DurationUnit>("hours");
   const [price, setPrice] = useState<number | null>(null);
   const [openingHours, setOpeningHours] = useState<OpeningHours>(buildInitialHours);
+  const [notes, setNotes] = useState("");
+  const [photoUrl, setPhotoUrl] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
@@ -70,6 +74,30 @@ export function NewAttractionModal({ isOpen, onClose, onSave }: NewAttractionMod
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Sync form state each time the modal opens so switching between
+  // edit-mode and create-mode always starts with the right values.
+  useEffect(() => {
+    if (!isOpen) return;
+    setName(initialData?.name ?? "");
+    setCountry(initialData?.country ?? defaultCountry ?? "");
+    setCity(initialData?.city ?? "");
+    setCoordinates(initialData?.coordinates ?? null);
+    setSelectedTypes((initialData?.types ?? []) as AttractionType[]);
+    setDurationValue(initialData?.durationValue ?? "");
+    setDurationUnit(initialData?.durationUnit ?? "hours");
+    setPrice(initialData?.price ?? null);
+    setOpeningHours(
+      initialData?.openingHours
+        ? structuredClone(initialData.openingHours as OpeningHours)
+        : buildInitialHours()
+    );
+    setNotes(initialData?.notes ?? "");
+    setPhotoUrl(initialData?.photoUrl ?? "");
+    setErrors({});
+    setTouched({});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -167,6 +195,8 @@ export function NewAttractionModal({ isOpen, onClose, onSave }: NewAttractionMod
       durationUnit,
       price,
       openingHours,
+      notes,
+      photoUrl,
     };
     await Promise.resolve(onSave(data));
     setSaving(false);
@@ -176,7 +206,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave }: NewAttractionMod
 
   function handleReset() {
     setName("");
-    setCountry("");
+    setCountry(defaultCountry ?? "");
     setCity("");
     setCoordinates(null);
     setSelectedTypes([]);
@@ -184,6 +214,8 @@ export function NewAttractionModal({ isOpen, onClose, onSave }: NewAttractionMod
     setDurationUnit("hours");
     setPrice(null);
     setOpeningHours(buildInitialHours());
+    setNotes("");
+    setPhotoUrl("");
     setErrors({});
     setTouched({});
   }
@@ -216,7 +248,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave }: NewAttractionMod
         <div className={styles.header}>
           <h2 id={HEADING_ID} className={styles.title}>
             <MapPin size={18} aria-hidden="true" className={styles.titleIcon} />
-            New Attraction
+            {isEditMode ? "Edit Attraction" : "New Attraction"}
           </h2>
           <button
             type="button"
@@ -262,31 +294,40 @@ export function NewAttractionModal({ isOpen, onClose, onSave }: NewAttractionMod
             <label htmlFor="attraction-country" className={styles.labelWithIcon}>
               <Globe size={14} aria-hidden="true" />
               Country{" "}
-              <span className={styles.required} aria-hidden="true">*</span>
+              {!defaultCountry && <span className={styles.required} aria-hidden="true">*</span>}
             </label>
-            <div className={styles.selectWrapper}>
-              <select
-                id="attraction-country"
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                onBlur={() => handleBlur("country")}
-                className={`${styles.select} ${touched.country && errors.country ? styles.inputError : ""}`}
-                aria-required="true"
-                aria-describedby={touched.country && errors.country ? "error-country" : undefined}
+            {defaultCountry ? (
+              <div
+                className={styles.readOnlyField}
+                aria-label={`Country: ${defaultCountry} (locked to trip destination)`}
               >
-                <option value="">Select a country…</option>
-                {COUNTRIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                size={16}
-                className={styles.selectIcon}
-                aria-hidden="true"
-              />
-            </div>
+                {defaultCountry}
+              </div>
+            ) : (
+              <div className={styles.selectWrapper}>
+                <select
+                  id="attraction-country"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  onBlur={() => handleBlur("country")}
+                  className={`${styles.select} ${touched.country && errors.country ? styles.inputError : ""}`}
+                  aria-required="true"
+                  aria-describedby={touched.country && errors.country ? "error-country" : undefined}
+                >
+                  <option value="">Select a country…</option>
+                  {COUNTRIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={16}
+                  className={styles.selectIcon}
+                  aria-hidden="true"
+                />
+              </div>
+            )}
             {touched.country && errors.country && (
               <p id="error-country" className={styles.errorMsg} role="alert">
                 <AlertCircle size={12} aria-hidden="true" />
@@ -426,6 +467,44 @@ export function NewAttractionModal({ isOpen, onClose, onSave }: NewAttractionMod
             <OpeningHoursGrid value={openingHours} onChange={setOpeningHours} />
           </div>
 
+          {/* Notes / Comments */}
+          <div className={styles.field}>
+            <label htmlFor="attraction-notes" className={styles.labelWithIcon}>
+              <FileText size={14} aria-hidden="true" />
+              Notes
+            </label>
+            <textarea
+              id="attraction-notes"
+              rows={3}
+              placeholder="e.g. Book tickets in advance, best visited in the morning…"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className={styles.textarea}
+            />
+          </div>
+
+          {/* Photo URL */}
+          <div className={styles.field}>
+            <label htmlFor="attraction-photo" className={styles.labelWithIcon}>
+              <ImageIcon size={14} aria-hidden="true" />
+              Photo URL
+            </label>
+            <input
+              id="attraction-photo"
+              type="url"
+              placeholder="https://…"
+              value={photoUrl}
+              onChange={(e) => setPhotoUrl(e.target.value)}
+              className={styles.input}
+            />
+            {photoUrl.startsWith("http") && (
+              <div className={styles.photoPreview}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photoUrl} alt="Attraction photo preview" className={styles.photoPreviewImg} />
+              </div>
+            )}
+          </div>
+
         </div>
 
         {/* Footer — outside body so it stays pinned and never scrolls */}
@@ -453,7 +532,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave }: NewAttractionMod
             ) : (
               <>
                 <Check size={15} aria-hidden="true" />
-                Save Attraction
+                {isEditMode ? "Save Changes" : "Save Attraction"}
               </>
             )}
           </button>

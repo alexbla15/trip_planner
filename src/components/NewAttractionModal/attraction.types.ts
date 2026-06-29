@@ -39,10 +39,16 @@ export interface AttractionFormData {
   durationUnit: DurationUnit;
   price: number | null;
   openingHours: OpeningHours;
+  notes: string;
+  photoUrl: string;
 }
 
 export interface NewAttractionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: AttractionFormData) => void;
+  /** When provided, the country field is pre-filled and locked to this value. */
+  defaultCountry?: string;
+  /** When provided, the modal enters edit mode — all fields pre-filled, title changes to "Edit Attraction". */
+  initialData?: AttractionFormData;
 }

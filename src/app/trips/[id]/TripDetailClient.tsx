@@ -17,12 +17,20 @@ import {
 } from "lucide-react";
 import { MoodTagChip } from "@/components/MoodTagChip/MoodTagChip";
 import { NewAttractionModal } from "@/components/NewAttractionModal/NewAttractionModal";
+import { AttractionDetailModal } from "@/components/AttractionDetailModal/AttractionDetailModal";
+import { AttractionSearchModal } from "@/components/AttractionSearchModal/AttractionSearchModal";
 import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
+import { DEFAULT_OPENING_HOURS } from "@/components/NewAttractionModal/attraction.constants";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDisplayDate } from "@/lib/formatDate";
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
-import type { AttractionFormData, AttractionType } from "@/components/NewAttractionModal/attraction.types";
+import type {
+  AttractionFormData,
+  AttractionType,
+  DurationUnit,
+  OpeningHours,
+} from "@/components/NewAttractionModal/attraction.types";
 import styles from "./TripDetailClient.module.css";
 
 interface TripDetailClientProps {
@@ -39,7 +47,10 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   const [attractions, setAttractions] = useState<Attraction[]>([]);
   const [attractionsLoading, setAttractionsLoading] = useState(false);
 
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingAttraction, setEditingAttraction] = useState<Attraction | null>(null);
+  const [viewingAttraction, setViewingAttraction] = useState<Attraction | null>(null);
 
   // Fetch trip
   useEffect(() => {
@@ -69,6 +80,44 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
       .finally(() => setAttractionsLoading(false));
   }, [token, trip]);
 
+  async function handleSearchAdd(existing: Attraction) {
+    if (!token || !trip) return;
+    setSearchModalOpen(false);
+    try {
+      const res = await fetch(`/api/trips/${trip._id}/attractions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: existing.name,
+          country: existing.country,
+          city: existing.city,
+          coordinates: existing.coordinates,
+          types: existing.types,
+          durationValue: existing.durationValue || undefined,
+          durationUnit: existing.durationUnit || undefined,
+          price: existing.price ?? undefined,
+          openingHours: existing.openingHours ?? undefined,
+          notes: existing.notes || undefined,
+          photoUrl: existing.photoUrl || undefined,
+        }),
+      });
+      if (res.ok) {
+        const created = (await res.json()) as Attraction;
+        setAttractions((prev) => [created, ...prev]);
+      }
+    } catch {
+      // silent
+    }
+  }
+
+  function handleSearchCreateNew() {
+    setSearchModalOpen(false);
+    setModalOpen(true);
+  }
+
   async function handleAttractionSave(data: AttractionFormData) {
     if (!token || !trip) return;
     setModalOpen(false);
@@ -90,6 +139,8 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
           durationUnit: data.durationUnit,
           price: data.price,
           openingHours: data.openingHours,
+          notes: data.notes || undefined,
+          photoUrl: data.photoUrl || undefined,
         }),
       });
 
@@ -99,6 +150,45 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
       }
     } catch {
       // Silent failure — attraction list won't update but no crash
+    }
+  }
+
+  function attractionToFormData(a: Attraction): AttractionFormData {
+    return {
+      name: a.name,
+      country: a.country,
+      city: a.city,
+      coordinates: a.coordinates ?? null,
+      types: (a.types ?? []) as AttractionType[],
+      durationValue: a.durationValue ?? "",
+      durationUnit: (a.durationUnit ?? "hours") as DurationUnit,
+      price: a.price ?? null,
+      openingHours: (a.openingHours as OpeningHours | undefined) ?? structuredClone(DEFAULT_OPENING_HOURS),
+      notes: a.notes ?? "",
+      photoUrl: a.photoUrl ?? "",
+    };
+  }
+
+  async function handleAttractionUpdate(data: AttractionFormData) {
+    if (!token || !editingAttraction) return;
+    const id = editingAttraction._id;
+    setEditingAttraction(null);
+
+    try {
+      const res = await fetch(`/api/attractions/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        const updated = (await res.json()) as Attraction;
+        setAttractions((prev) => prev.map((a) => (a._id === updated._id ? updated : a)));
+      }
+    } catch {
+      // Silent — stale data remains until next page load
     }
   }
 
@@ -219,7 +309,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
               <button
                 className={styles.addBtn}
                 type="button"
-                onClick={() => setModalOpen(true)}
+                onClick={() => setSearchModalOpen(true)}
                 aria-label="Add an attraction to this trip"
               >
                 <Plus size={14} aria-hidden="true" />
@@ -256,7 +346,15 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                       : null;
 
                   return (
-                    <li key={attraction._id} className={styles.attractionItem}>
+                    <li
+                      key={attraction._id}
+                      className={styles.attractionItem}
+                      onClick={() => setViewingAttraction(attraction)}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`View details for ${attraction.name}`}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setViewingAttraction(attraction); } }}
+                    >
                       <div className={styles.attractionIconCircle} aria-hidden="true">
                         {icon}
                       </div>
@@ -268,15 +366,34 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                           {durationLabel ? ` · ${durationLabel}` : ""}
                           {priceLabel ? ` · ${priceLabel}` : ""}
                         </span>
+                        {attraction.notes && (
+                          <span className={styles.attractionNotes}>{attraction.notes}</span>
+                        )}
                       </div>
-                      <button
-                        type="button"
-                        className={styles.removeBtn}
-                        onClick={() => handleRemoveAttraction(attraction._id)}
-                        aria-label={`Remove ${attraction.name}`}
-                      >
-                        <Trash2 size={14} aria-hidden="true" />
-                      </button>
+                      {attraction.photoUrl?.startsWith("http") && (
+                        <div className={styles.attractionThumb} aria-hidden="true">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={attraction.photoUrl} alt="" className={styles.attractionThumbImg} />
+                        </div>
+                      )}
+                      <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          className={styles.editBtn}
+                          onClick={() => setEditingAttraction(attraction)}
+                          aria-label={`Edit ${attraction.name}`}
+                        >
+                          <PenLine size={14} aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.removeBtn}
+                          onClick={() => handleRemoveAttraction(attraction._id)}
+                          aria-label={`Remove ${attraction.name}`}
+                        >
+                          <Trash2 size={14} aria-hidden="true" />
+                        </button>
+                      </div>
                     </li>
                   );
                 })}
@@ -286,10 +403,25 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         </div>
       </main>
 
+      <AttractionSearchModal
+        isOpen={searchModalOpen}
+        onClose={() => setSearchModalOpen(false)}
+        country={trip.country}
+        onAdd={handleSearchAdd}
+        onCreateNew={handleSearchCreateNew}
+      />
+
       <NewAttractionModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSave={handleAttractionSave}
+        isOpen={modalOpen || editingAttraction !== null}
+        onClose={() => { setModalOpen(false); setEditingAttraction(null); }}
+        onSave={editingAttraction ? handleAttractionUpdate : handleAttractionSave}
+        defaultCountry={trip.country}
+        initialData={editingAttraction ? attractionToFormData(editingAttraction) : undefined}
+      />
+
+      <AttractionDetailModal
+        attraction={viewingAttraction}
+        onClose={() => setViewingAttraction(null)}
       />
     </>
   );

@@ -20,7 +20,8 @@ export interface ExploreItem {
   id: string;
   destination: string;
   coverImage: string;
-  tag: string;
+  tag: string;    // primary display tag (first mood)
+  tags: string[]; // all moods — used for vibe-chip filtering
   user: string;
   likes: number;
 }

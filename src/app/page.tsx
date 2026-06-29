@@ -9,8 +9,7 @@ import { NewTripCard } from "@/components/NewTripCard/NewTripCard";
 import { ExploreSection } from "@/components/ExploreSection/ExploreSection";
 import { RouteGuard } from "@/components/RouteGuard/RouteGuard";
 import { useAuth } from "@/contexts/AuthContext";
-import { mockExplore } from "@/data/mockExplore";
-import type { Trip } from "@/types/trip";
+import type { Trip, ExploreItem } from "@/types/trip";
 import styles from "./page.module.css";
 
 function getGreeting(): string {
@@ -25,8 +24,11 @@ const SKELETON_COUNT = 3;
 function HomeContent() {
   const { user, token } = useAuth();
   const greeting = getGreeting();
+
   const [trips, setTrips] = useState<Trip[]>([]);
   const [tripsLoading, setTripsLoading] = useState(true);
+
+  const [exploreItems, setExploreItems] = useState<ExploreItem[]>([]);
 
   useEffect(() => {
     if (!token) return;
@@ -38,6 +40,13 @@ function HomeContent() {
       .catch(() => setTrips([]))
       .finally(() => setTripsLoading(false));
   }, [token]);
+
+  useEffect(() => {
+    fetch("/api/explore")
+      .then((r) => r.json())
+      .then((data: ExploreItem[]) => setExploreItems(Array.isArray(data) ? data : []))
+      .catch(() => setExploreItems([]));
+  }, []);
 
   return (
     <main id="main-content" className={styles.main}>
@@ -96,7 +105,7 @@ function HomeContent() {
       </section>
 
       {/* Explore */}
-      <ExploreSection items={mockExplore} />
+      <ExploreSection items={exploreItems} />
     </main>
   );
 }

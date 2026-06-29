@@ -11,3 +11,5 @@ export { AttractionPickerModal } from "./AttractionPickerModal/AttractionPickerM
 export { Footer } from "./Footer/Footer";
 export { RouteGuard } from "./RouteGuard/RouteGuard";
 export { TripCardSkeleton } from "./TripCard/TripCardSkeleton";
+export { AttractionDetailModal } from "./AttractionDetailModal/AttractionDetailModal";
+export { AttractionSearchModal } from "./AttractionSearchModal/AttractionSearchModal";
