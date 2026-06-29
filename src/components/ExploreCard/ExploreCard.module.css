@@ -6,6 +6,8 @@
   transition: transform var(--duration-base) var(--easing-out),
     box-shadow var(--duration-base) var(--easing-out);
   cursor: pointer;
+  text-decoration: none;
+  display: block;
 }
 
 .card:hover {

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Image from "next/image";
 import { MapPin, Heart } from "lucide-react";
 import { MoodTagChip } from "@/components/MoodTagChip/MoodTagChip";
@@ -9,10 +10,10 @@ function getInitial(username: string): string {
 }
 
 export function ExploreCard({ item }: ExploreCardProps) {
-  const { destination, coverImage, tag, user, likes } = item;
+  const { id, destination, coverImage, tag, user, likes } = item;
 
   return (
-    <article className={styles.card}>
+    <Link href={`/trips/${id}`} className={styles.card}>
       <div className={styles.imageContainer}>
         <Image
           src={coverImage}
@@ -44,6 +45,6 @@ export function ExploreCard({ item }: ExploreCardProps) {
           </div>
         </div>
       </div>
-    </article>
+    </Link>
   );
 }

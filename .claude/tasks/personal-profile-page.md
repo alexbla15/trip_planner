@@ -1,6 +1,6 @@
 # Task: Personal Profile Page
 
-Status: reviewing
+Status: done
 
 Track: A
 Track reason: new /profile page combining user info with personal analytics; no existing profile UI pattern

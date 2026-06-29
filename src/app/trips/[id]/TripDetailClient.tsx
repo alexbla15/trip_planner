@@ -38,7 +38,7 @@ interface TripDetailClientProps {
 }
 
 export function TripDetailClient({ tripId }: TripDetailClientProps) {
-  const { token } = useAuth();
+  const { token, user: authUser } = useAuth();
   const router = useRouter();
 
   const [trip, setTrip] = useState<Trip | null>(null);
@@ -219,6 +219,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   if (!trip) return null;
 
   const { name, country, coverImage, startDate, endDate, moods, budget, currency } = trip;
+  const isOwner = !!authUser && authUser._id === trip.ownerId;
 
   return (
     <>
@@ -242,10 +243,12 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
               <ChevronLeft size={16} aria-hidden="true" />
               My Trips
             </Link>
-            <Link href={`/trips/${trip._id}/edit`} className={styles.heroEditBtn}>
-              <PenLine size={13} aria-hidden="true" />
-              Edit trip
-            </Link>
+            {isOwner && (
+              <Link href={`/trips/${trip._id}/edit`} className={styles.heroEditBtn}>
+                <PenLine size={13} aria-hidden="true" />
+                Edit trip
+              </Link>
+            )}
             <h1 className={styles.destination}>{name}</h1>
             <div className={styles.tags}>
               {moods.map((tag) => (
@@ -306,7 +309,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
           <div className={styles.card}>
             <div className={styles.attractionsHeader}>
               <h2 className={styles.sectionHeading}>Attractions</h2>
-              <button
+              {isOwner && <button
                 className={styles.addBtn}
                 type="button"
                 onClick={() => setSearchModalOpen(true)}
@@ -314,7 +317,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
               >
                 <Plus size={14} aria-hidden="true" />
                 Add Attraction
-              </button>
+              </button>}
             </div>
 
             {attractionsLoading ? (
@@ -376,24 +379,26 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                           <img src={attraction.photoUrl} alt="" className={styles.attractionThumbImg} />
                         </div>
                       )}
-                      <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          className={styles.editBtn}
-                          onClick={() => setEditingAttraction(attraction)}
-                          aria-label={`Edit ${attraction.name}`}
-                        >
-                          <PenLine size={14} aria-hidden="true" />
-                        </button>
-                        <button
-                          type="button"
-                          className={styles.removeBtn}
-                          onClick={() => handleRemoveAttraction(attraction._id)}
-                          aria-label={`Remove ${attraction.name}`}
-                        >
-                          <Trash2 size={14} aria-hidden="true" />
-                        </button>
-                      </div>
+                      {isOwner && (
+                        <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            className={styles.editBtn}
+                            onClick={() => setEditingAttraction(attraction)}
+                            aria-label={`Edit ${attraction.name}`}
+                          >
+                            <PenLine size={14} aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.removeBtn}
+                            onClick={() => handleRemoveAttraction(attraction._id)}
+                            aria-label={`Remove ${attraction.name}`}
+                          >
+                            <Trash2 size={14} aria-hidden="true" />
+                          </button>
+                        </div>
+                      )}
                     </li>
                   );
                 })}

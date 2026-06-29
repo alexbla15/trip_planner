@@ -19,7 +19,9 @@ async function verifyTripOwnership(req: Request, tripId: string) {
 export async function GET(req: Request, { params }: RouteContext) {
   try {
     const { id: tripId } = await params;
-    await verifyTripOwnership(req, tripId);
+    // Any authenticated user can view a trip's attractions — ownership not required for reads
+    getUserFromRequest(req);
+    await dbConnect();
 
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type");
@@ -35,7 +37,7 @@ export async function GET(req: Request, { params }: RouteContext) {
     const attractions = await query.exec();
     return NextResponse.json(attractions.map(formatAttraction));
   } catch {
-    return NextResponse.json({ error: "Unauthorized or trip not found" }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 }
 

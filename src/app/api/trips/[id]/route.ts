@@ -17,7 +17,10 @@ async function resolveTrip(req: Request, id: string) {
 export async function GET(req: Request, { params }: RouteContext) {
   try {
     const { id } = await params;
-    const { trip } = await resolveTrip(req, id);
+    // Auth still required, but any authenticated user can view any trip
+    getUserFromRequest(req);
+    await dbConnect();
+    const trip = await Trip.findById(id);
     if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
     return NextResponse.json(formatTrip(trip));
   } catch {
