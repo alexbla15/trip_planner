@@ -496,3 +496,43 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* ── Opening hours header row + 24/7 toggle ── */
+.labelRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.toggle24h {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--easing-out);
+}
+
+.toggle24h:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.toggle24hActive {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.toggle24h:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

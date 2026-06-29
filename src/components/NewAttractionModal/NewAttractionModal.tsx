@@ -479,20 +479,22 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
 
           {/* Opening Hours */}
           <div className={styles.field}>
-            <span className={styles.labelWithIcon}>
-              <Clock size={14} aria-hidden="true" />
-              Opening Hours
-            </span>
-            <label className={styles.checkboxLabel}>
-              <input
-                type="checkbox"
-                className={styles.checkbox}
-                checked={is24h}
-                onChange={(e) => handle24hToggle(e.target.checked)}
-              />
-              Open 24/7
-            </label>
-            <OpeningHoursGrid value={openingHours} onChange={handleHoursChange} />
+            <div className={styles.labelRow}>
+              <span className={styles.labelWithIcon}>
+                <Clock size={14} aria-hidden="true" />
+                Opening Hours
+              </span>
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={is24h}
+                className={`${styles.toggle24h} ${is24h ? styles.toggle24hActive : ""}`}
+                onClick={() => handle24hToggle(!is24h)}
+              >
+                24/7
+              </button>
+            </div>
+            {!is24h && <OpeningHoursGrid value={openingHours} onChange={handleHoursChange} />}
           </div>
 
           {/* Notes / Comments */}

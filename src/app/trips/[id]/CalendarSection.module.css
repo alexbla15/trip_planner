@@ -1119,25 +1119,31 @@
   outline-offset: 1px;
 }
 
-/* ── Compact block layout (duration < 1 hour) ── */
+/* ── Compact block layout (duration < 1 hour) — name only ── */
 .blockCompact {
   flex-direction: row;
   align-items: center;
-  gap: 4px;
   padding: 0 5px;
+  gap: 3px;
 }
 
 .blockCompact .blockTopRow {
   flex-shrink: 0;
-  gap: 3px;
+  width: auto;
+}
+
+.blockCompact .blockTime {
+  display: none;
 }
 
 .blockCompact .blockName {
+  width: auto;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  flex: 1;
-  min-width: 0;
+  font-size: 10px;
 }
 
 .blockCompact .unassignBtnBlock {

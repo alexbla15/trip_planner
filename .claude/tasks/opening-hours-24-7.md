@@ -1,6 +1,6 @@
 # Task: Add "Open 24/7" Option to Attraction Opening Hours
 
-Status: implementing
+Status: done
 
 Track: B
 Track reason: logic + small UI addition to existing OpeningHoursGrid form component; no new layout or pattern
@@ -30,3 +30,9 @@ A single "Open 24/7" checkbox/toggle in the opening hours section that instantly
 ## Out of scope
 - Persisting the "24/7" flag separately — only the resulting `openingHours` values matter
 - Changing `OpeningHoursGrid` internals
+
+
+## Implementation Notes
+- Files modified: `src/components/NewAttractionModal/NewAttractionModal.tsx`, `src/components/NewAttractionModal/NewAttractionModal.module.css`
+- Deviations from brief: reset of is24h added inside the existing isOpen sync useEffect rather than a separate useEffect([initialData]) — equivalent behaviour since the sync runs every time the modal opens with new initialData
+- New design tokens used: none

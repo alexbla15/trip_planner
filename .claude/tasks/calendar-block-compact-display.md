@@ -1,6 +1,6 @@
 # Task: Calendar Block Compact Display for Short Attractions
 
-Status: reviewing
+Status: done
 
 Track: B
 Track reason: CSS + minor TSX tweak only — no new component or design surface; fixes existing block layout
