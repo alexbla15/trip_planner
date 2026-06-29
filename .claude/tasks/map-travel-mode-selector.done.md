@@ -1,6 +1,6 @@
 # Task: Per-Leg Travel Mode Selector on Day Map
 
-Status: reviewing
+Status: done
 
 Track: A
 Track reason: new interactive UI pattern — per-leg travel mode toggle (walk / car / transit) with updated transit time calculation; no existing pattern in design system
@@ -68,3 +68,7 @@ The transit label **on the map polyline** also updates to reflect the selected m
 - Files modified: `src/app/trips/[id]/TripDayMapWidget.tsx`, `src/app/trips/[id]/TripDayMapWidget.module.css`
 - Deviations from brief: none
 - New design tokens used: none
+
+
+## Completion Summary
+Per-leg travel mode selector added to TripDayMapWidget. Route legs panel below the map lists each step with Walk/Drive/Transit icon toggles; selected mode updates both the panel time label and the on-map polyline label reactively. Speeds: walk=4 km/h, car=40 km/h, transit=20 km/h. Leg names hidden on mobile. Confirmed by user 2026-06-29.

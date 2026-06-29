@@ -1064,3 +1064,82 @@
   height: 360px;
   color: var(--color-text-tertiary);
 }
+
+/* ── Schedule alerts ── */
+.alertBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-warning) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 25%, transparent);
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.alertIcon {
+  color: var(--color-warning);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.alertMessage {
+  flex: 1;
+  min-width: 0;
+}
+
+.alertDismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  padding: 0;
+  font-family: inherit;
+  transition: color var(--duration-fast) var(--easing-out),
+              background var(--duration-fast) var(--easing-out);
+}
+
+.alertDismiss:hover {
+  color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 15%, transparent);
+}
+
+.alertDismiss:focus-visible {
+  outline: 2px solid var(--color-warning);
+  outline-offset: 1px;
+}
+
+/* ── Compact block layout (duration < 1 hour) ── */
+.blockCompact {
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  padding: 0 5px;
+}
+
+.blockCompact .blockTopRow {
+  flex-shrink: 0;
+  gap: 3px;
+}
+
+.blockCompact .blockName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.blockCompact .unassignBtnBlock {
+  display: none;
+}

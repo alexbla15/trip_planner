@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon } from "lucide-react";
+import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, TriangleAlert } from "lucide-react";
 import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
 import type { AttractionType } from "@/components/NewAttractionModal/attraction.types";
 import { currencySymbol } from "@/lib/formatCurrency";
@@ -16,6 +16,8 @@ import {
 } from "@/config/ui";
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
+import { computeAlerts } from "./CalendarSection.utils";
+import type { ScheduleAlert } from "./CalendarSection.utils";
 import styles from "./CalendarSection.module.css";
 
 const TripDayMapWidget = dynamic(
@@ -249,7 +251,8 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   const [savedOk, setSavedOk]     = useState(false);
   const [popup, setPopup]         = useState<PopupState | null>(null);
 
-  const [showMap, setShowMap]      = useState(false);
+  const [showMap, setShowMap]           = useState(false);
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
 
   // Day-range controls (view only — persisted locally)
   const [dayStart, setDayStart]   = useState(DEFAULT_DAY_START);
@@ -261,6 +264,9 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
 
   // Sync local state whenever the parent re-fetches / updates attractions
   useEffect(() => { setLocal(attractions); }, [attractions]);
+
+  // Clear dismissed alerts on every mutation so re-triggered conditions re-appear
+  useEffect(() => { setDismissedAlerts(new Set()); }, [local]);
 
   const days        = trip.startDate && trip.endDate ? getTripDays(trip.startDate, trip.endDate) : [];
   const scheduled   = local.filter((a) => !!a.plannedDate);
@@ -276,6 +282,12 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
     const q = search.trim().toLowerCase();
     return q ? list.filter((a) => a.name.toLowerCase().includes(q)) : list;
   }, [local, scheduled, unscheduled, filter, search]);
+
+  const alerts: ScheduleAlert[] = useMemo(
+    () => (isOwner ? computeAlerts(local, dayStart, dayEnd) : []),
+    [local, dayStart, dayEnd, isOwner]
+  );
+  const visibleAlerts = alerts.filter((a) => !dismissedAlerts.has(a.id));
 
   // ── API ───────────────────────────────────────────────────────────────────
 
@@ -434,6 +446,21 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
           <p className={styles.pendingHint}>{pending.size} unsaved change{pending.size > 1 ? "s" : ""} — click Save to persist.</p>
         )}
 
+        {visibleAlerts.map((alert) => (
+          <div key={alert.id} className={styles.alertBanner} role="alert">
+            <TriangleAlert size={14} className={styles.alertIcon} aria-hidden="true" />
+            <span className={styles.alertMessage}>{alert.message}</span>
+            <button
+              type="button"
+              className={styles.alertDismiss}
+              onClick={() => setDismissedAlerts((prev) => new Set([...prev, alert.id]))}
+              aria-label="Dismiss warning"
+            >
+              <X size={12} aria-hidden="true" />
+            </button>
+          </div>
+        ))}
+
         <div className={styles.calendarBody}>
           {/* ── Sidebar — OWNER ONLY (Fix: read-only mode hides picker) ── */}
           {isOwner && <div className={styles.sidebar}>
@@ -558,7 +585,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                         return (
                           <div
                             key={a._id}
-                            className={`${styles.attractionBlock} ${isPending ? styles.blockPending : ""}`}
+                            className={`${styles.attractionBlock} ${isPending ? styles.blockPending : ""} ${height < SLOT_HEIGHT_PX ? styles.blockCompact : ""}`}
                             style={{
                               ["--block-top"    as string]: `${top}px`,
                               ["--block-height" as string]: `${height}px`,

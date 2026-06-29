@@ -21,6 +21,7 @@ import {
   ATTRACTION_TYPES,
   COUNTRIES,
   DEFAULT_OPENING_HOURS,
+  DAY_KEYS,
 } from "./attraction.constants";
 import { AttractionTypeChip } from "./AttractionTypeChip";
 import { MapPicker } from "./MapPicker";
@@ -60,6 +61,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
   const [durationUnit, setDurationUnit] = useState<DurationUnit>("hours");
   const [price, setPrice] = useState<number | null>(null);
   const [openingHours, setOpeningHours] = useState<OpeningHours>(buildInitialHours);
+  const [is24h, setIs24h]               = useState(false);
   const [notes, setNotes] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -96,8 +98,25 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
     setPhotoUrl(initialData?.photoUrl ?? "");
     setErrors({});
     setTouched({});
+    setIs24h(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
+
+  function handle24hToggle(checked: boolean) {
+    setIs24h(checked);
+    if (checked) {
+      setOpeningHours(
+        Object.fromEntries(
+          DAY_KEYS.map((d) => [d, { closed: false, open: "00:00", close: "23:59" }])
+        ) as OpeningHours
+      );
+    }
+  }
+
+  function handleHoursChange(hours: OpeningHours) {
+    setIs24h(false);
+    setOpeningHours(hours);
+  }
 
   useEffect(() => {
     if (isOpen) {
@@ -464,7 +483,16 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
               <Clock size={14} aria-hidden="true" />
               Opening Hours
             </span>
-            <OpeningHoursGrid value={openingHours} onChange={setOpeningHours} />
+            <label className={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                className={styles.checkbox}
+                checked={is24h}
+                onChange={(e) => handle24hToggle(e.target.checked)}
+              />
+              Open 24/7
+            </label>
+            <OpeningHoursGrid value={openingHours} onChange={handleHoursChange} />
           </div>
 
           {/* Notes / Comments */}

@@ -1,6 +1,6 @@
 # Task: Calendar Scheduling Conflict Alerts
 
-Status: intake
+Status: done
 
 Track: A
 Track reason: new inline alert/warning pattern — three distinct warning states not in the design system; needs visual spec
@@ -54,3 +54,14 @@ After any assignment or time/duration change in the calendar, display a non-bloc
 - Preventing the action (user must still be able to save)
 - Alerts for the trip overview card or attractions list (calendar only)
 - Server-side validation of scheduling conflicts
+
+
+## Implementation Notes
+- Files created: `src/app/trips/[id]/CalendarSection.utils.ts`
+- Files modified: `src/app/trips/[id]/CalendarSection.tsx`, `src/app/trips/[id]/CalendarSection.module.css`
+- Deviations from brief: none
+- New design tokens used: none (color-mix() used with var(--color-warning) only)
+
+
+## Completion Summary
+Created CalendarSection.utils.ts with pure logic for three alert conditions (venue closed, parallel conflict, day overflow). Alert banners appear between the header and calendar body with amber styling, individual dismiss buttons, and auto-reset on data mutations. Logic is owner-only, uses no hardcoded colors. Confirmed by user 2026-06-29.

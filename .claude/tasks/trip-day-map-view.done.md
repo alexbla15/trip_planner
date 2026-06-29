@@ -1,6 +1,6 @@
 # Task: Trip Day Map View with Transit Times
 
-Status: reviewing
+Status: done
 
 Track: A
 Track reason: new UI surface — Leaflet map panel with custom typed markers, polyline routing overlay, and parallel-attraction conflict picker; no existing pattern
@@ -63,3 +63,7 @@ A per-day map view inside (or alongside) the CalendarSection that plots all sche
 - Files modified: `src/app/trips/[id]/CalendarSection.tsx`, `src/app/trips/[id]/CalendarSection.module.css`
 - Deviations from brief: none — all specs implemented as described. Note: `renderToStaticMarkup` from `react-dom/server` is used for icon serialization inside the `ssr: false` dynamic component; if this causes a build error, fall back to a plain numbered circle (remove the `renderToStaticMarkup` call and `iconSvg` string, relying on the order badge alone for route identification).
 - New design tokens used: none
+
+
+## Completion Summary
+Day map view shipped inside the CalendarSection card: collapsible via a Map toggle button, per-day tab selector, custom typed DivIcon markers with route-order badges, straight-line polylines with transit time labels, conflict picker for parallel attractions, and unmapped attraction list. Per-leg travel mode selector (walk/car/transit) added as a follow-on task. Confirmed by user 2026-06-29.

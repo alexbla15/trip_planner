@@ -1,13 +1,13 @@
 # Goal: Calendar Intelligence
 
-Status: in progress
+Status: done
 
 Enriching the trip itinerary calendar with spatial awareness (map view + transit times) and scheduling intelligence (conflict & hours alerts).
 
 ## Tasks
-- [ ] .claude/tasks/trip-day-map-view.md
-- [ ] .claude/tasks/map-travel-mode-selector.md
-- [ ] .claude/tasks/calendar-conflict-alerts.md
+- [x] .claude/tasks/trip-day-map-view.done.md
+- [x] .claude/tasks/map-travel-mode-selector.done.md
+- [x] .claude/tasks/calendar-conflict-alerts.done.md
 
 ## Plan
 1. **Trip day map view** — biggest feature; spatial overview + transit time estimates
