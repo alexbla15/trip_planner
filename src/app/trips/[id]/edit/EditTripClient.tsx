@@ -52,13 +52,17 @@ const CURRENCIES = [
 ];
 
 const MOOD_TAGS = [
-  "Hidden Gems",
-  "Instagrammable",
   "Vibrant Nightlife",
   "Cultural Heritage",
   "Adventure",
   "Beach Life",
   "Food & Wine",
+  "Luxury",
+  "Relaxation & Wellness",
+  "Couples & Romantic",
+  "Family",
+  "Backpacking & Budget",
+  "Cruises",
 ];
 
 const NOTES_MAX = 500;

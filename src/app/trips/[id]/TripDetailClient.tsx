@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ChevronLeft,
+  ChevronRight,
   Calendar,
   Globe,
   DollarSign,
@@ -24,6 +25,7 @@ import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
 import { DEFAULT_OPENING_HOURS } from "@/components/NewAttractionModal/attraction.constants";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDisplayDate } from "@/lib/formatDate";
+import { currencySymbol } from "@/lib/formatCurrency";
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
 import type {
@@ -47,6 +49,8 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
 
   const [attractions, setAttractions] = useState<Attraction[]>([]);
   const [attractionsLoading, setAttractionsLoading] = useState(false);
+
+  const [page, setPage] = useState(1);
 
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -186,7 +190,18 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
       });
       if (res.ok) {
         const updated = (await res.json()) as Attraction;
-        setAttractions((prev) => prev.map((a) => (a._id === updated._id ? updated : a)));
+        setAttractions((prev) =>
+          prev.map((a) => {
+            if (a._id !== updated._id) return a;
+            return {
+              ...updated,
+              plannedDate: a.plannedDate,
+              plannedTime: a.plannedTime,
+              actualDurationValue: a.actualDurationValue,
+              actualDurationUnit: a.actualDurationUnit,
+            };
+          })
+        );
       }
     } catch {
       // Silent — stale data remains until next page load
@@ -197,6 +212,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     // Optimistic update
     const snapshot = attractions;
     setAttractions((prev) => prev.filter((a) => a._id !== attractionId));
+    setPage((p) => Math.min(p, Math.max(1, Math.ceil((attractions.length - 1) / PAGE_SIZE))));
 
     try {
       const res = await fetch(`/api/attractions/${attractionId}`, {
@@ -221,6 +237,10 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
 
   const { name, country, coverImage, startDate, endDate, moods, budget, currency } = trip;
   const isOwner = !!authUser && authUser._id === trip.ownerId;
+
+  const PAGE_SIZE = 10;
+  const totalPages = Math.ceil(attractions.length / PAGE_SIZE);
+  const paginatedAttractions = attractions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <>
@@ -290,7 +310,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                     Budget
                   </dt>
                   <dd className={styles.infoValue}>
-                    {currency && <span className={styles.currencyBadge}>{currency}</span>}
+                    {currency && <span className={styles.currencyBadge}>{currencySymbol(currency)}</span>}
                     {budget.toLocaleString()}
                   </dd>
                 </div>
@@ -334,8 +354,9 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                 </p>
               </div>
             ) : (
+              <>
               <ul className={styles.attractionList} aria-label="Attraction list">
-                {attractions.map((attraction) => {
+                {paginatedAttractions.map((attraction) => {
                   const firstType = attraction.types[0] as AttractionType | undefined;
                   const icon = firstType ? ICONS[firstType] : null;
 
@@ -404,6 +425,38 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                   );
                 })}
               </ul>
+              {totalPages > 1 && (
+                <div className={styles.pagination}>
+                  <button
+                    type="button"
+                    className={`${styles.paginationBtn} ${page === 1 ? styles.paginationBtnDisabled : ""}`}
+                    onClick={() => setPage((p) => p - 1)}
+                    disabled={page === 1}
+                    aria-label="Go to previous page"
+                  >
+                    <ChevronLeft size={14} aria-hidden="true" />
+                    Previous
+                  </button>
+                  <span
+                    className={styles.paginationInfo}
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
+                    Page {page} of {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    className={`${styles.paginationBtn} ${page === totalPages ? styles.paginationBtnDisabled : ""}`}
+                    onClick={() => setPage((p) => p + 1)}
+                    disabled={page === totalPages}
+                    aria-label="Go to next page"
+                  >
+                    Next
+                    <ChevronRight size={14} aria-hidden="true" />
+                  </button>
+                </div>
+              )}
+              </>
             )}
           </div>
         </div>

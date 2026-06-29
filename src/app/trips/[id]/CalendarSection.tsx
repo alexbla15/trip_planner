@@ -4,21 +4,27 @@ import { useState, useEffect, useMemo } from "react";
 import { Calendar, Search, X, Clock, Save, Loader2 } from "lucide-react";
 import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
 import type { AttractionType } from "@/components/NewAttractionModal/attraction.types";
+import { currencySymbol } from "@/lib/formatCurrency";
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
 import styles from "./CalendarSection.module.css";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const TIME_START  = 7;
-const TIME_END    = 23;
-const SLOT_HEIGHT = 60;     // px per hour
-const MIN_CARD_H  = 20;
+const DEFAULT_START = 7;
+const DEFAULT_END   = 23;
+const SLOT_HEIGHT   = 60;     // px per hour
+const MIN_CARD_H    = 20;
 
-const HOUR_SLOTS = Array.from({ length: TIME_END - TIME_START }, (_, i) => {
-  const h = TIME_START + i;
-  return `${String(h).padStart(2, "0")}:00`;
-});
+/** Hour options for the day-range selects */
+const ALL_HOURS = Array.from({ length: 25 }, (_, i) => i); // 0..24
+
+function makeHourSlots(start: number, end: number): string[] {
+  return Array.from({ length: end - start }, (_, i) => {
+    const h = start + i;
+    return `${String(h).padStart(2, "0")}:00`;
+  });
+}
 
 /** Color per attraction type — same palette as analytics donut chart */
 const TYPE_COLORS: Record<string, string> = {
@@ -62,9 +68,9 @@ function formatDayLabel(iso: string): string {
 }
 
 /** px from timeline top for a "HH:MM" string — supports minutes */
-function slotTop(time: string): number {
+function slotTop(time: string, startHour: number): number {
   const [h, m] = time.split(":").map(Number);
-  return ((h - TIME_START) + (m || 0) / 60) * SLOT_HEIGHT;
+  return ((h - startHour) + (m || 0) / 60) * SLOT_HEIGHT;
 }
 
 /** Card height in px from duration */
@@ -153,7 +159,7 @@ function findEarliestFreeSlot(timedOnDay: Attraction[], durationMins: number): s
     .map((a) => ({ start: timeToMins(a.plannedTime!), end: endMins(a) }))
     .sort((a, b) => a.start - b.start);
 
-  let candidate = TIME_START * 60; // start at 07:00
+  let candidate = DEFAULT_START * 60; // start at 07:00
 
   for (const ev of events) {
     // If the new block fits before this event, stop
@@ -163,7 +169,7 @@ function findEarliestFreeSlot(timedOnDay: Attraction[], durationMins: number): s
   }
 
   // Clamp to within the visible range
-  candidate = Math.min(candidate, (TIME_END - 1) * 60);
+  candidate = Math.min(candidate, (DEFAULT_END - 1) * 60);
 
   const h = Math.floor(candidate / 60);
   const m = candidate % 60;
@@ -179,12 +185,16 @@ function dayColumnWidth(maxOverlap: number): number {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-function calcTotalMinutes(items: Attraction[]): number {
-  return items.reduce((sum, a) => {
-    const val = parseFloat(a.actualDurationValue ?? "");
-    if (isNaN(val)) return sum;
-    return sum + (a.actualDurationUnit === "hours" ? val * 60 : val);
-  }, 0);
+/**
+ * Fix #2 — span from earliest start to latest end across timed attractions.
+ * e.g. 9:00–11:00 and 13:00–14:30 → span = 14:30−9:00 = 5.5h, not 2+1.5=3.5h.
+ */
+function calcDaySpanMinutes(timedItems: Attraction[]): number {
+  const timed = timedItems.filter((a) => !!a.plannedTime);
+  if (timed.length === 0) return 0;
+  const earliest = Math.min(...timed.map((a) => timeToMins(a.plannedTime!)));
+  const latest   = Math.max(...timed.map((a) => endMins(a)));
+  return Math.max(0, latest - earliest);
 }
 
 function calcSpend(items: Attraction[]): number {
@@ -223,19 +233,26 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   const [pending, setPending]     = useState<Map<string, Partial<Attraction>>>(new Map());
   const [saving, setSaving]       = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [savedOk, setSavedOk]     = useState(false);
   const [popup, setPopup]         = useState<PopupState | null>(null);
+
+  // Day-range controls (view only — persisted locally)
+  const [dayStart, setDayStart]   = useState(DEFAULT_START);
+  const [dayEnd, setDayEnd]       = useState(DEFAULT_END);
 
   // Sidebar
   const [filter, setFilter]       = useState<SidebarFilter>("unscheduled");
   const [search, setSearch]       = useState("");
 
+  // Sync local state whenever the parent re-fetches / updates attractions
   useEffect(() => { setLocal(attractions); }, [attractions]);
 
-  const days       = trip.startDate && trip.endDate ? getTripDays(trip.startDate, trip.endDate) : [];
-  const scheduled  = local.filter((a) => !!a.plannedDate);
+  const days        = trip.startDate && trip.endDate ? getTripDays(trip.startDate, trip.endDate) : [];
+  const scheduled   = local.filter((a) => !!a.plannedDate);
   const unscheduled = local.filter((a) => !a.plannedDate);
-  const totalMins  = calcTotalMinutes(scheduled);
-  const totalSpend = calcSpend(scheduled);
+  const totalMins   = calcDaySpanMinutes(scheduled.filter((a) => !!a.plannedTime));
+  const totalSpend  = calcSpend(scheduled);
+  const hourSlots   = makeHourSlots(dayStart, dayEnd);
 
   const sidebarList = useMemo(() => {
     let list = local;
@@ -269,15 +286,30 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
     onAttractionsChange(updated);
   }
 
-  // ── Change 3: Batch save ────────────────────────────────────────────────────
+  // ── Batch save (Fix #1) ─────────────────────────────────────────────────────
 
   async function handleSaveAll() {
-    if (pending.size === 0) return;
+    // Guard: nothing pending
+    if (pending.size === 0) {
+      setSaveError("No unsaved changes.");
+      return;
+    }
+    // Guard: no token
+    if (!token) {
+      setSaveError("Not authenticated — please refresh the page.");
+      return;
+    }
     setSaving(true);
     setSaveError("");
+    setSavedOk(false);
     try {
-      await Promise.all([...pending.entries()].map(([id, patch]) => putOne(id, patch)));
+      await Promise.all(
+        [...pending.entries()].map(([id, patch]) => putOne(id, patch))
+      );
       setPending(new Map());
+      setSavedOk(true);
+      // Auto-clear success feedback after 3s
+      setTimeout(() => setSavedOk(false), 3000);
     } catch (e) {
       setSaveError((e as Error).message);
     } finally {
@@ -352,14 +384,24 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
 
   const hasPending = pending.size > 0;
 
+  const headerProps = {
+    totalMins, totalSpend, trip, isOwner,
+    hasPending, saving, savedOk,
+    dayStart, dayEnd,
+    onSave: handleSaveAll,
+    onDayStartChange: setDayStart,
+    onDayEndChange: setDayEnd,
+  };
+
   if (attractions.length === 0) {
     return (
       <div className={styles.card}>
-        <Header totalMins={totalMins} totalSpend={totalSpend} trip={trip}
-          hasPending={false} saving={false} onSave={() => {}} />
+        <Header {...headerProps} hasPending={false} saving={false} savedOk={false} onSave={() => {}} />
         <div className={styles.emptyState}>
           <Calendar size={36} className={styles.emptyIcon} aria-hidden="true" />
-          <p className={styles.emptyText}>Add attractions to start planning your itinerary.</p>
+          <p className={styles.emptyText}>
+            {isOwner ? "Add attractions to start planning your itinerary." : "No itinerary scheduled yet."}
+          </p>
         </div>
       </div>
     );
@@ -368,17 +410,16 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   return (
     <>
       <div className={styles.card}>
-        <Header totalMins={totalMins} totalSpend={totalSpend} trip={trip}
-          hasPending={hasPending} saving={saving} onSave={handleSaveAll} />
+        <Header {...headerProps} />
 
         {saveError && <p className={styles.saveError} role="alert">{saveError}</p>}
-        {hasPending && !saving && (
+        {isOwner && hasPending && !saving && (
           <p className={styles.pendingHint}>{pending.size} unsaved change{pending.size > 1 ? "s" : ""} — click Save to persist.</p>
         )}
 
         <div className={styles.calendarBody}>
-          {/* ── Sidebar ── */}
-          <div className={styles.sidebar}>
+          {/* ── Sidebar — OWNER ONLY (Fix: read-only mode hides picker) ── */}
+          {isOwner && <div className={styles.sidebar}>
             <div className={styles.searchWrapper}>
               <Search size={13} className={styles.searchIcon} aria-hidden="true" />
               <input type="search" className={styles.searchInput}
@@ -446,15 +487,15 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                 );
               })}
             </div>
-          </div>
+          </div>}
 
-          {/* ── Day columns ── */}
+          {/* ── Day columns (shown to everyone) ── */}
           <div className={styles.dayColumnsWrapper} role="region" aria-label="Itinerary calendar">
             <div className={styles.dayColumns}>
               {days.map((dayIso) => {
                 const dayAttractions = local.filter((a) => a.plannedDate === dayIso);
                 const untimed = dayAttractions.filter((a) => !a.plannedTime);
-                const dayMins = calcTotalMinutes(dayAttractions);
+                const dayMins = calcDaySpanMinutes(dayAttractions.filter((a) => !!a.plannedTime));
                 const isOverloaded = dayMins > 480;
                 const dayLabel = formatDayLabel(dayIso);
 
@@ -476,11 +517,12 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                       </span>
                     </div>
 
-                    {/* Timeline */}
+                    {/* Timeline — dynamic hour range */}
                     <div className={styles.timeline}
-                      style={{ ["--slot-height" as string]: `${SLOT_HEIGHT}px`, ["--num-slots" as string]: String(TIME_END - TIME_START) }}>
-                      {HOUR_SLOTS.map((slot) => (
-                        <div key={slot} className={styles.hourGuide}>
+                      style={{ ["--slot-height" as string]: `${SLOT_HEIGHT}px`, ["--num-slots" as string]: String(dayEnd - dayStart) }}>
+                      {hourSlots.map((slot, idx) => (
+                        <div key={slot} className={styles.hourGuide}
+                          style={{ ["--guide-idx" as string]: String(idx) }}>
                           <span className={styles.timeLabel}>{slot}</span>
                           <div className={styles.hourLine} />
                         </div>
@@ -489,7 +531,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                       {/* Side-by-side overlap layout */}
                       {layout.map(({ attraction: a, col, numCols }) => {
                         if (!a.plannedTime) return null;
-                        const top       = slotTop(a.plannedTime);
+                        const top       = slotTop(a.plannedTime, dayStart);
                         const height    = cardPx(a);
                         const color     = typeColor(a.types);
                         const icon      = ICONS[a.types?.[0] as AttractionType];
@@ -647,38 +689,84 @@ interface HeaderProps {
   totalMins: number;
   totalSpend: number;
   trip: Trip;
+  isOwner: boolean;
   hasPending: boolean;
   saving: boolean;
+  savedOk: boolean;
+  dayStart: number;
+  dayEnd: number;
   onSave: () => void;
+  onDayStartChange: (h: number) => void;
+  onDayEndChange: (h: number) => void;
 }
 
-function Header({ totalMins, totalSpend, trip, hasPending, saving, onSave }: HeaderProps) {
+function Header({
+  totalMins, totalSpend, trip, isOwner,
+  hasPending, saving, savedOk,
+  dayStart, dayEnd,
+  onSave, onDayStartChange, onDayEndChange,
+}: HeaderProps) {
   return (
     <div className={styles.sectionHeadingRow}>
       <div className={styles.sectionIconCircle}><Calendar size={18} aria-hidden="true" /></div>
       <h2 className={styles.sectionHeading}>Trip Itinerary</h2>
+
+      {/* Day time range controls */}
+      <div className={styles.rangeControls}>
+        <label className={styles.rangeLabel} htmlFor="day-start">From</label>
+        <select id="day-start" className={styles.rangeSelect}
+          value={dayStart}
+          onChange={(e) => onDayStartChange(Number(e.target.value))}>
+          {ALL_HOURS.filter(h => h < dayEnd).map(h => (
+            <option key={h} value={h}>{String(h).padStart(2,"0")}:00</option>
+          ))}
+        </select>
+        <label className={styles.rangeLabel} htmlFor="day-end">To</label>
+        <select id="day-end" className={styles.rangeSelect}
+          value={dayEnd}
+          onChange={(e) => onDayEndChange(Number(e.target.value))}>
+          {ALL_HOURS.filter(h => h > dayStart).map(h => (
+            <option key={h} value={h}>{String(h).padStart(2,"0")}:00</option>
+          ))}
+        </select>
+      </div>
+
       <div className={styles.summaryBadges}>
-        <span className={styles.summaryBadge}>
-          <Clock size={12} aria-hidden="true" />
-          {fmt(totalMins / 60)}h planned
-        </span>
-        {trip.budget ? (
-          <span className={`${styles.summaryBadge} ${totalSpend > trip.budget ? styles.budgetOver : ""}`}>
-            {trip.currency ?? "$"}{totalSpend.toFixed(0)} / {trip.currency ?? "$"}{trip.budget.toLocaleString()}
+        {totalMins > 0 && (
+          <span className={styles.summaryBadge}>
+            <Clock size={12} aria-hidden="true" />
+            {fmt(totalMins / 60)}h span
           </span>
+        )}
+        {trip.budget ? (
+          <div className={`${styles.budgetWidget} ${totalSpend > trip.budget ? styles.budgetWidgetOver : ""}`}>
+            <div className={styles.budgetWidgetRow}>
+              <span className={styles.budgetSpent}>{currencySymbol(trip.currency ?? "USD")}{totalSpend.toLocaleString()}</span>
+              <span className={styles.budgetOf}>of {currencySymbol(trip.currency ?? "USD")}{trip.budget.toLocaleString()}</span>
+            </div>
+            <div className={styles.budgetTrack}>
+              <div className={styles.budgetFill}
+                style={{ ["--fill" as string]: `${Math.min((totalSpend / trip.budget) * 100, 100).toFixed(1)}%` }} />
+            </div>
+          </div>
         ) : null}
-        {/* Change 3: Save button */}
-        <button
-          type="button"
-          className={`${styles.saveBtn} ${hasPending ? styles.saveBtnActive : ""}`}
-          onClick={onSave}
-          disabled={!hasPending || saving}
-          aria-disabled={!hasPending || saving}
-        >
-          {saving
-            ? <><Loader2 size={13} className={styles.spinnerIcon} aria-hidden="true" /> Saving…</>
-            : <><Save size={13} aria-hidden="true" /> {hasPending ? "Save *" : "Save"}</>}
-        </button>
+
+        {/* Save button — OWNER ONLY (Fix: read-only hides save) */}
+        {isOwner && (
+          <button
+            type="button"
+            className={`${styles.saveBtn} ${hasPending ? styles.saveBtnActive : ""} ${savedOk ? styles.saveBtnOk : ""}`}
+            onClick={onSave}
+            disabled={saving}
+            aria-label={hasPending ? "Save itinerary changes" : "No unsaved changes"}
+          >
+            {saving
+              ? <><Loader2 size={13} className={styles.spinnerIcon} aria-hidden="true" /> Saving…</>
+              : savedOk
+                ? <><Save size={13} aria-hidden="true" /> Saved ✓</>
+                : <><Save size={13} aria-hidden="true" /> {hasPending ? "Save *" : "Save"}</>}
+          </button>
+        )}
       </div>
     </div>
   );

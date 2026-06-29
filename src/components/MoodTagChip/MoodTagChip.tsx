@@ -3,7 +3,7 @@ import { TAG_CLASS_MAP, TAG_ICON_MAP } from "./MoodTagChip.constants";
 import type { MoodTagChipProps } from "./MoodTagChip.types";
 
 export function MoodTagChip({ tag, className }: MoodTagChipProps) {
-  const tagClass = TAG_CLASS_MAP[tag] ?? "tagHiddenGems";
+  const tagClass = TAG_CLASS_MAP[tag] ?? "tagLuxury";
   const Icon = TAG_ICON_MAP[tag];
 
   return (

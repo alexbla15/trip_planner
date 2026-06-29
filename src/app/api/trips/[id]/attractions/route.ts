@@ -57,9 +57,11 @@ export async function POST(req: Request, { params }: RouteContext) {
       price?: number | null;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       openingHours?: any;
+      notes?: string;
+      photoUrl?: string;
     };
 
-    const { name, country, city, coordinates, types, durationValue, durationUnit, price, openingHours } = body;
+    const { name, country, city, coordinates, types, durationValue, durationUnit, price, openingHours, notes, photoUrl } = body;
 
     if (!name?.trim() || !country?.trim() || !city?.trim()) {
       return NextResponse.json(
@@ -80,6 +82,8 @@ export async function POST(req: Request, { params }: RouteContext) {
       durationUnit: durationUnit || undefined,
       price: price ?? null,
       openingHours: openingHours ?? undefined,
+      notes: notes || undefined,
+      photoUrl: photoUrl || undefined,
     });
 
     // Push the new attraction id onto the trip

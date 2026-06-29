@@ -1,6 +1,6 @@
 # Task: Trip Calendar Wizard
 
-Status: reviewing
+Status: done
 
 Track: A
 Track reason: major new UI surface — a multi-day calendar planner that distributes attractions across trip dates; no existing pattern
@@ -333,3 +333,5 @@ Over budget: colour `var(--color-error)`. Under: `var(--color-text-tertiary)`.
 - Unassign button: `aria-label={`Remove ${attractionName} from ${dayLabel}`}`
 - Day columns wrapper: `aria-label="Itinerary calendar"`, `role="region"`
 - Planned duration `<input>`: `aria-label={`Planned duration value for ${attractionName}`}`
+## Completion Summary
+Implemented: CalendarSection component with sidebar filtering/search, day-column timeline, overlap-aware layout, batch-save, and popup editor for time/duration. Attraction model extended with plannedDate, plannedTime, actualDurationValue, actualDurationUnit. PUT route updated to accept all calendar fields. Confirmed complete by user — superseded by trip-polish-sprint goal (2026-06-29).

@@ -34,6 +34,42 @@
   margin: 0;
 }
 
+/* Day time range controls */
+.rangeControls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 12px;
+}
+
+.rangeLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.rangeSelect {
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--color-text-secondary);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--easing-out);
+}
+
+.rangeSelect:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
 .summaryBadges {
   display: flex;
   align-items: center;
@@ -63,6 +99,66 @@
 }
 
 .budgetOver { color: var(--color-error) !important; }
+
+/* Budget mini-widget in header */
+.budgetWidget {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-subtle);
+  min-width: 130px;
+}
+
+.budgetWidgetOver {
+  background: rgba(239, 68, 68, 0.06);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.budgetWidgetRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.budgetSpent {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.budgetWidgetOver .budgetSpent {
+  color: var(--color-error);
+}
+
+.budgetOf {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.budgetTrack {
+  width: 100%;
+  height: 4px;
+  background: var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.budgetFill {
+  height: 100%;
+  width: var(--fill, 0%);
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  transition: width 400ms var(--easing-out);
+}
+
+.budgetWidgetOver .budgetFill {
+  background: var(--color-error);
+}
 
 /* Change 3 — Save button */
 .saveBtn {
@@ -96,8 +192,18 @@
 }
 
 .saveBtn:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
+}
+
+.saveBtnOk {
+  border-color: var(--color-success);
+  color: var(--color-success);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.saveBtnOk:hover {
+  background: rgba(16, 185, 129, 0.15);
 }
 
 .saveBtn:focus-visible {
@@ -346,37 +452,21 @@
   position: relative;
   border: 1px solid var(--color-border-subtle);
   border-top: none;
-  /* Total height = number of hour slots × SLOT_HEIGHT */
-  height: calc(16 * var(--slot-height, 60px));
+  /* Height driven by --num-slots set on the element — works for any range */
+  height: calc(var(--num-slots, 16) * var(--slot-height, 60px));
   overflow: hidden;
 }
 
-/* Background hour grid lines */
+/* Each guide positions itself via --guide-idx, eliminating the nth-child limit */
 .hourGuide {
   position: absolute;
   left: 0;
   right: 0;
   height: var(--slot-height, 60px);
+  top: calc(var(--guide-idx, 0) * var(--slot-height, 60px));
   display: flex;
   align-items: flex-start;
 }
-
-.hourGuide:nth-child(1)  { top: calc(0  * var(--slot-height, 60px)); }
-.hourGuide:nth-child(2)  { top: calc(1  * var(--slot-height, 60px)); }
-.hourGuide:nth-child(3)  { top: calc(2  * var(--slot-height, 60px)); }
-.hourGuide:nth-child(4)  { top: calc(3  * var(--slot-height, 60px)); }
-.hourGuide:nth-child(5)  { top: calc(4  * var(--slot-height, 60px)); }
-.hourGuide:nth-child(6)  { top: calc(5  * var(--slot-height, 60px)); }
-.hourGuide:nth-child(7)  { top: calc(6  * var(--slot-height, 60px)); }
-.hourGuide:nth-child(8)  { top: calc(7  * var(--slot-height, 60px)); }
-.hourGuide:nth-child(9)  { top: calc(8  * var(--slot-height, 60px)); }
-.hourGuide:nth-child(10) { top: calc(9  * var(--slot-height, 60px)); }
-.hourGuide:nth-child(11) { top: calc(10 * var(--slot-height, 60px)); }
-.hourGuide:nth-child(12) { top: calc(11 * var(--slot-height, 60px)); }
-.hourGuide:nth-child(13) { top: calc(12 * var(--slot-height, 60px)); }
-.hourGuide:nth-child(14) { top: calc(13 * var(--slot-height, 60px)); }
-.hourGuide:nth-child(15) { top: calc(14 * var(--slot-height, 60px)); }
-.hourGuide:nth-child(16) { top: calc(15 * var(--slot-height, 60px)); }
 
 .timeLabel {
   width: 38px;
@@ -689,7 +779,7 @@
   top: var(--block-top, 0px);
   height: var(--block-height, 60px);
   z-index: 1;
-  border: none;
+  border: 1.5px solid rgba(255,255,255,0.35);
   background: var(--block-color, var(--color-primary));
   border-radius: var(--radius-sm);
   box-shadow: 0 1px 4px rgba(0,0,0,0.2);

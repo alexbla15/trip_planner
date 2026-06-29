@@ -1,22 +1,33 @@
-import { Gem, Camera, Moon, Landmark, Mountain, Waves, UtensilsCrossed } from "lucide-react";
+import {
+  Moon, Landmark, Mountain, Waves, UtensilsCrossed,
+  Gem, Sparkles, Heart, Users, Backpack, Anchor,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const TAG_CLASS_MAP: Record<string, string> = {
-  "Hidden Gems": "tagHiddenGems",
-  Instagrammable: "tagInstagrammable",
-  "Vibrant Nightlife": "tagVibrantNightlife",
-  "Cultural Heritage": "tagCulturalHeritage",
-  Adventure: "tagAdventure",
-  "Beach Life": "tagBeachLife",
-  "Food & Wine": "tagFoodWine",
+  "Vibrant Nightlife":    "tagVibrantNightlife",
+  "Cultural Heritage":    "tagCulturalHeritage",
+  "Adventure":            "tagAdventure",
+  "Beach Life":           "tagBeachLife",
+  "Food & Wine":          "tagFoodWine",
+  "Luxury":               "tagLuxury",
+  "Relaxation & Wellness":"tagRelaxationWellness",
+  "Couples & Romantic":   "tagCouplesRomantic",
+  "Family":               "tagFamily",
+  "Backpacking & Budget": "tagBackpackingBudget",
+  "Cruises":              "tagCruises",
 };
 
 export const TAG_ICON_MAP: Record<string, LucideIcon> = {
-  "Hidden Gems": Gem,
-  Instagrammable: Camera,
-  "Vibrant Nightlife": Moon,
-  "Cultural Heritage": Landmark,
-  Adventure: Mountain,
-  "Beach Life": Waves,
-  "Food & Wine": UtensilsCrossed,
+  "Vibrant Nightlife":    Moon,
+  "Cultural Heritage":    Landmark,
+  "Adventure":            Mountain,
+  "Beach Life":           Waves,
+  "Food & Wine":          UtensilsCrossed,
+  "Luxury":               Gem,
+  "Relaxation & Wellness":Sparkles,
+  "Couples & Romantic":   Heart,
+  "Family":               Users,
+  "Backpacking & Budget": Backpack,
+  "Cruises":              Anchor,
 };

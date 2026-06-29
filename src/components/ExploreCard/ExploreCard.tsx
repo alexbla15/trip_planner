@@ -10,7 +10,8 @@ function getInitial(username: string): string {
 }
 
 export function ExploreCard({ item }: ExploreCardProps) {
-  const { id, destination, coverImage, tag, user, likes } = item;
+  const { id, destination, coverImage, tag, tags, user, likes } = item;
+  const displayTags = tags?.length ? tags : [tag];
 
   return (
     <Link href={`/trips/${id}`} className={styles.card}>
@@ -23,7 +24,9 @@ export function ExploreCard({ item }: ExploreCardProps) {
           sizes="(max-width: 640px) calc(100vw - 32px), (max-width: 1024px) calc(50vw - 28px), calc(33vw - 24px)"
         />
         <div className={styles.tagBadge}>
-          <MoodTagChip tag={tag} />
+          {displayTags.map((t) => (
+            <MoodTagChip key={t} tag={t} />
+          ))}
         </div>
         <div className={styles.attribution}>
           <div className={styles.avatarCircle} aria-hidden="true">

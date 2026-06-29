@@ -27,20 +27,28 @@ export interface ExploreItem {
 }
 
 export type MoodTag =
-  | "Hidden Gems"
-  | "Instagrammable"
   | "Vibrant Nightlife"
   | "Cultural Heritage"
   | "Adventure"
   | "Beach Life"
-  | "Food & Wine";
+  | "Food & Wine"
+  | "Luxury"
+  | "Relaxation & Wellness"
+  | "Couples & Romantic"
+  | "Family"
+  | "Backpacking & Budget"
+  | "Cruises";
 
 export const ALL_MOOD_TAGS: MoodTag[] = [
-  "Hidden Gems",
-  "Instagrammable",
   "Vibrant Nightlife",
   "Cultural Heritage",
   "Adventure",
   "Beach Life",
   "Food & Wine",
+  "Luxury",
+  "Relaxation & Wellness",
+  "Couples & Romantic",
+  "Family",
+  "Backpacking & Budget",
+  "Cruises",
 ];

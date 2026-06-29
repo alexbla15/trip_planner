@@ -1,19 +1,26 @@
 "use client";
 
-import { Gem, Camera, Disc3, Landmark, Mountain, Waves, UtensilsCrossed } from "lucide-react";
+import {
+  Moon, Landmark, Mountain, Waves, UtensilsCrossed,
+  Gem, Sparkles, Heart, Users, Backpack, Anchor,
+} from "lucide-react";
 import { TAG_CLASS_MAP } from "@/components/MoodTagChip/MoodTagChip.constants";
 import styles from "./MoodTagButton.module.css";
 
 const ICON_SIZE = 13;
 
 const MOOD_ICONS: Record<string, React.ReactNode> = {
-  "Hidden Gems":      <Gem size={ICON_SIZE} aria-hidden="true" />,
-  "Instagrammable":   <Camera size={ICON_SIZE} aria-hidden="true" />,
-  "Vibrant Nightlife":<Disc3 size={ICON_SIZE} aria-hidden="true" />,
-  "Cultural Heritage":<Landmark size={ICON_SIZE} aria-hidden="true" />,
-  "Adventure":        <Mountain size={ICON_SIZE} aria-hidden="true" />,
-  "Beach Life":       <Waves size={ICON_SIZE} aria-hidden="true" />,
-  "Food & Wine":      <UtensilsCrossed size={ICON_SIZE} aria-hidden="true" />,
+  "Vibrant Nightlife":    <Moon size={ICON_SIZE} aria-hidden="true" />,
+  "Cultural Heritage":    <Landmark size={ICON_SIZE} aria-hidden="true" />,
+  "Adventure":            <Mountain size={ICON_SIZE} aria-hidden="true" />,
+  "Beach Life":           <Waves size={ICON_SIZE} aria-hidden="true" />,
+  "Food & Wine":          <UtensilsCrossed size={ICON_SIZE} aria-hidden="true" />,
+  "Luxury":               <Gem size={ICON_SIZE} aria-hidden="true" />,
+  "Relaxation & Wellness":<Sparkles size={ICON_SIZE} aria-hidden="true" />,
+  "Couples & Romantic":   <Heart size={ICON_SIZE} aria-hidden="true" />,
+  "Family":               <Users size={ICON_SIZE} aria-hidden="true" />,
+  "Backpacking & Budget": <Backpack size={ICON_SIZE} aria-hidden="true" />,
+  "Cruises":              <Anchor size={ICON_SIZE} aria-hidden="true" />,
 };
 
 interface MoodTagButtonProps {
@@ -23,7 +30,7 @@ interface MoodTagButtonProps {
 }
 
 export function MoodTagButton({ tag, selected, onToggle }: MoodTagButtonProps) {
-  const tagClass = TAG_CLASS_MAP[tag] ?? "tagHiddenGems";
+  const tagClass = TAG_CLASS_MAP[tag] ?? "tagLuxury";
 
   return (
     <button

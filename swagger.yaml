@@ -246,6 +246,34 @@ components:
             Fri: { $ref: '#/components/schemas/OpeningHoursDay' }
             Sat: { $ref: '#/components/schemas/OpeningHoursDay' }
             Sun: { $ref: '#/components/schemas/OpeningHoursDay' }
+        notes:
+          type: string
+          nullable: true
+          example: Book tickets in advance.
+        photoUrl:
+          type: string
+          nullable: true
+          example: https://example.com/photo.jpg
+        plannedDate:
+          type: string
+          nullable: true
+          description: ISO date the traveler plans to visit (YYYY-MM-DD), set by the calendar wizard.
+          example: "2025-07-15"
+        plannedTime:
+          type: string
+          nullable: true
+          description: Start time within plannedDate (HH:MM), e.g. 09:30.
+          example: "09:30"
+        actualDurationValue:
+          type: string
+          nullable: true
+          description: Traveler's planned duration (distinct from the recommended durationValue).
+          example: "2.5"
+        actualDurationUnit:
+          type: string
+          nullable: true
+          enum: [minutes, hours]
+          example: hours
         createdAt:
           type: string
           format: date-time

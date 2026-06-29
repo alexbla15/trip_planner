@@ -9,9 +9,16 @@ interface RouteContext {
 }
 
 export async function PUT(req: Request, { params }: RouteContext) {
+  // Separate auth errors from DB/validation errors so we get proper HTTP codes
+  let payload: ReturnType<typeof getUserFromRequest>;
+  try {
+    payload = getUserFromRequest(req);
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { id } = await params;
-    const payload = getUserFromRequest(req);
     await dbConnect();
 
     const attraction = await Attraction.findOne({ _id: id, ownerId: payload.userId });
@@ -19,40 +26,48 @@ export async function PUT(req: Request, { params }: RouteContext) {
       return NextResponse.json({ error: "Attraction not found" }, { status: 404 });
     }
 
-    const body = await req.json();
-    const { name, country, city, coordinates, types, durationValue, durationUnit, price, openingHours, notes, photoUrl, plannedDate, plannedTime, actualDurationValue, actualDurationUnit } =
-      body as Record<string, unknown>;
+    const body = await req.json() as Record<string, unknown>;
 
-    if (name) attraction.name = name as string;
-    if (country) attraction.country = country as string;
-    if (city) attraction.city = city as string;
-    if (coordinates !== undefined) attraction.coordinates = coordinates as { lat: number; lng: number } | null;
-    if (types) attraction.types = types as string[];
-    if (durationValue !== undefined) attraction.durationValue = durationValue as string;
-    if (durationUnit !== undefined) attraction.durationUnit = durationUnit as "minutes" | "hours";
-    if (price !== undefined) attraction.price = price as number | null;
-    if (openingHours !== undefined) {
+    // Core fields
+    if (body.name)                    attraction.name          = body.name as string;
+    if (body.country)                 attraction.country       = body.country as string;
+    if (body.city)                    attraction.city          = body.city as string;
+    if (body.coordinates !== undefined) attraction.coordinates = body.coordinates as { lat: number; lng: number } | null;
+    if (body.types)                   attraction.types         = body.types as string[];
+    if (body.durationValue !== undefined) attraction.durationValue = body.durationValue as string;
+    if (body.durationUnit  !== undefined) attraction.durationUnit  = body.durationUnit  as "minutes" | "hours";
+    if (body.price !== undefined)     attraction.price         = body.price as number | null;
+    if (body.openingHours !== undefined) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      attraction.openingHours = openingHours as any;
+      attraction.openingHours = body.openingHours as any;
     }
-    if (notes !== undefined) attraction.notes = notes as string;
-    if (photoUrl !== undefined) attraction.photoUrl = photoUrl as string;
-    if (plannedDate !== undefined) attraction.plannedDate = plannedDate as string | null;
-    if (plannedTime !== undefined) attraction.plannedTime = plannedTime as string | null;
-    if (actualDurationValue !== undefined) attraction.actualDurationValue = actualDurationValue as string;
-    if (actualDurationUnit !== undefined) attraction.actualDurationUnit = actualDurationUnit as "minutes" | "hours";
+    if (body.notes    !== undefined)  attraction.notes    = body.notes    as string;
+    if (body.photoUrl !== undefined)  attraction.photoUrl = body.photoUrl as string;
+
+    // Calendar / schedule fields
+    if (body.plannedDate !== undefined)        attraction.plannedDate        = body.plannedDate        as string | null;
+    if (body.plannedTime !== undefined)        attraction.plannedTime        = body.plannedTime        as string | null;
+    if (body.actualDurationValue !== undefined) attraction.actualDurationValue = body.actualDurationValue as string;
+    if (body.actualDurationUnit  !== undefined) attraction.actualDurationUnit  = body.actualDurationUnit  as "minutes" | "hours";
 
     await attraction.save();
     return NextResponse.json(formatAttraction(attraction));
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    console.error("[PUT /api/attractions/:id]", err);
+    return NextResponse.json({ error: "Failed to update attraction" }, { status: 500 });
   }
 }
 
 export async function DELETE(req: Request, { params }: RouteContext) {
+  let payload: ReturnType<typeof getUserFromRequest>;
+  try {
+    payload = getUserFromRequest(req);
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { id } = await params;
-    const payload = getUserFromRequest(req);
     await dbConnect();
 
     const attraction = await Attraction.findOne({ _id: id, ownerId: payload.userId });
@@ -61,17 +76,12 @@ export async function DELETE(req: Request, { params }: RouteContext) {
     }
 
     const tripId = attraction.tripId;
-
-    // Delete the attraction document
     await attraction.deleteOne();
-
-    // Clean up the reference in the parent trip
-    await Trip.findByIdAndUpdate(tripId, {
-      $pull: { attractionIds: id },
-    });
+    await Trip.findByIdAndUpdate(tripId, { $pull: { attractionIds: id } });
 
     return NextResponse.json({ message: "Attraction deleted" });
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    console.error("[DELETE /api/attractions/:id]", err);
+    return NextResponse.json({ error: "Failed to delete attraction" }, { status: 500 });
   }
 }

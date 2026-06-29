@@ -4,13 +4,17 @@ import { useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Globe,
-  Gem,
-  Camera,
   Moon,
   Landmark,
   Mountain,
   Waves,
   UtensilsCrossed,
+  Gem,
+  Sparkles,
+  Heart,
+  Users,
+  Backpack,
+  Anchor,
   Search,
   ChevronLeft,
   ChevronRight,
@@ -21,14 +25,18 @@ import styles from "./ExploreSection.module.css";
 import type { ExploreSectionProps } from "./ExploreSection.types";
 
 const TAG_ICONS: Record<string, LucideIcon> = {
-  All: Globe,
-  "Hidden Gems": Gem,
-  Instagrammable: Camera,
-  "Vibrant Nightlife": Moon,
-  "Cultural Heritage": Landmark,
-  Adventure: Mountain,
-  "Beach Life": Waves,
-  "Food & Wine": UtensilsCrossed,
+  All:                    Globe,
+  "Vibrant Nightlife":    Moon,
+  "Cultural Heritage":    Landmark,
+  "Adventure":            Mountain,
+  "Beach Life":           Waves,
+  "Food & Wine":          UtensilsCrossed,
+  "Luxury":               Gem,
+  "Relaxation & Wellness":Sparkles,
+  "Couples & Romantic":   Heart,
+  "Family":               Users,
+  "Backpacking & Budget": Backpack,
+  "Cruises":              Anchor,
 };
 
 const PAGE_SIZE = 6;

@@ -30,19 +30,27 @@
 }
 
 /* Per-tag colors */
-.tagHiddenGems    { background: #ecfdf5; color: #059669; }
-.tagInstagrammable { background: #fff1f2; color: #e11d48; }
-.tagVibrantNightlife { background: #f5f3ff; color: #7c3aed; }
-.tagCulturalHeritage { background: #fffbeb; color: #d97706; }
-.tagAdventure     { background: #fff7ed; color: #ea580c; }
-.tagBeachLife     { background: #ecfeff; color: #0891b2; }
-.tagFoodWine      { background: #fef2f2; color: #dc2626; }
+.tagVibrantNightlife  { background: #f5f3ff; color: #7c3aed; }
+.tagCulturalHeritage  { background: #fffbeb; color: #d97706; }
+.tagAdventure         { background: #fff7ed; color: #ea580c; }
+.tagBeachLife         { background: #ecfeff; color: #0891b2; }
+.tagFoodWine          { background: #fef2f2; color: #dc2626; }
+.tagLuxury            { background: #fefce8; color: #b45309; }
+.tagRelaxationWellness{ background: #f0fdfa; color: #0d9488; }
+.tagCouplesRomantic   { background: #fdf2f8; color: #db2777; }
+.tagFamily            { background: #eff6ff; color: #2563eb; }
+.tagBackpackingBudget { background: #f7fee7; color: #65a30d; }
+.tagCruises           { background: #eef2ff; color: #4f46e5; }
 
 /* Dark mode */
-:global([data-theme="dark"]) .tagHiddenGems    { background: #064e3b; color: #6ee7b7; }
-:global([data-theme="dark"]) .tagInstagrammable { background: #3b0a18; color: #fda4af; }
-:global([data-theme="dark"]) .tagVibrantNightlife { background: #2e1065; color: #c4b5fd; }
-:global([data-theme="dark"]) .tagCulturalHeritage { background: #431407; color: #fcd34d; }
-:global([data-theme="dark"]) .tagAdventure     { background: #431407; color: #fdba74; }
-:global([data-theme="dark"]) .tagBeachLife     { background: #083344; color: #67e8f9; }
-:global([data-theme="dark"]) .tagFoodWine      { background: #450a0a; color: #fca5a5; }
+:global([data-theme="dark"]) .tagVibrantNightlife  { background: #2e1065; color: #c4b5fd; }
+:global([data-theme="dark"]) .tagCulturalHeritage  { background: #431407; color: #fcd34d; }
+:global([data-theme="dark"]) .tagAdventure         { background: #431407; color: #fdba74; }
+:global([data-theme="dark"]) .tagBeachLife         { background: #083344; color: #67e8f9; }
+:global([data-theme="dark"]) .tagFoodWine          { background: #450a0a; color: #fca5a5; }
+:global([data-theme="dark"]) .tagLuxury            { background: #451a03; color: #fbbf24; }
+:global([data-theme="dark"]) .tagRelaxationWellness{ background: #042f2e; color: #5eead4; }
+:global([data-theme="dark"]) .tagCouplesRomantic   { background: #500724; color: #f9a8d4; }
+:global([data-theme="dark"]) .tagFamily            { background: #1e3a5f; color: #93c5fd; }
+:global([data-theme="dark"]) .tagBackpackingBudget { background: #1a2e05; color: #a3e635; }
+:global([data-theme="dark"]) .tagCruises           { background: #1e1b4b; color: #a5b4fc; }

@@ -16,8 +16,8 @@ export async function GET() {
       id: trip._id.toString(),
       destination: trip.name,
       coverImage: trip.coverImage as string,
-      tag: trip.moods?.[0] ?? "Hidden Gems",
-      tags: trip.moods?.length ? trip.moods : ["Hidden Gems"],
+      tag: trip.moods?.[0] ?? "Adventure",
+      tags: trip.moods?.length ? trip.moods : ["Adventure"],
       user: trip.ownerId.toString().slice(0, 8),
       likes: trip.attractionIds?.length ?? 0,
     }));
