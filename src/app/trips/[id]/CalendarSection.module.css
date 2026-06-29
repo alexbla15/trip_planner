@@ -1014,3 +1014,53 @@
 
 .popupApply:hover { background: var(--color-primary-dark); }
 .popupApply:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+/* ── Map toggle button ── */
+.mapToggleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--easing-out);
+  white-space: nowrap;
+}
+
+.mapToggleBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.mapToggleBtnActive {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.mapToggleBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Map panel section ── */
+.mapSection {
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: 20px;
+  margin-top: 20px;
+}
+
+.mapLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 360px;
+  color: var(--color-text-tertiary);
+}

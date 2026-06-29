@@ -1,20 +1,34 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Calendar, Search, X, Clock, Save, Loader2 } from "lucide-react";
+import dynamic from "next/dynamic";
+import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon } from "lucide-react";
 import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
 import type { AttractionType } from "@/components/NewAttractionModal/attraction.types";
 import { currencySymbol } from "@/lib/formatCurrency";
+import {
+  DEFAULT_DAY_START,
+  DEFAULT_DAY_END,
+  SLOT_HEIGHT_PX,
+  MIN_CARD_HEIGHT_PX,
+  MIN_BLOCK_WIDTH_PX,
+  MIN_OVERLAP_DURATION_MINS,
+} from "@/config/ui";
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
 import styles from "./CalendarSection.module.css";
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-const DEFAULT_START = 7;
-const DEFAULT_END   = 23;
-const SLOT_HEIGHT   = 60;     // px per hour
-const MIN_CARD_H    = 20;
+const TripDayMapWidget = dynamic(
+  () => import("./TripDayMapWidget").then((m) => ({ default: m.TripDayMapWidget })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className={styles.mapLoading}>
+        <Loader2 size={20} className={styles.spinnerIcon} aria-hidden="true" />
+      </div>
+    ),
+  }
+);
 
 /** Hour options for the day-range selects */
 const ALL_HOURS = Array.from({ length: 25 }, (_, i) => i); // 0..24
@@ -70,21 +84,20 @@ function formatDayLabel(iso: string): string {
 /** px from timeline top for a "HH:MM" string — supports minutes */
 function slotTop(time: string, startHour: number): number {
   const [h, m] = time.split(":").map(Number);
-  return ((h - startHour) + (m || 0) / 60) * SLOT_HEIGHT;
+  return ((h - startHour) + (m || 0) / 60) * SLOT_HEIGHT_PX;
 }
 
 /** Card height in px from duration */
 function cardPx(a: Attraction): number {
   const raw = parseFloat(a.actualDurationValue ?? a.durationValue ?? "");
-  if (isNaN(raw) || raw <= 0) return MIN_CARD_H;
+  if (isNaN(raw) || raw <= 0) return MIN_CARD_HEIGHT_PX;
   const unit = a.actualDurationUnit ?? a.durationUnit ?? "hours";
   const hours = unit === "minutes" ? raw / 60 : raw;
-  return Math.max(hours * SLOT_HEIGHT, MIN_CARD_H);
+  return Math.max(hours * SLOT_HEIGHT_PX, MIN_CARD_HEIGHT_PX);
 }
 
 // ── Overlap layout ────────────────────────────────────────────────────────────
 
-const MIN_BLOCK_W = 110; // px — minimum block width when side-by-side
 
 interface LayoutItem {
   attraction: Attraction;
@@ -104,7 +117,7 @@ function endMins(a: Attraction): number {
   const val   = parseFloat(a.actualDurationValue ?? a.durationValue ?? "0");
   const unit  = a.actualDurationUnit ?? a.durationUnit ?? "hours";
   const dur   = unit === "hours" ? val * 60 : val;
-  return start + Math.max(dur, 30); // min 30 min so tiny items still overlap
+  return start + Math.max(dur, MIN_OVERLAP_DURATION_MINS);
 }
 
 /**
@@ -159,7 +172,7 @@ function findEarliestFreeSlot(timedOnDay: Attraction[], durationMins: number): s
     .map((a) => ({ start: timeToMins(a.plannedTime!), end: endMins(a) }))
     .sort((a, b) => a.start - b.start);
 
-  let candidate = DEFAULT_START * 60; // start at 07:00
+  let candidate = DEFAULT_DAY_START * 60; // start at 07:00
 
   for (const ev of events) {
     // If the new block fits before this event, stop
@@ -169,7 +182,7 @@ function findEarliestFreeSlot(timedOnDay: Attraction[], durationMins: number): s
   }
 
   // Clamp to within the visible range
-  candidate = Math.min(candidate, (DEFAULT_END - 1) * 60);
+  candidate = Math.min(candidate, (DEFAULT_DAY_END - 1) * 60);
 
   const h = Math.floor(candidate / 60);
   const m = candidate % 60;
@@ -180,7 +193,7 @@ function findEarliestFreeSlot(timedOnDay: Attraction[], durationMins: number): s
 function dayColumnWidth(maxOverlap: number): number {
   const LABEL_W = 46; // px for time labels + divider
   const PAD_R   = 4;
-  return Math.max(200, LABEL_W + maxOverlap * MIN_BLOCK_W + PAD_R);
+  return Math.max(200, LABEL_W + maxOverlap * MIN_BLOCK_WIDTH_PX + PAD_R);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -236,9 +249,11 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   const [savedOk, setSavedOk]     = useState(false);
   const [popup, setPopup]         = useState<PopupState | null>(null);
 
+  const [showMap, setShowMap]      = useState(false);
+
   // Day-range controls (view only — persisted locally)
-  const [dayStart, setDayStart]   = useState(DEFAULT_START);
-  const [dayEnd, setDayEnd]       = useState(DEFAULT_END);
+  const [dayStart, setDayStart]   = useState(DEFAULT_DAY_START);
+  const [dayEnd, setDayEnd]       = useState(DEFAULT_DAY_END);
 
   // Sidebar
   const [filter, setFilter]       = useState<SidebarFilter>("unscheduled");
@@ -388,9 +403,11 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
     totalMins, totalSpend, trip, isOwner,
     hasPending, saving, savedOk,
     dayStart, dayEnd,
+    showMap,
     onSave: handleSaveAll,
     onDayStartChange: setDayStart,
     onDayEndChange: setDayEnd,
+    onToggleMap: () => setShowMap((v) => !v),
   };
 
   if (attractions.length === 0) {
@@ -519,7 +536,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
 
                     {/* Timeline — dynamic hour range */}
                     <div className={styles.timeline}
-                      style={{ ["--slot-height" as string]: `${SLOT_HEIGHT}px`, ["--num-slots" as string]: String(dayEnd - dayStart) }}>
+                      style={{ ["--slot-height" as string]: `${SLOT_HEIGHT_PX}px`, ["--num-slots" as string]: String(dayEnd - dayStart) }}>
                       {hourSlots.map((slot, idx) => (
                         <div key={slot} className={styles.hourGuide}
                           style={{ ["--guide-idx" as string]: String(idx) }}>
@@ -619,6 +636,12 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
             </div>
           </div>
         </div>
+
+        {showMap && (
+          <div className={styles.mapSection}>
+            <TripDayMapWidget trip={trip} attractions={local} />
+          </div>
+        )}
       </div>
 
       {/* Change 1: Edit popup — rendered outside card to avoid clipping */}
@@ -695,16 +718,19 @@ interface HeaderProps {
   savedOk: boolean;
   dayStart: number;
   dayEnd: number;
+  showMap: boolean;
   onSave: () => void;
   onDayStartChange: (h: number) => void;
   onDayEndChange: (h: number) => void;
+  onToggleMap: () => void;
 }
 
 function Header({
   totalMins, totalSpend, trip, isOwner,
   hasPending, saving, savedOk,
   dayStart, dayEnd,
-  onSave, onDayStartChange, onDayEndChange,
+  showMap,
+  onSave, onDayStartChange, onDayEndChange, onToggleMap,
 }: HeaderProps) {
   return (
     <div className={styles.sectionHeadingRow}>
@@ -750,6 +776,18 @@ function Header({
             </div>
           </div>
         ) : null}
+
+        {/* Map view toggle */}
+        <button
+          type="button"
+          className={`${styles.mapToggleBtn} ${showMap ? styles.mapToggleBtnActive : ""}`}
+          onClick={onToggleMap}
+          aria-pressed={showMap}
+          aria-label={showMap ? "Hide map view" : "Show map view"}
+        >
+          <MapIcon size={14} aria-hidden="true" />
+          Map
+        </button>
 
         {/* Save button — OWNER ONLY (Fix: read-only hides save) */}
         {isOwner && (

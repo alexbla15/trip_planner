@@ -26,6 +26,7 @@ import { DEFAULT_OPENING_HOURS } from "@/components/NewAttractionModal/attractio
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDisplayDate } from "@/lib/formatDate";
 import { currencySymbol } from "@/lib/formatCurrency";
+import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
 import type {
@@ -212,7 +213,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     // Optimistic update
     const snapshot = attractions;
     setAttractions((prev) => prev.filter((a) => a._id !== attractionId));
-    setPage((p) => Math.min(p, Math.max(1, Math.ceil((attractions.length - 1) / PAGE_SIZE))));
+    setPage((p) => Math.min(p, Math.max(1, Math.ceil((attractions.length - 1) / ATTRACTIONS_PAGE_SIZE))));
 
     try {
       const res = await fetch(`/api/attractions/${attractionId}`, {
@@ -238,9 +239,8 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   const { name, country, coverImage, startDate, endDate, moods, budget, currency } = trip;
   const isOwner = !!authUser && authUser._id === trip.ownerId;
 
-  const PAGE_SIZE = 10;
-  const totalPages = Math.ceil(attractions.length / PAGE_SIZE);
-  const paginatedAttractions = attractions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.ceil(attractions.length / ATTRACTIONS_PAGE_SIZE);
+  const paginatedAttractions = attractions.slice((page - 1) * ATTRACTIONS_PAGE_SIZE, page * ATTRACTIONS_PAGE_SIZE);
 
   return (
     <>
