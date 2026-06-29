@@ -7,6 +7,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "images.unsplash.com",
       },
+      {
+        // Allow any https host so users can paste arbitrary cover image URLs
+        protocol: "https",
+        hostname: "**",
+      },
     ],
   },
 };

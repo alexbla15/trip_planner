@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { RouteGuard } from "@/components/RouteGuard/RouteGuard";
 import { NewTripClient } from "./NewTripClient";
 
 export const metadata: Metadata = {
@@ -7,5 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default function NewTripPage() {
-  return <NewTripClient />;
+  return (
+    <RouteGuard>
+      <NewTripClient />
+    </RouteGuard>
+  );
 }

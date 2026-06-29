@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { mockTrips } from "@/data/mockTrips";
+import { RouteGuard } from "@/components/RouteGuard/RouteGuard";
 import { TripDetailClient } from "./TripDetailClient";
 
 interface TripDetailPageProps {
@@ -9,17 +8,19 @@ interface TripDetailPageProps {
 
 export async function generateMetadata({ params }: TripDetailPageProps): Promise<Metadata> {
   const { id } = await params;
-  const trip = mockTrips.find((t) => t.id === id);
-  if (!trip) return { title: "Trip Not Found – TripPlanner" };
   return {
-    title: `${trip.destination} – TripPlanner`,
-    description: `Your trip to ${trip.destination} from ${trip.startDate} to ${trip.endDate}.`,
+    title: `Trip – TripPlanner`,
+    description: `View your trip details.`,
+    // id surfaced so Next can cache per-trip; real title set client-side after fetch
+    other: { tripId: id },
   };
 }
 
 export default async function TripDetailPage({ params }: TripDetailPageProps) {
   const { id } = await params;
-  const trip = mockTrips.find((t) => t.id === id);
-  if (!trip) notFound();
-  return <TripDetailClient trip={trip} />;
+  return (
+    <RouteGuard>
+      <TripDetailClient tripId={id} />
+    </RouteGuard>
+  );
 }

@@ -1,13 +1,19 @@
 export interface Trip {
-  id: string;
-  destination: string;
+  _id: string;
+  ownerId?: string;
+  name: string;
+  cities?: string[];
   country: string;
-  coverImage: string;
-  startDate: string;
+  coverImage?: string;
+  startDate: string;   // ISO date string from API
   endDate: string;
-  tags: string[];
-  budget?: string;
+  moods: string[];
+  budget?: number;
   currency?: string;
+  notes?: string;
+  attractionIds?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ExploreItem {

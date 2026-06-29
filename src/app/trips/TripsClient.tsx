@@ -1,26 +1,40 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { ChevronLeft, Search, MapPinned, X } from "lucide-react";
 import { TripCard } from "@/components/TripCard/TripCard";
+import { TripCardSkeleton } from "@/components/TripCard/TripCardSkeleton";
 import { NewTripCard } from "@/components/NewTripCard/NewTripCard";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Trip } from "@/types/trip";
 import styles from "./TripsClient.module.css";
 
-interface TripsClientProps {
-  trips: Trip[];
-}
+const SKELETON_COUNT = 4;
 
-export function TripsClient({ trips }: TripsClientProps) {
+export function TripsClient() {
+  const { token } = useAuth();
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    if (!token) return;
+    fetch("/api/trips", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data: Trip[]) => setTrips(Array.isArray(data) ? data : []))
+      .catch(() => setTrips([]))
+      .finally(() => setLoading(false));
+  }, [token]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return trips;
     return trips.filter(
       (t) =>
-        t.destination.toLowerCase().includes(q) ||
+        t.name.toLowerCase().includes(q) ||
         t.country.toLowerCase().includes(q)
     );
   }, [trips, search]);
@@ -38,9 +52,11 @@ export function TripsClient({ trips }: TripsClientProps) {
               <MapPinned size={26} className={styles.headingIcon} aria-hidden="true" />
               My Trips
             </h1>
-            <span className={styles.count} aria-label={`${filtered.length} of ${trips.length} trips`}>
-              {filtered.length} / {trips.length}
-            </span>
+            {!loading && (
+              <span className={styles.count} aria-label={`${filtered.length} of ${trips.length} trips`}>
+                {filtered.length} / {trips.length}
+              </span>
+            )}
           </div>
           <p className={styles.subtitle}>All your planned adventures in one place.</p>
         </div>
@@ -51,7 +67,7 @@ export function TripsClient({ trips }: TripsClientProps) {
             <input
               type="search"
               className={styles.searchInput}
-              placeholder="Search by destination or country…"
+              placeholder="Search by name or country…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               aria-label="Search trips"
@@ -66,24 +82,43 @@ export function TripsClient({ trips }: TripsClientProps) {
               </button>
             )}
           </div>
+          <Link href="/new-trip" className={styles.newTripBtn} aria-label="Plan a new trip">
+            <MapPinned size={16} aria-hidden="true" />
+            New Trip
+          </Link>
         </div>
 
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className={styles.grid}>
+            <NewTripCard />
+            {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+              <TripCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
           <div className={styles.emptyState}>
             <Search size={40} className={styles.emptyIcon} aria-hidden="true" />
-            <p className={styles.emptyHeading}>No trips found</p>
+            <p className={styles.emptyHeading}>{trips.length === 0 ? "No trips yet" : "No trips found"}</p>
             <p className={styles.emptyBody}>
-              Try a different destination or country name.
+              {trips.length === 0
+                ? "Start planning your first adventure!"
+                : "Try a different name or country."}
             </p>
-            <button className={styles.clearSearchBtn} onClick={() => setSearch("")}>
-              Clear search
-            </button>
+            {search ? (
+              <button className={styles.clearSearchBtn} onClick={() => setSearch("")}>
+                Clear search
+              </button>
+            ) : (
+              <Link href="/new-trip" className={styles.clearSearchBtn}>
+                Plan a Trip
+              </Link>
+            )}
           </div>
         ) : (
           <div className={styles.grid}>
             <NewTripCard />
             {filtered.map((trip) => (
-              <Link key={trip.id} href={`/trips/${trip.id}`} className={styles.cardLink}>
+              <Link key={trip._id} href={`/trips/${trip._id}`} className={styles.cardLink}>
                 <TripCard trip={trip} />
               </Link>
             ))}

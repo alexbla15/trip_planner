@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
+import { RouteGuard } from "@/components/RouteGuard/RouteGuard";
 import { TripsClient } from "./TripsClient";
-import { mockTrips } from "@/data/mockTrips";
 
 export const metadata: Metadata = {
   title: "My Trips – TripPlanner",
@@ -8,5 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default function TripsPage() {
-  return <TripsClient trips={mockTrips} />;
+  return (
+    <RouteGuard>
+      <TripsClient />
+    </RouteGuard>
+  );
 }

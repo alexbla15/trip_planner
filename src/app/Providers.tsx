@@ -2,7 +2,12 @@
 
 import type { ReactNode } from "react";
 import { AttractionsProvider } from "@/contexts/AttractionsContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 export function Providers({ children }: { children: ReactNode }) {
-  return <AttractionsProvider>{children}</AttractionsProvider>;
+  return (
+    <AuthProvider>
+      <AttractionsProvider>{children}</AttractionsProvider>
+    </AuthProvider>
+  );
 }

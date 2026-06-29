@@ -9,3 +9,5 @@ export type { AttractionFormData, NewAttractionModalProps } from "./NewAttractio
 export { MoodTagButton } from "./MoodTagButton/MoodTagButton";
 export { AttractionPickerModal } from "./AttractionPickerModal/AttractionPickerModal";
 export { Footer } from "./Footer/Footer";
+export { RouteGuard } from "./RouteGuard/RouteGuard";
+export { TripCardSkeleton } from "./TripCard/TripCardSkeleton";

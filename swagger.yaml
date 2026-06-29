@@ -1,0 +1,659 @@
+openapi: 3.0.0
+info:
+  title: Trip & Attraction Planner API
+  version: 1.0.0
+  description: API documentation for the Trip Management and Attraction Tracking Platform.
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Enter your JWT token to access protected endpoints.
+
+  schemas:
+    # --- USER SCHEMAS ---
+    UserRegisterInput:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        password:
+          type: string
+          format: password
+          example: SecureP@ss123
+
+    UserLoginInput:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        password:
+          type: string
+          format: password
+          example: SecureP@ss123
+
+    UserProfile:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 65f1234567890abcdef12345
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        avatarUrl:
+          type: string
+          example: https://example.com
+        createdAt:
+          type: string
+          format: date-time
+
+    UserUpdateInput:
+      type: object
+      properties:
+        name:
+          type: string
+          example: John Smith
+        avatarUrl:
+          type: string
+          example: https://example.com
+
+    # --- TRIP SCHEMAS ---
+    Trip:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 65f1234567890abcdef123aa
+        ownerId:
+          type: string
+          example: 65f1234567890abcdef12345
+        name:
+          type: string
+          example: Summer in Rome
+        cities:
+          type: array
+          nullable: true
+          items:
+            type: string
+          example: ["Rome", "Florence"]
+        country:
+          type: string
+          example: Italy
+        coverImage:
+          type: string
+          example: https://example.com
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        budget:
+          type: number
+          example: 2500
+        currency:
+          type: string
+          example: EUR
+        moods:
+          type: array
+          items:
+            type: string
+          example: ["Adventure", "Food & Wine"]
+        notes:
+          type: string
+          example: Don't forget to book the Colosseum tickets in advance.
+        attractionIds:
+          type: array
+          items:
+            type: string
+          example: ["65f1234567890abcdef123bb"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TripInput:
+      type: object
+      required:
+        - name
+        - country
+        - startDate
+        - endDate
+      properties:
+        name:
+          type: string
+          example: Summer in Rome
+        cities:
+          type: array
+          nullable: true
+          items:
+            type: string
+        country:
+          type: string
+          example: Italy
+        coverImage:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        budget:
+          type: number
+        currency:
+          type: string
+        moods:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+
+    # --- ATTRACTION SCHEMAS ---
+    OpeningHoursDay:
+      type: object
+      properties:
+        closed:
+          type: boolean
+        open:
+          type: string
+          example: "09:00"
+        close:
+          type: string
+          example: "18:00"
+
+    Attraction:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 65f1234567890abcdef123bb
+        tripId:
+          type: string
+          example: 65f1234567890abcdef123aa
+        ownerId:
+          type: string
+          example: 65f1234567890abcdef12345
+        name:
+          type: string
+          example: Colosseum
+        country:
+          type: string
+          example: Italy
+        city:
+          type: string
+          example: Rome
+        coordinates:
+          type: object
+          nullable: true
+          properties:
+            lat:
+              type: number
+              example: 41.8902
+            lng:
+              type: number
+              example: 12.4922
+        types:
+          type: array
+          items:
+            type: string
+          example: ["Museum", "Historical Site"]
+        durationValue:
+          type: string
+          example: "2"
+        durationUnit:
+          type: string
+          enum: [minutes, hours]
+          example: hours
+        price:
+          type: number
+          nullable: true
+          example: 16.00
+        openingHours:
+          type: object
+          properties:
+            Mon: { $ref: '#/components/schemas/OpeningHoursDay' }
+            Tue: { $ref: '#/components/schemas/OpeningHoursDay' }
+            Wed: { $ref: '#/components/schemas/OpeningHoursDay' }
+            Thu: { $ref: '#/components/schemas/OpeningHoursDay' }
+            Fri: { $ref: '#/components/schemas/OpeningHoursDay' }
+            Sat: { $ref: '#/components/schemas/OpeningHoursDay' }
+            Sun: { $ref: '#/components/schemas/OpeningHoursDay' }
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AttractionInput:
+      type: object
+      required:
+        - name
+        - country
+        - city
+      properties:
+        name:
+          type: string
+        country:
+          type: string
+        city:
+          type: string
+        coordinates:
+          type: object
+          nullable: true
+          properties:
+            lat: { type: number }
+            lng: { type: number }
+        types:
+          type: array
+          items: { type: string }
+        durationValue:
+          type: string
+        durationUnit:
+          type: string
+          enum: [minutes, hours]
+        price:
+          type: number
+          nullable: true
+        openingHours:
+          type: object
+
+    ReorderInput:
+      type: object
+      required:
+        - attractionIds
+      properties:
+        attractionIds:
+          type: array
+          items:
+            type: string
+          example: ["65f1234567890abcdef123bb", "65f1234567890abcdef123cc"]
+
+    # --- ANALYTICS SCHEMAS ---
+    GlobalAnalytics:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            totalTrips: { type: integer, example: 1240 }
+            totalAttractions: { type: integer, example: 5890 }
+            uniqueCitiesCovered: { type: integer, example: 142 }
+            uniqueCountriesCovered: { type: integer, example: 38 }
+            totalPlatformBudget: { type: number, example: 2450000.00 }
+            totalPlatformSpent: { type: number, example: 1850300.50 }
+        categoryDistribution:
+          type: array
+          items:
+            type: object
+            properties:
+              _id: { type: string, example: Restaurant }
+              count: { type: integer, example: 2100 }
+        topUsers:
+          type: array
+          items:
+            type: object
+            properties:
+              ownerId: { type: string, example: 65f1234567890abcdef12345 }
+              attractionsCount: { type: integer, example: 145 }
+              countriesCount: { type: integer, example: 12 }
+
+    PersonalAnalytics:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            totalTrips: { type: integer, example: 14 }
+            totalAttractions: { type: integer, example: 42 }
+            uniqueCitiesCovered: { type: integer, example: 9 }
+            uniqueCountriesCovered: { type: integer, example: 3 }
+            totalPersonalBudget: { type: number, example: 8500.00 }
+            totalPersonalSpent: { type: number, example: 4120.50 }
+        categoryDistribution:
+          type: array
+          items:
+            type: object
+            properties:
+              _id: { type: string, example: Restaurant }
+              count: { type: integer, example: 18 }
+
+security:
+  - BearerAuth: []
+
+paths:
+  paths:
+  # ==========================================
+  # 🔐 Authentication & User Management
+  # ==========================================
+  /api/auth/register:
+    post:
+      summary: Create a new user account
+      tags: [Authentication]
+      security: [] 
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegisterInput'
+      responses:
+        201:
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        400:
+          description: Invalid input / email already exists
+
+  /api/auth/login:
+    post:
+      summary: Authenticate user and return a JWT token
+      tags: [Authentication]
+      security: [] 
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLoginInput'
+      responses:
+        200:
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        401:
+          description: Invalid credentials
+
+  /api/users/me:
+    get:
+      summary: Fetch the authenticated user's profile details
+      tags: [Authentication]
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        401:
+          description: Unauthorized
+    put:
+      summary: Update profile info
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateInput'
+      responses:
+        200:
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+
+  # ==========================================
+  # 🗺️ Trip Management
+  # ==========================================
+  /api/trips:
+    get:
+      summary: Retrieve all trips for the logged-in user
+      tags: [Trips]
+      parameters:
+        - name: upcoming
+          in: query
+          schema:
+            type: boolean
+          description: Filter where startDate > today
+        - name: country
+          in: query
+          schema:
+            type: string
+          description: Filter by country name
+        - name: mood
+          in: query
+          schema:
+            type: string
+          description: Filter by trip mood tags
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+    post:
+      summary: Create a new trip
+      tags: [Trips]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripInput'
+      responses:
+        201:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+
+  /api/trips/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get a specific trip's details
+      tags: [Trips]
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        404:
+          description: Trip not found
+    put:
+      summary: Update trip details
+      tags: [Trips]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripInput'
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+    delete:
+      summary: Delete a trip
+      tags: [Trips]
+      responses:
+        200:
+          description: Trip successfully deleted
+
+  # ==========================================
+  # 🏛️ Attraction Management (Nested Routes)
+  # ==========================================
+  /api/trips/{tripId}/attractions:
+    parameters:
+      - name: tripId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get all attractions for a specific trip
+      tags: [Attractions]
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+          description: Filter by type (e.g. Restaurant)
+        - name: sort
+          in: query
+          schema:
+            type: string
+          description: Sort field (e.g. price)
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Attraction'
+    post:
+      summary: Add a new attraction to a trip
+      tags: [Attractions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttractionInput'
+      responses:
+        201:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attraction'
+
+  /api/attractions/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Update an attraction's specific details
+      tags: [Attractions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttractionInput'
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attraction'
+    delete:
+      summary: Delete an attraction globally
+      tags: [Attractions]
+      responses:
+        200:
+          description: Attraction deleted
+
+  /api/trips/{tripId}/attractions/{attractionId}:
+    parameters:
+      - name: tripId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: attractionId
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Delete an attraction from a specific trip context
+      tags: [Attractions]
+      responses:
+        200:
+          description: Attraction removed from trip
+
+  /api/trips/{tripId}/reorder-attractions:
+    parameters:
+      - name: tripId
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Reorders attractions within a trip
+      tags: [Attractions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderInput'
+      responses:
+        200:
+          description: Order updated successfully
+
+  # ==========================================
+  # 📊 Analytics
+  # ==========================================
+  /api/analytics/global:
+    get:
+      summary: Get system-wide global metrics
+      tags: [Analytics]
+      security: [] 
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GlobalAnalytics'
+
+  /api/analytics/summary:
+    get:
+      summary: Get personalized user analytics and travel spend summaries
+      tags: [Analytics]
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonalAnalytics'

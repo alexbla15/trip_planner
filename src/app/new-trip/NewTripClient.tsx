@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+
 import {
   Plane,
   ChevronLeft,
@@ -24,6 +26,7 @@ import { MoodTagButton } from "@/components/MoodTagButton/MoodTagButton";
 import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
 import type { AttractionFormData } from "@/components/NewAttractionModal/attraction.types";
 import { COUNTRIES } from "@/components/NewAttractionModal/attraction.constants";
+import { useAuth } from "@/contexts/AuthContext";
 import styles from "./NewTripClient.module.css";
 
 const CURRENCIES = [
@@ -85,6 +88,9 @@ function getNotesCountClass(count: number, max: number): string {
 }
 
 export function NewTripClient() {
+  const { token } = useAuth();
+  const router = useRouter();
+
   const [tripName, setTripName] = useState("");
   const [country, setCountry] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -95,6 +101,8 @@ export function NewTripClient() {
   const [notes, setNotes] = useState("");
   const [attractions, setAttractions] = useState<AttractionFormData[]>([]);
   const [attractionPickerOpen, setAttractionPickerOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
@@ -128,11 +136,45 @@ export function NewTripClient() {
     setAttractions((prev) => prev.filter((_, i) => i !== index));
   }
 
-  function handleContinue() {
+  async function handleContinue() {
     setTouched({ tripName: true, country: true, startDate: true, endDate: true, moods: true });
     if (!isValid) return;
-    // Task 2 will handle routing to the attraction picker
-    console.log("Trip details:", { tripName, country, startDate, endDate, budget, currency, moods, notes, attractions });
+
+    setSubmitting(true);
+    setSubmitError("");
+
+    try {
+      const res = await fetch("/api/trips", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: tripName,
+          country,
+          startDate,
+          endDate,
+          budget: budget ? Number(budget) : undefined,
+          currency,
+          moods,
+          notes: notes || undefined,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setSubmitError(data.error ?? "Failed to create trip. Please try again.");
+        return;
+      }
+
+      router.push(`/trips/${data._id as string}`);
+    } catch {
+      setSubmitError("Network error. Please check your connection and try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const showMoodError = touched.moods && moods.length === 0;
@@ -365,16 +407,24 @@ export function NewTripClient() {
                 </p>
               </div>
 
+              {/* Submit error */}
+              {submitError && (
+                <p className={styles.errorMsg} role="alert">
+                  <AlertCircle size={12} aria-hidden="true" />
+                  {submitError}
+                </p>
+              )}
+
               {/* CTA */}
               <div className={styles.ctaRow}>
                 <button
                   type="button"
                   className={styles.ctaBtn}
                   onClick={handleContinue}
-                  disabled={!isValid}
-                  aria-disabled={!isValid}
+                  disabled={!isValid || submitting}
+                  aria-disabled={!isValid || submitting}
                 >
-                  Continue to Attractions
+                  {submitting ? "Creating trip…" : "Create Trip"}
                   <ArrowRight size={15} aria-hidden="true" />
                 </button>
               </div>
