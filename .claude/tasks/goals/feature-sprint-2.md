@@ -9,7 +9,7 @@ Second wave of product features: attraction editing, smarter attraction adding, 
 - [x] .claude/tasks/explore-from-db.done.md
 - [x] .claude/tasks/attraction-editing.done.md
 - [x] .claude/tasks/existing-attractions-picker.done.md
-- [ ] .claude/tasks/analytics-page.md
+- [x] .claude/tasks/analytics-page.done.md
 - [ ] .claude/tasks/personal-profile-page.md
 - [ ] .claude/tasks/trip-calendar-wizard.md
 

@@ -1,6 +1,6 @@
 # Task: Analytics Page
 
-Status: reviewing
+Status: done
 
 Track: A
 Track reason: new /analytics page with charts and stat cards; no existing analytics UI pattern in the design system
@@ -57,6 +57,9 @@ Top 10 users by attraction count:
 ## Constraints
 - CSS Modules only, no inline styles, no chart library (pure CSS bars)
 - No auth required on this page
+
+## Completion Summary
+Analytics page confirmed by user on 2026-06-29. Public /analytics page with hero, 5 stat cards (trips, attractions, users, countries, cities), interactive SVG donut chart with design-system colours and hover-brightness effect, category legend with icons, and Top Explorers leaderboard showing real user names. Navbar Analytics link added.
 
 ## Implementation Notes
 - Files created: `src/app/analytics/page.tsx`, `src/app/analytics/AnalyticsClient.tsx`, `src/app/analytics/AnalyticsClient.module.css`
