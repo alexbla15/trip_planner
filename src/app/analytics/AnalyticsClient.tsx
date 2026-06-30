@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import {
   BarChart2,
   MapPinned,
@@ -9,10 +10,22 @@ import {
   Globe,
   Trophy,
   Users,
+  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 import { TYPE_CATEGORIES, CATEGORY_COLORS, CATEGORY_ICONS } from "@/components/NewAttractionModal/attraction.constants";
+import type { CityWithCoords } from "./AnalyticsCitiesMap";
 import styles from "./AnalyticsClient.module.css";
+
+const DynamicCountriesMap = dynamic(
+  () => import("./AnalyticsCountriesMap").then((m) => ({ default: m.AnalyticsCountriesMap })),
+  { ssr: false, loading: () => <div className={styles.mapLoading}>Loading map…</div> }
+);
+
+const DynamicCitiesMap = dynamic(
+  () => import("./AnalyticsCitiesMap").then((m) => ({ default: m.AnalyticsCitiesMap })),
+  { ssr: false, loading: () => <div className={styles.mapLoading}>Loading map…</div> }
+);
 
 interface GlobalAnalytics {
   summary: {
@@ -27,7 +40,7 @@ interface GlobalAnalytics {
   topUsers: Array<{ ownerId: string; name: string; attractionsCount: number; countriesCount: number }>;
   topTrips: Array<{ name: string; ownerId: string; attractionCount: number; tripId: string }>;
   topCountries: Array<{ _id: string; count: number }>;
-  topCities: Array<{ _id: string; count: number; country?: string }>;
+  topCities: Array<{ _id: string; count: number; country?: string; lat?: number; lng?: number }>;
 }
 
 interface DetailRow {
@@ -86,6 +99,7 @@ export function AnalyticsClient() {
   const [hoveredIndex, setHoveredIndex]         = useState<number | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [activeStat, setActiveStat]             = useState<string | null>(null);
+  const [cityCountryFilter, setCityCountryFilter] = useState<string>("all");
 
   useEffect(() => {
     fetch("/api/analytics/global")
@@ -94,6 +108,11 @@ export function AnalyticsClient() {
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
+
+  function selectStat(label: string) {
+    setActiveStat((prev) => (prev === label ? null : label));
+    setCityCountryFilter("all");
+  }
 
   const rawTypes = data?.categoryDistribution ?? [];
 
@@ -148,15 +167,18 @@ export function AnalyticsClient() {
       case "Countries":
         return (data.topCountries ?? []).map((c) => ({ name: c._id || "Unknown", count: c.count }));
       case "Cities Covered":
-        return (data.topCities ?? []).map((c) => ({
-          name: c._id || "Unknown",
-          count: c.count,
-          subtitle: c.country,
-        }));
+        return (data.topCities ?? [])
+          .filter((c) => cityCountryFilter === "all" || c.country === cityCountryFilter)
+          .slice(0, 10)
+          .map((c) => ({
+            name: c._id || "Unknown",
+            count: c.count,
+            subtitle: c.country,
+          }));
       default:
         return [];
     }
-  }, [activeStat, data, rawTypes]);
+  }, [activeStat, data, rawTypes, cityCountryFilter]);
 
   // ── Drill-down sub-chart ──────────────────────────────────────────────────
   const subChartTypes = useMemo(() => {
@@ -189,6 +211,31 @@ export function AnalyticsClient() {
   function handleSliceClick(catName: string) {
     setSelectedCategory((prev) => (prev === catName ? null : catName));
   }
+
+  // ── Geo map flags ─────────────────────────────────────────────────────────
+  const showCountriesMap = activeStat === "Countries" && !loading && !!data;
+  const showCitiesMap    = activeStat === "Cities Covered" && !loading && !!data;
+
+  // Countries that have at least one city with coordinates, for the filter dropdown
+  const cityCountryOptions = useMemo(() => {
+    if (!showCitiesMap) return [];
+    const set = new Set<string>();
+    for (const c of data!.topCities ?? []) {
+      if (c.country && c.lat != null && c.lng != null) set.add(c.country);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [showCitiesMap, data]);
+
+  const mappedCities: CityWithCoords[] = useMemo(() => {
+    if (!showCitiesMap) return [];
+    const withCoords = (data!.topCities ?? []).filter(
+      (c): c is CityWithCoords => c.lat != null && c.lng != null
+    );
+    const filtered = cityCountryFilter === "all"
+      ? withCoords
+      : withCoords.filter((c) => c.country === cityCountryFilter);
+    return filtered.slice(0, 20);
+  }, [showCitiesMap, data, cityCountryFilter]);
 
   if (!loading && (error || !data)) {
     return (
@@ -251,7 +298,7 @@ export function AnalyticsClient() {
                   key={label}
                   type="button"
                   className={`${styles.statCard} ${isActive ? styles.statCardActive : ""}`}
-                  onClick={() => setActiveStat((prev) => (prev === label ? null : label))}
+                  onClick={() => selectStat(label)}
                   aria-expanded={isActive}
                   aria-controls="stat-detail-panel"
                 >
@@ -267,7 +314,8 @@ export function AnalyticsClient() {
         )}
 
         {/* ── Stat detail panel ── */}
-        {activeStat && !loading && detailRows.length > 0 && (
+        {activeStat && !loading &&
+          (showCountriesMap || (showCitiesMap && mappedCities.length > 0) || detailRows.length > 0) && (
           <div
             id="stat-detail-panel"
             className={`${styles.card} ${styles.detailPanel}`}
@@ -275,24 +323,60 @@ export function AnalyticsClient() {
             aria-label={`${activeStat} details`}
           >
             <p className={styles.detailPanelHeading}>{activeStat}</p>
-            <ol className={styles.detailList}>
-              {detailRows.map(({ name, count, href, subtitle }, i) => (
-                <li key={`${name}-${i}`} className={styles.detailRow}>
-                  <span className={styles.detailRank}>{i + 1}</span>
-                  <span className={styles.detailNameCol}>
-                    {href ? (
-                      <Link href={href} className={styles.detailLink}>{name}</Link>
-                    ) : (
-                      <span className={styles.detailName}>{name}</span>
-                    )}
-                    {subtitle && (
-                      <span className={styles.detailSubtitle}>{subtitle}</span>
-                    )}
-                  </span>
-                  <span className={styles.detailCount}>{count.toLocaleString()}</span>
-                </li>
-              ))}
-            </ol>
+
+            {/* Country filter — Cities map only */}
+            {showCitiesMap && cityCountryOptions.length > 0 && (
+              <div className={styles.citySelectWrapper}>
+                <select
+                  value={cityCountryFilter}
+                  onChange={(e) => setCityCountryFilter(e.target.value)}
+                  className={styles.citySelect}
+                  aria-label="Filter cities by country"
+                >
+                  <option value="all">All countries</option>
+                  {cityCountryOptions.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className={styles.citySelectIcon} aria-hidden="true" />
+              </div>
+            )}
+
+            {/* Geographic map — Countries or Cities */}
+            {(showCountriesMap || (showCitiesMap && mappedCities.length > 0)) && (
+              <div className={styles.analyticsMapContainer}>
+                {showCountriesMap && <DynamicCountriesMap countries={data!.topCountries} />}
+                {showCitiesMap && mappedCities.length > 0 && (
+                  <DynamicCitiesMap cities={mappedCities} />
+                )}
+              </div>
+            )}
+
+            {showCitiesMap && mappedCities.length === 0 && (
+              <p className={styles.mapEmptyNote}>No cities with coordinates for this selection.</p>
+            )}
+
+            {/* Ranked list — hidden for Countries (map is sufficient) */}
+            {!showCountriesMap && detailRows.length > 0 && (
+              <ol className={styles.detailList}>
+                {detailRows.map(({ name, count, href, subtitle }, i) => (
+                  <li key={`${name}-${i}`} className={styles.detailRow}>
+                    <span className={styles.detailRank}>{i + 1}</span>
+                    <span className={styles.detailNameCol}>
+                      {href ? (
+                        <Link href={href} className={styles.detailLink}>{name}</Link>
+                      ) : (
+                        <span className={styles.detailName}>{name}</span>
+                      )}
+                      {subtitle && (
+                        <span className={styles.detailSubtitle}>{subtitle}</span>
+                      )}
+                    </span>
+                    <span className={styles.detailCount}>{count.toLocaleString()}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
           </div>
         )}
 

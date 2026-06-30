@@ -7,7 +7,7 @@ Making the analytics page interactive: category drill-down chart and stat card d
 ## Tasks
 - [x] .claude/tasks/analytics-category-drilldown-chart.done.md
 - [x] .claude/tasks/analytics-card-drill-down.done.md
-- [ ] .claude/tasks/analytics-detail-panel-fixes.md
+- [x] .claude/tasks/analytics-detail-panel-fixes.done.md
 - [ ] .claude/tasks/analytics-geo-maps.md
 
 ## Plan

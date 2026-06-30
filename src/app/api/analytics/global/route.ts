@@ -85,17 +85,19 @@ export async function GET() {
         { $sort: { count: -1 } },
         { $limit: 10 },
       ]),
-      // Top cities by attraction count (include country for context)
+      // Cities by attraction count (include country + avg coordinates).
+      // Not limited to a small top-N — the client filters/slices this per country.
       Attraction.aggregate([
         {
           $group: {
             _id: "$city",
             count: { $sum: 1 },
             country: { $first: "$country" },
+            lat: { $avg: "$coordinates.lat" },
+            lng: { $avg: "$coordinates.lng" },
           },
         },
         { $sort: { count: -1 } },
-        { $limit: 10 },
       ]),
     ]);
 

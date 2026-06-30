@@ -585,6 +585,73 @@
   margin: 0 0 16px;
 }
 
+/* ── Analytics geo maps ── */
+.analyticsMapContainer {
+  height: 320px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+  margin-bottom: 16px;
+}
+
+@media (max-width: 640px) {
+  .analyticsMapContainer {
+    height: 240px;
+  }
+}
+
+.mapLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
+
+.citySelectWrapper {
+  position: relative;
+  max-width: 240px;
+  margin-bottom: 12px;
+}
+
+.citySelect {
+  width: 100%;
+  height: 38px;
+  padding: 0 32px 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: 13px;
+  color: var(--color-text-primary);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color var(--duration-fast) var(--easing-out);
+}
+
+.citySelect:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.citySelectIcon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+}
+
+.mapEmptyNote {
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+  margin: 0 0 8px;
+}
+
 .detailList {
   list-style: none;
   padding: 0;
