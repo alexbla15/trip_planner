@@ -36,3 +36,7 @@ A single "Open 24/7" checkbox/toggle in the opening hours section that instantly
 - Files modified: `src/components/NewAttractionModal/NewAttractionModal.tsx`, `src/components/NewAttractionModal/NewAttractionModal.module.css`
 - Deviations from brief: reset of is24h added inside the existing isOpen sync useEffect rather than a separate useEffect([initialData]) — equivalent behaviour since the sync runs every time the modal opens with new initialData
 - New design tokens used: none
+
+
+## Completion Summary
+Added an 'Open 24/7' toggle chip inline with the Opening Hours label in the NewAttractionModal. When active, the opening hours grid is hidden and all days are set to 00:00-23:59. Manual edits to any day automatically deactivate the toggle. Confirmed by user 2026-06-29.

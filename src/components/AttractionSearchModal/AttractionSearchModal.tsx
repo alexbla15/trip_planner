@@ -7,9 +7,13 @@ import {
   useCallback,
 } from "react";
 import { createPortal } from "react-dom";
-import { X, Search, MapPin, Plus, PenLine, SearchX } from "lucide-react";
+import { X, Search, MapPin, Plus, PenLine, SearchX, ChevronLeft } from "lucide-react";
 import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
-import { ATTRACTION_TYPES } from "@/components/NewAttractionModal/attraction.constants";
+import {
+  TYPE_CATEGORIES,
+  CATEGORY_ORDER,
+  CATEGORY_ICONS,
+} from "@/components/NewAttractionModal/attraction.constants";
 import type { AttractionType } from "@/components/NewAttractionModal/attraction.types";
 import type { Attraction } from "@/types/attraction";
 import type { AttractionSearchModalProps } from "./AttractionSearchModal.types";
@@ -27,6 +31,7 @@ export function AttractionSearchModal({
   const [mounted, setMounted] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedType, setSelectedType] = useState<AttractionType | null>(null);
+  const [activeSearchCategory, setActiveSearchCategory] = useState<string | null>(null);
   const [results, setResults] = useState<Attraction[]>([]);
   const [bodyState, setBodyState] = useState<BodyState>("initial");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -39,6 +44,7 @@ export function AttractionSearchModal({
     if (isOpen) {
       setQuery("");
       setSelectedType(null);
+      setActiveSearchCategory(null);
       setResults([]);
       setBodyState("initial");
       requestAnimationFrame(() => searchRef.current?.focus());
@@ -153,28 +159,73 @@ export function AttractionSearchModal({
             />
           </div>
 
-          {/* Category filter chips */}
-          <div
-            className={styles.typeChips}
-            role="group"
-            aria-label="Filter by category"
-          >
-            {ATTRACTION_TYPES.map((type) => {
-              const icon = ICONS[type];
-              const active = selectedType === type;
-              return (
+          {/* Category filter — two-level */}
+          <div className={styles.categoryFilter}>
+            {activeSearchCategory === null ? (
+              <div className={styles.catChips} role="group" aria-label="Filter by category">
                 <button
-                  key={type}
                   type="button"
-                  className={`${styles.typeChip} ${active ? styles.typeChipActive : ""}`}
-                  aria-pressed={active}
-                  onClick={() => handleTypeToggle(type)}
+                  className={`${styles.catChip} ${selectedType === null ? styles.catChipActive : ""}`}
+                  aria-pressed={selectedType === null}
+                  onClick={() => {
+                    setSelectedType(null);
+                    runSearch(query, null);
+                  }}
                 >
-                  {icon}
-                  {type}
+                  All
                 </button>
-              );
-            })}
+                {CATEGORY_ORDER.map((cat) => {
+                  const catTypes = TYPE_CATEGORIES[cat];
+                  const CatIcon = CATEGORY_ICONS[cat];
+                  const isActive = selectedType !== null && (catTypes as string[]).includes(selectedType);
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      className={`${styles.catChip} ${isActive ? styles.catChipActive : ""}`}
+                      aria-pressed={isActive}
+                      onClick={() => setActiveSearchCategory(cat)}
+                    >
+                      {CatIcon && <CatIcon size={12} aria-hidden="true" />}
+                      {cat}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div>
+                <button
+                  type="button"
+                  className={styles.catBackBtn}
+                  onClick={() => setActiveSearchCategory(null)}
+                >
+                  <ChevronLeft size={13} aria-hidden="true" />
+                  All categories
+                </button>
+                <div
+                  className={styles.typeChips}
+                  role="group"
+                  aria-label={`Filter by type in ${activeSearchCategory}`}
+                >
+                  {(TYPE_CATEGORIES[activeSearchCategory] as AttractionType[]).map((type) => {
+                    const icon = ICONS[type];
+                    const active = selectedType === type;
+                    return (
+                      <button
+                        key={type}
+                        type="button"
+                        className={`${styles.typeChip} ${active ? styles.typeChipActive : ""}`}
+                        aria-pressed={active}
+                        onClick={() => handleTypeToggle(type)}
+                      >
+                        {icon}
+                        {type}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

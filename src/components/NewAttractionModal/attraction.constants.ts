@@ -1,30 +1,89 @@
+import type { LucideIcon } from "lucide-react";
+import {
+  UtensilsCrossed,
+  Landmark as LandmarkIcon,
+  TreePine,
+  Ticket,
+  ShoppingBag,
+  Heart,
+  Plane,
+  BedDouble,
+} from "lucide-react";
 import type { AttractionType, DayKey, OpeningHours } from "./attraction.types";
 
 export const ATTRACTION_TYPES: AttractionType[] = [
   "Restaurant",
   "Bar",
   "Café",
+  "Supermarket",
+  "Food Truck",
   "Museum",
   "Gallery",
+  "Theatre",
+  "Religious",
+  "Landmark",
   "Park",
   "Beach",
-  "Landmark",
-  "Shopping",
-  "Nightclub",
-  "Theatre",
-  "Spa",
+  "Zoo",
+  "Hiking",
   "Cinema",
   "Concert",
   "Casino",
   "Amusement Park",
-  "Zoo",
-  "Religious",
-  "Hotel",
+  "Water Park",
+  "Escape Room",
+  "Stand-Up Comedy",
+  "Nightclub",
+  "Mall",
+  "Store",
+  "Market",
+  "Spa",
+  "Gym",
+  "Pool",
   "Flight",
   "Train",
   "Car Rental",
   "Cruise / Port",
+  "Bus",
+  "Taxi / Rideshare",
+  "Hotel",
+  "Apartment",
+  "Hostel",
+  "Villa",
 ];
+
+export const TYPE_CATEGORIES: Record<string, AttractionType[]> = {
+  "Food & Drink":    ["Restaurant", "Bar", "Café", "Supermarket", "Food Truck"],
+  "Culture":         ["Museum", "Gallery", "Theatre", "Religious", "Landmark"],
+  "Nature & Outdoor":["Park", "Beach", "Zoo", "Hiking"],
+  "Entertainment":   ["Cinema", "Concert", "Casino", "Amusement Park", "Water Park", "Escape Room", "Stand-Up Comedy", "Nightclub"],
+  "Shopping":        ["Mall", "Store", "Market"],
+  "Wellness":        ["Spa", "Gym", "Pool"],
+  "Transportation":  ["Flight", "Train", "Car Rental", "Cruise / Port", "Bus", "Taxi / Rideshare"],
+  "Accommodation":   ["Hotel", "Apartment", "Hostel", "Villa"],
+};
+
+export const CATEGORY_ORDER: string[] = [
+  "Food & Drink",
+  "Culture",
+  "Nature & Outdoor",
+  "Entertainment",
+  "Shopping",
+  "Wellness",
+  "Transportation",
+  "Accommodation",
+];
+
+export const CATEGORY_COLORS: Record<string, string> = {
+  "Food & Drink":    "#F59E0B",
+  "Culture":         "#7C3AED",
+  "Nature & Outdoor":"#059669",
+  "Entertainment":   "#E11D48",
+  "Shopping":        "#0891B2",
+  "Wellness":        "#10B981",
+  "Transportation":  "#475569",
+  "Accommodation":   "#D97706",
+};
 
 export const DAY_KEYS: DayKey[] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -36,6 +95,17 @@ export const DEFAULT_OPENING_HOURS: OpeningHours = {
   Fri: { closed: false, open: "09:00", close: "18:00" },
   Sat: { closed: false, open: "10:00", close: "17:00" },
   Sun: { closed: true, open: "10:00", close: "17:00" },
+};
+
+export const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  "Food & Drink":    UtensilsCrossed,
+  "Culture":         LandmarkIcon,
+  "Nature & Outdoor":TreePine,
+  "Entertainment":   Ticket,
+  "Shopping":        ShoppingBag,
+  "Wellness":        Heart,
+  "Transportation":  Plane,
+  "Accommodation":   BedDouble,
 };
 
 export const COUNTRIES: string[] = [

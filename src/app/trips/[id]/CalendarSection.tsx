@@ -14,8 +14,10 @@ import {
   MIN_BLOCK_WIDTH_PX,
   MIN_OVERLAP_DURATION_MINS,
 } from "@/config/ui";
+import { TYPE_CATEGORIES, CATEGORY_COLORS } from "@/components/NewAttractionModal/attraction.constants";
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
+import { AttractionDetailModal } from "@/components/AttractionDetailModal/AttractionDetailModal";
 import { computeAlerts } from "./CalendarSection.utils";
 import type { ScheduleAlert } from "./CalendarSection.utils";
 import styles from "./CalendarSection.module.css";
@@ -42,24 +44,15 @@ function makeHourSlots(start: number, end: number): string[] {
   });
 }
 
-/** Color per attraction type — same palette as analytics donut chart */
-const TYPE_COLORS: Record<string, string> = {
-  Restaurant: "#0EA5E9",
-  Bar:        "#7C3AED",
-  Café:       "#F59E0B",
-  Museum:     "#D97706",
-  Gallery:    "#E11D48",
-  Park:       "#059669",
-  Beach:      "#0891B2",
-  Landmark:   "#EA580C",
-  Shopping:   "#DC2626",
-  Nightclub:  "#6D28D9",
-  Theatre:    "#4F46E5",
-  Spa:        "#10B981",
-};
-
-function typeColor(types: string[]): string {
-  return TYPE_COLORS[types?.[0]] ?? "#64748B";
+function categoryColor(types: string[]): string {
+  const type = types?.[0];
+  if (!type) return "#64748B";
+  for (const [cat, catTypes] of Object.entries(TYPE_CATEGORIES)) {
+    if ((catTypes as string[]).includes(type)) {
+      return CATEGORY_COLORS[cat] ?? "#64748B";
+    }
+  }
+  return "#64748B";
 }
 
 type SidebarFilter = "all" | "scheduled" | "unscheduled";
@@ -251,8 +244,9 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   const [savedOk, setSavedOk]     = useState(false);
   const [popup, setPopup]         = useState<PopupState | null>(null);
 
-  const [showMap, setShowMap]           = useState(false);
-  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+  const [showMap, setShowMap]                  = useState(false);
+  const [dismissedAlerts, setDismissedAlerts]  = useState<Set<string>>(new Set());
+  const [viewingAttraction, setViewingAttraction] = useState<Attraction | null>(null);
 
   // Day-range controls (view only — persisted locally)
   const [dayStart, setDayStart]   = useState(DEFAULT_DAY_START);
@@ -398,7 +392,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
     setPopup({
       attractionId: a._id,
       name: a.name,
-      color: typeColor(a.types),
+      color: categoryColor(a.types),
       x: Math.max(8, x),
       y: Math.max(8, y),
       plannedTime:   a.plannedTime   ?? "",
@@ -490,7 +484,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
               ) : sidebarList.map((a) => {
                 const icon = ICONS[a.types?.[0] as AttractionType];
                 const isScheduled = !!a.plannedDate;
-                const color = typeColor(a.types);
+                const color = categoryColor(a.types);
                 return (
                   <div key={a._id}
                     className={`${styles.sidebarCard} ${isScheduled ? styles.sidebarCardScheduled : ""}`}
@@ -577,7 +571,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                         if (!a.plannedTime) return null;
                         const top       = slotTop(a.plannedTime, dayStart);
                         const height    = cardPx(a);
-                        const color     = typeColor(a.types);
+                        const color     = categoryColor(a.types);
                         const icon      = ICONS[a.types?.[0] as AttractionType];
                         const isPending = pending.has(a._id);
                         const blockW    = availW / numCols;
@@ -593,16 +587,17 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                               ["--block-left"   as string]: `${blockL}px`,
                               ["--block-width"  as string]: `${blockW - 3}px`,
                             }}
-                            role={isOwner ? "button" : undefined}
-                            tabIndex={isOwner ? 0 : undefined}
-                            onClick={(e) => isOwner && openPopup(e, a)}
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => isOwner ? openPopup(e, a) : setViewingAttraction(a)}
                             onKeyDown={(e) => {
-                              if (isOwner && (e.key === "Enter" || e.key === " ")) {
+                              if (e.key === "Enter" || e.key === " ") {
                                 e.preventDefault();
-                                openPopup(e as unknown as React.MouseEvent, a);
+                                if (isOwner) openPopup(e as unknown as React.MouseEvent, a);
+                                else setViewingAttraction(a);
                               }
                             }}
-                            aria-label={`${a.name} at ${a.plannedTime}${isOwner ? " — click to edit" : ""}`}
+                            aria-label={`${a.name} at ${a.plannedTime}${isOwner ? " — click to edit" : " — click to view details"}`}
                           >
                             <div className={styles.blockTopRow}>
                               {icon && <span className={styles.blockIcon} aria-hidden="true">{icon}</span>}
@@ -627,7 +622,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                         <p className={styles.untimedLabel}>No time ({untimed.length})</p>
                         {untimed.map((a) => {
                           const icon = ICONS[a.types?.[0] as AttractionType];
-                          const color = typeColor(a.types);
+                          const color = categoryColor(a.types);
                           return (
                             <div key={a._id} className={styles.untimedCard}
                               style={{ ["--type-color" as string]: color }}>
@@ -729,6 +724,12 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
           </div>
         </>
       )}
+
+      {/* Attraction detail modal — triggered by clicking a calendar block */}
+      <AttractionDetailModal
+        attraction={viewingAttraction}
+        onClose={() => setViewingAttraction(null)}
+      />
     </>
   );
 }

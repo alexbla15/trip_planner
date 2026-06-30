@@ -46,3 +46,7 @@ Every calendar block is readable regardless of its size: short blocks show icon,
 - Files modified: `src/app/trips/[id]/CalendarSection.tsx`, `src/app/trips/[id]/CalendarSection.module.css`
 - Deviations from brief: used the already-computed `height` variable (= cardPx(a)) directly in the class condition rather than calling cardPx(a) again — same result, avoids double computation
 - New design tokens used: none
+
+
+## Completion Summary
+Compact calendar blocks (< 1 hour) now display [icon] [name] on a single horizontal line. Root cause was blockTopRow having width:100% conflicting with flex-direction:row — fixed by adding width:auto to the compact override. Confirmed by user 2026-06-29.

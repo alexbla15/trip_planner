@@ -5,7 +5,7 @@ Status: in progress
 Expanding what travelers can record in a trip: richer attraction type categories, dedicated residence entries, and dedicated flight entries.
 
 ## Tasks
-- [ ] .claude/tasks/attraction-type-categories.md
+- [x] .claude/tasks/attraction-type-categories.done.md
 - [ ] .claude/tasks/special-attraction-residence.md
 - [ ] .claude/tasks/special-attraction-flight.md
 

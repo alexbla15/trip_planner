@@ -8,6 +8,7 @@ import { TriangleAlert, MapPinOff, Footprints, Car, Bus } from "lucide-react";
 import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
 import type { AttractionType } from "@/components/NewAttractionModal/attraction.types";
 import { MIN_OVERLAP_DURATION_MINS } from "@/config/ui";
+import { TYPE_CATEGORIES, CATEGORY_COLORS } from "@/components/NewAttractionModal/attraction.constants";
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
 import styles from "./TripDayMapWidget.module.css";
@@ -23,25 +24,15 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-// ── Type color palette (mirrored from CalendarSection) ────────────────────────
-
-const TYPE_COLORS: Record<string, string> = {
-  Restaurant: "#0EA5E9",
-  Bar:        "#7C3AED",
-  Café:       "#F59E0B",
-  Museum:     "#D97706",
-  Gallery:    "#E11D48",
-  Park:       "#059669",
-  Beach:      "#0891B2",
-  Landmark:   "#EA580C",
-  Shopping:   "#DC2626",
-  Nightclub:  "#6D28D9",
-  Theatre:    "#4F46E5",
-  Spa:        "#10B981",
-};
-
-function typeColor(types: string[]): string {
-  return TYPE_COLORS[types?.[0]] ?? "#64748B";
+function categoryColor(types: string[]): string {
+  const type = types?.[0];
+  if (!type) return "#64748B";
+  for (const [cat, catTypes] of Object.entries(TYPE_CATEGORIES)) {
+    if ((catTypes as string[]).includes(type)) {
+      return CATEGORY_COLORS[cat] ?? "#64748B";
+    }
+  }
+  return "#64748B";
 }
 
 // ── Pure utils ────────────────────────────────────────────────────────────────
@@ -105,7 +96,7 @@ function legKey(fromId: string, toId: string): string {
 // ── DivIcon marker ────────────────────────────────────────────────────────────
 
 function makeMarkerIcon(types: string[], order: number, isAlt: boolean): L.DivIcon {
-  const color = isAlt ? "#94A3B8" : typeColor(types);
+  const color = isAlt ? "#94A3B8" : categoryColor(types);
   const icon = ICONS[types[0] as AttractionType];
   let iconSvg = "";
   if (icon) {
@@ -315,7 +306,7 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
               <div key={group.key} className={styles.conflictChips}>
                 {group.attractions.map((a) => {
                   const isActive = effectiveSelections[group.key] === a._id;
-                  const color = typeColor(a.types);
+                  const color = categoryColor(a.types);
                   return (
                     <button
                       key={a._id}

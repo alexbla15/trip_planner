@@ -1,6 +1,6 @@
 # Task: Parent Category Grouping for Attraction Types
 
-Status: intake
+Status: done
 
 Track: A
 Track reason: new UI interaction pattern — two-level type picker (category → type) with expanded type set; no existing pattern
@@ -51,3 +51,13 @@ New types (in Transportation and Accommodation) should be added to the `Attracti
 ## Out of scope
 - Limiting to one category per attraction (multi-category allowed)
 - Changing how types are stored in the database
+
+
+## Implementation Notes
+- Files modified: `attraction.types.ts`, `attraction.constants.ts`, `AttractionTypeChip.tsx`, `NewAttractionModal.tsx`, `NewAttractionModal.module.css`
+- Deviations from brief: Removed `ATTRACTION_TYPES` from `NewAttractionModal.tsx` imports since the flat picker was fully replaced by the two-level picker; the constant remains exported from `attraction.constants.ts` for other consumers
+- New design tokens used: none
+
+
+## Completion Summary
+Two-level type picker built: 10 category chips (with selection count badges) replace the flat grid. Clicking a category drills into its types; back button returns to categories. 5 new types added (Bus, Taxi/Rideshare, Apartment, Hostel, Villa). Confirmed by user and immediately followed by structure overhaul and UI system tasks. 2026-06-30.

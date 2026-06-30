@@ -8,7 +8,7 @@ import {
   type ChangeEvent,
 } from "react";
 import { createPortal } from "react-dom";
-import { X, MapPin, Clock, ChevronDown, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check, FileText, ImageIcon } from "lucide-react";
+import { X, MapPin, Clock, ChevronDown, ChevronLeft, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check, FileText, ImageIcon } from "lucide-react";
 import type {
   AttractionFormData,
   AttractionType,
@@ -18,10 +18,12 @@ import type {
   OpeningHours,
 } from "./attraction.types";
 import {
-  ATTRACTION_TYPES,
   COUNTRIES,
   DEFAULT_OPENING_HOURS,
   DAY_KEYS,
+  TYPE_CATEGORIES,
+  CATEGORY_ORDER,
+  CATEGORY_ICONS,
 } from "./attraction.constants";
 import { AttractionTypeChip } from "./AttractionTypeChip";
 import { MapPicker } from "./MapPicker";
@@ -62,6 +64,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
   const [price, setPrice] = useState<number | null>(null);
   const [openingHours, setOpeningHours] = useState<OpeningHours>(buildInitialHours);
   const [is24h, setIs24h]               = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -99,6 +102,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
     setErrors({});
     setTouched({});
     setIs24h(false);
+    setActiveCategory(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
@@ -379,23 +383,65 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
               Type{" "}
               <span className={styles.required} aria-hidden="true">*</span>
             </span>
-            <div
-              className={styles.chipGroup}
-              role="group"
-              aria-labelledby="types-label"
-              aria-describedby={touched.types && errors.types ? "error-types" : undefined}
-            >
-              {ATTRACTION_TYPES.map((type) => (
-                <AttractionTypeChip
-                  key={type}
-                  type={type}
-                  selected={selectedTypes.includes(type)}
-                  onToggle={(t) => {
-                    toggleType(t);
-                    setTouched((prev) => ({ ...prev, types: true }));
-                  }}
-                />
-              ))}
+            <div className={styles.typePicker}>
+              {activeCategory === null ? (
+                /* ── Category view ── */
+                <div className={styles.categoryChips} role="group" aria-label="Attraction categories">
+                  {CATEGORY_ORDER.map((cat) => {
+                    const catTypes = TYPE_CATEGORIES[cat];
+                    const selCount = catTypes.filter((t) => selectedTypes.includes(t)).length;
+                    const CatIcon = CATEGORY_ICONS[cat];
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        className={`${styles.categoryChip} ${selCount > 0 ? styles.categoryChipActive : ""}`}
+                        onClick={() => setActiveCategory(cat)}
+                        aria-pressed={selCount > 0}
+                      >
+                        {CatIcon && <CatIcon size={14} aria-hidden="true" />}
+                        {cat}
+                        {selCount > 0 && (
+                          <span className={styles.categoryBadge} aria-label={`${selCount} selected`}>
+                            {selCount}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* ── Type view ── */
+                <div>
+                  <button
+                    type="button"
+                    className={styles.backBtn}
+                    onClick={() => setActiveCategory(null)}
+                  >
+                    <ChevronLeft size={13} aria-hidden="true" />
+                    All categories
+                  </button>
+                  <p className={styles.categoryTitle}>{activeCategory}</p>
+                  <div
+                    className={styles.chipGroup}
+                    role="group"
+                    aria-labelledby="types-label"
+                    aria-describedby={touched.types && errors.types ? "error-types" : undefined}
+                  >
+                    {TYPE_CATEGORIES[activeCategory].map((type) => (
+                      <AttractionTypeChip
+                        key={type}
+                        type={type}
+                        selected={selectedTypes.includes(type)}
+                        onToggle={(t) => {
+                          toggleType(t);
+                          setTouched((prev) => ({ ...prev, types: true }));
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             {touched.types && errors.types && (
               <p id="error-types" className={styles.errorMsg} role="alert">

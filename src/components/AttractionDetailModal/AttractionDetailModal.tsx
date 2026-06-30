@@ -12,6 +12,7 @@ import {
   FileText,
   ImageIcon,
   Navigation,
+  Timer,
 } from "lucide-react";
 import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
 import type { AttractionType } from "@/components/NewAttractionModal/attraction.types";
@@ -23,9 +24,10 @@ const DAY_KEYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 interface AttractionDetailModalProps {
   attraction: Attraction | null;
   onClose: () => void;
+  onEditTime?: () => void;
 }
 
-export function AttractionDetailModal({ attraction, onClose }: AttractionDetailModalProps) {
+export function AttractionDetailModal({ attraction, onClose, onEditTime }: AttractionDetailModalProps) {
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -217,6 +219,19 @@ export function AttractionDetailModal({ attraction, onClose }: AttractionDetailM
             </div>
           )}
         </div>
+
+        {onEditTime && (
+          <div className={styles.footer}>
+            <button
+              type="button"
+              className={styles.editTimeBtn}
+              onClick={() => { onEditTime(); onClose(); }}
+            >
+              <Timer size={14} aria-hidden="true" />
+              Edit time &amp; duration
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

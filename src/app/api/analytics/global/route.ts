@@ -17,6 +17,9 @@ export async function GET() {
       budgetResult,
       categoryDistribution,
       topUsers,
+      topTrips,
+      topCountries,
+      topCities,
     ] = await Promise.all([
       Trip.countDocuments(),
       Attraction.countDocuments(),
@@ -63,6 +66,37 @@ export async function GET() {
         { $sort: { attractionsCount: -1 } },
         { $limit: 10 },
       ]),
+      // Top trips by number of saved attractions
+      Trip.aggregate([
+        {
+          $project: {
+            name: 1,
+            ownerId: 1,
+            attractionCount: { $size: { $ifNull: ["$attractionIds", []] } },
+            tripId: { $toString: "$_id" },
+          },
+        },
+        { $sort: { attractionCount: -1 } },
+        { $limit: 10 },
+      ]),
+      // Top countries by attraction count
+      Attraction.aggregate([
+        { $group: { _id: "$country", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 10 },
+      ]),
+      // Top cities by attraction count (include country for context)
+      Attraction.aggregate([
+        {
+          $group: {
+            _id: "$city",
+            count: { $sum: 1 },
+            country: { $first: "$country" },
+          },
+        },
+        { $sort: { count: -1 } },
+        { $limit: 10 },
+      ]),
     ]);
 
     return NextResponse.json({
@@ -76,6 +110,9 @@ export async function GET() {
       },
       categoryDistribution,
       topUsers,
+      topTrips,
+      topCountries,
+      topCities,
     });
   } catch {
     return NextResponse.json({ error: "Failed to fetch analytics" }, { status: 500 });
