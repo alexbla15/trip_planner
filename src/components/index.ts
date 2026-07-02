@@ -13,3 +13,7 @@ export { RouteGuard } from "./RouteGuard/RouteGuard";
 export { TripCardSkeleton } from "./TripCard/TripCardSkeleton";
 export { AttractionDetailModal } from "./AttractionDetailModal/AttractionDetailModal";
 export { AttractionSearchModal } from "./AttractionSearchModal/AttractionSearchModal";
+export { AddResidenceModal } from "./AddResidenceModal/AddResidenceModal";
+export type { ResidenceFormData, AddResidenceModalProps } from "./AddResidenceModal/AddResidenceModal.types";
+export { AddFlightModal } from "./AddFlightModal/AddFlightModal";
+export type { FlightFormData, AddFlightModalProps } from "./AddFlightModal/AddFlightModal.types";

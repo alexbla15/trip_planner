@@ -93,8 +93,8 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
     setDurationUnit(initialData?.durationUnit ?? "hours");
     setPrice(initialData?.price ?? null);
     setOpeningHours(
-      initialData?.openingHours
-        ? structuredClone(initialData.openingHours as OpeningHours)
+      (initialData?.openingHours as OpeningHours | undefined)?.Mon
+        ? structuredClone(initialData?.openingHours as OpeningHours)
         : buildInitialHours()
     );
     setNotes(initialData?.notes ?? "");

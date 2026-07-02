@@ -280,6 +280,65 @@ components:
         updatedAt:
           type: string
           format: date-time
+        # --- Subtype discriminator ---
+        subtype:
+          type: string
+          nullable: true
+          enum: [residence, flight]
+          description: Distinguishes special attraction types from generic ones. Absent for regular attractions.
+        # --- Residence-specific fields (present when subtype = "residence") ---
+        residenceType:
+          type: string
+          nullable: true
+          enum: [Hotel, Apartment, Hostel, Villa, Other]
+          example: Hotel
+        checkInDate:
+          type: string
+          nullable: true
+          format: date
+          description: Check-in date (YYYY-MM-DD). Must fall within the trip's start/end dates.
+          example: "2026-07-04"
+        checkOutDate:
+          type: string
+          nullable: true
+          format: date
+          description: Check-out date (YYYY-MM-DD). Must be ≥ checkInDate and ≤ trip end date.
+          example: "2026-07-08"
+        # --- Flight-specific fields (present when subtype = "flight") ---
+        flightNumber:
+          type: string
+          nullable: true
+          example: BA2490
+        airline:
+          type: string
+          nullable: true
+          example: British Airways
+        departureAirport:
+          type: string
+          nullable: true
+          example: LHR
+        arrivalAirport:
+          type: string
+          nullable: true
+          example: CDG
+        departureTime:
+          type: string
+          nullable: true
+          description: Full ISO datetime of departure (YYYY-MM-DDTHH:MM).
+          example: "2026-07-04T09:15"
+        arrivalTime:
+          type: string
+          nullable: true
+          description: Full ISO datetime of arrival (YYYY-MM-DDTHH:MM). May be next day for overnight flights.
+          example: "2026-07-04T11:45"
+        gate:
+          type: string
+          nullable: true
+          example: B22
+        seat:
+          type: string
+          nullable: true
+          example: 14A
 
     AttractionInput:
       type: object
@@ -313,6 +372,53 @@ components:
           nullable: true
         openingHours:
           type: object
+        # Subtype fields — include when creating residence or flight entries
+        subtype:
+          type: string
+          enum: [residence, flight]
+        residenceType:
+          type: string
+          enum: [Hotel, Apartment, Hostel, Villa, Other]
+        checkInDate:
+          type: string
+          format: date
+        checkOutDate:
+          type: string
+          format: date
+        flightNumber:
+          type: string
+        airline:
+          type: string
+        departureAirport:
+          type: string
+        arrivalAirport:
+          type: string
+        departureTime:
+          type: string
+          description: ISO datetime (YYYY-MM-DDTHH:MM)
+        arrivalTime:
+          type: string
+          description: ISO datetime (YYYY-MM-DDTHH:MM)
+        gate:
+          type: string
+        seat:
+          type: string
+        # Calendar integration — set for flights so the entry appears on the day planner
+        plannedDate:
+          type: string
+          format: date
+          description: ISO date (YYYY-MM-DD). Set automatically for flights to the departure date.
+        plannedTime:
+          type: string
+          description: HH:MM start time. Set automatically for flights to the departure time.
+        actualDurationValue:
+          type: string
+          description: Traveler's planned duration. Set automatically for flights (computed from dep→arr times).
+          example: "130"
+        actualDurationUnit:
+          type: string
+          enum: [minutes, hours]
+          description: Unit for actualDurationValue. Always "minutes" for auto-computed flight durations.
 
     ReorderInput:
       type: object

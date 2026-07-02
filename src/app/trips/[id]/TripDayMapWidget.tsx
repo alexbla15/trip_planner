@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { MapContainer, TileLayer, Marker, Polyline, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import { renderToStaticMarkup } from "react-dom/server";
-import { TriangleAlert, MapPinOff, Footprints, Car, Bus } from "lucide-react";
+import { TriangleAlert, MapPinOff, Footprints, Car, Bus, BedDouble } from "lucide-react";
 import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
 import type { AttractionType } from "@/components/NewAttractionModal/attraction.types";
 import { MIN_OVERLAP_DURATION_MINS } from "@/config/ui";
@@ -121,6 +121,19 @@ function makeMarkerIcon(types: string[], order: number, isAlt: boolean): L.DivIc
   });
 }
 
+function makeResidenceMarkerIcon(): L.DivIcon {
+  let iconSvg = "";
+  try {
+    iconSvg = renderToStaticMarkup(<BedDouble size={13} color="#ffffff" aria-hidden="true" />);
+  } catch { /* fallback to no icon */ }
+  return L.divIcon({
+    html: `<div style="width:32px;height:32px;border-radius:50%;background:#D97706;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(217,119,6,0.4);display:flex;align-items:center;justify-content:center;position:relative">${iconSvg}</div>`,
+    iconSize:   [32, 32] as [number, number],
+    iconAnchor: [16, 16] as [number, number],
+    className: "",
+  });
+}
+
 // ── Conflict detection ────────────────────────────────────────────────────────
 
 interface ConflictGroup {
@@ -200,11 +213,26 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
     [trip.startDate, trip.endDate]
   );
 
+  // Residences with coordinates, for quick lookup
+  const residencesWithCoords = useMemo(
+    () => attractions.filter(
+      (a) => a.subtype === "residence" && !!a.coordinates && !!a.checkInDate && !!a.checkOutDate
+    ),
+    [attractions]
+  );
+
+  function residencesOnDay(dayIso: string): Attraction[] {
+    return residencesWithCoords.filter(
+      (r) => r.checkInDate! <= dayIso && dayIso <= r.checkOutDate!
+    );
+  }
+
   const qualifyingDays = useMemo(
     () => allDays.filter((d) =>
-      attractions.some((a) => a.plannedDate === d && !!a.coordinates && !!a.plannedTime)
+      attractions.some((a) => a.plannedDate === d && !!a.coordinates && !!a.plannedTime) ||
+      residencesWithCoords.some((r) => r.checkInDate! <= d && d <= r.checkOutDate!)
     ),
-    [allDays, attractions]
+    [allDays, attractions, residencesWithCoords]
   );
 
   // Default to first qualifying day on mount or when list changes
@@ -221,6 +249,12 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
         .filter((a) => a.plannedDate === selectedDay && !!a.plannedTime)
         .sort((a, b) => timeToMins(a.plannedTime!) - timeToMins(b.plannedTime!)),
     [attractions, selectedDay]
+  );
+
+  const dayResidences = useMemo(
+    () => selectedDay ? residencesOnDay(selectedDay) : [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedDay, residencesWithCoords]
   );
 
   const mapped   = useMemo(() => dayAttractions.filter((a) => !!a.coordinates), [dayAttractions]);
@@ -258,15 +292,17 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
   );
 
   const bounds = useMemo(() => {
-    if (mapped.length === 0) return L.latLngBounds([[0, 0], [0, 0]]);
-    if (mapped.length === 1) {
-      const { lat, lng } = mapped[0].coordinates!;
+    const allCoords: [number, number][] = [
+      ...mapped.map((a) => [a.coordinates!.lat, a.coordinates!.lng] as [number, number]),
+      ...dayResidences.map((r) => [r.coordinates!.lat, r.coordinates!.lng] as [number, number]),
+    ];
+    if (allCoords.length === 0) return L.latLngBounds([[0, 0], [0, 0]]);
+    if (allCoords.length === 1) {
+      const [lat, lng] = allCoords[0];
       return L.latLngBounds([[lat - 0.01, lng - 0.01], [lat + 0.01, lng + 0.01]]);
     }
-    return L.latLngBounds(
-      mapped.map((a) => [a.coordinates!.lat, a.coordinates!.lng] as [number, number])
-    );
-  }, [mapped]);
+    return L.latLngBounds(allCoords);
+  }, [mapped, dayResidences]);
 
   if (qualifyingDays.length === 0) {
     return (
@@ -330,7 +366,7 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
 
       {/* Map */}
       <div className={styles.mapContainer}>
-        {selectedDay && mapped.length > 0 && (
+        {selectedDay && (mapped.length > 0 || dayResidences.length > 0) && (
           <MapContainer
             key={selectedDay}
             bounds={bounds}
@@ -362,6 +398,23 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
                 </Marker>
               );
             })}
+
+            {/* Residence markers — "home base" for the day */}
+            {dayResidences.map((r) => (
+              <Marker
+                key={r._id}
+                position={[r.coordinates!.lat, r.coordinates!.lng]}
+                icon={makeResidenceMarkerIcon()}
+              >
+                <Tooltip direction="top" offset={[0, -16]}>
+                  <strong>{r.name}</strong>
+                  {" · "}Staying here
+                  {r.checkInDate && r.checkOutDate
+                    ? ` (${r.checkInDate} – ${r.checkOutDate})`
+                    : ""}
+                </Tooltip>
+              </Marker>
+            ))}
 
             {/* Main route polylines with transit labels */}
             {routeAttractions.slice(0, -1).map((a, i) => {

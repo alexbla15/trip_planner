@@ -1144,8 +1144,10 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 10px;
+  padding-right: 20px; /* keep text clear of the absolutely-positioned X button */
 }
 
 .blockCompact .unassignBtnBlock {
-  display: none;
+  top: 50%;
+  transform: translateY(-50%);
 }

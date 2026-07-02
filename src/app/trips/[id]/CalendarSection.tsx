@@ -576,10 +576,25 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                         const isPending = pending.has(a._id);
                         const blockW    = availW / numCols;
                         const blockL    = LABEL_W + col * blockW;
+                        const isCompact = height < SLOT_HEIGHT_PX;
+
+                        // Detect flight by subtype OR by type tag (handles entries created before subtype was added)
+                        const isFlight = a.subtype === "flight" || a.types?.[0] === "Flight";
+                        const blockLabel = isFlight && a.departureAirport && a.arrivalAirport
+                          ? `${a.departureAirport} → ${a.arrivalAirport}`
+                          : a.name;
+
+                        function handleBlockClick(e: React.MouseEvent) {
+                          // Subtype entries (residence, flight) always open detail modal
+                          if (a.subtype || isFlight) { setViewingAttraction(a); return; }
+                          if (isOwner) openPopup(e, a);
+                          else setViewingAttraction(a);
+                        }
+
                         return (
                           <div
                             key={a._id}
-                            className={`${styles.attractionBlock} ${isPending ? styles.blockPending : ""} ${height < SLOT_HEIGHT_PX ? styles.blockCompact : ""}`}
+                            className={`${styles.attractionBlock} ${isPending ? styles.blockPending : ""} ${isCompact ? styles.blockCompact : ""}`}
                             style={{
                               ["--block-top"    as string]: `${top}px`,
                               ["--block-height" as string]: `${height}px`,
@@ -589,21 +604,20 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                             }}
                             role="button"
                             tabIndex={0}
-                            onClick={(e) => isOwner ? openPopup(e, a) : setViewingAttraction(a)}
+                            onClick={handleBlockClick}
                             onKeyDown={(e) => {
                               if (e.key === "Enter" || e.key === " ") {
                                 e.preventDefault();
-                                if (isOwner) openPopup(e as unknown as React.MouseEvent, a);
-                                else setViewingAttraction(a);
+                                handleBlockClick(e as unknown as React.MouseEvent);
                               }
                             }}
-                            aria-label={`${a.name} at ${a.plannedTime}${isOwner ? " — click to edit" : " — click to view details"}`}
+                            aria-label={`${a.name} at ${a.plannedTime}${!a.subtype && !isFlight && isOwner ? " — click to edit" : " — click to view details"}`}
                           >
                             <div className={styles.blockTopRow}>
                               {icon && <span className={styles.blockIcon} aria-hidden="true">{icon}</span>}
                               <span className={styles.blockTime}>{a.plannedTime}</span>
                             </div>
-                            <span className={styles.blockName}>{a.name}</span>
+                            <span className={styles.blockName}>{blockLabel}</span>
                             {isOwner && (
                               <button type="button" className={styles.unassignBtnBlock}
                                 onClick={(e) => { e.stopPropagation(); handleUnassign(a._id); }}

@@ -19,4 +19,19 @@ export interface Attraction {
   actualDurationUnit?: "minutes" | "hours";
   createdAt?: string;
   updatedAt?: string;
+  // ── Subtype discriminator ──────────────────────────────────────────────────
+  subtype?: "residence" | "flight";
+  // Residence-specific fields
+  residenceType?: "Hotel" | "Apartment" | "Hostel" | "Villa" | "Other";
+  checkInDate?: string;   // "YYYY-MM-DD"
+  checkOutDate?: string;  // "YYYY-MM-DD"
+  // Flight-specific fields
+  flightNumber?: string;
+  airline?: string;
+  departureAirport?: string;
+  arrivalAirport?: string;
+  departureTime?: string;  // ISO datetime "YYYY-MM-DDTHH:MM"
+  arrivalTime?: string;    // ISO datetime (may be next day)
+  gate?: string;
+  seat?: string;
 }

@@ -13,6 +13,7 @@ You are a professional full-stack developer with 15+ years of experience. Your s
 - Never use Tailwind CSS
 - Never use inline CSS (`style={{...}}`)
 - Always use CSS Modules (`.module.css`)
+- **Always update `swagger.yaml`** when any API route changes — new fields on request/response schemas, new endpoints, changed validation rules, or removed fields. The swagger file is the contract; keep it in sync every time.
 
 ---
 
@@ -52,6 +53,7 @@ Invoke the `/product` skill immediately and ask it: "What task should the develo
 2. Treat every spec in the brief as a hard requirement, not a suggestion.
 3. If anything in the brief is ambiguous or conflicts with a hard rule in this skill, raise it before writing code.
 4. When implementation is complete:
+   - **If any API route was added or changed: update `swagger.yaml`** — new/changed request body fields, response schema fields, new paths, or removed fields. Do this before marking the task done.
    - Append the following to the task file:
      ```md
      ## Implementation Notes
@@ -69,6 +71,7 @@ Invoke the `/product` skill immediately and ask it: "What task should the develo
 2. Also read the task file at the provided path for full context on the problem and requirements.
 3. If anything in the brief is ambiguous or conflicts with a hard rule in this skill, raise it before writing code.
 4. When implementation is complete:
+   - **If any API route was added or changed: update `swagger.yaml`** — new/changed request body fields, response schema fields, new paths, or removed fields. Do this before marking the task done.
    - Append the following to the task file:
      ```md
      ## Implementation Notes
@@ -87,6 +90,7 @@ Invoke the `/product` skill immediately and ask it: "What task should the develo
 3. If implementation requires a token, pattern, or component that does not exist in the design system, **stop immediately** — invoke `/designer` with the specific gap ("I need a X token/pattern that isn't in the design system") and wait for it to update `DESIGN_SYSTEM.md` before continuing.
 4. Do not invent new design values — no hardcoded colors, spacing, or sizes outside the token system.
 5. When implementation is complete:
+   - **If any API route was added or changed: update `swagger.yaml`** — new/changed request body fields, response schema fields, new paths, or removed fields. Do this before marking the task done.
    - Append the following to the task file:
      ```md
      ## Implementation Notes

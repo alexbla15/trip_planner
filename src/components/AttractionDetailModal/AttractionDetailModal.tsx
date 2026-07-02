@@ -13,10 +13,15 @@ import {
   ImageIcon,
   Navigation,
   Timer,
+  Calendar,
+  BedDouble,
+  Plane,
+  Tag,
 } from "lucide-react";
 import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
 import type { AttractionType } from "@/components/NewAttractionModal/attraction.types";
 import type { Attraction } from "@/types/attraction";
+import { formatDisplayDate } from "@/lib/formatDate";
 import styles from "./AttractionDetailModal.module.css";
 
 const DAY_KEYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
@@ -49,8 +54,13 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime }: Attra
 
   if (!mounted || !attraction) return null;
 
+  const isResidence = attraction.subtype === "residence";
+  const isFlight    = attraction.subtype === "flight";
+
   const firstType = attraction.types?.[0] as AttractionType | undefined;
-  const typeIcon = firstType ? ICONS[firstType] : null;
+  const typeIcon = isResidence && !firstType
+    ? <BedDouble size={16} aria-hidden="true" />
+    : firstType ? ICONS[firstType] : null;
 
   const durationLabel = attraction.durationValue
     ? `${attraction.durationValue} ${attraction.durationUnit ?? "hours"}`
@@ -123,44 +133,98 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime }: Attra
 
           {/* Info grid */}
           <div className={styles.infoGrid}>
+            {/* ── Residence-specific fields ── */}
+            {isResidence && attraction.residenceType && (
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}><BedDouble size={13} aria-hidden="true" />Type</span>
+                <span className={styles.infoValue}>{attraction.residenceType}</span>
+              </div>
+            )}
+            {isResidence && attraction.checkInDate && (
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}><Calendar size={13} aria-hidden="true" />Check-in</span>
+                <span className={styles.infoValue}>{formatDisplayDate(attraction.checkInDate)}</span>
+              </div>
+            )}
+            {isResidence && attraction.checkOutDate && (
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}><Calendar size={13} aria-hidden="true" />Check-out</span>
+                <span className={styles.infoValue}>{formatDisplayDate(attraction.checkOutDate)}</span>
+              </div>
+            )}
+
+            {/* ── Flight-specific fields ── */}
+            {isFlight && attraction.flightNumber && (
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}><Plane size={13} aria-hidden="true" />Flight</span>
+                <span className={styles.infoValue}>{attraction.flightNumber}</span>
+              </div>
+            )}
+            {isFlight && attraction.airline && (
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}><Tag size={13} aria-hidden="true" />Airline</span>
+                <span className={styles.infoValue}>{attraction.airline}</span>
+              </div>
+            )}
+            {isFlight && attraction.departureAirport && (
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}><MapPin size={13} aria-hidden="true" />From</span>
+                <span className={styles.infoValue}>
+                  {attraction.departureAirport}
+                  {attraction.departureTime && (
+                    <span className={styles.timeNote}> · {attraction.departureTime.split("T")[1]?.slice(0, 5)}</span>
+                  )}
+                </span>
+              </div>
+            )}
+            {isFlight && attraction.arrivalAirport && (
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}><MapPin size={13} aria-hidden="true" />To</span>
+                <span className={styles.infoValue}>
+                  {attraction.arrivalAirport}
+                  {attraction.arrivalTime && (
+                    <span className={styles.timeNote}> · {attraction.arrivalTime.split("T")[1]?.slice(0, 5)}</span>
+                  )}
+                </span>
+              </div>
+            )}
+            {isFlight && attraction.gate && (
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}><MapPin size={13} aria-hidden="true" />Gate</span>
+                <span className={styles.infoValue}>{attraction.gate}</span>
+              </div>
+            )}
+            {isFlight && attraction.seat && (
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}><Tag size={13} aria-hidden="true" />Seat</span>
+                <span className={styles.infoValue}>{attraction.seat}</span>
+              </div>
+            )}
+
+            {/* ── Generic fields (city/country/duration/coords shown for non-subtype; city/country always shown) ── */}
             <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>
-                <Building2 size={13} aria-hidden="true" />
-                City
-              </span>
+              <span className={styles.infoLabel}><Building2 size={13} aria-hidden="true" />City</span>
               <span className={styles.infoValue}>{attraction.city}</span>
             </div>
             <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>
-                <Globe size={13} aria-hidden="true" />
-                Country
-              </span>
+              <span className={styles.infoLabel}><Globe size={13} aria-hidden="true" />Country</span>
               <span className={styles.infoValue}>{attraction.country}</span>
             </div>
-            {durationLabel && (
+            {!isResidence && !isFlight && durationLabel && (
               <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>
-                  <Clock size={13} aria-hidden="true" />
-                  Duration
-                </span>
+                <span className={styles.infoLabel}><Clock size={13} aria-hidden="true" />Duration</span>
                 <span className={styles.infoValue}>{durationLabel}</span>
               </div>
             )}
             {attraction.price != null && (
               <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>
-                  <Wallet size={13} aria-hidden="true" />
-                  Price
-                </span>
+                <span className={styles.infoLabel}><Wallet size={13} aria-hidden="true" />Price</span>
                 <span className={styles.infoValue}>${attraction.price}</span>
               </div>
             )}
-            {attraction.coordinates && (
+            {!isResidence && !isFlight && attraction.coordinates && (
               <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>
-                  <Navigation size={13} aria-hidden="true" />
-                  Coordinates
-                </span>
+                <span className={styles.infoLabel}><Navigation size={13} aria-hidden="true" />Coordinates</span>
                 <span className={`${styles.infoValue} ${styles.mono}`}>
                   {attraction.coordinates.lat.toFixed(4)}, {attraction.coordinates.lng.toFixed(4)}
                 </span>
@@ -168,8 +232,8 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime }: Attra
             )}
           </div>
 
-          {/* Opening hours */}
-          {attraction.openingHours && (
+          {/* Opening hours — not shown for subtypes */}
+          {!isResidence && !isFlight && attraction.openingHours && (
             <div className={styles.section}>
               <h3 className={styles.sectionTitle}>
                 <Clock size={14} aria-hidden="true" />

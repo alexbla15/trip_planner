@@ -27,6 +27,21 @@ export interface IAttraction extends Document {
   actualDurationUnit?: "minutes" | "hours";
   createdAt: Date;
   updatedAt: Date;
+  // Subtype discriminator
+  subtype?: "residence" | "flight";
+  // Residence fields
+  residenceType?: string;
+  checkInDate?: string;
+  checkOutDate?: string;
+  // Flight fields
+  flightNumber?: string;
+  airline?: string;
+  departureAirport?: string;
+  arrivalAirport?: string;
+  departureTime?: string;
+  arrivalTime?: string;
+  gate?: string;
+  seat?: string;
 }
 
 const OpeningHoursDaySchema = new Schema<IOpeningHoursDay>(
@@ -64,6 +79,21 @@ const AttractionSchema = new Schema<IAttraction>(
       Sat: { type: OpeningHoursDaySchema },
       Sun: { type: OpeningHoursDaySchema },
     },
+    // Subtype discriminator
+    subtype: { type: String, enum: ["residence", "flight"] },
+    // Residence fields
+    residenceType: { type: String },
+    checkInDate:   { type: String },
+    checkOutDate:  { type: String },
+    // Flight fields
+    flightNumber:      { type: String },
+    airline:           { type: String },
+    departureAirport:  { type: String },
+    arrivalAirport:    { type: String },
+    departureTime:     { type: String },
+    arrivalTime:       { type: String },
+    gate:              { type: String },
+    seat:              { type: String },
   },
   { timestamps: true }
 );
@@ -97,5 +127,18 @@ export function formatAttraction(doc: IAttraction): AttractionShape {
     actualDurationUnit: doc.actualDurationUnit,
     createdAt: doc.createdAt?.toISOString(),
     updatedAt: doc.updatedAt?.toISOString(),
+    // Subtype fields
+    subtype: doc.subtype,
+    residenceType: doc.residenceType as AttractionShape["residenceType"],
+    checkInDate: doc.checkInDate,
+    checkOutDate: doc.checkOutDate,
+    flightNumber: doc.flightNumber,
+    airline: doc.airline,
+    departureAirport: doc.departureAirport,
+    arrivalAirport: doc.arrivalAirport,
+    departureTime: doc.departureTime,
+    arrivalTime: doc.arrivalTime,
+    gate: doc.gate,
+    seat: doc.seat,
   };
 }

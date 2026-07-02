@@ -237,6 +237,11 @@
   font-weight: 500;
 }
 
+.timeNote {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
 /* ── Notes ── */
 .notes {
   font-size: 14px;

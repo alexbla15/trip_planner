@@ -14,6 +14,9 @@ import styles from "./AttractionTypeChip.module.css";
 
 const ICON_SIZE = 13;
 
+// Exported for use as a fallback icon when a residence entry has residenceType "Other"
+export { BedDouble as ACCOMMODATION_ICON } from "lucide-react";
+
 export const ICONS: Record<AttractionType, React.ReactNode> = {
   Restaurant:          <Utensils size={ICON_SIZE} aria-hidden="true" />,
   Bar:                 <Wine size={ICON_SIZE} aria-hidden="true" />,

@@ -50,6 +50,20 @@ export async function PUT(req: Request, { params }: RouteContext) {
     if (body.actualDurationValue !== undefined) attraction.actualDurationValue = body.actualDurationValue as string;
     if (body.actualDurationUnit  !== undefined) attraction.actualDurationUnit  = body.actualDurationUnit  as "minutes" | "hours";
 
+    // Subtype fields
+    if (body.subtype !== undefined)           attraction.subtype           = body.subtype           as "residence" | "flight";
+    if (body.residenceType !== undefined)     attraction.residenceType     = body.residenceType     as string;
+    if (body.checkInDate !== undefined)       attraction.checkInDate       = body.checkInDate       as string;
+    if (body.checkOutDate !== undefined)      attraction.checkOutDate      = body.checkOutDate      as string;
+    if (body.flightNumber !== undefined)      attraction.flightNumber      = body.flightNumber      as string;
+    if (body.airline !== undefined)           attraction.airline           = body.airline           as string;
+    if (body.departureAirport !== undefined)  attraction.departureAirport  = body.departureAirport  as string;
+    if (body.arrivalAirport !== undefined)    attraction.arrivalAirport    = body.arrivalAirport    as string;
+    if (body.departureTime !== undefined)     attraction.departureTime     = body.departureTime     as string;
+    if (body.arrivalTime !== undefined)       attraction.arrivalTime       = body.arrivalTime       as string;
+    if (body.gate !== undefined)              attraction.gate              = body.gate              as string;
+    if (body.seat !== undefined)              attraction.seat              = body.seat              as string;
+
     await attraction.save();
     return NextResponse.json(formatAttraction(attraction));
   } catch (err) {

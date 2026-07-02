@@ -59,9 +59,29 @@ export async function POST(req: Request, { params }: RouteContext) {
       openingHours?: any;
       notes?: string;
       photoUrl?: string;
+      // Subtype
+      subtype?: "residence" | "flight";
+      residenceType?: string;
+      checkInDate?: string;
+      checkOutDate?: string;
+      flightNumber?: string;
+      airline?: string;
+      departureAirport?: string;
+      arrivalAirport?: string;
+      departureTime?: string;
+      arrivalTime?: string;
+      gate?: string;
+      seat?: string;
+      plannedDate?: string | null;
+      plannedTime?: string | null;
+      actualDurationValue?: string;
+      actualDurationUnit?: "minutes" | "hours";
     };
 
-    const { name, country, city, coordinates, types, durationValue, durationUnit, price, openingHours, notes, photoUrl } = body;
+    const { name, country, city, coordinates, types, durationValue, durationUnit, price, openingHours, notes, photoUrl,
+      subtype, residenceType, checkInDate, checkOutDate,
+      flightNumber, airline, departureAirport, arrivalAirport, departureTime, arrivalTime, gate, seat,
+      plannedDate, plannedTime, actualDurationValue, actualDurationUnit } = body;
 
     if (!name?.trim() || !country?.trim() || !city?.trim()) {
       return NextResponse.json(
@@ -84,6 +104,22 @@ export async function POST(req: Request, { params }: RouteContext) {
       openingHours: openingHours ?? undefined,
       notes: notes || undefined,
       photoUrl: photoUrl || undefined,
+      subtype: subtype || undefined,
+      residenceType: residenceType || undefined,
+      checkInDate: checkInDate || undefined,
+      checkOutDate: checkOutDate || undefined,
+      flightNumber: flightNumber || undefined,
+      airline: airline || undefined,
+      departureAirport: departureAirport || undefined,
+      arrivalAirport: arrivalAirport || undefined,
+      departureTime: departureTime || undefined,
+      arrivalTime: arrivalTime || undefined,
+      gate: gate || undefined,
+      seat: seat || undefined,
+      plannedDate: plannedDate ?? null,
+      plannedTime: plannedTime ?? null,
+      actualDurationValue: actualDurationValue || undefined,
+      actualDurationUnit: actualDurationUnit || undefined,
     });
 
     // Push the new attraction id onto the trip
