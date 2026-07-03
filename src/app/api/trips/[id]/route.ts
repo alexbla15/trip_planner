@@ -9,7 +9,7 @@ interface RouteContext {
 
 /** Resolves a trip document by ID with access-control.
  *  ownerOnly=true  → only the trip owner passes (used for DELETE).
- *  ownerOnly=false → owner or any listed collaborator passes (used for GET/PUT).
+ *  ownerOnly=false → owner or any listed collaborator passes (used for PUT).
  */
 async function resolveTrip(req: Request, id: string, ownerOnly = false) {
   const payload = getUserFromRequest(req);
@@ -30,11 +30,28 @@ async function resolveTrip(req: Request, id: string, ownerOnly = false) {
 export async function GET(req: Request, { params }: RouteContext) {
   try {
     const { id } = await params;
-    const { trip } = await resolveTrip(req, id);
+    await dbConnect();
+
+    // Auth is optional — non-private trips are readable without a token
+    let userId: string | null = null;
+    try { userId = getUserFromRequest(req).userId; } catch { /* unauthenticated */ }
+
+    const query = userId
+      ? {
+          _id: id,
+          $or: [
+            { ownerId: userId },
+            { "collaborators.userId": userId },
+            { isPrivate: { $ne: true } },
+          ],
+        }
+      : { _id: id, isPrivate: { $ne: true } };
+
+    const trip = await Trip.findOne(query).populate("collaborators.userId", "name email");
     if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
     return NextResponse.json(formatTrip(trip));
   } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
 

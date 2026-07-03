@@ -700,8 +700,13 @@ paths:
         schema:
           type: string
     get:
-      summary: Get a specific trip's details (owner or collaborator)
+      summary: Get a specific trip's details
+      description: |
+        Auth is optional. Authenticated users (owner/collaborator) see any trip they have access to.
+        Unauthenticated users — or authenticated users who are neither owner nor collaborator — can
+        access any trip where `isPrivate` is false. Private trips return 404 to non-members.
       tags: [Trips]
+      security: []
       responses:
         200:
           content:
@@ -709,7 +714,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Trip'
         404:
-          description: Trip not found
+          description: Trip not found or private and caller is not a member
     put:
       summary: Update trip details (owner or collaborator; isPrivate settable by either)
       tags: [Trips]
@@ -807,7 +812,9 @@ paths:
           type: string
     get:
       summary: Get all attractions for a specific trip
+      description: Auth is optional. Returns attractions for public trips without a token; private trips return [].
       tags: [Attractions]
+      security: []
       parameters:
         - name: type
           in: query

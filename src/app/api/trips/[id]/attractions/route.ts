@@ -25,16 +25,24 @@ async function getAuthedTrip(req: Request, tripId: string) {
 export async function GET(req: Request, { params }: RouteContext) {
   try {
     const { id: tripId } = await params;
-    const payload = getUserFromRequest(req);
     await dbConnect();
 
-    const trip = await Trip.findOne({
-      _id: tripId,
-      $or: [
-        { ownerId: payload.userId },
-        { "collaborators.userId": payload.userId },
-      ],
-    });
+    // Auth is optional — non-private trips are readable without a token
+    let userId: string | null = null;
+    try { userId = getUserFromRequest(req).userId; } catch { /* unauthenticated */ }
+
+    const tripQuery = userId
+      ? {
+          _id: tripId,
+          $or: [
+            { ownerId: userId },
+            { "collaborators.userId": userId },
+            { isPrivate: { $ne: true } },
+          ],
+        }
+      : { _id: tripId, isPrivate: { $ne: true } };
+
+    const trip = await Trip.findOne(tripQuery);
     if (!trip) return NextResponse.json([], { status: 200 });
 
     const { searchParams } = new URL(req.url);

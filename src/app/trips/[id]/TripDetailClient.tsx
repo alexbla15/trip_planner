@@ -50,7 +50,7 @@ interface TripDetailClientProps {
 }
 
 export function TripDetailClient({ tripId }: TripDetailClientProps) {
-  const { token, user: authUser } = useAuth();
+  const { token, user: authUser, loading: authLoading } = useAuth();
   const router = useRouter();
 
   const [trip, setTrip] = useState<Trip | null>(null);
@@ -70,12 +70,13 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   const [editingFlight, setEditingFlight]           = useState<Attraction | null>(null);
   const [viewingAttraction, setViewingAttraction]   = useState<Attraction | null>(null);
 
-  // Fetch trip
+  // Fetch trip — waits for auth to settle so token-less unauthenticated users
+  // aren't confused with still-loading authenticated users
   useEffect(() => {
-    if (!token) return;
-    fetch(`/api/trips/${tripId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    if (authLoading) return;
+    setTripLoading(true);
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+    fetch(`/api/trips/${tripId}`, { headers })
       .then((res) => {
         if (res.status === 404) { router.replace("/trips"); return null; }
         return res.json() as Promise<Trip>;
@@ -83,15 +84,14 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
       .then((data) => { if (data) setTrip(data); })
       .catch(() => router.replace("/trips"))
       .finally(() => setTripLoading(false));
-  }, [token, tripId, router]);
+  }, [authLoading, token, tripId, router]);
 
-  // Fetch attractions once trip is loaded
+  // Fetch attractions once trip is loaded (works with or without a token)
   useEffect(() => {
-    if (!token || !trip) return;
+    if (!trip) return;
     setAttractionsLoading(true);
-    fetch(`/api/trips/${trip._id}/attractions`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+    fetch(`/api/trips/${trip._id}/attractions`, { headers })
       .then((res) => res.json())
       .then((data: Attraction[]) => setAttractions(Array.isArray(data) ? data : []))
       .catch(() => setAttractions([]))
