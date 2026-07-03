@@ -1,13 +1,13 @@
 # Goal: Trip Entity Enhancements
 
-Status: in progress
+Status: done
 
 Expanding what travelers can record in a trip: richer attraction type categories, dedicated residence entries, and dedicated flight entries.
 
 ## Tasks
 - [x] .claude/tasks/attraction-type-categories.done.md
-- [ ] .claude/tasks/special-attraction-residence.md
-- [ ] .claude/tasks/special-attraction-flight.md
+- [x] .claude/tasks/special-attraction-residence.done.md
+- [x] .claude/tasks/special-attraction-flight.done.md
 
 ## Plan
 1. **Attraction type categories** — foundation; expands the type list and reorganizes the picker, which both residence and flight will use for their subtype display

@@ -1,6 +1,6 @@
 # Task: Add Flight Entry
 
-Status: reviewing
+Status: done
 
 Track: A
 Track reason: new form surface with specialized fields (flight number, departure/arrival airports, gate, seats); no existing pattern for transport subtype forms

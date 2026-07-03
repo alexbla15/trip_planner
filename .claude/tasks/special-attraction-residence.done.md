@@ -1,6 +1,6 @@
 # Task: Add Residence Entry (Hotel / Apartment / etc.)
 
-Status: reviewing
+Status: done
 
 Track: A
 Track reason: new form surface with specialized fields (stay dates, residence type, price); no existing pattern for subtype-specific attraction forms
