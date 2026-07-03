@@ -186,6 +186,44 @@
   font-size: 12px;
 }
 
+/* ── Location map ── */
+.locationMapSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.locationMapContainer {
+  height: 180px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+}
+
+.locationMapLoading {
+  height: 180px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.locationCaption {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.locationCoords {
+  margin-left: auto;
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
 /* ── Sections ── */
 .section {
   display: flex;

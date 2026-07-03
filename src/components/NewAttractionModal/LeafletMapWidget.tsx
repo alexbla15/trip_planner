@@ -31,9 +31,10 @@ interface LeafletMapWidgetProps {
   onChange: (coords: Coordinates) => void;
 }
 
-function MapClickHandler({ onChange }: { onChange: (c: Coordinates) => void }) {
+function MapClickHandler({ onChange, onClearQuery }: { onChange: (c: Coordinates) => void; onClearQuery: () => void }) {
   useMapEvents({
     click(e) {
+      onClearQuery(); // clear the search text so the reverse-geocode effect fires
       onChange({ lat: e.latlng.lat, lng: e.latlng.lng });
     },
   });
@@ -62,6 +63,29 @@ export function LeafletMapWidget({ coordinates, onChange }: LeafletMapWidgetProp
   const [panTarget, setPanTarget] = useState<Coordinates | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  // Track coords that came from a suggestion selection — skip reverse-geocode for those
+  const suggestionCoordsRef = useRef<Coordinates | null>(null);
+
+  // When coordinates arrive from outside (edit-mode initialisation or map click)
+  // AND the search field is empty, reverse-geocode to show a human-readable label.
+  useEffect(() => {
+    if (!coordinates) { setQuery(""); return; }
+    const sugg = suggestionCoordsRef.current;
+    if (sugg && sugg.lat === coordinates.lat && sugg.lng === coordinates.lng) return; // came from suggestion — query already set
+    if (query.trim()) return; // user has typed something — don't overwrite
+    fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${coordinates.lat}&lon=${coordinates.lng}&format=json&accept-language=en`,
+      { headers: { "User-Agent": "TripPlannerApp/1.0" } }
+    )
+      .then((r) => r.json())
+      .then((data: { display_name?: string }) => {
+        if (data.display_name) {
+          setQuery(data.display_name.split(",").slice(0, 3).join(",").trim());
+        }
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coordinates]);
 
   const handleQueryChange = useCallback((val: string) => {
     setQuery(val);
@@ -84,6 +108,7 @@ export function LeafletMapWidget({ coordinates, onChange }: LeafletMapWidgetProp
 
   function handleSelectSuggestion(result: NominatimResult) {
     const coords: Coordinates = { lat: parseFloat(result.lat), lng: parseFloat(result.lon) };
+    suggestionCoordsRef.current = coords; // mark as suggestion-sourced so the reverse-geocode effect skips it
     onChange(coords);
     setPanTarget(coords);
     setQuery(result.display_name.split(",").slice(0, 2).join(", ").trim());
@@ -138,7 +163,7 @@ export function LeafletMapWidget({ coordinates, onChange }: LeafletMapWidgetProp
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
-        <MapClickHandler onChange={onChange} />
+        <MapClickHandler onChange={onChange} onClearQuery={() => { setQuery(""); suggestionCoordsRef.current = null; }} />
         <MapPanController target={panTarget} />
         {coordinates && (
           <Marker position={[coordinates.lat, coordinates.lng]} />

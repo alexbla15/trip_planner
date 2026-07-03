@@ -48,6 +48,26 @@ export function AddResidenceModal({
   const [checkOutDate, setCheckOutDate]   = useState("");
   const [price, setPrice]                 = useState<number | null>(null);
   const [coordinates, setCoordinates]     = useState<Coordinates | null>(null);
+
+  async function handleCoordinatesChange(coords: Coordinates) {
+    setCoordinates(coords);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${coords.lat}&lon=${coords.lng}&format=json&accept-language=en`,
+        { headers: { "User-Agent": "TripPlannerApp/1.0" } }
+      );
+      if (!res.ok) return;
+      const data = await res.json() as {
+        name?: string;
+        address?: { city?: string; town?: string; municipality?: string; village?: string };
+      };
+      if (!name.trim() && data.name) setName(data.name);
+      if (!city.trim()) {
+        const resolvedCity = data.address?.city ?? data.address?.town ?? data.address?.municipality ?? data.address?.village ?? "";
+        if (resolvedCity) setCity(resolvedCity);
+      }
+    } catch { /* best-effort */ }
+  }
   const [notes, setNotes]                 = useState("");
   const [errors, setErrors]               = useState<FieldErrors>({});
   const [touched, setTouched]             = useState<Record<string, boolean>>({});
@@ -261,7 +281,7 @@ export function AddResidenceModal({
               <Globe size={14} aria-hidden="true" />
               Location
             </span>
-            <MapPicker coordinates={coordinates} onChange={setCoordinates} />
+            <MapPicker coordinates={coordinates} onChange={handleCoordinatesChange} />
           </div>
 
           {/* Dates row */}

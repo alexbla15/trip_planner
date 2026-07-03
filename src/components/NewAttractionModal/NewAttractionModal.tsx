@@ -58,6 +58,31 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
   const [country, setCountry] = useState(defaultCountry ?? "");
   const [city, setCity] = useState("");
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
+
+  // Reverse-geocode and auto-fill name / city when user picks a map point
+  async function handleCoordinatesChange(coords: Coordinates) {
+    setCoordinates(coords);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${coords.lat}&lon=${coords.lng}&format=json&accept-language=en`,
+        { headers: { "User-Agent": "TripPlannerApp/1.0" } }
+      );
+      if (!res.ok) return;
+      const data = await res.json() as {
+        name?: string;
+        address?: { city?: string; town?: string; municipality?: string; village?: string; country?: string };
+      };
+      // Fill name only if the field is still empty
+      if (!name.trim() && data.name) setName(data.name);
+      // Fill city only if the field is still empty
+      if (!city.trim()) {
+        const resolvedCity = data.address?.city ?? data.address?.town ?? data.address?.municipality ?? data.address?.village ?? "";
+        if (resolvedCity) setCity(resolvedCity);
+      }
+    } catch {
+      // Reverse geocoding is best-effort — silently ignore failures
+    }
+  }
   const [selectedTypes, setSelectedTypes] = useState<AttractionType[]>([]);
   const [durationValue, setDurationValue] = useState("");
   const [durationUnit, setDurationUnit] = useState<DurationUnit>("hours");
@@ -459,7 +484,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
             </span>
             <MapPicker
               coordinates={coordinates}
-              onChange={setCoordinates}
+              onChange={handleCoordinatesChange}
             />
           </div>
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import { createPortal } from "react-dom";
+import dynamic from "next/dynamic";
 import {
   X,
   MapPin,
@@ -19,6 +20,11 @@ import {
   Tag,
 } from "lucide-react";
 import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
+
+const LocationViewMap = dynamic(
+  () => import("./LocationViewMap").then((m) => ({ default: m.LocationViewMap })),
+  { ssr: false, loading: () => <div className={styles.locationMapLoading} /> }
+);
 import type { AttractionType } from "@/components/NewAttractionModal/attraction.types";
 import type { Attraction } from "@/types/attraction";
 import { formatDisplayDate } from "@/lib/formatDate";
@@ -131,6 +137,22 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime }: Attra
             </div>
           )}
 
+          {/* Location map — shown whenever coordinates exist */}
+          {attraction.coordinates && (
+            <div className={styles.locationMapSection}>
+              <div className={styles.locationMapContainer}>
+                <LocationViewMap lat={attraction.coordinates.lat} lng={attraction.coordinates.lng} />
+              </div>
+              <p className={styles.locationCaption}>
+                <MapPin size={11} aria-hidden="true" />
+                {[attraction.city, attraction.country].filter(Boolean).join(", ")}
+                <span className={styles.locationCoords}>
+                  {attraction.coordinates.lat.toFixed(5)}, {attraction.coordinates.lng.toFixed(5)}
+                </span>
+              </p>
+            </div>
+          )}
+
           {/* Info grid */}
           <div className={styles.infoGrid}>
             {/* ── Residence-specific fields ── */}
@@ -222,14 +244,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime }: Attra
                 <span className={styles.infoValue}>${attraction.price}</span>
               </div>
             )}
-            {!isResidence && !isFlight && attraction.coordinates && (
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}><Navigation size={13} aria-hidden="true" />Coordinates</span>
-                <span className={`${styles.infoValue} ${styles.mono}`}>
-                  {attraction.coordinates.lat.toFixed(4)}, {attraction.coordinates.lng.toFixed(4)}
-                </span>
-              </div>
-            )}
+            {/* Coordinates shown in the map caption above — removed from info grid */}
           </div>
 
           {/* Opening hours — not shown for subtypes */}
