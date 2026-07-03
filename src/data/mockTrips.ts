@@ -16,6 +16,8 @@ export const mockTrips: Trip[] = [
     moods: ["Cultural Heritage", "Food & Wine"],
     budget: 3000,
     currency: "JPY",
+    collaborators: [],
+    isPrivate: false,
   },
   {
     _id: "2",
@@ -28,6 +30,8 @@ export const mockTrips: Trip[] = [
     moods: ["Couples & Romantic", "Food & Wine"],
     budget: 2500,
     currency: "EUR",
+    collaborators: [],
+    isPrivate: false,
   },
   {
     _id: "3",
@@ -40,5 +44,7 @@ export const mockTrips: Trip[] = [
     moods: ["Luxury", "Beach Life"],
     budget: 1800,
     currency: "EUR",
+    collaborators: [],
+    isPrivate: false,
   },
 ];
