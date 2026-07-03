@@ -9,8 +9,6 @@ export interface IScheduleEntry {
 
 export interface ICollaborator {
   userId: Types.ObjectId;
-  email: string;
-  name: string;
 }
 
 export interface ITrip extends Document {
@@ -36,11 +34,7 @@ export interface ITrip extends Document {
 }
 
 const CollaboratorSchema = new Schema<ICollaborator>(
-  {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    email:  { type: String, required: true, lowercase: true, trim: true },
-    name:   { type: String, required: true, trim: true },
-  },
+  { userId: { type: Schema.Types.ObjectId, ref: "User", required: true } },
   { _id: false }
 );
 
@@ -101,11 +95,11 @@ export function formatTrip(doc: ITrip): import("@/types/trip").Trip {
     moods: doc.moods,
     notes: doc.notes,
     attractionIds: doc.attractionIds?.map((id) => id.toString()) ?? [],
-    collaborators: (doc.collaborators ?? []).map((c) => ({
-      userId: c.userId.toString(),
-      email: c.email,
-      name: c.name,
-    })),
+    collaborators: (doc.collaborators ?? []).map((c) => {
+      // userId is populated via .populate('collaborators.userId', 'name email')
+      const u = c.userId as unknown as { _id: Types.ObjectId; name: string; email: string };
+      return { userId: u._id.toString(), name: u.name, email: u.email };
+    }),
     isPrivate: doc.isPrivate ?? false,
     createdAt: doc.createdAt?.toISOString(),
     updatedAt: doc.updatedAt?.toISOString(),

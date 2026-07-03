@@ -32,7 +32,9 @@ export async function GET(req: Request) {
       filter.moods = mood;
     }
 
-    const trips = await Trip.find(filter).sort({ startDate: -1 });
+    const trips = await Trip.find(filter)
+      .sort({ startDate: -1 })
+      .populate("collaborators.userId", "name email");
     return NextResponse.json(trips.map(formatTrip));
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

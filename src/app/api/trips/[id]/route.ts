@@ -23,7 +23,7 @@ async function resolveTrip(req: Request, id: string, ownerOnly = false) {
           { "collaborators.userId": payload.userId },
         ],
       };
-  const trip = await Trip.findOne(query);
+  const trip = await Trip.findOne(query).populate("collaborators.userId", "name email");
   return { trip, payload };
 }
 
@@ -70,12 +70,13 @@ export async function PUT(req: Request, { params }: RouteContext) {
     };
 
     if (Object.keys($set).length === 0) {
-      const trip = await Trip.findOne(filter);
+      const trip = await Trip.findOne(filter).populate("collaborators.userId", "name email");
       if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
       return NextResponse.json(formatTrip(trip));
     }
 
-    const updated = await Trip.findOneAndUpdate(filter, { $set }, { new: true, runValidators: true });
+    const updated = await Trip.findOneAndUpdate(filter, { $set }, { new: true, runValidators: true })
+      .populate("collaborators.userId", "name email");
     if (!updated) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
     return NextResponse.json(formatTrip(updated));
   } catch {

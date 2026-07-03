@@ -18,21 +18,21 @@ export async function DELETE(req: Request, { params }: RouteContext) {
     const { id: tripId, userId: targetUserId } = await params;
     await dbConnect();
 
-    // Only the owner may remove collaborators
+    // Verify the trip exists and the caller is the owner, and the collaborator is present
     const trip = await Trip.findOne({ _id: tripId, ownerId: payload.userId });
     if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
 
-    const before = trip.collaborators.length;
-    trip.collaborators = trip.collaborators.filter(
-      (c) => c.userId.toString() !== targetUserId
-    );
+    const exists = trip.collaborators.some((c) => c.userId.toString() === targetUserId);
+    if (!exists) return NextResponse.json({ error: "Collaborator not found" }, { status: 404 });
 
-    if (trip.collaborators.length === before) {
-      return NextResponse.json({ error: "Collaborator not found" }, { status: 404 });
-    }
+    const updated = await Trip.findOneAndUpdate(
+      { _id: tripId, ownerId: payload.userId },
+      { $pull: { collaborators: { userId: targetUserId } } },
+      { new: true }
+    ).populate("collaborators.userId", "name email");
 
-    await trip.save();
-    return NextResponse.json(formatTrip(trip));
+    if (!updated) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+    return NextResponse.json(formatTrip(updated));
   } catch (err) {
     console.error("[DELETE /api/trips/:id/collaborators/:userId]", err);
     return NextResponse.json({ error: "Failed to remove collaborator" }, { status: 500 });

@@ -49,14 +49,14 @@ export async function POST(req: Request, { params }: RouteContext) {
       return NextResponse.json({ error: "User is already a collaborator" }, { status: 409 });
     }
 
-    trip.collaborators.push({
-      userId: invitee._id,
-      email: invitee.email,
-      name: invitee.name,
-    });
-    await trip.save();
+    const updated = await Trip.findOneAndUpdate(
+      { _id: tripId, ownerId: payload.userId },
+      { $push: { collaborators: { userId: invitee._id } } },
+      { new: true }
+    ).populate("collaborators.userId", "name email");
 
-    return NextResponse.json(formatTrip(trip), { status: 201 });
+    if (!updated) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+    return NextResponse.json(formatTrip(updated), { status: 201 });
   } catch (err) {
     console.error("[POST /api/trips/:id/collaborators]", err);
     return NextResponse.json({ error: "Failed to add collaborator" }, { status: 500 });
