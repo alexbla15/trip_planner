@@ -18,7 +18,13 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     const { id: tripId, attractionId } = await params;
     await dbConnect();
 
-    const trip = await Trip.findOne({ _id: tripId, ownerId: payload.userId });
+    const trip = await Trip.findOne({
+      _id: tripId,
+      $or: [
+        { ownerId: payload.userId },
+        { "collaborators.userId": payload.userId },
+      ],
+    });
     if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
 
     const body = await req.json() as {
@@ -61,13 +67,17 @@ export async function DELETE(req: Request, { params }: RouteContext) {
     const { id: tripId, attractionId } = await params;
     await dbConnect();
 
-    const trip = await Trip.findOne({ _id: tripId, ownerId: payload.userId });
+    const trip = await Trip.findOne({
+      _id: tripId,
+      $or: [
+        { ownerId: payload.userId },
+        { "collaborators.userId": payload.userId },
+      ],
+    });
     if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
 
-    // Remove from attractionIds — attraction document itself stays in DB
     await Trip.findByIdAndUpdate(tripId, { $pull: { attractionIds: attractionId } });
 
-    // Remove its schedule entry
     if (trip.schedules?.has(attractionId)) {
       trip.schedules.delete(attractionId);
       await trip.save();

@@ -82,6 +82,20 @@ components:
           example: https://example.com
 
     # --- TRIP SCHEMAS ---
+    TripCollaborator:
+      type: object
+      properties:
+        userId:
+          type: string
+          example: 65f1234567890abcdef12345
+        email:
+          type: string
+          format: email
+          example: jane@example.com
+        name:
+          type: string
+          example: Jane Smith
+
     Trip:
       type: object
       properties:
@@ -131,6 +145,15 @@ components:
           items:
             type: string
           example: ["65f1234567890abcdef123bb"]
+        collaborators:
+          type: array
+          description: Users invited by the owner to co-edit this trip.
+          items:
+            $ref: '#/components/schemas/TripCollaborator'
+        isPrivate:
+          type: boolean
+          default: false
+          description: When true, the trip is visible only to the owner and collaborators.
         createdAt:
           type: string
           format: date-time
@@ -175,6 +198,9 @@ components:
             type: string
         notes:
           type: string
+        isPrivate:
+          type: boolean
+          description: Set to true to restrict visibility to owner and collaborators only.
 
     # --- ATTRACTION SCHEMAS ---
     OpeningHoursDay:
@@ -556,6 +582,40 @@ paths:
         401:
           description: Invalid credentials
 
+  /api/users/search:
+    get:
+      summary: Search registered users by name or email
+      description: Returns up to 10 users matching the query. Excludes the authenticated caller. Requires at least 2 characters.
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema:
+            type: string
+            minLength: 2
+          description: Search term matched against name and email (case-insensitive)
+      responses:
+        "200":
+          description: Matching users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                    name:
+                      type: string
+                    email:
+                      type: string
+        "401":
+          description: Unauthorized
+
   /api/users/me:
     get:
       summary: Fetch the authenticated user's profile details
@@ -590,7 +650,7 @@ paths:
   # ==========================================
   /api/trips:
     get:
-      summary: Retrieve all trips for the logged-in user
+      summary: Retrieve all trips for the logged-in user (owned + shared as collaborator)
       tags: [Trips]
       parameters:
         - name: upcoming
@@ -640,7 +700,7 @@ paths:
         schema:
           type: string
     get:
-      summary: Get a specific trip's details
+      summary: Get a specific trip's details (owner or collaborator)
       tags: [Trips]
       responses:
         200:
@@ -651,7 +711,7 @@ paths:
         404:
           description: Trip not found
     put:
-      summary: Update trip details
+      summary: Update trip details (owner or collaborator; isPrivate settable by either)
       tags: [Trips]
       requestBody:
         required: true
@@ -671,6 +731,69 @@ paths:
       responses:
         200:
           description: Trip successfully deleted
+
+  /api/trips/{id}/collaborators:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Add a collaborator to a trip (owner only)
+      tags: [Trips]
+      description: Looks up the user by email and appends them to the trip's collaborators list. Returns the updated Trip.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: jane@example.com
+      responses:
+        201:
+          description: Collaborator added; returns updated trip
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        400:
+          description: Missing email or trying to add yourself
+        404:
+          description: Trip not found or user with that email not found
+        409:
+          description: User is already a collaborator
+
+  /api/trips/{id}/collaborators/{userId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Remove a collaborator from a trip (owner only)
+      tags: [Trips]
+      description: Removes the collaborator identified by userId from the trip. Returns the updated Trip.
+      responses:
+        200:
+          description: Collaborator removed; returns updated trip
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        404:
+          description: Trip not found or collaborator not found
 
   # ==========================================
   # 🏛️ Attraction Management (Nested Routes)

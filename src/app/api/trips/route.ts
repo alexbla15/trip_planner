@@ -13,8 +13,14 @@ export async function GET(req: Request) {
     const country = searchParams.get("country");
     const mood = searchParams.get("mood");
 
+    // Return trips where the user is the owner or a listed collaborator
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const filter: Record<string, any> = { ownerId: payload.userId };
+    const filter: Record<string, any> = {
+      $or: [
+        { ownerId: payload.userId },
+        { "collaborators.userId": payload.userId },
+      ],
+    };
 
     if (upcoming === "true") {
       filter.startDate = { $gt: new Date() };
@@ -82,6 +88,8 @@ export async function POST(req: Request) {
       moods: moods ?? [],
       notes,
       attractionIds: [],
+      collaborators: [],
+      isPrivate: false,
     });
 
     return NextResponse.json(formatTrip(trip), { status: 201 });

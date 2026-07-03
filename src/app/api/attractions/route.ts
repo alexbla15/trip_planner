@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongoose";
+import { getUserFromRequest } from "@/lib/auth";
 import { Attraction, formatAttraction } from "@/models/Attraction";
 
 export async function GET(req: Request) {
@@ -28,5 +29,66 @@ export async function GET(req: Request) {
     return NextResponse.json(attractions.map((doc) => formatAttraction(doc, null)));
   } catch {
     return NextResponse.json({ error: "Failed to search attractions" }, { status: 500 });
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const payload = getUserFromRequest(req);
+    await dbConnect();
+
+    const body = await req.json() as {
+      name?: string;
+      country?: string;
+      city?: string;
+      coordinates?: { lat: number; lng: number } | null;
+      types?: string[];
+      durationValue?: string;
+      durationUnit?: "minutes" | "hours";
+      price?: number | null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      openingHours?: any;
+      notes?: string;
+      photoUrl?: string;
+    };
+
+    const { name, country, city, coordinates, types, durationValue, durationUnit,
+      price, openingHours, notes, photoUrl } = body;
+
+    if (!name?.trim() || !country?.trim() || !city?.trim()) {
+      return NextResponse.json({ error: "name, country, and city are required" }, { status: 400 });
+    }
+
+    const existing = await Attraction.findOne(
+      { name: name.trim() },
+      undefined,
+      { collation: { locale: "en", strength: 2 } }
+    );
+    if (existing) {
+      return NextResponse.json({ error: "An attraction with this name already exists" }, { status: 409 });
+    }
+
+    const attraction = await Attraction.create({
+      ownerId: payload.userId,
+      name: name.trim(),
+      country: country.trim(),
+      city: city.trim(),
+      coordinates: coordinates ?? null,
+      types: types ?? [],
+      durationValue: durationValue || undefined,
+      durationUnit: durationUnit || undefined,
+      price: price ?? null,
+      openingHours: openingHours ?? undefined,
+      notes: notes || undefined,
+      photoUrl: photoUrl || undefined,
+    });
+
+    return NextResponse.json(formatAttraction(attraction, null), { status: 201 });
+  } catch (err) {
+    const msg = (err as Error).message ?? "";
+    if (msg.includes("E11000")) {
+      return NextResponse.json({ error: "An attraction with this name already exists" }, { status: 409 });
+    }
+    return NextResponse.json({ error: "Failed to create attraction" }, { status: 500 });
   }
 }

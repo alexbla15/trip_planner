@@ -13,7 +13,13 @@ export async function PUT(req: Request, { params }: RouteContext) {
     const payload = getUserFromRequest(req);
     await dbConnect();
 
-    const trip = await Trip.findOne({ _id: tripId, ownerId: payload.userId });
+    const trip = await Trip.findOne({
+      _id: tripId,
+      $or: [
+        { ownerId: payload.userId },
+        { "collaborators.userId": payload.userId },
+      ],
+    });
     if (!trip) {
       return NextResponse.json({ error: "Trip not found" }, { status: 404 });
     }

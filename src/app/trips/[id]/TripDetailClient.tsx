@@ -15,6 +15,7 @@ import {
   Loader2,
   Trash2,
   PenLine,
+  Users,
 } from "lucide-react";
 import { MoodTagChip } from "@/components/MoodTagChip/MoodTagChip";
 import { NewAttractionModal } from "@/components/NewAttractionModal/NewAttractionModal";
@@ -28,6 +29,7 @@ import { AttractionSearchModal } from "@/components/AttractionSearchModal/Attrac
 import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
 import { DEFAULT_OPENING_HOURS } from "@/components/NewAttractionModal/attraction.constants";
 import { useAuth } from "@/contexts/AuthContext";
+import { TripSharingPanel } from "@/components/TripSharingPanel/TripSharingPanel";
 import { formatDisplayDate } from "@/lib/formatDate";
 import { currencySymbol } from "@/lib/formatCurrency";
 import type { ResidenceFormData, ResidenceInitialData } from "@/components/AddResidenceModal/AddResidenceModal.types";
@@ -353,7 +355,8 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   if (!trip) return null;
 
   const { name, country, coverImage, startDate, endDate, moods, budget, currency } = trip;
-  const isOwner = !!authUser && authUser._id === trip.ownerId;
+  const isOwner        = !!authUser && authUser._id === trip.ownerId;
+  const isCollaborator = !!authUser && !isOwner && (trip.collaborators ?? []).some((c) => c.userId === authUser._id);
 
   const flightAttractions    = attractions.filter((a) => a.subtype === "flight"    || a.types?.[0] === "Flight");
   const residenceAttractions = attractions.filter((a) => a.subtype === "residence");
@@ -391,6 +394,12 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
               </Link>
             )}
             <h1 className={styles.destination}>{name}</h1>
+            {isCollaborator && (
+              <span className={styles.heroSharedBadge}>
+                <Users size={13} aria-hidden="true" />
+                Shared with you
+              </span>
+            )}
             <div className={styles.tags}>
               {moods.map((tag) => (
                 <MoodTagChip key={tag} tag={tag} />
@@ -445,6 +454,17 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
               </div>
             </dl>
           </div>
+
+          {/* Sharing & Privacy panel — owner only */}
+          {isOwner && token && (
+            <div className={styles.sharingSection}>
+              <TripSharingPanel
+                trip={trip}
+                token={token}
+                onTripUpdate={(updated) => setTrip(updated)}
+              />
+            </div>
+          )}
 
           {/* Flights section */}
           <FlightsList

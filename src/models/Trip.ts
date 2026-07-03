@@ -7,6 +7,12 @@ export interface IScheduleEntry {
   actualDurationUnit?: "minutes" | "hours";
 }
 
+export interface ICollaborator {
+  userId: Types.ObjectId;
+  email: string;
+  name: string;
+}
+
 export interface ITrip extends Document {
   ownerId: Types.ObjectId;
   name: string;
@@ -23,9 +29,20 @@ export interface ITrip extends Document {
   // Per-attraction scheduling — keyed by attraction _id string.
   // Stores plannedDate, plannedTime, actualDuration which are trip-specific.
   schedules: Map<string, IScheduleEntry>;
+  collaborators: ICollaborator[];
+  isPrivate: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
+
+const CollaboratorSchema = new Schema<ICollaborator>(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    email:  { type: String, required: true, lowercase: true, trim: true },
+    name:   { type: String, required: true, trim: true },
+  },
+  { _id: false }
+);
 
 const TripSchema = new Schema<ITrip>(
   {
@@ -54,11 +71,16 @@ const TripSchema = new Schema<ITrip>(
       ),
       default: {},
     },
+    collaborators: { type: [CollaboratorSchema], default: [] },
+    // When true, the trip is visible only to the owner and collaborators.
+    // Any future public/unauthenticated trip-detail route must check this flag before returning.
+    isPrivate: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
 TripSchema.index({ ownerId: 1, startDate: -1 });
+TripSchema.index({ "collaborators.userId": 1 });
 
 export const Trip =
   (mongoose.models.Trip as mongoose.Model<ITrip>) ||
@@ -79,6 +101,12 @@ export function formatTrip(doc: ITrip): import("@/types/trip").Trip {
     moods: doc.moods,
     notes: doc.notes,
     attractionIds: doc.attractionIds?.map((id) => id.toString()) ?? [],
+    collaborators: (doc.collaborators ?? []).map((c) => ({
+      userId: c.userId.toString(),
+      email: c.email,
+      name: c.name,
+    })),
+    isPrivate: doc.isPrivate ?? false,
     createdAt: doc.createdAt?.toISOString(),
     updatedAt: doc.updatedAt?.toISOString(),
   };

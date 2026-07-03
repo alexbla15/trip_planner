@@ -7,20 +7,30 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-async function resolveTrip(req: Request, id: string) {
+/** Resolves a trip document by ID with access-control.
+ *  ownerOnly=true  → only the trip owner passes (used for DELETE).
+ *  ownerOnly=false → owner or any listed collaborator passes (used for GET/PUT).
+ */
+async function resolveTrip(req: Request, id: string, ownerOnly = false) {
   const payload = getUserFromRequest(req);
   await dbConnect();
-  const trip = await Trip.findOne({ _id: id, ownerId: payload.userId });
+  const query = ownerOnly
+    ? { _id: id, ownerId: payload.userId }
+    : {
+        _id: id,
+        $or: [
+          { ownerId: payload.userId },
+          { "collaborators.userId": payload.userId },
+        ],
+      };
+  const trip = await Trip.findOne(query);
   return { trip, payload };
 }
 
 export async function GET(req: Request, { params }: RouteContext) {
   try {
     const { id } = await params;
-    // Auth still required, but any authenticated user can view any trip
-    getUserFromRequest(req);
-    await dbConnect();
-    const trip = await Trip.findById(id);
+    const { trip } = await resolveTrip(req, id);
     if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
     return NextResponse.json(formatTrip(trip));
   } catch {
@@ -31,26 +41,43 @@ export async function GET(req: Request, { params }: RouteContext) {
 export async function PUT(req: Request, { params }: RouteContext) {
   try {
     const { id } = await params;
-    const { trip } = await resolveTrip(req, id);
-    if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+    const payload = getUserFromRequest(req);
+    await dbConnect();
 
     const body = await req.json();
-    const { name, cities, country, coverImage, startDate, endDate, budget, currency, moods, notes } =
-      body as Record<string, unknown>;
+    const {
+      name, cities, country, coverImage, startDate, endDate,
+      budget, currency, moods, notes, isPrivate,
+    } = body as Record<string, unknown>;
 
-    if (name) trip.name = (name as string).trim();
-    if (cities !== undefined) trip.cities = cities as string[];
-    if (country) trip.country = (country as string).trim();
-    if (coverImage !== undefined) trip.coverImage = coverImage as string;
-    if (startDate) trip.startDate = new Date(startDate as string);
-    if (endDate) trip.endDate = new Date(endDate as string);
-    if (budget !== undefined) trip.budget = budget as number;
-    if (currency !== undefined) trip.currency = currency as string;
-    if (moods) trip.moods = moods as string[];
-    if (notes !== undefined) trip.notes = notes as string;
+    // Build the $set object explicitly — avoids Mongoose Map-field change-detection bugs
+    const $set: Record<string, unknown> = {};
+    if (name)                     $set.name        = (name as string).trim();
+    if (cities !== undefined)     $set.cities      = cities;
+    if (country)                  $set.country     = (country as string).trim();
+    if (coverImage !== undefined) $set.coverImage  = coverImage;
+    if (startDate)                $set.startDate   = new Date(startDate as string);
+    if (endDate)                  $set.endDate     = new Date(endDate as string);
+    if (budget !== undefined)     $set.budget      = budget;
+    if (currency !== undefined)   $set.currency    = currency;
+    if (moods)                    $set.moods       = moods;
+    if (notes !== undefined)      $set.notes       = notes;
+    if (isPrivate !== undefined)  $set.isPrivate   = isPrivate;
 
-    await trip.save();
-    return NextResponse.json(formatTrip(trip));
+    const filter = {
+      _id: id,
+      $or: [{ ownerId: payload.userId }, { "collaborators.userId": payload.userId }],
+    };
+
+    if (Object.keys($set).length === 0) {
+      const trip = await Trip.findOne(filter);
+      if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+      return NextResponse.json(formatTrip(trip));
+    }
+
+    const updated = await Trip.findOneAndUpdate(filter, { $set }, { new: true, runValidators: true });
+    if (!updated) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+    return NextResponse.json(formatTrip(updated));
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -59,7 +86,8 @@ export async function PUT(req: Request, { params }: RouteContext) {
 export async function DELETE(req: Request, { params }: RouteContext) {
   try {
     const { id } = await params;
-    const { trip } = await resolveTrip(req, id);
+    // Only the trip owner may delete; collaborators cannot.
+    const { trip } = await resolveTrip(req, id, true);
     if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
 
     await trip.deleteOne();

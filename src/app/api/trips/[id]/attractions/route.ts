@@ -8,30 +8,39 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-async function getAuthedTrip(req: Request, tripId: string, requireOwner = true) {
+/** Resolves a trip for mutation — owner or collaborator both qualify. */
+async function getAuthedTrip(req: Request, tripId: string) {
   const payload = getUserFromRequest(req);
   await dbConnect();
-  const trip = requireOwner
-    ? await Trip.findOne({ _id: tripId, ownerId: payload.userId })
-    : await Trip.findById(tripId);
+  const trip = await Trip.findOne({
+    _id: tripId,
+    $or: [
+      { ownerId: payload.userId },
+      { "collaborators.userId": payload.userId },
+    ],
+  });
   return { trip, payload };
 }
 
 export async function GET(req: Request, { params }: RouteContext) {
   try {
     const { id: tripId } = await params;
-    // Any authenticated user can view a trip's attractions
-    getUserFromRequest(req);
+    const payload = getUserFromRequest(req);
     await dbConnect();
 
-    const trip = await Trip.findById(tripId);
+    const trip = await Trip.findOne({
+      _id: tripId,
+      $or: [
+        { ownerId: payload.userId },
+        { "collaborators.userId": payload.userId },
+      ],
+    });
     if (!trip) return NextResponse.json([], { status: 200 });
 
     const { searchParams } = new URL(req.url);
     const typeFilter = searchParams.get("type");
     const sort       = searchParams.get("sort");
 
-    // Fetch the global attraction documents by the trip's attractionIds
     const query: Record<string, unknown> = { _id: { $in: trip.attractionIds } };
     if (typeFilter) query.types = typeFilter;
 
@@ -39,7 +48,6 @@ export async function GET(req: Request, { params }: RouteContext) {
       .sort(sort === "price" ? { price: 1 } : undefined)
       .exec();
 
-    // Merge each attraction with its trip-specific schedule entry
     const result = docs.map((doc) => {
       const schedule = trip.schedules?.get(doc._id.toString());
       return formatAttraction(doc, schedule ?? null);
@@ -70,7 +78,6 @@ export async function POST(req: Request, { params }: RouteContext) {
       openingHours?: any;
       notes?: string;
       photoUrl?: string;
-      // Subtype
       subtype?: "residence" | "flight";
       residenceType?: string;
       checkInDate?: string;
@@ -83,7 +90,6 @@ export async function POST(req: Request, { params }: RouteContext) {
       arrivalTime?: string;
       gate?: string;
       seat?: string;
-      // Schedule fields (trip-specific — stored in Trip.schedules, not on Attraction)
       plannedDate?: string | null;
       plannedTime?: string | null;
       actualDurationValue?: string;
@@ -103,7 +109,6 @@ export async function POST(req: Request, { params }: RouteContext) {
       );
     }
 
-    // Find existing attraction by name (case-insensitive) — attractions are global entities
     let attraction = await Attraction.findOne(
       { name: name.trim() },
       undefined,
@@ -111,7 +116,6 @@ export async function POST(req: Request, { params }: RouteContext) {
     );
 
     if (!attraction) {
-      // Create new global attraction (no tripId — it belongs to no single trip)
       attraction = await Attraction.create({
         ownerId: payload.userId,
         name: name.trim(),
@@ -142,20 +146,16 @@ export async function POST(req: Request, { params }: RouteContext) {
 
     const attractionId = attraction._id.toString();
 
-    // Check if already in this trip
     const alreadyLinked = trip.attractionIds.some(
       (id) => id.toString() === attractionId
     );
     if (alreadyLinked) {
-      // Just return the existing entry (merged with schedule)
       const schedule = trip.schedules?.get(attractionId);
       return NextResponse.json(formatAttraction(attraction, schedule ?? null), { status: 200 });
     }
 
-    // Link attraction to trip
     trip.attractionIds.push(attraction._id);
 
-    // Create / update the schedule entry with any supplied scheduling fields
     const scheduleEntry = {
       plannedDate: plannedDate ?? null,
       plannedTime: plannedTime ?? null,
@@ -170,7 +170,6 @@ export async function POST(req: Request, { params }: RouteContext) {
     return NextResponse.json(formatAttraction(attraction, scheduleEntry), { status: 201 });
   } catch (err) {
     const msg = (err as Error).message ?? "";
-    // Duplicate key on name index
     if (msg.includes("E11000")) {
       return NextResponse.json({ error: "An attraction with this name already exists" }, { status: 409 });
     }

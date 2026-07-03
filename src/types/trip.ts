@@ -1,3 +1,9 @@
+export interface TripCollaborator {
+  userId: string;
+  email: string;
+  name: string;
+}
+
 export interface Trip {
   _id: string;
   ownerId?: string;
@@ -12,6 +18,8 @@ export interface Trip {
   currency?: string;
   notes?: string;
   attractionIds?: string[];
+  collaborators: TripCollaborator[];
+  isPrivate: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
