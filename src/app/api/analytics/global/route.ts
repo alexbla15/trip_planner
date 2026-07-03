@@ -32,39 +32,40 @@ export async function GET() {
         { $group: { _id: "$types", count: { $sum: 1 } } },
         { $sort: { count: -1 } },
       ]),
-      Attraction.aggregate([
-        {
-          $group: {
-            _id: "$ownerId",
-            attractionsCount: { $sum: 1 },
-            cities: { $addToSet: "$city" },
-          },
-        },
-        // Look up the user's name
+      // Start from users so that accounts with zero attractions are included
+      User.aggregate([
         {
           $lookup: {
-            from: "users",
-            localField: "_id",
-            foreignField: "_id",
-            as: "user",
-          },
-        },
-        {
-          $unwind: {
-            path: "$user",
-            preserveNullAndEmptyArrays: true,
+            from: "attractions",
+            let: { uid: "$_id" },
+            pipeline: [
+              { $match: { $expr: { $eq: ["$ownerId", "$$uid"] } } },
+              {
+                $group: {
+                  _id: null,
+                  count: { $sum: 1 },
+                  cities: { $addToSet: "$city" },
+                },
+              },
+            ],
+            as: "attractionStats",
           },
         },
         {
           $project: {
             ownerId: { $toString: "$_id" },
-            name: { $ifNull: ["$user.name", "Anonymous"] },
-            attractionsCount: 1,
-            countriesCount: { $size: "$cities" },
+            name: 1,
+            attractionsCount: {
+              $ifNull: [{ $arrayElemAt: ["$attractionStats.count", 0] }, 0],
+            },
+            countriesCount: {
+              $size: {
+                $ifNull: [{ $arrayElemAt: ["$attractionStats.cities", 0] }, []],
+              },
+            },
           },
         },
-        { $sort: { attractionsCount: -1 } },
-        { $limit: 10 },
+        { $sort: { attractionsCount: -1, name: 1 } },
       ]),
       // Top trips by number of saved attractions
       Trip.aggregate([

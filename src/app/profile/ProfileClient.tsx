@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   PenLine, Check, X, AlertCircle, Loader2,
   MapPinned, Landmark, Building2, Globe, DollarSign,
-  BarChart2, Map, ChevronRight,
+  BarChart2, Map, ChevronRight, Lock,
 } from "lucide-react";
 import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
 import type { AttractionType } from "@/components/NewAttractionModal/attraction.types";
@@ -91,6 +91,15 @@ export function ProfileClient() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
+  // Password change state
+  const [showPwForm, setShowPwForm] = useState(false);
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwError, setPwError] = useState("");
+  const [pwSuccess, setPwSuccess] = useState("");
+
   // Chart hover
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
@@ -124,6 +133,35 @@ export function ProfileClient() {
   function cancelEditing() {
     setIsEditing(false);
     setSaveError("");
+  }
+
+  function cancelPwChange() {
+    setShowPwForm(false);
+    setCurrentPw(""); setNewPw(""); setConfirmPw("");
+    setPwError(""); setPwSuccess("");
+  }
+
+  async function handlePasswordChange() {
+    if (!token) return;
+    if (newPw !== confirmPw) { setPwError("New passwords do not match"); return; }
+    if (newPw.length < 8)    { setPwError("New password must be at least 8 characters"); return; }
+    setPwSaving(true); setPwError(""); setPwSuccess("");
+    try {
+      const res = await fetch("/api/users/me/password", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setPwError(data.error ?? "Failed to update password"); return; }
+      setPwSuccess("Password updated successfully.");
+      setCurrentPw(""); setNewPw(""); setConfirmPw("");
+      setTimeout(() => { setShowPwForm(false); setPwSuccess(""); }, 2000);
+    } catch {
+      setPwError("Network error. Please try again.");
+    } finally {
+      setPwSaving(false);
+    }
   }
 
   async function handleSave() {
@@ -285,6 +323,89 @@ export function ProfileClient() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* ── Security card ── */}
+        <div className={styles.card}>
+          <div className={styles.sectionHeadingRow}>
+            <div className={styles.sectionIconCircle}><Lock size={18} aria-hidden="true" /></div>
+            <h2 className={styles.sectionHeading}>Security</h2>
+          </div>
+
+          {!showPwForm ? (
+            <div className={styles.pwIdle}>
+              <p className={styles.pwIdleText}>Keep your account secure by updating your password regularly.</p>
+              <button type="button" className={styles.pwTriggerBtn} onClick={() => setShowPwForm(true)}>
+                Change Password
+              </button>
+            </div>
+          ) : (
+            <div className={styles.editForm}>
+              <div className={styles.editField}>
+                <label htmlFor="current-pw" className={styles.editLabel}>Current password</label>
+                <input
+                  id="current-pw"
+                  type="password"
+                  value={currentPw}
+                  onChange={(e) => setCurrentPw(e.target.value)}
+                  className={styles.editInput}
+                  autoComplete="current-password"
+                />
+              </div>
+              <div className={styles.editField}>
+                <label htmlFor="new-pw" className={styles.editLabel}>New password</label>
+                <input
+                  id="new-pw"
+                  type="password"
+                  value={newPw}
+                  onChange={(e) => setNewPw(e.target.value)}
+                  className={styles.editInput}
+                  autoComplete="new-password"
+                />
+              </div>
+              <div className={styles.editField}>
+                <label htmlFor="confirm-pw" className={styles.editLabel}>Confirm new password</label>
+                <input
+                  id="confirm-pw"
+                  type="password"
+                  value={confirmPw}
+                  onChange={(e) => setConfirmPw(e.target.value)}
+                  className={styles.editInput}
+                  autoComplete="new-password"
+                />
+              </div>
+              <div className={styles.editBtns}>
+                <button
+                  type="button"
+                  className={styles.saveBtn}
+                  onClick={handlePasswordChange}
+                  disabled={pwSaving || !currentPw || !newPw || !confirmPw}
+                >
+                  {pwSaving ? (
+                    <><Loader2 size={14} className={styles.spinnerIcon} aria-hidden="true" /> Saving…</>
+                  ) : (
+                    <><Check size={14} aria-hidden="true" /> Update Password</>
+                  )}
+                </button>
+                <button type="button" className={styles.cancelBtn} onClick={cancelPwChange}>
+                  <X size={14} aria-hidden="true" />
+                  Cancel
+                </button>
+              </div>
+              {pwError && (
+                <p className={styles.saveError} role="alert">
+                  <AlertCircle size={12} aria-hidden="true" />
+                  {pwError}
+                </p>
+              )}
+              {pwSuccess && (
+                <p className={styles.pwSuccess} role="status">
+                  <Check size={12} aria-hidden="true" />
+                  {pwSuccess}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── Personal stats cards ── */}
