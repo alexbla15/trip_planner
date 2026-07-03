@@ -1,12 +1,12 @@
 # Goal: Trip Collaboration & Privacy
 
-Status: in progress
+Status: done
 
 Allow trip owners to invite other users as editors and control trip visibility.
 
 ## Tasks
 - [x] .claude/tasks/trip-collaboration-privacy-backend.done.md
-- [ ] .claude/tasks/trip-collaboration-privacy-ui.md
+- [x] .claude/tasks/trip-collaboration-privacy-ui.done.md
 
 ## Plan
 1. **Backend** — Must come first. Adds `collaborators` array and `isPrivate` flag to the Trip model, new collaborator management endpoints, and updates all existing trip/attraction route guards to allow collaborators (not just owner). Without this, the frontend has nothing to call.

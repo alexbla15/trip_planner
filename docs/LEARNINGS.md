@@ -9,6 +9,9 @@
 - **Navbar + Footer go in `layout.tsx`, not per-page** — placing them per-page causes duplication and means new routes launch without them. Move to layout once and done.
 
 ## Development
+- **Mongoose `save()` silently skips writes on documents with `Map` fields:** Calling `.save()` after mutating a plain field (e.g. `isPrivate`) on a document that also has a `Map`-typed field (`schedules`) can no-op due to Mongoose change-detection misfiring. Always use `findOneAndUpdate` with an explicit `$set` for partial updates — it bypasses document-level dirty tracking entirely.
+- **Collaborator subdoc: store only `userId`, join at read time:** Don't duplicate user `name`/`email` into embedded subdocs — they go stale. Store only `userId` (with `ref: "User"`) and chain `.populate("collaborators.userId", "name email")` on every query that calls `formatTrip`. Cast the populated field with `c.userId as unknown as { _id, name, email }` inside `formatTrip`.
+- **Combo-box `onMouseDown` vs `onClick` for dropdown items:** Use `onMouseDown` on dropdown `<li>` items instead of `onClick`. The input's `onBlur` fires before `onClick`, closing the dropdown and swallowing the click. `onMouseDown` fires first and the selection goes through before blur closes the list.
 
 - **Modal portal pattern:** Use `createPortal(modal, document.body)` with a `mounted` state gate (`useEffect(() => setMounted(true), [])`) to avoid SSR/hydration mismatch. Return `null` when `!mounted || !isOpen`. The `"use client"` directive on the modal shell is sufficient — sub-components in the same module graph inherit it without needing their own directive.
 - **`@react-google-maps/api` + React 19:** Install with `--legacy-peer-deps`; the package works at runtime even though its peer-dep declaration lags behind React 19.

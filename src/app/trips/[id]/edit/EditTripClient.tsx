@@ -100,12 +100,13 @@ interface EditTripClientProps {
 }
 
 export function EditTripClient({ tripId }: EditTripClientProps) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const router = useRouter();
   const tripNameRef = useRef<HTMLInputElement>(null);
 
   // Page loading (fetching existing trip data)
   const [pageLoading, setPageLoading] = useState(true);
+  const [isOwner, setIsOwner] = useState(false);
 
   // Form state
   const [tripName, setTripName] = useState("");
@@ -156,6 +157,7 @@ export function EditTripClient({ tripId }: EditTripClientProps) {
         setMoods(data.moods ?? []);
         setNotes(data.notes ?? "");
         setCoverImage(data.coverImage ?? "");
+        setIsOwner(!!user && user._id === data.ownerId);
       })
       .catch(() => router.replace("/trips"))
       .finally(() => setPageLoading(false));
@@ -539,29 +541,31 @@ export function EditTripClient({ tripId }: EditTripClientProps) {
               </button>
             </div>
 
-            {/* Danger zone */}
-            <div className={styles.dangerZone}>
-              <p className={styles.dangerLabel}>Danger Zone</p>
-              <button
-                type="button"
-                className={styles.deleteBtn}
-                onClick={handleDelete}
-                disabled={deleting}
-                aria-label="Delete this trip permanently"
-              >
-                {deleting ? (
-                  <>
-                    <Loader2 size={15} className={styles.spinnerIcon} aria-hidden="true" />
-                    Deleting…
-                  </>
-                ) : (
-                  <>
-                    <Trash2 size={15} aria-hidden="true" />
-                    Delete trip
-                  </>
-                )}
-              </button>
-            </div>
+            {/* Danger zone — owner only */}
+            {isOwner && (
+              <div className={styles.dangerZone}>
+                <p className={styles.dangerLabel}>Danger Zone</p>
+                <button
+                  type="button"
+                  className={styles.deleteBtn}
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  aria-label="Delete this trip permanently"
+                >
+                  {deleting ? (
+                    <>
+                      <Loader2 size={15} className={styles.spinnerIcon} aria-hidden="true" />
+                      Deleting…
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={15} aria-hidden="true" />
+                      Delete trip
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* ── Right: Live preview card ── */}

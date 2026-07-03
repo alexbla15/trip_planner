@@ -1,6 +1,6 @@
 # Task: Trip Collaboration & Privacy — Frontend UI
 
-Status: reviewing
+Status: done
 
 Track: A
 Track reason: New UI surface — collaborator management panel and privacy toggle are not in the design system.
@@ -195,3 +195,6 @@ Render this **inside** `TripDetailClient`, directly below the trip title in the 
   - `src/app/trips/[id]/TripDetailClient.module.css` — added `.heroSharedBadge` and `.sharingSection` classes
 - Deviations from brief: none
 - New design tokens used: none (all values from existing design system)
+
+## Completion Summary
+Built the Trip Collaboration & Privacy UI: `TripSharingPanel` component (privacy toggle, collaborator list with initials avatars and remove buttons, searchable user combo-box), `SharedTripBadge` hero pill for collaborators, and full integration into `TripDetailClient`. Privacy toggle was fixed to use `findOneAndUpdate + $set` on the backend (Mongoose `save()` skipped writes on documents with Map fields). Collaborator schema was simplified to store only `userId` in the DB, with name/email joined via Mongoose populate at read time. Combo-box searches registered users by name or email via `GET /api/users/search`. Confirmed working by user on 2026-07-03.

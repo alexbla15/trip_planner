@@ -387,7 +387,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
               <ChevronLeft size={16} aria-hidden="true" />
               My Trips
             </Link>
-            {isOwner && (
+            {(isOwner || isCollaborator) && (
               <Link href={`/trips/${trip._id}/edit`} className={styles.heroEditBtn}>
                 <PenLine size={13} aria-hidden="true" />
                 Edit trip
