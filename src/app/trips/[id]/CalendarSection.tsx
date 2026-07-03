@@ -233,10 +233,10 @@ interface CalendarSectionProps {
   attractions: Attraction[];
   onAttractionsChange: (updated: Attraction[]) => void;
   token: string;
-  isOwner: boolean;
+  canEdit: boolean;
 }
 
-export function CalendarSection({ trip, attractions, onAttractionsChange, token, isOwner }: CalendarSectionProps) {
+export function CalendarSection({ trip, attractions, onAttractionsChange, token, canEdit }: CalendarSectionProps) {
   const [local, setLocal]         = useState<Attraction[]>(attractions);
   const [pending, setPending]     = useState<Map<string, Partial<Attraction>>>(new Map());
   const [saving, setSaving]       = useState(false);
@@ -277,8 +277,8 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   }, [local, scheduled, unscheduled, filter, search]);
 
   const alerts: ScheduleAlert[] = useMemo(
-    () => (isOwner ? computeAlerts(local, dayStart, dayEnd) : []),
-    [local, dayStart, dayEnd, isOwner]
+    () => (canEdit ? computeAlerts(local, dayStart, dayEnd) : []),
+    [local, dayStart, dayEnd, canEdit]
   );
   const visibleAlerts = alerts.filter((a) => !dismissedAlerts.has(a.id));
 
@@ -407,7 +407,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   const hasPending = pending.size > 0;
 
   const headerProps = {
-    totalSpend, trip, isOwner,
+    totalSpend, trip, canEdit,
     hasPending, saving, savedOk,
     dayStart, dayEnd,
     showMap,
@@ -424,7 +424,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
         <div className={styles.emptyState}>
           <Calendar size={36} className={styles.emptyIcon} aria-hidden="true" />
           <p className={styles.emptyText}>
-            {isOwner ? "Add attractions to start planning your itinerary." : "No itinerary scheduled yet."}
+            {canEdit ? "Add attractions to start planning your itinerary." : "No itinerary scheduled yet."}
           </p>
         </div>
       </div>
@@ -437,7 +437,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
         <Header {...headerProps} />
 
         {saveError && <p className={styles.saveError} role="alert">{saveError}</p>}
-        {isOwner && hasPending && !saving && (
+        {canEdit && hasPending && !saving && (
           <p className={styles.pendingHint}>{pending.size} unsaved change{pending.size > 1 ? "s" : ""} — click Save to persist.</p>
         )}
 
@@ -458,7 +458,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
 
         <div className={styles.calendarBody}>
           {/* ── Sidebar — OWNER ONLY (Fix: read-only mode hides picker) ── */}
-          {isOwner && <div className={styles.sidebar}>
+          {canEdit && <div className={styles.sidebar}>
             <div className={styles.searchWrapper}>
               <Search size={13} className={styles.searchIcon} aria-hidden="true" />
               <input type="search" className={styles.searchInput}
@@ -503,7 +503,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                     {a.durationValue && (
                       <span className={styles.recDuration}>Rec: {a.durationValue} {a.durationUnit}</span>
                     )}
-                    {isOwner && (
+                    {canEdit && (
                       <select className={styles.assignSelect}
                         value={a.plannedDate ?? ""}
                         aria-label={`${isScheduled ? "Reassign" : "Assign"} ${a.name}`}
@@ -588,7 +588,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                         function handleBlockClick(e: React.MouseEvent) {
                           // Subtype entries (residence, flight) always open detail modal
                           if (a.subtype || isFlight) { setViewingAttraction(a); return; }
-                          if (isOwner) openPopup(e, a);
+                          if (canEdit) openPopup(e, a);
                           else setViewingAttraction(a);
                         }
 
@@ -612,14 +612,14 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                                 handleBlockClick(e as unknown as React.MouseEvent);
                               }
                             }}
-                            aria-label={`${a.name} at ${a.plannedTime}${!a.subtype && !isFlight && isOwner ? " — click to edit" : " — click to view details"}`}
+                            aria-label={`${a.name} at ${a.plannedTime}${!a.subtype && !isFlight && canEdit ? " — click to edit" : " — click to view details"}`}
                           >
                             <div className={styles.blockTopRow}>
                               {icon && <span className={styles.blockIcon} aria-hidden="true">{icon}</span>}
                               <span className={styles.blockTime}>{a.plannedTime}</span>
                             </div>
                             <span className={styles.blockName}>{blockLabel}</span>
-                            {isOwner && (
+                            {canEdit && (
                               <button type="button" className={styles.unassignBtnBlock}
                                 onClick={(e) => { e.stopPropagation(); handleUnassign(a._id); }}
                                 aria-label={`Remove ${a.name}`}>
@@ -644,14 +644,14 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                               <div className={styles.cardTopRow}>
                                 <div className={styles.typeIconCircle} aria-hidden="true">{icon}</div>
                                 <span className={styles.cardName}>{a.name}</span>
-                                {isOwner && (
+                                {canEdit && (
                                   <button type="button" className={styles.unassignBtnSmall}
                                     onClick={() => handleUnassign(a._id)} aria-label={`Remove ${a.name}`}>
                                     <X size={10} aria-hidden="true" />
                                   </button>
                                 )}
                               </div>
-                              {isOwner && (
+                              {canEdit && (
                                 <button type="button" className={styles.setTimeBtn}
                                   onClick={(e) => openPopup(e, a)}>
                                   <Clock size={11} aria-hidden="true" />
@@ -682,7 +682,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
       </div>
 
       {/* Change 1: Edit popup — rendered outside card to avoid clipping */}
-      {popup && isOwner && (
+      {popup && canEdit && (
         <>
           <div className={styles.popupBackdrop} onClick={() => setPopup(null)} />
           <div
@@ -754,7 +754,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
 interface HeaderProps {
   totalSpend: number;
   trip: Trip;
-  isOwner: boolean;
+  canEdit: boolean;
   hasPending: boolean;
   saving: boolean;
   savedOk: boolean;
@@ -768,7 +768,7 @@ interface HeaderProps {
 }
 
 function Header({
-  totalSpend, trip, isOwner,
+  totalSpend, trip, canEdit,
   hasPending, saving, savedOk,
   dayStart, dayEnd,
   showMap,
@@ -826,7 +826,7 @@ function Header({
         </button>
 
         {/* Save button — OWNER ONLY (Fix: read-only hides save) */}
-        {isOwner && (
+        {canEdit && (
           <button
             type="button"
             className={`${styles.saveBtn} ${hasPending ? styles.saveBtnActive : ""} ${savedOk ? styles.saveBtnOk : ""}`}

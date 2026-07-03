@@ -7,7 +7,7 @@ import styles from "./FlightsList.module.css";
 
 interface FlightsListProps {
   flights: Attraction[];
-  isOwner: boolean;
+  canEdit: boolean;
   onAdd: () => void;
   onEdit: (a: Attraction) => void;
   onRemove: (id: string) => void;
@@ -23,7 +23,7 @@ function flightMeta(a: Attraction): string {
   return [a.airline, a.flightNumber, route, times, date].filter(Boolean).join(" · ");
 }
 
-export function FlightsList({ flights, isOwner, onAdd, onEdit, onRemove, onView }: FlightsListProps) {
+export function FlightsList({ flights, canEdit, onAdd, onEdit, onRemove, onView }: FlightsListProps) {
   return (
     <div className={styles.card}>
       <div className={styles.header}>
@@ -33,7 +33,7 @@ export function FlightsList({ flights, isOwner, onAdd, onEdit, onRemove, onView 
           </span>
           <h2 className={styles.heading}>Flights</h2>
         </div>
-        {isOwner && (
+        {canEdit && (
           <button type="button" className={styles.addBtn} onClick={onAdd} aria-label="Add a flight">
             <Plus size={14} aria-hidden="true" />
             Add Flight
@@ -66,7 +66,7 @@ export function FlightsList({ flights, isOwner, onAdd, onEdit, onRemove, onView 
                 <span className={styles.itemMeta}>{flightMeta(a)}</span>
                 {a.notes && <span className={styles.itemNotes}>{a.notes}</span>}
               </div>
-              {isOwner && (
+              {canEdit && (
                 <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
                   <button
                     type="button"

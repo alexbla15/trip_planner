@@ -357,6 +357,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   const { name, country, coverImage, startDate, endDate, moods, budget, currency } = trip;
   const isOwner        = !!authUser && authUser._id === trip.ownerId;
   const isCollaborator = !!authUser && !isOwner && (trip.collaborators ?? []).some((c) => c.userId === authUser._id);
+  const canEdit        = isOwner || isCollaborator;
 
   const flightAttractions    = attractions.filter((a) => a.subtype === "flight"    || a.types?.[0] === "Flight");
   const residenceAttractions = attractions.filter((a) => a.subtype === "residence");
@@ -469,7 +470,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
           {/* Flights section */}
           <FlightsList
             flights={flightAttractions}
-            isOwner={isOwner}
+            canEdit={canEdit}
             onAdd={() => setFlightModalOpen(true)}
             onEdit={(a) => setEditingFlight(a)}
             onRemove={handleRemoveAttraction}
@@ -479,7 +480,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
           {/* Residences section */}
           <ResidencesList
             residences={residenceAttractions}
-            isOwner={isOwner}
+            canEdit={canEdit}
             onAdd={() => setResidenceModalOpen(true)}
             onEdit={(a) => setEditingResidence(a)}
             onRemove={handleRemoveAttraction}
@@ -490,7 +491,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
           <div className={styles.card}>
             <div className={styles.attractionsHeader}>
               <h2 className={styles.sectionHeading}>Attractions</h2>
-              {isOwner && <button
+              {canEdit && <button
                 className={styles.addBtn}
                 type="button"
                 onClick={() => setSearchModalOpen(true)}
@@ -555,7 +556,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                           <img src={attraction.photoUrl} alt="" className={styles.attractionThumbImg} />
                         </div>
                       )}
-                      {isOwner && (
+                      {canEdit && (
                         <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
                           <button
                             type="button"
@@ -621,7 +622,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
           attractions={attractions}
           onAttractionsChange={setAttractions}
           token={token ?? ""}
-          isOwner={isOwner}
+          canEdit={canEdit}
         />
       </main>
 

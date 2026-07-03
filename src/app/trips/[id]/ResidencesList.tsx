@@ -7,7 +7,7 @@ import styles from "./ResidencesList.module.css";
 
 interface ResidencesListProps {
   residences: Attraction[];
-  isOwner: boolean;
+  canEdit: boolean;
   onAdd: () => void;
   onEdit: (a: Attraction) => void;
   onRemove: (id: string) => void;
@@ -22,7 +22,7 @@ function residenceMeta(a: Attraction): string {
   return [a.residenceType, dates, a.city, price].filter(Boolean).join(" · ");
 }
 
-export function ResidencesList({ residences, isOwner, onAdd, onEdit, onRemove, onView }: ResidencesListProps) {
+export function ResidencesList({ residences, canEdit, onAdd, onEdit, onRemove, onView }: ResidencesListProps) {
   return (
     <div className={styles.card}>
       <div className={styles.header}>
@@ -32,7 +32,7 @@ export function ResidencesList({ residences, isOwner, onAdd, onEdit, onRemove, o
           </span>
           <h2 className={styles.heading}>Residences</h2>
         </div>
-        {isOwner && (
+        {canEdit && (
           <button type="button" className={styles.addBtn} onClick={onAdd} aria-label="Add a residence">
             <Plus size={14} aria-hidden="true" />
             Add Residence
@@ -65,7 +65,7 @@ export function ResidencesList({ residences, isOwner, onAdd, onEdit, onRemove, o
                 <span className={styles.itemMeta}>{residenceMeta(a)}</span>
                 {a.notes && <span className={styles.itemNotes}>{a.notes}</span>}
               </div>
-              {isOwner && (
+              {canEdit && (
                 <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
                   <button
                     type="button"
