@@ -1,6 +1,6 @@
 export interface Attraction {
   _id: string;
-  tripId: string;
+  // no tripId — attractions are global; scheduling lives in Trip.schedules
   ownerId?: string;
   name: string;
   country: string;

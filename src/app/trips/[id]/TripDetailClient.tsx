@@ -291,17 +291,19 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   }
 
   async function handleRemoveAttraction(attractionId: string) {
+    if (!trip) return;
     // Optimistic update
     const snapshot = attractions;
     setAttractions((prev) => prev.filter((a) => a._id !== attractionId));
     setPage((p) => Math.min(p, Math.max(1, Math.ceil((attractions.length - 1) / ATTRACTIONS_PAGE_SIZE))));
 
     try {
-      const res = await fetch(`/api/attractions/${attractionId}`, {
+      // Unlinks from this trip — does NOT delete the global attraction from the DB
+      const res = await fetch(`/api/trips/${trip._id}/attractions/${attractionId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token ?? ""}` },
       });
-      if (!res.ok) setAttractions(snapshot); // Restore on failure
+      if (!res.ok) setAttractions(snapshot);
     } catch {
       setAttractions(snapshot);
     }

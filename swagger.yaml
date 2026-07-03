@@ -189,15 +189,37 @@ components:
           type: string
           example: "18:00"
 
+    # Trip-specific scheduling for one attraction
+    AttractionSchedule:
+      type: object
+      properties:
+        plannedDate:
+          type: string
+          format: date
+          nullable: true
+          description: Day the user plans to visit (stored in Trip.schedules, not on Attraction)
+        plannedTime:
+          type: string
+          nullable: true
+          description: HH:MM start time within plannedDate
+        actualDurationValue:
+          type: string
+          nullable: true
+        actualDurationUnit:
+          type: string
+          enum: [minutes, hours]
+          nullable: true
+
     Attraction:
       type: object
+      description: >
+        Global shared entity — not owned by any single trip.
+        Scheduling fields (plannedDate, plannedTime, actualDuration) come from
+        Trip.schedules and are merged into the response by GET /api/trips/:id/attractions.
       properties:
         _id:
           type: string
           example: 65f1234567890abcdef123bb
-        tripId:
-          type: string
-          example: 65f1234567890abcdef123aa
         ownerId:
           type: string
           example: 65f1234567890abcdef12345
@@ -740,11 +762,25 @@ paths:
         schema:
           type: string
     delete:
-      summary: Delete an attraction from a specific trip context
+      summary: Unlink attraction from this trip (does NOT delete the global Attraction document)
       tags: [Attractions]
       responses:
         200:
-          description: Attraction removed from trip
+          description: Removed from itinerary
+    patch:
+      summary: Update trip-specific schedule for one attraction (plannedDate, plannedTime, actualDuration)
+      tags: [Attractions]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttractionSchedule'
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attraction'
 
   /api/trips/{tripId}/reorder-attractions:
     parameters:

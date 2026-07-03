@@ -8,7 +8,8 @@ interface IOpeningHoursDay {
 }
 
 export interface IAttraction extends Document {
-  tripId: Types.ObjectId;
+  // No tripId — attractions are global entities that can appear in many trips.
+  // Scheduling (plannedDate, plannedTime, actualDuration) lives in Trip.schedules.
   ownerId: Types.ObjectId;
   name: string;
   country: string;
@@ -21,10 +22,6 @@ export interface IAttraction extends Document {
   openingHours?: Record<string, IOpeningHoursDay>;
   notes?: string;
   photoUrl?: string;
-  plannedDate?: string | null;
-  plannedTime?: string | null;
-  actualDurationValue?: string;
-  actualDurationUnit?: "minutes" | "hours";
   createdAt: Date;
   updatedAt: Date;
   // Subtype discriminator
@@ -51,7 +48,6 @@ const OpeningHoursDaySchema = new Schema<IOpeningHoursDay>(
 
 const AttractionSchema = new Schema<IAttraction>(
   {
-    tripId: { type: Schema.Types.ObjectId, ref: "Trip", required: true },
     ownerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     name: { type: String, required: true, trim: true },
     country: { type: String, required: true, trim: true },
@@ -66,10 +62,6 @@ const AttractionSchema = new Schema<IAttraction>(
     price: { type: Number, default: null },
     notes: { type: String },
     photoUrl: { type: String },
-    plannedDate: { type: String, default: null },
-    plannedTime: { type: String, default: null },
-    actualDurationValue: { type: String },
-    actualDurationUnit: { type: String, enum: ["minutes", "hours"] },
     openingHours: {
       Mon: { type: OpeningHoursDaySchema },
       Tue: { type: OpeningHoursDaySchema },
@@ -98,17 +90,19 @@ const AttractionSchema = new Schema<IAttraction>(
   { timestamps: true }
 );
 
-AttractionSchema.index({ tripId: 1 });
 AttractionSchema.index({ ownerId: 1 });
+AttractionSchema.index({ name: 1 }, { unique: true, collation: { locale: "en", strength: 2 } });
 
 export const Attraction =
   (mongoose.models.Attraction as mongoose.Model<IAttraction>) ||
   mongoose.model<IAttraction>("Attraction", AttractionSchema);
 
-export function formatAttraction(doc: IAttraction): AttractionShape {
+export function formatAttraction(
+  doc: IAttraction,
+  schedule?: Partial<AttractionShape> | null
+): AttractionShape {
   return {
     _id: doc._id.toString(),
-    tripId: doc.tripId.toString(),
     ownerId: doc.ownerId.toString(),
     name: doc.name,
     country: doc.country,
@@ -121,10 +115,6 @@ export function formatAttraction(doc: IAttraction): AttractionShape {
     openingHours: doc.openingHours as AttractionShape["openingHours"],
     notes: doc.notes,
     photoUrl: doc.photoUrl,
-    plannedDate: doc.plannedDate ?? null,
-    plannedTime: doc.plannedTime ?? null,
-    actualDurationValue: doc.actualDurationValue,
-    actualDurationUnit: doc.actualDurationUnit,
     createdAt: doc.createdAt?.toISOString(),
     updatedAt: doc.updatedAt?.toISOString(),
     // Subtype fields
@@ -140,5 +130,10 @@ export function formatAttraction(doc: IAttraction): AttractionShape {
     arrivalTime: doc.arrivalTime,
     gate: doc.gate,
     seat: doc.seat,
+    // Trip-specific scheduling (merged from Trip.schedules — null when not in a trip context)
+    plannedDate: schedule?.plannedDate ?? null,
+    plannedTime: schedule?.plannedTime ?? null,
+    actualDurationValue: schedule?.actualDurationValue,
+    actualDurationUnit: schedule?.actualDurationUnit,
   };
 }

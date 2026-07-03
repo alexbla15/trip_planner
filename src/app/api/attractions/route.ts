@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     }
 
     const attractions = await Attraction.find(filter).sort({ name: 1 }).limit(20);
-    return NextResponse.json(attractions.map(formatAttraction));
+    return NextResponse.json(attractions.map((doc) => formatAttraction(doc, null)));
   } catch {
     return NextResponse.json({ error: "Failed to search attractions" }, { status: 500 });
   }

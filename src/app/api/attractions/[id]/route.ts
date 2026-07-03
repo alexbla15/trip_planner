@@ -44,11 +44,9 @@ export async function PUT(req: Request, { params }: RouteContext) {
     if (body.notes    !== undefined)  attraction.notes    = body.notes    as string;
     if (body.photoUrl !== undefined)  attraction.photoUrl = body.photoUrl as string;
 
-    // Calendar / schedule fields
-    if (body.plannedDate !== undefined)        attraction.plannedDate        = body.plannedDate        as string | null;
-    if (body.plannedTime !== undefined)        attraction.plannedTime        = body.plannedTime        as string | null;
-    if (body.actualDurationValue !== undefined) attraction.actualDurationValue = body.actualDurationValue as string;
-    if (body.actualDurationUnit  !== undefined) attraction.actualDurationUnit  = body.actualDurationUnit  as "minutes" | "hours";
+    // NOTE: plannedDate, plannedTime, actualDuration* are now trip-specific schedule fields
+    // and live in Trip.schedules — they are NOT updated here.
+    // Use PATCH /api/trips/:id/attractions/:attractionId for scheduling.
 
     // Subtype fields
     if (body.subtype !== undefined)           attraction.subtype           = body.subtype           as "residence" | "flight";
@@ -89,9 +87,10 @@ export async function DELETE(req: Request, { params }: RouteContext) {
       return NextResponse.json({ error: "Attraction not found" }, { status: 404 });
     }
 
-    const tripId = attraction.tripId;
+    // Hard-delete the global attraction document.
+    // To unlink from a single trip without deleting, use
+    // DELETE /api/trips/:tripId/attractions/:attractionId instead.
     await attraction.deleteOne();
-    await Trip.findByIdAndUpdate(tripId, { $pull: { attractionIds: id } });
 
     return NextResponse.json({ message: "Attraction deleted" });
   } catch (err) {

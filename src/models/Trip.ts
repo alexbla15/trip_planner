@@ -1,5 +1,12 @@
 import mongoose, { Schema, type Document, type Types } from "mongoose";
 
+export interface IScheduleEntry {
+  plannedDate?: string | null;
+  plannedTime?: string | null;
+  actualDurationValue?: string;
+  actualDurationUnit?: "minutes" | "hours";
+}
+
 export interface ITrip extends Document {
   ownerId: Types.ObjectId;
   name: string;
@@ -13,6 +20,9 @@ export interface ITrip extends Document {
   moods: string[];
   notes?: string;
   attractionIds: Types.ObjectId[];
+  // Per-attraction scheduling — keyed by attraction _id string.
+  // Stores plannedDate, plannedTime, actualDuration which are trip-specific.
+  schedules: Map<string, IScheduleEntry>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,6 +41,19 @@ const TripSchema = new Schema<ITrip>(
     moods: [{ type: String }],
     notes: { type: String },
     attractionIds: [{ type: Schema.Types.ObjectId, ref: "Attraction" }],
+    schedules: {
+      type: Map,
+      of: new Schema<IScheduleEntry>(
+        {
+          plannedDate:         { type: String, default: null },
+          plannedTime:         { type: String, default: null },
+          actualDurationValue: { type: String },
+          actualDurationUnit:  { type: String, enum: ["minutes", "hours"] },
+        },
+        { _id: false }
+      ),
+      default: {},
+    },
   },
   { timestamps: true }
 );

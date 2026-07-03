@@ -265,7 +265,6 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   const days        = trip.startDate && trip.endDate ? getTripDays(trip.startDate, trip.endDate) : [];
   const scheduled   = local.filter((a) => !!a.plannedDate);
   const unscheduled = local.filter((a) => !a.plannedDate);
-  const totalMins   = calcDaySpanMinutes(scheduled.filter((a) => !!a.plannedTime));
   const totalSpend  = calcSpend(scheduled);
   const hourSlots   = makeHourSlots(dayStart, dayEnd);
 
@@ -286,8 +285,10 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   // ── API ───────────────────────────────────────────────────────────────────
 
   async function putOne(id: string, patch: Partial<Attraction>) {
-    const res = await fetch(`/api/attractions/${id}`, {
-      method: "PUT",
+    // Schedule fields (plannedDate, plannedTime, actualDuration) live in Trip.schedules,
+    // so we PATCH the trip-scoped schedule endpoint rather than the global attraction.
+    const res = await fetch(`/api/trips/${trip._id}/attractions/${id}`, {
+      method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(patch),
     });
@@ -406,7 +407,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   const hasPending = pending.size > 0;
 
   const headerProps = {
-    totalMins, totalSpend, trip, isOwner,
+    totalSpend, trip, isOwner,
     hasPending, saving, savedOk,
     dayStart, dayEnd,
     showMap,
@@ -751,7 +752,6 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
 // ── Header sub-component ──────────────────────────────────────────────────────
 
 interface HeaderProps {
-  totalMins: number;
   totalSpend: number;
   trip: Trip;
   isOwner: boolean;
@@ -768,7 +768,7 @@ interface HeaderProps {
 }
 
 function Header({
-  totalMins, totalSpend, trip, isOwner,
+  totalSpend, trip, isOwner,
   hasPending, saving, savedOk,
   dayStart, dayEnd,
   showMap,
@@ -800,12 +800,6 @@ function Header({
       </div>
 
       <div className={styles.summaryBadges}>
-        {totalMins > 0 && (
-          <span className={styles.summaryBadge}>
-            <Clock size={12} aria-hidden="true" />
-            {fmt(totalMins / 60)}h span
-          </span>
-        )}
         {trip.budget ? (
           <div className={`${styles.budgetWidget} ${totalSpend > trip.budget ? styles.budgetWidgetOver : ""}`}>
             <div className={styles.budgetWidgetRow}>
