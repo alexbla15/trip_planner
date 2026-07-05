@@ -14,9 +14,12 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Missing params" }, { status: 400 });
   }
 
-  const profile = mode === "car" ? "driving" : "foot";
-  const coords  = `${fromLng},${fromLat};${toLng},${toLat}`;
-  const url     = `https://router.project-osrm.org/route/v1/${profile}/${coords}?overview=full&geometries=geojson`;
+  // router.project-osrm.org only hosts the driving profile.
+  // routing.openstreetmap.de runs separate per-profile instances for the OSM routing demo.
+  const coords = `${fromLng},${fromLat};${toLng},${toLat}`;
+  const url = mode === "car"
+    ? `https://routing.openstreetmap.de/routed-car/route/v1/driving/${coords}?overview=full&geometries=geojson`
+    : `https://routing.openstreetmap.de/routed-foot/route/v1/foot/${coords}?overview=full&geometries=geojson`;
 
   try {
     const ctrl  = new AbortController();
