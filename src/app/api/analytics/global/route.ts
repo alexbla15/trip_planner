@@ -29,7 +29,16 @@ export async function GET() {
       Trip.aggregate([{ $group: { _id: null, total: { $sum: "$budget" } } }]),
       Attraction.aggregate([
         { $unwind: "$types" },
-        { $group: { _id: "$types", count: { $sum: 1 } } },
+        {
+          $lookup: {
+            from: "attractiontypes",
+            localField: "types",
+            foreignField: "_id",
+            as: "typeDoc",
+          },
+        },
+        { $unwind: "$typeDoc" },
+        { $group: { _id: "$typeDoc.name", count: { $sum: 1 } } },
         { $sort: { count: -1 } },
       ]),
       // Start from users so that accounts with zero attractions are included

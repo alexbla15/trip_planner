@@ -1,6 +1,6 @@
 # Task: Add Currency Selector to Attraction Price Field
 
-Status: reviewing
+Status: done
 
 Track: B
 Track reason: New form field + schema extension — no new component or layout, uses existing design-system tokens (same pattern as the price input already in the modal)
@@ -49,3 +49,6 @@ Users can select the currency for an attraction's price (e.g. USD, EUR, GBP) bot
   - `swagger.yaml` — added `currency` field to both `Attraction` and `AttractionInput` schemas
 - Deviations from task requirements: none
 - New design tokens used: none — used existing `selectWrapper`/`selectIcon` pattern from the duration field
+
+## Completion Summary
+Added a currency selector to the attraction price field. The `Attraction` schema gained a `currency` field (default `"USD"`), 28 currencies are supported via `ATTRACTION_CURRENCIES` in constants, and the `NewAttractionModal` replaced its hardcoded `$` with a compact inline `<select>`. Currency is saved through POST/PUT API routes and displayed correctly in `AttractionDetailModal` and `CalendarSection`. Confirmed done by user on 2026-07-05.

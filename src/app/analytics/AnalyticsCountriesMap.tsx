@@ -30,6 +30,11 @@ const COUNTRY_NAME_ALIASES: Record<string, string> = {
   "timor-leste": "east timor",
   "micronesia": "federated states of micronesia",
   "são tomé and príncipe": "são tomé and principe",
+  // Natural Earth (geo-countries GeoJSON) uses these older/alternative names:
+  "cabo verde": "cape verde",
+  "north macedonia": "macedonia",
+  "eswatini": "swaziland",
+  "laos": "lao pdr",
 };
 
 interface AnalyticsCountriesMapProps {
