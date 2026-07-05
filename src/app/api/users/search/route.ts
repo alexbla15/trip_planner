@@ -22,7 +22,7 @@ export async function GET(req: Request) {
       _id: { $ne: payload.userId },
       $or: [{ name: regex }, { email: regex }],
     })
-      .select("_id name email")
+      .select("_id name email avatarUrl")
       .limit(10)
       .lean();
 
@@ -31,6 +31,7 @@ export async function GET(req: Request) {
         _id: (u._id as { toString(): string }).toString(),
         name: u.name,
         email: u.email,
+        avatarUrl: u.avatarUrl ?? null,
       }))
     );
   } catch {

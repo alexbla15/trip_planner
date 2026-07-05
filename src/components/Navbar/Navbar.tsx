@@ -97,7 +97,7 @@ export function Navbar() {
                     aria-haspopup="true"
                     onClick={() => setDropdownOpen((v) => !v)}
                   >
-                    {user.avatarUrl?.startsWith("http") ? (
+                    {user.avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={user.avatarUrl}

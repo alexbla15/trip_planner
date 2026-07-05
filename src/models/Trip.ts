@@ -95,9 +95,21 @@ export const Trip =
   mongoose.model<ITrip>("Trip", TripSchema);
 
 export function formatTrip(doc: ITrip): import("@/types/trip").Trip {
+  // ownerId may be populated (when the route calls .populate("ownerId", "name avatarUrl"))
+  const ownerRaw = doc.ownerId as unknown;
+  const ownerIsPopulated =
+    ownerRaw != null &&
+    typeof ownerRaw === "object" &&
+    "name" in (ownerRaw as object);
+  const ownerDoc = ownerIsPopulated
+    ? (ownerRaw as { _id: Types.ObjectId; name: string; avatarUrl?: string })
+    : null;
+
   return {
     _id: doc._id.toString(),
-    ownerId: doc.ownerId.toString(),
+    ownerId: ownerDoc ? ownerDoc._id.toString() : (doc.ownerId as Types.ObjectId).toString(),
+    ownerName: ownerDoc?.name,
+    ownerAvatarUrl: ownerDoc?.avatarUrl ?? null,
     name: doc.name,
     cities: doc.cities,
     country: doc.country,
@@ -110,9 +122,9 @@ export function formatTrip(doc: ITrip): import("@/types/trip").Trip {
     notes: doc.notes,
     attractionIds: doc.attractionIds?.map((id) => id.toString()) ?? [],
     collaborators: (doc.collaborators ?? []).map((c) => {
-      // userId is populated via .populate('collaborators.userId', 'name email')
-      const u = c.userId as unknown as { _id: Types.ObjectId; name: string; email: string };
-      return { userId: u._id.toString(), name: u.name, email: u.email };
+      // userId is populated via .populate('collaborators.userId', 'name email avatarUrl')
+      const u = c.userId as unknown as { _id: Types.ObjectId; name: string; email: string; avatarUrl?: string };
+      return { userId: u._id.toString(), name: u.name, email: u.email, avatarUrl: u.avatarUrl ?? null };
     }),
     isPrivate: doc.isPrivate ?? false,
     expenses: (doc.expenses ?? []).map((e) => ({

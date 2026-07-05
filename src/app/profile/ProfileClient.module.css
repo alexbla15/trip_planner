@@ -214,6 +214,49 @@
   color: var(--color-text-tertiary);
 }
 
+/* ── Avatar picker ── */
+.avatarPicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.avatarOption {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-border);
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: border-color var(--duration-fast) var(--easing-out),
+    box-shadow var(--duration-fast) var(--easing-out);
+}
+
+.avatarOption:hover {
+  border-color: var(--color-primary);
+}
+
+.avatarOption:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.avatarOptionSelected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.avatarOptionImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .editBtns {
   display: flex;
   gap: 8px;

@@ -380,7 +380,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
 
   if (!trip) return null;
 
-  const { name, country, coverImage, startDate, endDate, moods, budget, currency } = trip;
+  const { name, country, coverImage, startDate, endDate, moods, budget, currency, ownerName, ownerAvatarUrl, collaborators } = trip;
   const isOwner        = !!authUser && authUser._id === trip.ownerId;
   const isCollaborator = !!authUser && !isOwner && (trip.collaborators ?? []).some((c) => c.userId === authUser._id);
   const canEdit        = isOwner || isCollaborator;
@@ -480,6 +480,46 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                 <dd className={styles.infoValue}>{regularAttractions.length} added</dd>
               </div>
             </dl>
+
+            {/* People */}
+            {(ownerName || (collaborators ?? []).length > 0) && (
+              <div className={styles.peopleRow}>
+                <span className={styles.peopleLabel}>
+                  <Users size={14} aria-hidden="true" />
+                  People
+                </span>
+                <div className={styles.peopleList}>
+                  {ownerName && (
+                    <div className={styles.personChip}>
+                      <div className={styles.personAvatar} aria-hidden="true">
+                        {ownerAvatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={ownerAvatarUrl} alt="" className={styles.personAvatarImg} />
+                        ) : (
+                          ownerName.charAt(0).toUpperCase()
+                        )}
+                      </div>
+                      <span className={styles.personName}>{ownerName}</span>
+                      <span className={styles.personRole}>Owner</span>
+                    </div>
+                  )}
+                  {(collaborators ?? []).map((c) => (
+                    <div key={c.userId} className={styles.personChip}>
+                      <div className={styles.personAvatar} aria-hidden="true">
+                        {c.avatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={c.avatarUrl} alt="" className={styles.personAvatarImg} />
+                        ) : (
+                          c.name.charAt(0).toUpperCase()
+                        )}
+                      </div>
+                      <span className={styles.personName}>{c.name}</span>
+                      <span className={styles.personRole}>Contributor</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sharing & Privacy panel — owner only */}

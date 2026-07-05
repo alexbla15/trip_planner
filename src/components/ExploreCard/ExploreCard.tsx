@@ -8,7 +8,7 @@ import type { ExploreCardProps } from "./ExploreCard.types";
 export function ExploreCard({ item }: ExploreCardProps) {
   const { id, destination, coverImage, tag, tags, user, userAvatarUrl, likes } = item;
   const displayTags = tags?.length ? tags : [tag];
-  const hasAvatar = !!userAvatarUrl?.startsWith("http");
+  const hasAvatar = !!userAvatarUrl;
 
   return (
     <Link href={`/trips/${id}`} className={styles.card}>

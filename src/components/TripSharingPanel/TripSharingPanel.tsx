@@ -11,6 +11,7 @@ interface UserResult {
   _id: string;
   name: string;
   email: string;
+  avatarUrl?: string | null;
 }
 
 export function TripSharingPanel({ trip, token, onTripUpdate }: TripSharingPanelProps) {
@@ -197,7 +198,12 @@ export function TripSharingPanel({ trip, token, onTripUpdate }: TripSharingPanel
           {collaborators.map((c) => (
             <li key={c.userId} className={styles.collaboratorRow}>
               <div className={styles.avatar} aria-hidden="true">
-                {getInitials(c.name)}
+                {c.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={c.avatarUrl} alt="" className={styles.avatarImg} />
+                ) : (
+                  getInitials(c.name)
+                )}
               </div>
               <div className={styles.collaboratorInfo}>
                 <span className={styles.collaboratorName}>{c.name}</span>
@@ -262,7 +268,12 @@ export function TripSharingPanel({ trip, token, onTripUpdate }: TripSharingPanel
                 onMouseDown={() => handleSelect(u)}
               >
                 <div className={styles.dropdownAvatar} aria-hidden="true">
-                  {getInitials(u.name)}
+                  {u.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={u.avatarUrl} alt="" className={styles.avatarImg} />
+                  ) : (
+                    getInitials(u.name)
+                  )}
                 </div>
                 <div className={styles.dropdownInfo}>
                   <span className={styles.dropdownName}>{u.name}</span>

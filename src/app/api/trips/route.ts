@@ -34,7 +34,7 @@ export async function GET(req: Request) {
 
     const trips = await Trip.find(filter)
       .sort({ startDate: -1 })
-      .populate("collaborators.userId", "name email");
+      .populate("collaborators.userId", "name email avatarUrl");
     return NextResponse.json(trips.map(formatTrip));
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

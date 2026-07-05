@@ -11,6 +11,7 @@ import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
 import type { AttractionType } from "@/components/NewAttractionModal/attraction.types";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDisplayDate } from "@/lib/formatDate";
+import { AVATARS } from "@/lib/avatarConstants";
 import styles from "./ProfileClient.module.css";
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -233,7 +234,7 @@ export function ProfileClient() {
           <div className={styles.profileCard}>
             {/* Avatar */}
             <div className={styles.avatarCircle} aria-hidden="true">
-              {authUser.avatarUrl?.startsWith("http") ? (
+              {authUser.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={authUser.avatarUrl}
@@ -263,17 +264,22 @@ export function ProfileClient() {
                     />
                   </div>
                   <div className={styles.editField}>
-                    <label htmlFor="edit-avatar" className={styles.editLabel}>
-                      Avatar image URL
-                    </label>
-                    <input
-                      id="edit-avatar"
-                      type="url"
-                      value={editAvatarUrl}
-                      onChange={(e) => setEditAvatarUrl(e.target.value)}
-                      className={styles.editInput}
-                      placeholder="https://…"
-                    />
+                    <label className={styles.editLabel}>Avatar</label>
+                    <div className={styles.avatarPicker} role="group" aria-label="Choose avatar">
+                      {AVATARS.map((src) => (
+                        <button
+                          key={src}
+                          type="button"
+                          className={`${styles.avatarOption} ${editAvatarUrl === src ? styles.avatarOptionSelected : ""}`}
+                          onClick={() => setEditAvatarUrl(src)}
+                          aria-pressed={editAvatarUrl === src}
+                          aria-label={src.split("/").pop()?.replace(/\.\w+$/, "")}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={src} alt="" className={styles.avatarOptionImg} />
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <div className={styles.editBtns}>
                     <button

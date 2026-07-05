@@ -2,6 +2,7 @@ export interface TripCollaborator {
   userId: string;
   email: string;
   name: string;
+  avatarUrl?: string | null;
 }
 
 export interface TripExpense {
@@ -14,6 +15,8 @@ export interface TripExpense {
 export interface Trip {
   _id: string;
   ownerId?: string;
+  ownerName?: string;
+  ownerAvatarUrl?: string | null;
   name: string;
   cities?: string[];
   country: string;
