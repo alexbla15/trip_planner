@@ -257,7 +257,7 @@
   text-overflow: ellipsis;
 }
 
-.profileLink {
+.dropdownLink {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -272,12 +272,12 @@
     color var(--duration-fast) var(--easing-out);
 }
 
-.profileLink:hover {
+.dropdownLink:hover {
   background: var(--color-bg-subtle);
   color: var(--color-text-primary);
 }
 
-.profileLink:focus-visible {
+.dropdownLink:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }

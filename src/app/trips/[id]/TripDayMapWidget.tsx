@@ -5,10 +5,9 @@ import { MapContainer, TileLayer, Marker, Polyline, Tooltip } from "react-leafle
 import L from "leaflet";
 import { renderToStaticMarkup } from "react-dom/server";
 import { TriangleAlert, MapPinOff, Footprints, Car, Bus, BedDouble, Loader2, Plane } from "lucide-react";
-import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
-import type { AttractionType } from "@/components/NewAttractionModal/attraction.types";
+import { renderTypeIcon } from "@/lib/attractionIcons";
+import { useAttractionTypes } from "@/hooks/useAttractionTypes";
 import { MIN_OVERLAP_DURATION_MINS } from "@/config/ui";
-import { TYPE_CATEGORIES, CATEGORY_COLORS } from "@/components/NewAttractionModal/attraction.constants";
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
 import {
@@ -29,16 +28,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-function categoryColor(types: string[]): string {
-  const type = types?.[0];
-  if (!type) return "#64748B";
-  for (const [cat, catTypes] of Object.entries(TYPE_CATEGORIES)) {
-    if ((catTypes as string[]).includes(type)) {
-      return CATEGORY_COLORS[cat] ?? "#64748B";
-    }
-  }
-  return "#64748B";
-}
 
 // ── Pure utils ────────────────────────────────────────────────────────────────
 
@@ -79,9 +68,12 @@ function legKey(fromId: string, toId: string, mode: TravelMode): string {
 
 // ── DivIcon marker ────────────────────────────────────────────────────────────
 
-function makeMarkerIcon(types: string[], order: number, isAlt: boolean): L.DivIcon {
-  const color = isAlt ? "#94A3B8" : categoryColor(types);
-  const icon = ICONS[types[0] as AttractionType];
+function makeMarkerIcon(
+  types: string[], order: number, isAlt: boolean,
+  colorFn: (t: string) => string, iconName: string,
+): L.DivIcon {
+  const color = isAlt ? "#94A3B8" : colorFn(types[0] ?? "");
+  const icon = iconName ? renderTypeIcon(iconName) : null;
   let iconSvg = "";
   if (icon) {
     try {
@@ -199,6 +191,7 @@ interface TripDayMapWidgetProps {
 }
 
 export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
+  const { colorForType, findType } = useAttractionTypes();
   const [selectedDay, setSelectedDay]               = useState<string>("");
   const [conflictSelections, setConflictSelections] = useState<Record<string, string>>({});
   const [legModes, setLegModes]                     = useState<Record<string, TravelMode>>({});
@@ -480,7 +473,7 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
               <div key={group.key} className={styles.conflictChips}>
                 {group.attractions.map((a) => {
                   const isActive = effectiveSelections[group.key] === a._id;
-                  const color = categoryColor(a.types);
+                  const color = colorForType(a.types?.[0] ?? "");
                   return (
                     <button
                       key={a._id}
@@ -527,7 +520,7 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
                 <Marker
                   key={a._id}
                   position={[a.coordinates!.lat, a.coordinates!.lng]}
-                  icon={makeMarkerIcon(a.types, order, isAlt)}
+                  icon={makeMarkerIcon(a.types, order, isAlt, colorForType, findType(a.types?.[0] ?? "")?.icon ?? "")}
                 >
                   <Tooltip direction="top" offset={[0, -14]}>
                     <strong>{a.name}</strong>

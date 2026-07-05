@@ -60,7 +60,7 @@ export interface AttractionFormData {
   country: string;
   city: string;
   coordinates: Coordinates | null;
-  types: AttractionType[];
+  types: string[];
   durationValue: string;
   durationUnit: DurationUnit;
   price: number | null;

@@ -8,13 +8,9 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { X, Search, MapPin, Plus, PenLine, SearchX, ChevronLeft } from "lucide-react";
+import { renderTypeIcon, getIconComponent } from "@/lib/attractionIcons";
 import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
-import {
-  TYPE_CATEGORIES,
-  CATEGORY_ORDER,
-  CATEGORY_ICONS,
-} from "@/components/NewAttractionModal/attraction.constants";
-import type { AttractionType } from "@/components/NewAttractionModal/attraction.types";
+import { useAttractionTypes } from "@/hooks/useAttractionTypes";
 import type { Attraction } from "@/types/attraction";
 import type { AttractionSearchModalProps } from "./AttractionSearchModal.types";
 import styles from "./AttractionSearchModal.module.css";
@@ -30,7 +26,8 @@ export function AttractionSearchModal({
 }: AttractionSearchModalProps) {
   const [mounted, setMounted] = useState(false);
   const [query, setQuery] = useState("");
-  const [selectedType, setSelectedType] = useState<AttractionType | null>(null);
+  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const { categories, byCategory } = useAttractionTypes();
   const [activeSearchCategory, setActiveSearchCategory] = useState<string | null>(null);
   const [results, setResults] = useState<Attraction[]>([]);
   const [bodyState, setBodyState] = useState<BodyState>("initial");
@@ -65,7 +62,7 @@ export function AttractionSearchModal({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  function runSearch(q: string, type: AttractionType | null) {
+  function runSearch(q: string, type: string | null) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     if (!q.trim() && !type) {
@@ -97,7 +94,7 @@ export function AttractionSearchModal({
     runSearch(value, selectedType);
   }
 
-  function handleTypeToggle(type: AttractionType) {
+  function handleTypeToggle(type: string) {
     const next = selectedType === type ? null : type;
     setSelectedType(next);
     runSearch(query, next);
@@ -174,10 +171,10 @@ export function AttractionSearchModal({
                 >
                   All
                 </button>
-                {CATEGORY_ORDER.map((cat) => {
-                  const catTypes = TYPE_CATEGORIES[cat];
-                  const CatIcon = CATEGORY_ICONS[cat];
-                  const isActive = selectedType !== null && (catTypes as string[]).includes(selectedType);
+                {categories.map((cat) => {
+                  const catTypes = byCategory[cat] ?? [];
+                  const CatIcon = getIconComponent(catTypes[0]?.categoryIcon ?? "Globe");
+                  const isActive = selectedType !== null && catTypes.some((t) => t.name === selectedType);
                   return (
                     <button
                       key={cat}
@@ -186,7 +183,7 @@ export function AttractionSearchModal({
                       aria-pressed={isActive}
                       onClick={() => setActiveSearchCategory(cat)}
                     >
-                      {CatIcon && <CatIcon size={12} aria-hidden="true" />}
+                      <CatIcon size={12} aria-hidden="true" />
                       {cat}
                     </button>
                   );
@@ -207,19 +204,18 @@ export function AttractionSearchModal({
                   role="group"
                   aria-label={`Filter by type in ${activeSearchCategory}`}
                 >
-                  {(TYPE_CATEGORIES[activeSearchCategory] as AttractionType[]).map((type) => {
-                    const icon = ICONS[type];
-                    const active = selectedType === type;
+                  {(byCategory[activeSearchCategory] ?? []).map((typeRecord) => {
+                    const active = selectedType === typeRecord.name;
                     return (
                       <button
-                        key={type}
+                        key={typeRecord.name}
                         type="button"
                         className={`${styles.typeChip} ${active ? styles.typeChipActive : ""}`}
                         aria-pressed={active}
-                        onClick={() => handleTypeToggle(type)}
+                        onClick={() => handleTypeToggle(typeRecord.name)}
                       >
-                        {icon}
-                        {type}
+                        {renderTypeIcon(typeRecord.icon)}
+                        {typeRecord.name}
                       </button>
                     );
                   })}
@@ -257,7 +253,7 @@ export function AttractionSearchModal({
           {bodyState === "results" && (
             <ul className={styles.resultsList} aria-label="Search results">
               {results.map((attraction) => {
-                const firstType = attraction.types?.[0] as AttractionType | undefined;
+                const firstType = attraction.types?.[0];
                 const icon = firstType ? ICONS[firstType] : null;
                 return (
                   <li key={attraction._id}>

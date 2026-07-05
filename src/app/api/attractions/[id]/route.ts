@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { type Types } from "mongoose";
 import { dbConnect } from "@/lib/mongoose";
 import { getUserFromRequest } from "@/lib/auth";
 import { Attraction, formatAttraction } from "@/models/Attraction";
+import { AttractionType } from "@/models/AttractionType";
 import { Trip } from "@/models/Trip";
 
 interface RouteContext {
@@ -47,7 +49,11 @@ export async function PUT(req: Request, { params }: RouteContext) {
     if (body.country)                 attraction.country       = body.country as string;
     if (body.city)                    attraction.city          = body.city as string;
     if (body.coordinates !== undefined) attraction.coordinates = body.coordinates as { lat: number; lng: number } | null;
-    if (body.types)                   attraction.types         = body.types as string[];
+    if (body.types) {
+      const names = body.types as string[];
+      const typeDocs = await AttractionType.find({ name: { $in: names } }).select("_id");
+      attraction.types = typeDocs.map((d) => d._id) as unknown as Types.ObjectId[];
+    }
     if (body.durationValue !== undefined) attraction.durationValue = body.durationValue as string;
     if (body.durationUnit  !== undefined) attraction.durationUnit  = body.durationUnit  as "minutes" | "hours";
     if (body.price !== undefined)     attraction.price         = body.price as number | null;
@@ -78,6 +84,7 @@ export async function PUT(req: Request, { params }: RouteContext) {
     if (body.seat !== undefined)              attraction.seat              = body.seat              as string;
 
     await attraction.save();
+    await attraction.populate("types");
     return NextResponse.json(formatAttraction(attraction));
   } catch (err) {
     console.error("[PUT /api/attractions/:id]", err);

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongoose";
 import { getUserFromRequest } from "@/lib/auth";
 import { Attraction, formatAttraction } from "@/models/Attraction";
+import { AttractionType } from "@/models/AttractionType";
 import { Trip } from "@/models/Trip";
 
 export async function GET(req: Request) {
@@ -21,9 +22,6 @@ export async function GET(req: Request) {
     let userId: string | null = null;
     try { userId = getUserFromRequest(req).userId; } catch { /* unauthenticated */ }
 
-    // Attraction IDs that live exclusively on inaccessible private trips must be hidden.
-    // An attraction is safe to show if it appears in at least one accessible trip
-    // (public, or owned/collaborated by the caller) — or in no trip at all.
     const privateFilter = userId
       ? { isPrivate: true, ownerId: { $ne: userId }, "collaborators.userId": { $ne: userId } }
       : { isPrivate: true };
@@ -39,16 +37,22 @@ export async function GET(req: Request) {
 
     const privateIds    = new Set(privateTrips.flatMap((t) => (t.attractionIds ?? []).map((id) => id.toString())));
     const accessibleIds = new Set(accessibleTrips.flatMap((t) => (t.attractionIds ?? []).map((id) => id.toString())));
-
-    // Only hide attractions that are in a private trip AND absent from every accessible trip
     const hiddenIds = [...privateIds].filter((id) => !accessibleIds.has(id));
 
     const filter: Record<string, unknown> = { country };
-    if (q?.trim())    filter.name  = { $regex: q.trim(), $options: "i" };
-    if (type?.trim()) filter.types = type.trim();
+    if (q?.trim()) filter.name = { $regex: q.trim(), $options: "i" };
+    if (type?.trim()) {
+      const typeDoc = await AttractionType.findOne({ name: type.trim() }).select("_id");
+      if (!typeDoc) return NextResponse.json([]);
+      filter.types = typeDoc._id;
+    }
     if (hiddenIds.length > 0) filter._id = { $nin: hiddenIds };
 
-    const attractions = await Attraction.find(filter).sort({ name: 1 }).limit(20);
+    const attractions = await Attraction.find(filter)
+      .populate("types")
+      .sort({ name: 1 })
+      .limit(20);
+
     return NextResponse.json(attractions.map((doc) => formatAttraction(doc, null)));
   } catch {
     return NextResponse.json({ error: "Failed to search attractions" }, { status: 500 });
@@ -92,13 +96,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "An attraction with this name already exists" }, { status: 409 });
     }
 
+    const typeIds = types?.length
+      ? (await AttractionType.find({ name: { $in: types } }).select("_id")).map((d) => d._id)
+      : [];
+
     const attraction = await Attraction.create({
       ownerId: payload.userId,
       name: name.trim(),
       country: country.trim(),
       city: city.trim(),
       coordinates: coordinates ?? null,
-      types: types ?? [],
+      types: typeIds,
       durationValue: durationValue || undefined,
       durationUnit: durationUnit || undefined,
       price: price ?? null,
@@ -108,6 +116,7 @@ export async function POST(req: Request) {
       photoUrl: photoUrl || undefined,
     });
 
+    await attraction.populate("types");
     return NextResponse.json(formatAttraction(attraction, null), { status: 201 });
   } catch (err) {
     const msg = (err as Error).message ?? "";

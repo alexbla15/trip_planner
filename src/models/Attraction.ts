@@ -15,7 +15,7 @@ export interface IAttraction extends Document {
   country: string;
   city: string;
   coordinates?: { lat: number; lng: number } | null;
-  types: string[];
+  types: Types.ObjectId[];
   durationValue?: string;
   durationUnit?: "minutes" | "hours";
   price?: number | null;
@@ -57,7 +57,7 @@ const AttractionSchema = new Schema<IAttraction>(
       type: new Schema({ lat: Number, lng: Number }, { _id: false }),
       default: null,
     },
-    types: [{ type: String }],
+    types: [{ type: Schema.Types.ObjectId, ref: "AttractionType" }],
     durationValue: { type: String },
     durationUnit: { type: String, enum: ["minutes", "hours"] },
     price: { type: Number, default: null },
@@ -110,7 +110,11 @@ export function formatAttraction(
     country: doc.country,
     city: doc.city,
     coordinates: doc.coordinates ?? null,
-    types: doc.types,
+    types: (doc.types as unknown[]).map((t) =>
+      t && typeof t === "object" && "name" in (t as Record<string, unknown>)
+        ? (t as { name: string }).name
+        : String(t)
+    ),
     durationValue: doc.durationValue,
     durationUnit: doc.durationUnit,
     price: doc.price ?? null,

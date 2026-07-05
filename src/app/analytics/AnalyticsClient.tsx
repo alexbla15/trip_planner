@@ -13,7 +13,8 @@ import {
   ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
-import { TYPE_CATEGORIES, CATEGORY_COLORS, CATEGORY_ICONS } from "@/components/NewAttractionModal/attraction.constants";
+import { getIconComponent } from "@/lib/attractionIcons";
+import { useAttractionTypes } from "@/hooks/useAttractionTypes";
 import type { CityWithCoords } from "./AnalyticsCitiesMap";
 import styles from "./AnalyticsClient.module.css";
 
@@ -93,6 +94,7 @@ function tintColor(baseHex: string, opacity: number): string {
 }
 
 export function AnalyticsClient() {
+  const { byCategory, colorForCategory } = useAttractionTypes();
   const [data, setData] = useState<GlobalAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -120,8 +122,8 @@ export function AnalyticsClient() {
   const categoryAggregated = useMemo(() => {
     const map: Record<string, number> = {};
     for (const { _id, count } of rawTypes) {
-      for (const [cat, catTypes] of Object.entries(TYPE_CATEGORIES)) {
-        if ((catTypes as string[]).includes(_id)) {
+      for (const [cat, catTypes] of Object.entries(byCategory)) {
+        if (catTypes.some((t) => t.name === _id)) {
           map[cat] = (map[cat] ?? 0) + count;
           break;
         }
@@ -145,7 +147,7 @@ export function AnalyticsClient() {
       const startAngle = cum;
       const endAngle = cum + pct * 360;
       cum = endAngle;
-      const color = CATEGORY_COLORS[cat._id] ?? `hsl(${(i * 47) % 360}, 70%, 80%)`;
+      const color = colorForCategory(cat._id) !== "#64748B" ? colorForCategory(cat._id) : `hsl(${(i * 47) % 360}, 70%, 80%)`;
       return { cat, i, startAngle, endAngle, color };
     });
   }, [categoryAggregated, categoryTotal]);
@@ -183,9 +185,9 @@ export function AnalyticsClient() {
   // ── Drill-down sub-chart ──────────────────────────────────────────────────
   const subChartTypes = useMemo(() => {
     if (!selectedCategory) return [];
-    const catTypes = (TYPE_CATEGORIES[selectedCategory] as string[]) ?? [];
+    const catTypeNames = (byCategory[selectedCategory] ?? []).map((t) => t.name);
     return rawTypes
-      .filter(({ _id, count }) => catTypes.includes(_id) && count > 0)
+      .filter(({ _id, count }) => catTypeNames.includes(_id) && count > 0)
       .sort((a, b) => b.count - a.count);
   }, [selectedCategory, rawTypes]);
 
@@ -196,7 +198,7 @@ export function AnalyticsClient() {
 
   const subSlices = useMemo(() => {
     if (!selectedCategory || subChartTypes.length === 0) return [];
-    const baseColor = CATEGORY_COLORS[selectedCategory] ?? "#64748B";
+    const baseColor = colorForCategory(selectedCategory);
     let cum = 0;
     return subChartTypes.map(({ _id, count }, i) => {
       const pct = subChartTotal > 0 ? count / subChartTotal : 0;
@@ -439,7 +441,8 @@ export function AnalyticsClient() {
                     const pct = categoryTotal > 0
                       ? ((cat.count / categoryTotal) * 100).toFixed(1)
                       : "0";
-                    const CatIcon = CATEGORY_ICONS[cat._id];
+                    const catIconName = byCategory[cat._id]?.[0]?.categoryIcon ?? "Globe";
+                    const CatIcon = getIconComponent(catIconName);
                     const isHovered    = hoveredIndex === i;
                     const isSelected   = selectedCategory === cat._id;
                     return (

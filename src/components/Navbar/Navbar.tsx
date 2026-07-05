@@ -2,13 +2,16 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Plane, MapPinned, Menu, X, Compass, Map, LogIn, LogOut, BarChart2, User } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Plane, MapPinned, Menu, X, Compass, Map, LogIn, LogOut, BarChart2, User, Shield } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import styles from "./Navbar.module.css";
 
 export function Navbar() {
   const { user, logout } = useAuth();
+  const pathname = usePathname();
+  const isAdminPage = pathname === "/admin";
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -78,10 +81,12 @@ export function Navbar() {
 
             {user ? (
               <>
-                <Link href="/new-trip" className={styles.newTripBtn} aria-label="Plan a new trip">
-                  <MapPinned size={16} aria-hidden="true" />
-                  New Trip
-                </Link>
+                {!isAdminPage && (
+                  <Link href="/new-trip" className={styles.newTripBtn} aria-label="Plan a new trip">
+                    <MapPinned size={16} aria-hidden="true" />
+                    New Trip
+                  </Link>
+                )}
 
                 {/* Avatar + dropdown */}
                 <div className={styles.avatarWrapper} ref={dropdownRef}>
@@ -112,13 +117,24 @@ export function Navbar() {
                       </div>
                       <Link
                         href="/profile"
-                        className={styles.profileLink}
+                        className={styles.dropdownLink}
                         role="menuitem"
                         onClick={() => setDropdownOpen(false)}
                       >
                         <User size={15} aria-hidden="true" />
                         My Profile
                       </Link>
+                      {user.role === "admin" && (
+                        <Link
+                          href="/admin"
+                          className={styles.dropdownLink}
+                          role="menuitem"
+                          onClick={() => setDropdownOpen(false)}
+                        >
+                          <Shield size={15} aria-hidden="true" />
+                          Manager Panel
+                        </Link>
+                      )}
                       <div className={styles.dropdownDivider} aria-hidden="true" />
                       <button
                         className={styles.logoutBtn}
@@ -184,15 +200,17 @@ export function Navbar() {
 
           {user ? (
             <>
-              <Link
-                href="/new-trip"
-                className={styles.mobileNewTripBtn}
-                aria-label="Plan a new trip"
-                onClick={() => setMenuOpen(false)}
-              >
-                <MapPinned size={16} aria-hidden="true" />
-                New Trip
-              </Link>
+              {!isAdminPage && (
+                <Link
+                  href="/new-trip"
+                  className={styles.mobileNewTripBtn}
+                  aria-label="Plan a new trip"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <MapPinned size={16} aria-hidden="true" />
+                  New Trip
+                </Link>
+              )}
               <Link
                 href="/profile"
                 className={styles.mobileNavLink}

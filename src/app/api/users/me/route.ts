@@ -18,6 +18,7 @@ export async function GET(req: Request) {
       name: user.name,
       email: user.email,
       avatarUrl: user.avatarUrl ?? null,
+      role: user.role ?? "user",
       createdAt: user.createdAt,
     });
   } catch {
@@ -51,6 +52,7 @@ export async function PUT(req: Request) {
       name: user.name,
       email: user.email,
       avatarUrl: user.avatarUrl ?? null,
+      role: user.role ?? "user",
       createdAt: user.createdAt,
     });
   } catch {

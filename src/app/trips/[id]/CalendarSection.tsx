@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, TriangleAlert } from "lucide-react";
-import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
-import type { AttractionType } from "@/components/NewAttractionModal/attraction.types";
+import { renderTypeIcon } from "@/lib/attractionIcons";
+import { useAttractionTypes } from "@/hooks/useAttractionTypes";
 import { currencySymbol } from "@/lib/formatCurrency";
 import {
   DEFAULT_DAY_START,
@@ -14,7 +14,6 @@ import {
   MIN_BLOCK_WIDTH_PX,
   MIN_OVERLAP_DURATION_MINS,
 } from "@/config/ui";
-import { TYPE_CATEGORIES, CATEGORY_COLORS } from "@/components/NewAttractionModal/attraction.constants";
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
 import { AttractionDetailModal } from "@/components/AttractionDetailModal/AttractionDetailModal";
@@ -44,16 +43,6 @@ function makeHourSlots(start: number, end: number): string[] {
   });
 }
 
-function categoryColor(types: string[]): string {
-  const type = types?.[0];
-  if (!type) return "#64748B";
-  for (const [cat, catTypes] of Object.entries(TYPE_CATEGORIES)) {
-    if ((catTypes as string[]).includes(type)) {
-      return CATEGORY_COLORS[cat] ?? "#64748B";
-    }
-  }
-  return "#64748B";
-}
 
 type SidebarFilter = "all" | "scheduled" | "unscheduled";
 
@@ -237,6 +226,7 @@ interface CalendarSectionProps {
 }
 
 export function CalendarSection({ trip, attractions, onAttractionsChange, token, canEdit }: CalendarSectionProps) {
+  const { colorForType, findType } = useAttractionTypes();
   const [local, setLocal]         = useState<Attraction[]>(attractions);
   const [pending, setPending]     = useState<Map<string, Partial<Attraction>>>(new Map());
   const [saving, setSaving]       = useState(false);
@@ -393,7 +383,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
     setPopup({
       attractionId: a._id,
       name: a.name,
-      color: categoryColor(a.types),
+      color: colorForType(a.types?.[0] ?? ""),
       x: Math.max(8, x),
       y: Math.max(8, y),
       plannedTime:   a.plannedTime   ?? "",
@@ -483,9 +473,9 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
               {sidebarList.length === 0 ? (
                 <p className={styles.panelEmpty}>No attractions match.</p>
               ) : sidebarList.map((a) => {
-                const icon = ICONS[a.types?.[0] as AttractionType];
+                const icon = renderTypeIcon(findType(a.types?.[0] ?? "")?.icon ?? "");
                 const isScheduled = !!a.plannedDate;
-                const color = categoryColor(a.types);
+                const color = colorForType(a.types?.[0] ?? "");
                 return (
                   <div key={a._id}
                     className={`${styles.sidebarCard} ${isScheduled ? styles.sidebarCardScheduled : ""}`}
@@ -572,8 +562,8 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                         if (!a.plannedTime) return null;
                         const top       = slotTop(a.plannedTime, dayStart);
                         const height    = cardPx(a);
-                        const color     = categoryColor(a.types);
-                        const icon      = ICONS[a.types?.[0] as AttractionType];
+                        const color     = colorForType(a.types?.[0] ?? "");
+                        const icon      = renderTypeIcon(findType(a.types?.[0] ?? "")?.icon ?? "");
                         const isPending = pending.has(a._id);
                         const blockW    = availW / numCols;
                         const blockL    = LABEL_W + col * blockW;
@@ -636,8 +626,8 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                       <div className={styles.untimedSection}>
                         <p className={styles.untimedLabel}>No time ({untimed.length})</p>
                         {untimed.map((a) => {
-                          const icon = ICONS[a.types?.[0] as AttractionType];
-                          const color = categoryColor(a.types);
+                          const icon = renderTypeIcon(findType(a.types?.[0] ?? "")?.icon ?? "");
+                          const color = colorForType(a.types?.[0] ?? "");
                           return (
                             <div key={a._id} className={styles.untimedCard}
                               style={{ ["--type-color" as string]: color }}>

@@ -3,6 +3,7 @@ import { dbConnect } from "@/lib/mongoose";
 import { getUserFromRequest } from "@/lib/auth";
 import { Trip } from "@/models/Trip";
 import { Attraction, formatAttraction } from "@/models/Attraction";
+import { AttractionType } from "@/models/AttractionType";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -50,9 +51,14 @@ export async function GET(req: Request, { params }: RouteContext) {
     const sort       = searchParams.get("sort");
 
     const query: Record<string, unknown> = { _id: { $in: trip.attractionIds } };
-    if (typeFilter) query.types = typeFilter;
+    if (typeFilter) {
+      const typeDoc = await AttractionType.findOne({ name: typeFilter }).select("_id");
+      if (!typeDoc) return NextResponse.json([]);
+      query.types = typeDoc._id;
+    }
 
     const docs = await Attraction.find(query)
+      .populate("types")
       .sort(sort === "price" ? { price: 1 } : undefined)
       .exec();
 
@@ -115,13 +121,11 @@ export async function POST(req: Request, { params }: RouteContext) {
     let attraction;
 
     if (existingAttractionId) {
-      // Linking an existing attraction from the global DB — find it directly by ID
       attraction = await Attraction.findById(existingAttractionId);
       if (!attraction) {
         return NextResponse.json({ error: "Attraction not found" }, { status: 404 });
       }
     } else {
-      // Creating or re-linking by name (new attraction flow)
       if (!name?.trim() || !country?.trim() || !city?.trim()) {
         return NextResponse.json(
           { error: "name, country, and city are required" },
@@ -136,13 +140,17 @@ export async function POST(req: Request, { params }: RouteContext) {
       );
 
       if (!attraction) {
+        const typeIds = types?.length
+          ? (await AttractionType.find({ name: { $in: types } }).select("_id")).map((d) => d._id)
+          : [];
+
         attraction = await Attraction.create({
           ownerId: payload.userId,
           name: name.trim(),
           country: country.trim(),
           city: city.trim(),
           coordinates: coordinates ?? null,
-          types: types ?? [],
+          types: typeIds,
           durationValue: durationValue || undefined,
           durationUnit: durationUnit || undefined,
           price: price ?? null,
@@ -173,6 +181,7 @@ export async function POST(req: Request, { params }: RouteContext) {
     );
     if (alreadyLinked) {
       const schedule = trip.schedules?.get(attractionId);
+      await attraction.populate("types");
       return NextResponse.json(formatAttraction(attraction, schedule ?? null), { status: 200 });
     }
 
@@ -188,6 +197,7 @@ export async function POST(req: Request, { params }: RouteContext) {
     trip.schedules.set(attractionId, scheduleEntry);
 
     await trip.save();
+    await attraction.populate("types");
 
     return NextResponse.json(formatAttraction(attraction, scheduleEntry), { status: 201 });
   } catch (err) {

@@ -11,7 +11,6 @@ import { createPortal } from "react-dom";
 import { X, MapPin, Clock, ChevronDown, ChevronLeft, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check, FileText, ImageIcon } from "lucide-react";
 import type {
   AttractionFormData,
-  AttractionType,
   Coordinates,
   DurationUnit,
   NewAttractionModalProps,
@@ -21,12 +20,11 @@ import {
   COUNTRIES,
   DEFAULT_OPENING_HOURS,
   DAY_KEYS,
-  TYPE_CATEGORIES,
-  CATEGORY_ORDER,
-  CATEGORY_ICONS,
 } from "./attraction.constants";
 import { CurrencySelect } from "@/components/CurrencySelect/CurrencySelect";
 import { AttractionTypeChip } from "./AttractionTypeChip";
+import { useAttractionTypes } from "@/hooks/useAttractionTypes";
+import { getIconComponent } from "@/lib/attractionIcons";
 import { MapPicker } from "./MapPicker";
 import { OpeningHoursGrid } from "./OpeningHoursGrid";
 import styles from "./NewAttractionModal.module.css";
@@ -54,6 +52,7 @@ interface FieldErrors {
 
 export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, initialData }: NewAttractionModalProps) {
   const isEditMode = Boolean(initialData);
+  const { categories, byCategory } = useAttractionTypes();
 
   const [name, setName] = useState("");
   const [country, setCountry] = useState(defaultCountry ?? "");
@@ -84,7 +83,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
       // Reverse geocoding is best-effort — silently ignore failures
     }
   }
-  const [selectedTypes, setSelectedTypes] = useState<AttractionType[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [durationValue, setDurationValue] = useState("");
   const [durationUnit, setDurationUnit] = useState<DurationUnit>("hours");
   const [price, setPrice] = useState<number | null>(null);
@@ -115,7 +114,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
     setCountry(initialData?.country ?? defaultCountry ?? "");
     setCity(initialData?.city ?? "");
     setCoordinates(initialData?.coordinates ?? null);
-    setSelectedTypes((initialData?.types ?? []) as AttractionType[]);
+    setSelectedTypes(initialData?.types ?? []);
     setDurationValue(initialData?.durationValue ?? "");
     setDurationUnit(initialData?.durationUnit ?? "hours");
     setPrice(initialData?.price ?? null);
@@ -218,7 +217,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
     setErrors(errs);
   }
 
-  function toggleType(type: AttractionType) {
+  function toggleType(type: string) {
     setSelectedTypes((prev) =>
       prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
     );
@@ -417,10 +416,10 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
               {activeCategory === null ? (
                 /* ── Category view ── */
                 <div className={styles.categoryChips} role="group" aria-label="Attraction categories">
-                  {CATEGORY_ORDER.map((cat) => {
-                    const catTypes = TYPE_CATEGORIES[cat];
-                    const selCount = catTypes.filter((t) => selectedTypes.includes(t)).length;
-                    const CatIcon = CATEGORY_ICONS[cat];
+                  {categories.map((cat) => {
+                    const catTypes = byCategory[cat] ?? [];
+                    const selCount = catTypes.filter((t) => selectedTypes.includes(t.name)).length;
+                    const CatIcon = getIconComponent(catTypes[0]?.categoryIcon ?? "Globe");
                     return (
                       <button
                         key={cat}
@@ -429,7 +428,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
                         onClick={() => setActiveCategory(cat)}
                         aria-pressed={selCount > 0}
                       >
-                        {CatIcon && <CatIcon size={14} aria-hidden="true" />}
+                        <CatIcon size={14} aria-hidden="true" />
                         {cat}
                         {selCount > 0 && (
                           <span className={styles.categoryBadge} aria-label={`${selCount} selected`}>
@@ -458,11 +457,12 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
                     aria-labelledby="types-label"
                     aria-describedby={touched.types && errors.types ? "error-types" : undefined}
                   >
-                    {TYPE_CATEGORIES[activeCategory].map((type) => (
+                    {(byCategory[activeCategory] ?? []).map((typeRecord) => (
                       <AttractionTypeChip
-                        key={type}
-                        type={type}
-                        selected={selectedTypes.includes(type)}
+                        key={typeRecord.name}
+                        type={typeRecord.name}
+                        iconName={typeRecord.icon}
+                        selected={selectedTypes.includes(typeRecord.name)}
                         onToggle={(t) => {
                           toggleType(t);
                           setTouched((prev) => ({ ...prev, types: true }));
