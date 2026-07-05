@@ -61,37 +61,25 @@ function timedFetch(url: string, init: RequestInit, ms: number): Promise<Respons
 // requests (including foot) — Valhalla provides correct pedestrian routing.
 
 async function fetchValhallhaLeg(from: Coord, to: Coord, mode: "walk" | "car"): Promise<RouteLeg | null> {
-  const costing = mode === "car" ? "auto" : "pedestrian";
-  const body = JSON.stringify({
-    locations: [{ lat: from.lat, lon: from.lng }, { lat: to.lat, lon: to.lng }],
-    costing,
-    directions_options: { units: "km" },
-  });
+  const params = `fromLat=${from.lat}&fromLng=${from.lng}&toLat=${to.lat}&toLng=${to.lng}&mode=${mode}`;
   try {
-    const res = await timedFetch("https://valhalla1.openstreetmap.de/route", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body,
-    }, 8000);
+    const res = await timedFetch(`/api/route/valhalla?${params}`, {}, 12000);
     if (!res.ok) return null;
     const data = await res.json() as {
-      trip?: {
-        legs?: { shape: string; summary: { time: number } }[];
-        status?: number;
-      };
+      code?: string;
+      routes?: { duration: number; geometry: { coordinates: [number, number][] } }[];
     };
-    // Check for legs directly — the status field is absent in some Valhalla versions
-    const leg = data.trip?.legs?.[0];
-    if (!leg) return null;
-    // valhalla1.openstreetmap.de uses polyline6 (÷1e6) for ALL costing types
-    const geometry = decodePolyline(leg.shape, 6);
+    if (data.code !== "Ok" || !data.routes?.[0]) return null;
+    const route = data.routes[0];
+    // OSRM returns [lng, lat]; Leaflet needs [lat, lng]
+    const geometry: [number, number][] = route.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
     return {
       geometry,
-      durationSec: leg.summary.time,
+      durationSec: route.duration,
       steps: [{
         icon: mode === "car" ? "drive" : "walk",
         label: mode === "car" ? "Drive" : "Walk",
-        durationSec: leg.summary.time,
+        durationSec: route.duration,
       }],
     };
   } catch {
@@ -117,15 +105,14 @@ const TRANSIT_MODES = new Set(["BUS", "SUBWAY", "RAIL", "TRAM", "FERRY", "METRO"
 async function fetchTransitLeg(from: Coord, to: Coord, date?: string): Promise<RouteLeg | null> {
   // Transitous supports `date` (YYYY-MM-DD) but rejects any `time` parameter format.
   const d = date ?? new Date().toISOString().split("T")[0];
-  const url =
-    `https://api.transitous.org/api/v1/plan` +
-    `?fromPlace=${from.lat},${from.lng}` +
+  const params =
+    `fromPlace=${from.lat},${from.lng}` +
     `&toPlace=${to.lat},${to.lng}` +
     `&date=${d}` +
     `&mode=TRANSIT,WALK&numItineraries=1`;
   try {
-    // Transitous can be slow for complex itineraries; 15s timeout prevents endless loading
-    const res = await timedFetch(url, {}, 15000);
+    // Transitous can be slow for complex itineraries; 20s client timeout > 18s server timeout
+    const res = await timedFetch(`/api/route/transit?${params}`, {}, 20000);
     if (!res.ok) return null;
     // Transitous returns itineraries at the root level — NOT nested inside a "plan" wrapper
     const data = await res.json() as { itineraries?: { duration: number; legs: OtpLeg[] }[] };
