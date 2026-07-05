@@ -233,6 +233,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
           durationValue: data.durationValue || undefined,
           durationUnit: data.durationUnit,
           price: data.price,
+          currency: data.currency,
           openingHours: data.openingHours,
           notes: data.notes || undefined,
           photoUrl: data.photoUrl || undefined,
@@ -258,6 +259,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
       durationValue: a.durationValue ?? "",
       durationUnit: (a.durationUnit ?? "hours") as DurationUnit,
       price: a.price ?? null,
+      currency: a.currency ?? "USD",
       openingHours: (a.openingHours as OpeningHours | undefined)?.Mon
         ? (a.openingHours as OpeningHours)
         : structuredClone(DEFAULT_OPENING_HOURS),
@@ -330,6 +332,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
       checkInDate:   editingResidence.checkInDate  ?? "",
       checkOutDate:  editingResidence.checkOutDate ?? "",
       price:         editingResidence.price ?? null,
+      currency:      editingResidence.currency ?? "USD",
       notes:         editingResidence.notes ?? "",
     };
   }, [editingResidence]);
@@ -348,6 +351,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
       arrivalAirport:    editingFlight.arrivalAirport    ?? "",
       arrivalTimeHHMM:   arrHHMM,
       price:             editingFlight.price ?? null,
+      currency:          editingFlight.currency ?? "USD",
       notes:             editingFlight.notes ?? "",
     };
   }, [editingFlight]);

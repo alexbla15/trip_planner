@@ -10,6 +10,7 @@ export interface Attraction {
   durationValue?: string;
   durationUnit?: "minutes" | "hours";
   price?: number | null;
+  currency?: string;
   openingHours?: Record<string, { closed: boolean; open: string; close: string }>;
   notes?: string;
   photoUrl?: string;

@@ -39,6 +39,7 @@ export interface ExploreItem {
   tag: string;    // primary display tag (first mood)
   tags: string[]; // all moods — used for vibe-chip filtering
   user: string;
+  userAvatarUrl?: string;
   likes: number;
 }
 

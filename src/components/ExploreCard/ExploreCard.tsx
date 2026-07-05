@@ -5,13 +5,10 @@ import { MoodTagChip } from "@/components/MoodTagChip/MoodTagChip";
 import styles from "./ExploreCard.module.css";
 import type { ExploreCardProps } from "./ExploreCard.types";
 
-function getInitial(username: string): string {
-  return username.charAt(0).toUpperCase();
-}
-
 export function ExploreCard({ item }: ExploreCardProps) {
-  const { id, destination, coverImage, tag, tags, user, likes } = item;
+  const { id, destination, coverImage, tag, tags, user, userAvatarUrl, likes } = item;
   const displayTags = tags?.length ? tags : [tag];
+  const hasAvatar = !!userAvatarUrl?.startsWith("http");
 
   return (
     <Link href={`/trips/${id}`} className={styles.card}>
@@ -30,7 +27,12 @@ export function ExploreCard({ item }: ExploreCardProps) {
         </div>
         <div className={styles.attribution}>
           <div className={styles.avatarCircle} aria-hidden="true">
-            {getInitial(user)}
+            {hasAvatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={userAvatarUrl} alt="" className={styles.avatarImg} />
+            ) : (
+              user.charAt(0).toUpperCase()
+            )}
           </div>
           <span className={styles.username}>@{user}</span>
         </div>

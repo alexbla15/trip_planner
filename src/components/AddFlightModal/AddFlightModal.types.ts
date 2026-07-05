@@ -11,6 +11,7 @@ export interface FlightFormData {
   departureTime: string;
   arrivalTime: string;
   price: number | null;
+  currency: string;
   notes: string;
   plannedDate: string;
   plannedTime: string;
@@ -29,6 +30,7 @@ export interface FlightInitialData {
   arrivalAirport: string;
   arrivalTimeHHMM: string;   // "HH:MM"
   price: number | null;
+  currency: string;
   notes: string;
 }
 

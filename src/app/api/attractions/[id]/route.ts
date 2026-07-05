@@ -21,9 +21,23 @@ export async function PUT(req: Request, { params }: RouteContext) {
     const { id } = await params;
     await dbConnect();
 
-    const attraction = await Attraction.findOne({ _id: id, ownerId: payload.userId });
+    const attraction = await Attraction.findById(id);
     if (!attraction) {
       return NextResponse.json({ error: "Attraction not found" }, { status: 404 });
+    }
+
+    // Allow update if the requester owns the attraction OR is an owner/collaborator
+    // of a trip that contains it (attractions are shared objects — any trip member
+    // who added it should be able to edit its details, e.g. price).
+    const isAttractionOwner = attraction.ownerId.toString() === payload.userId;
+    if (!isAttractionOwner) {
+      const hasTripAccess = await Trip.exists({
+        attractionIds: id,
+        $or: [{ ownerId: payload.userId }, { "collaborators.userId": payload.userId }],
+      });
+      if (!hasTripAccess) {
+        return NextResponse.json({ error: "Attraction not found" }, { status: 404 });
+      }
     }
 
     const body = await req.json() as Record<string, unknown>;
@@ -37,6 +51,7 @@ export async function PUT(req: Request, { params }: RouteContext) {
     if (body.durationValue !== undefined) attraction.durationValue = body.durationValue as string;
     if (body.durationUnit  !== undefined) attraction.durationUnit  = body.durationUnit  as "minutes" | "hours";
     if (body.price !== undefined)     attraction.price         = body.price as number | null;
+    if (body.currency !== undefined)  attraction.currency      = body.currency as string;
     if (body.openingHours !== undefined) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       attraction.openingHours = body.openingHours as any;

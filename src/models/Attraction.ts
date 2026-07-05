@@ -19,6 +19,7 @@ export interface IAttraction extends Document {
   durationValue?: string;
   durationUnit?: "minutes" | "hours";
   price?: number | null;
+  currency?: string;
   openingHours?: Record<string, IOpeningHoursDay>;
   notes?: string;
   photoUrl?: string;
@@ -60,6 +61,7 @@ const AttractionSchema = new Schema<IAttraction>(
     durationValue: { type: String },
     durationUnit: { type: String, enum: ["minutes", "hours"] },
     price: { type: Number, default: null },
+    currency: { type: String, default: "USD" },
     notes: { type: String },
     photoUrl: { type: String },
     openingHours: {
@@ -112,6 +114,7 @@ export function formatAttraction(
     durationValue: doc.durationValue,
     durationUnit: doc.durationUnit,
     price: doc.price ?? null,
+    currency: doc.currency ?? "USD",
     openingHours: doc.openingHours as AttractionShape["openingHours"],
     notes: doc.notes,
     photoUrl: doc.photoUrl,

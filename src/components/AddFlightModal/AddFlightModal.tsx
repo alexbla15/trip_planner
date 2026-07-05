@@ -6,7 +6,7 @@ import {
   X, Plane, Tag, Calendar, MapPin, Clock, Wallet,
   FileText, AlertCircle, Loader2, Check,
 } from "lucide-react";
-import { currencySymbol } from "@/lib/formatCurrency";
+import { CurrencySelect } from "@/components/CurrencySelect/CurrencySelect";
 import type { AddFlightModalProps, FlightFormData } from "./AddFlightModal.types";
 import styles from "./AddFlightModal.module.css";
 
@@ -57,6 +57,7 @@ export function AddFlightModal({
   const [arrivalAirport, setArrivalAirport]   = useState("");
   const [arrivalTime, setArrivalTime]         = useState("");
   const [price, setPrice]                     = useState<number | null>(null);
+  const [priceCurrency, setPriceCurrency]     = useState(currency ?? "USD");
   const [notes, setNotes]                     = useState("");
   const [errors, setErrors]                   = useState<FieldErrors>({});
   const [touched, setTouched]                 = useState<Record<string, boolean>>({});
@@ -80,6 +81,7 @@ export function AddFlightModal({
     setArrivalAirport(initialData?.arrivalAirport ?? "");
     setArrivalTime(initialData?.arrivalTimeHHMM ?? "");
     setPrice(initialData?.price ?? null);
+    setPriceCurrency(initialData?.currency ?? currency ?? "USD");
     setNotes(initialData?.notes ?? "");
     setErrors({}); setTouched({});
   }, [isOpen]); // intentionally omits initialData — only sync when modal opens, not on every re-render
@@ -170,6 +172,7 @@ export function AddFlightModal({
       departureTime: depIso,
       arrivalTime: arrIso,
       price,
+      currency: priceCurrency,
       notes,
       plannedDate: flightDate,
       plannedTime: departureTime,
@@ -186,7 +189,6 @@ export function AddFlightModal({
   if (!mounted || !isOpen) return null;
 
   const formIsValid = Object.keys(validate()).length === 0;
-  const currSym = currencySymbol(currency ?? "");
 
   const modal = (
     <div className={styles.backdrop} onClick={handleBackdropClick} aria-hidden="true">
@@ -372,7 +374,7 @@ export function AddFlightModal({
               Price
             </label>
             <div className={styles.priceRow}>
-              <span className={styles.priceCurrency} aria-hidden="true">{currSym}</span>
+              <CurrencySelect value={priceCurrency} onChange={setPriceCurrency} />
               <input
                 type="number"
                 min="0"

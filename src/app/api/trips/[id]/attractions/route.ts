@@ -83,6 +83,7 @@ export async function POST(req: Request, { params }: RouteContext) {
       durationValue?: string;
       durationUnit?: "minutes" | "hours";
       price?: number | null;
+      currency?: string;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       openingHours?: any;
       notes?: string;
@@ -106,7 +107,7 @@ export async function POST(req: Request, { params }: RouteContext) {
     };
 
     const { existingAttractionId, name, country, city, coordinates, types, durationValue, durationUnit,
-      price, openingHours, notes, photoUrl,
+      price, currency, openingHours, notes, photoUrl,
       subtype, residenceType, checkInDate, checkOutDate,
       flightNumber, airline, departureAirport, arrivalAirport, departureTime, arrivalTime, gate, seat,
       plannedDate, plannedTime, actualDurationValue, actualDurationUnit } = body;
@@ -145,6 +146,7 @@ export async function POST(req: Request, { params }: RouteContext) {
           durationValue: durationValue || undefined,
           durationUnit: durationUnit || undefined,
           price: price ?? null,
+          currency: currency || "USD",
           openingHours: openingHours ?? undefined,
           notes: notes || undefined,
           photoUrl: photoUrl || undefined,

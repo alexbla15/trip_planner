@@ -7,30 +7,32 @@ import type { Trip, TripExpense } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
 import styles from "./ExpensesPanel.module.css";
 
-const CURRENCIES = [
-  { code: "USD", symbol: "$",    name: "US Dollar" },
-  { code: "EUR", symbol: "€",    name: "Euro" },
-  { code: "GBP", symbol: "£",    name: "British Pound" },
-  { code: "ILS", symbol: "₪",    name: "Israeli Shekel" },
-  { code: "JPY", symbol: "¥",    name: "Japanese Yen" },
-  { code: "CAD", symbol: "CA$",  name: "Canadian Dollar" },
-  { code: "AUD", symbol: "A$",   name: "Australian Dollar" },
-  { code: "CHF", symbol: "Fr",   name: "Swiss Franc" },
-  { code: "CNY", symbol: "¥",    name: "Chinese Yuan" },
-  { code: "INR", symbol: "₹",    name: "Indian Rupee" },
-  { code: "MXN", symbol: "MX$",  name: "Mexican Peso" },
-  { code: "BRL", symbol: "R$",   name: "Brazilian Real" },
-  { code: "SEK", symbol: "kr",   name: "Swedish Krona" },
-  { code: "NOK", symbol: "kr",   name: "Norwegian Krone" },
-  { code: "PLN", symbol: "zł",   name: "Polish Zloty" },
-  { code: "TRY", symbol: "₺",    name: "Turkish Lira" },
-  { code: "SGD", symbol: "S$",   name: "Singapore Dollar" },
-  { code: "HKD", symbol: "HK$",  name: "Hong Kong Dollar" },
-  { code: "KRW", symbol: "₩",    name: "South Korean Won" },
-  { code: "THB", symbol: "฿",    name: "Thai Baht" },
-  { code: "AED", symbol: "د.إ",  name: "UAE Dirham" },
-  { code: "HUF", symbol: "Ft",   name: "Hungarian Forint" },
+const DISPLAY_CURRENCIES = [
+  { code: "USD", name: "US Dollar" },
+  { code: "EUR", name: "Euro" },
+  { code: "GBP", name: "British Pound" },
+  { code: "ILS", name: "Israeli Shekel" },
+  { code: "JPY", name: "Japanese Yen" },
+  { code: "CAD", name: "Canadian Dollar" },
+  { code: "AUD", name: "Australian Dollar" },
+  { code: "CHF", name: "Swiss Franc" },
+  { code: "CNY", name: "Chinese Yuan" },
+  { code: "INR", name: "Indian Rupee" },
+  { code: "MXN", name: "Mexican Peso" },
+  { code: "BRL", name: "Brazilian Real" },
+  { code: "SEK", name: "Swedish Krona" },
+  { code: "NOK", name: "Norwegian Krone" },
+  { code: "PLN", name: "Polish Zloty" },
+  { code: "TRY", name: "Turkish Lira" },
+  { code: "SGD", name: "Singapore Dollar" },
+  { code: "HKD", name: "Hong Kong Dollar" },
+  { code: "KRW", name: "South Korean Won" },
+  { code: "THB", name: "Thai Baht" },
+  { code: "AED", name: "UAE Dirham" },
+  { code: "HUF", name: "Hungarian Forint" },
 ];
+
+type Tab = "attractions" | "flights" | "residences";
 
 interface ExpensesPanelProps {
   trip: Trip;
@@ -46,6 +48,7 @@ interface LocalExpense {
   label: string;
   amountStr: string;
   attractionId?: string;
+  subtype?: "flight" | "residence";
 }
 
 let nextTempId = 0;
@@ -56,8 +59,9 @@ function buildLocal(trip: Trip, attractions: Attraction[]): LocalExpense[] {
   const savedByAttrId = new Map(
     saved.filter((e) => e.attractionId).map((e) => [e.attractionId!, e])
   );
+  // Include ALL attractions with a price — regular, flights, and residences
   const attractionRows: LocalExpense[] = attractions
-    .filter((a) => !a.subtype && a.price != null)
+    .filter((a) => a.price != null)
     .map((a) => {
       const override = savedByAttrId.get(a._id);
       return {
@@ -65,6 +69,7 @@ function buildLocal(trip: Trip, attractions: Attraction[]): LocalExpense[] {
         label:        a.name,
         amountStr:    String(override?.amount ?? a.price ?? 0),
         attractionId: a._id,
+        subtype:      a.subtype as "flight" | "residence" | undefined,
       };
     });
   const customRows: LocalExpense[] = saved
@@ -91,11 +96,12 @@ function toApiExpenses(rows: LocalExpense[]): Omit<TripExpense, "_id">[] {
 }
 
 export function ExpensesPanel({
-  trip, attractions, canEdit, token, onTripUpdate, onAttractionsChange,
+  trip, attractions, canEdit, token, onTripUpdate,
 }: ExpensesPanelProps) {
   const tripCurrency = trip.currency ?? "USD";
 
   const [rows,             setRows]             = useState<LocalExpense[]>(() => buildLocal(trip, attractions));
+  const [activeTab,        setActiveTab]        = useState<Tab>("attractions");
   const [selectedCurrency, setSelectedCurrency] = useState(tripCurrency);
   const [currentRate,      setCurrentRate]      = useState(1);
   const [converting,       setConverting]       = useState(false);
@@ -103,11 +109,9 @@ export function ExpensesPanel({
   const [error,            setError]            = useState("");
   const [saved,            setSaved]            = useState(false);
 
-  // Keep a stable ref so the attractions-rebuild effect can read the latest rate
   const rateRef = useRef(1);
   useEffect(() => { rateRef.current = currentRate; }, [currentRate]);
 
-  // Reset everything when the underlying trip changes (including after a save)
   useEffect(() => {
     setSelectedCurrency(tripCurrency);
     setCurrentRate(1);
@@ -115,7 +119,6 @@ export function ExpensesPanel({
     setRows(buildLocal(trip, attractions));
   }, [trip._id, tripCurrency]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch rate and rebuild rows whenever the user picks a different currency
   useEffect(() => {
     if (selectedCurrency === tripCurrency) {
       setCurrentRate(1);
@@ -123,7 +126,6 @@ export function ExpensesPanel({
       setRows(buildLocal(trip, attractions));
       return;
     }
-
     let cancelled = false;
     setConverting(true);
     fetch(`/api/fx?from=${encodeURIComponent(tripCurrency)}&to=${encodeURIComponent(selectedCurrency)}`)
@@ -132,7 +134,7 @@ export function ExpensesPanel({
         if (cancelled) return;
         if (!d.rate) {
           setError(d.error ?? "Could not fetch exchange rate.");
-          setSelectedCurrency(tripCurrency); // revert
+          setSelectedCurrency(tripCurrency);
           return;
         }
         setCurrentRate(d.rate);
@@ -146,26 +148,38 @@ export function ExpensesPanel({
         }
       })
       .finally(() => { if (!cancelled) setConverting(false); });
-
     return () => { cancelled = true; };
   }, [selectedCurrency]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Rebuild rows when attractions list changes, preserving the current rate
   useEffect(() => {
     const fresh = buildLocal(trip, attractions);
     setRows(rateRef.current !== 1 ? applyRate(fresh, rateRef.current) : fresh);
   }, [attractions]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const attractionRows = rows.filter((r) => r.attractionId);
+  // Partition rows by subtype for tab display
+  const attractionRows = rows.filter((r) => r.attractionId && !r.subtype);
+  const flightRows     = rows.filter((r) => r.attractionId && r.subtype === "flight");
+  const residenceRows  = rows.filter((r) => r.attractionId && r.subtype === "residence");
   const customRows     = rows.filter((r) => !r.attractionId);
-  const total          = rows.reduce((sum, r) => sum + (parseFloat(r.amountStr) || 0), 0);
-  const sym            = currencySymbol(selectedCurrency) || selectedCurrency;
+
+  const TABS: { id: Tab; label: string; count: number }[] = [
+    { id: "attractions", label: "Attractions", count: attractionRows.length },
+    { id: "flights",     label: "Flights",     count: flightRows.length     },
+    { id: "residences",  label: "Residences",  count: residenceRows.length  },
+  ];
+
+  const activeRows =
+    activeTab === "attractions" ? attractionRows :
+    activeTab === "flights"     ? flightRows     : residenceRows;
+
+  const total = rows.reduce((sum, r) => sum + (parseFloat(r.amountStr) || 0), 0);
+  const sym   = currencySymbol(selectedCurrency) || selectedCurrency;
 
   const isCurrencyChanged = selectedCurrency !== tripCurrency;
   const budgetInDisplay   = trip.budget != null
     ? Math.round(trip.budget * currentRate * 100) / 100
     : null;
-  const budgetDelta       = budgetInDisplay != null ? budgetInDisplay - total : null;
+  const budgetDelta = budgetInDisplay != null ? budgetInDisplay - total : null;
 
   function updateRow(id: string, patch: Partial<LocalExpense>) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
@@ -182,25 +196,12 @@ export function ExpensesPanel({
     setSaved(false);
   }
 
+  // Saves ONLY to trip.expenses — never mutates attraction prices or currencies.
   const handleSave = useCallback(async () => {
     if (!token) return;
     setSaving(true); setError("");
     try {
-      const attrPromises = isCurrencyChanged
-        ? attractions
-            .filter((a) => a.price != null)
-            .map((a) =>
-              fetch(`/api/attractions/${a._id}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ price: Math.round(a.price! * currentRate * 100) / 100 }),
-              })
-                .then((r) => (r.ok ? (r.json() as Promise<Attraction>) : null))
-                .catch(() => null)
-            )
-        : [];
-
-      const [expRes, tripRes, ...attrResults] = await Promise.all([
+      const [expRes, tripRes] = await Promise.all([
         fetch(`/api/trips/${trip._id}/expenses`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -218,32 +219,11 @@ export function ExpensesPanel({
               }),
             })
           : Promise.resolve(null),
-        ...attrPromises,
       ]);
 
       if (!expRes.ok) {
         setError((await expRes.json()).error ?? "Failed to save expenses");
         return;
-      }
-
-      // Merge updated attraction prices; preserve schedule fields
-      const updatedById = new Map(
-        attrResults.flatMap((r) => (r ? [[(r as Attraction)._id, r as Attraction]] : []))
-      );
-      if (updatedById.size > 0) {
-        onAttractionsChange(
-          attractions.map((a) => {
-            const fresh = updatedById.get(a._id);
-            if (!fresh) return a;
-            return {
-              ...fresh,
-              plannedDate:         a.plannedDate,
-              plannedTime:         a.plannedTime,
-              actualDurationValue: a.actualDurationValue,
-              actualDurationUnit:  a.actualDurationUnit,
-            };
-          })
-        );
       }
 
       const updatedTrip: Trip =
@@ -258,17 +238,14 @@ export function ExpensesPanel({
     } finally {
       setSaving(false);
     }
-  }, [
-    token, trip._id, trip.budget, rows, attractions,
-    currentRate, selectedCurrency, isCurrencyChanged,
-    onTripUpdate, onAttractionsChange,
-  ]);
+  }, [token, trip._id, trip.budget, rows, currentRate, selectedCurrency, isCurrencyChanged, onTripUpdate]);
 
   const fmt = (n: number) =>
     `${sym}${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
     <div className={styles.card}>
+      {/* ── Header ── */}
       <div className={styles.header}>
         <div className={styles.titleRow}>
           <span className={styles.iconCircle} aria-hidden="true">
@@ -278,7 +255,6 @@ export function ExpensesPanel({
         </div>
 
         <div className={styles.headerActions}>
-          {/* Currency selector */}
           <div className={styles.currencySelectWrap}>
             {converting && (
               <Loader2 size={13} className={styles.convertSpinner} aria-hidden="true" />
@@ -290,11 +266,10 @@ export function ExpensesPanel({
               disabled={converting || saving}
               aria-label="Display currency"
             >
-              {/* If the trip's currency isn't in our list, show it anyway */}
-              {!CURRENCIES.find((c) => c.code === tripCurrency) && (
+              {!DISPLAY_CURRENCIES.find((c) => c.code === tripCurrency) && (
                 <option value={tripCurrency}>{tripCurrency}</option>
               )}
-              {CURRENCIES.map((c) => (
+              {DISPLAY_CURRENCIES.map((c) => (
                 <option key={c.code} value={c.code}>
                   {c.code} — {c.name}
                 </option>
@@ -321,12 +296,35 @@ export function ExpensesPanel({
         </div>
       </div>
 
-      {/* ── From Attractions ── */}
-      {attractionRows.length > 0 && (
-        <section className={styles.section}>
-          <h3 className={styles.sectionLabel}>From Attractions</h3>
+      {/* ── Tabs ── */}
+      <div className={styles.tabs} role="tablist" aria-label="Expense categories">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ""}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+            {tab.count > 0 && (
+              <span className={`${styles.tabBadge} ${activeTab === tab.id ? styles.tabBadgeActive : ""}`}>
+                {tab.count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Tab panel ── */}
+      <section className={styles.section} role="tabpanel">
+        {activeRows.length === 0 ? (
+          <p className={styles.empty}>
+            No {activeTab} with prices added to this trip.
+          </p>
+        ) : (
           <div className={styles.rows}>
-            {attractionRows.map((row) => (
+            {activeRows.map((row) => (
               <div key={row.id} className={styles.row}>
                 <span className={styles.rowLabel}>{row.label}</span>
                 {canEdit ? (
@@ -339,7 +337,7 @@ export function ExpensesPanel({
                       value={row.amountStr}
                       onChange={(e) => updateRow(row.id, { amountStr: e.target.value })}
                       className={styles.amountInput}
-                      aria-label={`Price for ${row.label}`}
+                      aria-label={`Budgeted amount for ${row.label}`}
                     />
                   </div>
                 ) : (
@@ -348,8 +346,8 @@ export function ExpensesPanel({
               </div>
             ))}
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       {/* ── Other Expenses ── */}
       <section className={styles.section}>

@@ -385,7 +385,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   function openPopup(e: React.MouseEvent, a: Attraction) {
     e.stopPropagation();
     const POPUP_W = 230;
-    const POPUP_H = 210;
+    const POPUP_H = 260;
     const rawX = e.clientX + 12;
     const rawY = e.clientY - 20;
     const x = Math.min(rawX, window.innerWidth  - POPUP_W - 8);

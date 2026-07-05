@@ -69,6 +69,7 @@ export async function POST(req: Request) {
       durationValue?: string;
       durationUnit?: "minutes" | "hours";
       price?: number | null;
+      currency?: string;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       openingHours?: any;
       notes?: string;
@@ -76,7 +77,7 @@ export async function POST(req: Request) {
     };
 
     const { name, country, city, coordinates, types, durationValue, durationUnit,
-      price, openingHours, notes, photoUrl } = body;
+      price, currency, openingHours, notes, photoUrl } = body;
 
     if (!name?.trim() || !country?.trim() || !city?.trim()) {
       return NextResponse.json({ error: "name, country, and city are required" }, { status: 400 });
@@ -101,6 +102,7 @@ export async function POST(req: Request) {
       durationValue: durationValue || undefined,
       durationUnit: durationUnit || undefined,
       price: price ?? null,
+      currency: currency || "USD",
       openingHours: openingHours ?? undefined,
       notes: notes || undefined,
       photoUrl: photoUrl || undefined,

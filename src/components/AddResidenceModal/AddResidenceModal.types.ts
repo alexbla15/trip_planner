@@ -9,6 +9,7 @@ export interface ResidenceFormData {
   checkInDate: string;
   checkOutDate: string;
   price: number | null;
+  currency: string;
   notes: string;
   types: string[];
   subtype: "residence";
@@ -22,6 +23,7 @@ export interface ResidenceInitialData {
   checkInDate: string;
   checkOutDate: string;
   price: number | null;
+  currency: string;
   notes: string;
 }
 

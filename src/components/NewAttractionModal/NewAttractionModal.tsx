@@ -25,6 +25,7 @@ import {
   CATEGORY_ORDER,
   CATEGORY_ICONS,
 } from "./attraction.constants";
+import { CurrencySelect } from "@/components/CurrencySelect/CurrencySelect";
 import { AttractionTypeChip } from "./AttractionTypeChip";
 import { MapPicker } from "./MapPicker";
 import { OpeningHoursGrid } from "./OpeningHoursGrid";
@@ -87,6 +88,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
   const [durationValue, setDurationValue] = useState("");
   const [durationUnit, setDurationUnit] = useState<DurationUnit>("hours");
   const [price, setPrice] = useState<number | null>(null);
+  const [currency, setCurrency] = useState("USD");
   const [openingHours, setOpeningHours] = useState<OpeningHours>(buildInitialHours);
   const [is24h, setIs24h]               = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -117,6 +119,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
     setDurationValue(initialData?.durationValue ?? "");
     setDurationUnit(initialData?.durationUnit ?? "hours");
     setPrice(initialData?.price ?? null);
+    setCurrency(initialData?.currency ?? "USD");
     setOpeningHours(
       (initialData?.openingHours as OpeningHours | undefined)?.Mon
         ? structuredClone(initialData?.openingHours as OpeningHours)
@@ -242,6 +245,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
       durationValue,
       durationUnit,
       price,
+      currency,
       openingHours,
       notes,
       photoUrl,
@@ -261,6 +265,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
     setDurationValue("");
     setDurationUnit("hours");
     setPrice(null);
+    setCurrency("USD");
     setOpeningHours(buildInitialHours());
     setNotes("");
     setPhotoUrl("");
@@ -531,7 +536,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
               Price
             </label>
             <div className={styles.priceRow}>
-              <span className={styles.priceCurrency} aria-hidden="true">$</span>
+              <CurrencySelect value={currency} onChange={setCurrency} />
               <input
                 id="attraction-price"
                 type="number"
@@ -543,7 +548,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
                   setPrice(e.target.value === "" ? null : parseFloat(e.target.value))
                 }
                 className={styles.priceInput}
-                aria-label="Price amount in dollars"
+                aria-label="Price amount"
               />
             </div>
           </div>

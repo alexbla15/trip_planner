@@ -1,6 +1,6 @@
 # Task: Fix Private Trip Leak in Explore
 
-Status: reviewing
+Status: done
 
 Track: B
 Track reason: Bug fix — access control logic + appropriate error state in the UI
@@ -46,3 +46,6 @@ Private trips never appear in Explore (for any user). Accessing a private trip's
   - `swagger.yaml` — corrected Explore description; updated GET `/api/trips/{id}` to document 403 response and revise 404 semantics
 - Deviations from task requirements: none
 - New design tokens used: none (used existing `--color-text-tertiary`, `--color-text-primary`, `--color-text-secondary`, `--color-primary`, `--color-primary-dark`, `--text-2xl`, `--text-base`, `--text-sm`)
+
+## Completion Summary
+Fixed two private-trip access control bugs. The Explore API now always excludes private trips unconditionally — no owner/collaborator exceptions, as Explore is pure public discovery. The trip detail API now returns 403 (not 404) when a trip exists but is private and the caller lacks access; the client renders an inline "This trip is private" error page with a lock icon and back link instead of silently redirecting. Confirmed by the user on 2026-07-05.

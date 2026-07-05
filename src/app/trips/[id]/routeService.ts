@@ -37,7 +37,11 @@ function decodePolyline(encoded: string, precision = 5): [number, number][] {
 
 function fmt(sec: number): string {
   const m = Math.round(sec / 60);
-  return m < 1 ? "< 1 min" : `${m} min`;
+  if (m < 1) return "< 1 min";
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  return rem === 0 ? `${h} h` : `${h} h ${rem} min`;
 }
 
 export function formatLegDuration(leg: RouteLeg): string { return fmt(leg.durationSec); }
@@ -76,7 +80,7 @@ async function fetchValhallhaLeg(from: Coord, to: Coord, mode: "walk" | "car"): 
         status?: number;
       };
     };
-    if (data.trip?.status !== 0) return null;
+    // Check for legs directly — the status field is absent in some Valhalla versions
     const leg = data.trip?.legs?.[0];
     if (!leg) return null;
     // valhalla1.openstreetmap.de uses polyline6 (÷1e6) for ALL costing types

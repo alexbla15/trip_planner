@@ -64,6 +64,7 @@ export interface AttractionFormData {
   durationValue: string;
   durationUnit: DurationUnit;
   price: number | null;
+  currency: string;
   openingHours: OpeningHours;
   notes: string;
   photoUrl: string;

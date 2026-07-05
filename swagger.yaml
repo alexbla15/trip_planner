@@ -284,6 +284,11 @@ components:
           type: number
           nullable: true
           example: 16.00
+        currency:
+          type: string
+          default: USD
+          description: ISO 4217 currency code for the price field.
+          example: EUR
         openingHours:
           type: object
           properties:
@@ -418,6 +423,11 @@ components:
         price:
           type: number
           nullable: true
+        currency:
+          type: string
+          default: USD
+          description: ISO 4217 currency code for the price field.
+          example: EUR
         openingHours:
           type: object
         # Subtype fields — include when creating residence or flight entries
