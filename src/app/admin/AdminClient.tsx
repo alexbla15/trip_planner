@@ -213,8 +213,6 @@ export function AdminClient() {
   const [deleteId, setDeleteId]   = useState<string | null>(null);
   const [deleting, setDeleting]   = useState(false);
 
-  const [seeding, setSeeding] = useState(false);
-  const [seedMsg, setSeedMsg] = useState("");
 
   const loading = authLoading || typesLoading;
 
@@ -229,16 +227,6 @@ export function AdminClient() {
   if (user.role !== "admin") {
     router.replace("/");
     return null;
-  }
-
-  async function handleSeed() {
-    setSeeding(true); setSeedMsg("");
-    const res = await fetch("/api/admin/seed", { method: "POST" });
-    const data = await res.json() as { message?: string; error?: string };
-    setSeedMsg(data.message ?? data.error ?? "Done");
-    invalidateAttractionTypesCache();
-    window.location.reload();
-    setSeeding(false);
   }
 
   async function handleDelete(id: string) {
@@ -269,18 +257,6 @@ export function AdminClient() {
       </div>
 
       <div className={styles.content}>
-        {/* Seed banner — only when DB is empty */}
-        {types.length === 0 && (
-          <div className={styles.seedBanner}>
-            <p>No attraction types in the database yet.</p>
-            <button className={styles.seedBtn} onClick={handleSeed} disabled={seeding}>
-              {seeding && <Loader2 size={14} className={styles.spin} />}
-              Seed default types
-            </button>
-            {seedMsg && <p className={styles.seedMsg}>{seedMsg}</p>}
-          </div>
-        )}
-
         {/* Types card */}
         <div className={styles.card}>
           {/* Section heading row */}
