@@ -32,23 +32,20 @@ export async function GET(req: Request, { params }: RouteContext) {
     const { id } = await params;
     await dbConnect();
 
-    // Auth is optional — non-private trips are readable without a token
     let userId: string | null = null;
     try { userId = getUserFromRequest(req).userId; } catch { /* unauthenticated */ }
 
-    const query = userId
-      ? {
-          _id: id,
-          $or: [
-            { ownerId: userId },
-            { "collaborators.userId": userId },
-            { isPrivate: { $ne: true } },
-          ],
-        }
-      : { _id: id, isPrivate: { $ne: true } };
-
-    const trip = await Trip.findOne(query).populate("collaborators.userId", "name email");
+    const trip = await Trip.findById(id).populate("collaborators.userId", "name email");
     if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+
+    const isOwner        = userId && trip.ownerId.toString() === userId;
+    const isCollaborator = userId && trip.collaborators.some((c) => c.userId.toString() === userId);
+    const isPublic       = !trip.isPrivate;
+
+    if (!isPublic && !isOwner && !isCollaborator) {
+      return NextResponse.json({ error: "This trip is private" }, { status: 403 });
+    }
+
     return NextResponse.json(formatTrip(trip));
   } catch {
     return NextResponse.json({ error: "Server error" }, { status: 500 });

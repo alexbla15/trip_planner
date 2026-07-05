@@ -645,6 +645,40 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserProfile'
 
+  /api/fx:
+    get:
+      summary: Get live exchange rate between two currencies
+      tags: [Utilities]
+      security: []
+      parameters:
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            default: USD
+          description: Source currency code (e.g. USD, EUR, JPY). Defaults to USD.
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            default: ILS
+          description: Target currency code (e.g. ILS, EUR, GBP). Defaults to ILS.
+      responses:
+        200:
+          description: Exchange rate from `from` to `to`
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rate: { type: number, example: 3.72 }
+        404:
+          description: No rate available for the given currency pair
+        502:
+          description: Upstream exchange rate service unavailable
+
   /api/users/me/password:
     patch:
       summary: Change the authenticated user's password
@@ -729,9 +763,9 @@ paths:
     get:
       summary: Get a specific trip's details
       description: |
-        Auth is optional. Authenticated users (owner/collaborator) see any trip they have access to.
-        Unauthenticated users — or authenticated users who are neither owner nor collaborator — can
-        access any trip where `isPrivate` is false. Private trips return 404 to non-members.
+        Auth is optional. Public trips are readable without a token.
+        If the trip exists but is private and the caller is neither the owner nor a collaborator, returns 403.
+        Returns 404 only when the trip ID does not exist at all.
       tags: [Trips]
       security: []
       responses:
@@ -740,8 +774,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Trip'
+        403:
+          description: Trip is private and caller is not the owner or a collaborator
         404:
-          description: Trip not found or private and caller is not a member
+          description: Trip not found
     put:
       summary: Update trip details (owner or collaborator; isPrivate settable by either)
       tags: [Trips]
@@ -763,6 +799,45 @@ paths:
       responses:
         200:
           description: Trip successfully deleted
+
+  /api/trips/{id}/expenses:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Replace the full expenses list for a trip (owner or collaborator)
+      tags: [Trips]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expenses]
+              properties:
+                expenses:
+                  type: array
+                  items:
+                    type: object
+                    required: [label, amount]
+                    properties:
+                      label:        { type: string }
+                      amount:       { type: number, minimum: 0 }
+                      attractionId: { type: string, description: Set when derived from a trip attraction }
+      responses:
+        200:
+          description: Updated trip including the new expenses
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        400:
+          description: Validation error (missing label, negative amount, etc.)
+        404:
+          description: Trip not found or caller lacks access
 
   /api/trips/{id}/collaborators:
     parameters:
@@ -958,6 +1033,55 @@ paths:
       responses:
         200:
           description: Order updated successfully
+
+  # ==========================================
+  # 🌍 Explore
+  # ==========================================
+  /api/explore:
+    get:
+      summary: Discover public trips for the Explore page
+      description: |
+        Returns up to 24 public trips that have a cover image, sorted by most recent.
+        Private trips are never included — no authentication is required or accepted.
+      tags: [Explore]
+      security: []
+      responses:
+        200:
+          description: List of explore items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: 65f1234567890abcdef123aa
+                    destination:
+                      type: string
+                      example: Summer in Rome
+                    coverImage:
+                      type: string
+                      example: https://images.unsplash.com/photo-xxx
+                    tag:
+                      type: string
+                      example: Adventure
+                    tags:
+                      type: array
+                      items:
+                        type: string
+                      example: ["Adventure", "Food & Wine"]
+                    user:
+                      type: string
+                      description: First 8 characters of the owner's userId
+                      example: 65f12345
+                    likes:
+                      type: integer
+                      description: Number of attractions in the trip
+                      example: 5
+        500:
+          description: Internal server error
 
   # ==========================================
   # 📊 Analytics

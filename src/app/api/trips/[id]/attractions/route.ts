@@ -74,6 +74,7 @@ export async function POST(req: Request, { params }: RouteContext) {
     if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
 
     const body = await req.json() as {
+      existingAttractionId?: string;
       name?: string;
       country?: string;
       city?: string;
@@ -104,52 +105,63 @@ export async function POST(req: Request, { params }: RouteContext) {
       actualDurationUnit?: "minutes" | "hours";
     };
 
-    const { name, country, city, coordinates, types, durationValue, durationUnit,
+    const { existingAttractionId, name, country, city, coordinates, types, durationValue, durationUnit,
       price, openingHours, notes, photoUrl,
       subtype, residenceType, checkInDate, checkOutDate,
       flightNumber, airline, departureAirport, arrivalAirport, departureTime, arrivalTime, gate, seat,
       plannedDate, plannedTime, actualDurationValue, actualDurationUnit } = body;
 
-    if (!name?.trim() || !country?.trim() || !city?.trim()) {
-      return NextResponse.json(
-        { error: "name, country, and city are required" },
-        { status: 400 }
+    let attraction;
+
+    if (existingAttractionId) {
+      // Linking an existing attraction from the global DB — find it directly by ID
+      attraction = await Attraction.findById(existingAttractionId);
+      if (!attraction) {
+        return NextResponse.json({ error: "Attraction not found" }, { status: 404 });
+      }
+    } else {
+      // Creating or re-linking by name (new attraction flow)
+      if (!name?.trim() || !country?.trim() || !city?.trim()) {
+        return NextResponse.json(
+          { error: "name, country, and city are required" },
+          { status: 400 }
+        );
+      }
+
+      attraction = await Attraction.findOne(
+        { name: name.trim() },
+        undefined,
+        { collation: { locale: "en", strength: 2 } }
       );
-    }
 
-    let attraction = await Attraction.findOne(
-      { name: name.trim() },
-      undefined,
-      { collation: { locale: "en", strength: 2 } }
-    );
-
-    if (!attraction) {
-      attraction = await Attraction.create({
-        ownerId: payload.userId,
-        name: name.trim(),
-        country: country.trim(),
-        city: city.trim(),
-        coordinates: coordinates ?? null,
-        types: types ?? [],
-        durationValue: durationValue || undefined,
-        durationUnit: durationUnit || undefined,
-        price: price ?? null,
-        openingHours: openingHours ?? undefined,
-        notes: notes || undefined,
-        photoUrl: photoUrl || undefined,
-        subtype: subtype || undefined,
-        residenceType: residenceType || undefined,
-        checkInDate: checkInDate || undefined,
-        checkOutDate: checkOutDate || undefined,
-        flightNumber: flightNumber || undefined,
-        airline: airline || undefined,
-        departureAirport: departureAirport || undefined,
-        arrivalAirport: arrivalAirport || undefined,
-        departureTime: departureTime || undefined,
-        arrivalTime: arrivalTime || undefined,
-        gate: gate || undefined,
-        seat: seat || undefined,
-      });
+      if (!attraction) {
+        attraction = await Attraction.create({
+          ownerId: payload.userId,
+          name: name.trim(),
+          country: country.trim(),
+          city: city.trim(),
+          coordinates: coordinates ?? null,
+          types: types ?? [],
+          durationValue: durationValue || undefined,
+          durationUnit: durationUnit || undefined,
+          price: price ?? null,
+          openingHours: openingHours ?? undefined,
+          notes: notes || undefined,
+          photoUrl: photoUrl || undefined,
+          subtype: subtype || undefined,
+          residenceType: residenceType || undefined,
+          checkInDate: checkInDate || undefined,
+          checkOutDate: checkOutDate || undefined,
+          flightNumber: flightNumber || undefined,
+          airline: airline || undefined,
+          departureAirport: departureAirport || undefined,
+          arrivalAirport: arrivalAirport || undefined,
+          departureTime: departureTime || undefined,
+          arrivalTime: arrivalTime || undefined,
+          gate: gate || undefined,
+          seat: seat || undefined,
+        });
+      }
     }
 
     const attractionId = attraction._id.toString();

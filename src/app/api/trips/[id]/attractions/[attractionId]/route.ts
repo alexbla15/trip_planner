@@ -18,14 +18,15 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     const { id: tripId, attractionId } = await params;
     await dbConnect();
 
-    const trip = await Trip.findOne({
+    // Verify access without loading the full document
+    const accessible = await Trip.exists({
       _id: tripId,
       $or: [
         { ownerId: payload.userId },
         { "collaborators.userId": payload.userId },
       ],
     });
-    if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+    if (!accessible) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
 
     const body = await req.json() as {
       plannedDate?: string | null;
@@ -34,22 +35,27 @@ export async function PATCH(req: Request, { params }: RouteContext) {
       actualDurationUnit?: "minutes" | "hours";
     };
 
-    if (!trip.schedules) trip.set("schedules", new Map());
-    const existing = trip.schedules.get(attractionId) ?? {};
-    const updated = {
-      ...existing,
-      ...(body.plannedDate          !== undefined && { plannedDate:          body.plannedDate }),
-      ...(body.plannedTime          !== undefined && { plannedTime:          body.plannedTime }),
-      ...(body.actualDurationValue  !== undefined && { actualDurationValue:  body.actualDurationValue }),
-      ...(body.actualDurationUnit   !== undefined && { actualDurationUnit:   body.actualDurationUnit }),
-    };
-    trip.schedules.set(attractionId, updated);
-    await trip.save();
+    // Build a $set using deep dot-notation paths (schedules.<id>.field) so MongoDB
+    // patches individual fields in-place. Avoids spreading Mongoose sub-documents
+    // (which carry internal prototype properties) and bypasses Map dirty-tracking.
+    const scheduleSet: Record<string, unknown> = {};
+    if (body.plannedDate         !== undefined) scheduleSet[`schedules.${attractionId}.plannedDate`]         = body.plannedDate;
+    if (body.plannedTime         !== undefined) scheduleSet[`schedules.${attractionId}.plannedTime`]         = body.plannedTime;
+    if (body.actualDurationValue !== undefined) scheduleSet[`schedules.${attractionId}.actualDurationValue`] = body.actualDurationValue;
+    if (body.actualDurationUnit  !== undefined) scheduleSet[`schedules.${attractionId}.actualDurationUnit`]  = body.actualDurationUnit;
+
+    const updatedTrip = await Trip.findByIdAndUpdate(
+      tripId,
+      { $set: scheduleSet },
+      { new: true }
+    );
+
+    const updatedSchedule = updatedTrip?.schedules?.get(attractionId) ?? null;
 
     const attraction = await Attraction.findById(attractionId);
     if (!attraction) return NextResponse.json({ error: "Attraction not found" }, { status: 404 });
 
-    return NextResponse.json(formatAttraction(attraction, updated));
+    return NextResponse.json(formatAttraction(attraction, updatedSchedule));
   } catch (err) {
     console.error("[PATCH /api/trips/:id/attractions/:attractionId]", err);
     return NextResponse.json({ error: "Failed to update schedule" }, { status: 500 });

@@ -7,7 +7,10 @@ export async function GET() {
   try {
     await dbConnect();
 
-    const trips = await Trip.find({ coverImage: { $exists: true, $ne: "" } })
+    const trips = await Trip.find({
+      coverImage: { $exists: true, $ne: "" },
+      isPrivate: { $ne: true },
+    })
       .sort({ createdAt: -1 })
       .limit(24)
       .select("_id name coverImage moods attractionIds ownerId");

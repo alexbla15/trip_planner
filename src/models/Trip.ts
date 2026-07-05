@@ -11,6 +11,13 @@ export interface ICollaborator {
   userId: Types.ObjectId;
 }
 
+export interface IExpense {
+  _id: Types.ObjectId;
+  label: string;
+  amount: number;
+  attractionId?: string;
+}
+
 export interface ITrip extends Document {
   ownerId: Types.ObjectId;
   name: string;
@@ -24,11 +31,10 @@ export interface ITrip extends Document {
   moods: string[];
   notes?: string;
   attractionIds: Types.ObjectId[];
-  // Per-attraction scheduling — keyed by attraction _id string.
-  // Stores plannedDate, plannedTime, actualDuration which are trip-specific.
   schedules: Map<string, IScheduleEntry>;
   collaborators: ICollaborator[];
   isPrivate: boolean;
+  expenses: IExpense[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,6 +42,15 @@ export interface ITrip extends Document {
 const CollaboratorSchema = new Schema<ICollaborator>(
   { userId: { type: Schema.Types.ObjectId, ref: "User", required: true } },
   { _id: false }
+);
+
+const ExpenseSchema = new Schema<IExpense>(
+  {
+    label:        { type: String, required: true },
+    amount:       { type: Number, required: true, min: 0 },
+    attractionId: { type: String },
+  },
+  { _id: true }
 );
 
 const TripSchema = new Schema<ITrip>(
@@ -66,9 +81,8 @@ const TripSchema = new Schema<ITrip>(
       default: {},
     },
     collaborators: { type: [CollaboratorSchema], default: [] },
-    // When true, the trip is visible only to the owner and collaborators.
-    // Any future public/unauthenticated trip-detail route must check this flag before returning.
-    isPrivate: { type: Boolean, default: false },
+    isPrivate:     { type: Boolean, default: false },
+    expenses:      { type: [ExpenseSchema], default: [] },
   },
   { timestamps: true }
 );
@@ -101,6 +115,12 @@ export function formatTrip(doc: ITrip): import("@/types/trip").Trip {
       return { userId: u._id.toString(), name: u.name, email: u.email };
     }),
     isPrivate: doc.isPrivate ?? false,
+    expenses: (doc.expenses ?? []).map((e) => ({
+      _id: e._id.toString(),
+      label: e.label,
+      amount: e.amount,
+      attractionId: e.attractionId,
+    })),
     createdAt: doc.createdAt?.toISOString(),
     updatedAt: doc.updatedAt?.toISOString(),
   };

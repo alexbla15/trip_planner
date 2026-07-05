@@ -3,6 +3,8 @@ const CODE_TO_SYMBOL: Record<string, string> = {
   EUR: "€",
   GBP: "£",
   JPY: "¥",
+  ILS: "₪",
+  HUF: "Ft",
 };
 
 export function currencySymbol(code: string): string {

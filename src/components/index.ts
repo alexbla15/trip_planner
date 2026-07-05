@@ -19,3 +19,4 @@ export { AddFlightModal } from "./AddFlightModal/AddFlightModal";
 export type { FlightFormData, AddFlightModalProps } from "./AddFlightModal/AddFlightModal.types";
 export { TripSharingPanel } from "./TripSharingPanel/TripSharingPanel";
 export type { TripSharingPanelProps } from "./TripSharingPanel/TripSharingPanel.types";
+export { ExpensesPanel } from "./ExpensesPanel/ExpensesPanel";

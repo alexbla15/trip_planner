@@ -49,6 +49,8 @@ const CURRENCIES = [
   { code: "KRW", symbol: "₩", name: "South Korean Won" },
   { code: "THB", symbol: "฿", name: "Thai Baht" },
   { code: "AED", symbol: "د.إ", name: "UAE Dirham" },
+  { code: "ILS", symbol: "₪", name: "Israeli Shekel" },
+  { code: "HUF", symbol: "Ft", name: "Hungarian Forint" },
 ];
 
 const MOOD_TAGS = [

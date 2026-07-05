@@ -16,6 +16,7 @@ import {
   Trash2,
   PenLine,
   Users,
+  Lock,
 } from "lucide-react";
 import { MoodTagChip } from "@/components/MoodTagChip/MoodTagChip";
 import { NewAttractionModal } from "@/components/NewAttractionModal/NewAttractionModal";
@@ -30,6 +31,7 @@ import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
 import { DEFAULT_OPENING_HOURS } from "@/components/NewAttractionModal/attraction.constants";
 import { useAuth } from "@/contexts/AuthContext";
 import { TripSharingPanel } from "@/components/TripSharingPanel/TripSharingPanel";
+import { ExpensesPanel } from "@/components/ExpensesPanel/ExpensesPanel";
 import { formatDisplayDate } from "@/lib/formatDate";
 import { currencySymbol } from "@/lib/formatCurrency";
 import type { ResidenceFormData, ResidenceInitialData } from "@/components/AddResidenceModal/AddResidenceModal.types";
@@ -55,6 +57,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
 
   const [trip, setTrip] = useState<Trip | null>(null);
   const [tripLoading, setTripLoading] = useState(true);
+  const [forbidden, setForbidden] = useState(false);
 
   const [attractions, setAttractions] = useState<Attraction[]>([]);
   const [attractionsLoading, setAttractionsLoading] = useState(false);
@@ -79,6 +82,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     fetch(`/api/trips/${tripId}`, { headers })
       .then((res) => {
         if (res.status === 404) { router.replace("/trips"); return null; }
+        if (res.status === 403) { setForbidden(true); return null; }
         return res.json() as Promise<Trip>;
       })
       .then((data) => { if (data) setTrip(data); })
@@ -109,17 +113,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          name: existing.name,
-          country: existing.country,
-          city: existing.city,
-          coordinates: existing.coordinates,
-          types: existing.types,
-          durationValue: existing.durationValue || undefined,
-          durationUnit: existing.durationUnit || undefined,
-          price: existing.price ?? undefined,
-          openingHours: existing.openingHours ?? undefined,
-          notes: existing.notes || undefined,
-          photoUrl: existing.photoUrl || undefined,
+          existingAttractionId: existing._id,
         }),
       });
       if (res.ok) {
@@ -188,20 +182,34 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   }
 
   async function handleFlightUpdate(data: FlightFormData) {
-    if (!token || !editingFlight) return;
+    if (!token || !editingFlight || !trip) return;
     const id = editingFlight._id;
     setEditingFlight(null);
     try {
-      const res = await fetch(`/api/attractions/${id}`, {
+      // Step 1: update attraction-level fields (departureTime, arrivalTime, airline, etc.)
+      const attrRes = await fetch(`/api/attractions/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(data),
       });
-      if (res.ok) {
-        const updated = (await res.json()) as Attraction;
-        // Use the full updated response — flight's calendar position updates to match new departure time
-        setAttractions((prev) => prev.map((a) => a._id !== updated._id ? a : updated));
-      }
+      if (!attrRes.ok) return;
+
+      // Step 2: update trip schedule (plannedDate/Time/duration) so calendar position updates.
+      // Must run after the PUT so the PATCH reads the already-updated attraction from DB.
+      const schedRes = await fetch(`/api/trips/${trip._id}/attractions/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          plannedDate:         data.plannedDate,
+          plannedTime:         data.plannedTime,
+          actualDurationValue: data.actualDurationValue,
+          actualDurationUnit:  data.actualDurationUnit,
+        }),
+      });
+
+      // PATCH response merges updated attraction + updated schedule — use it as the source of truth
+      const updated = (await (schedRes.ok ? schedRes : attrRes).json()) as Attraction;
+      setAttractions((prev) => prev.map((a) => a._id !== updated._id ? a : updated));
     } catch { /* silent */ }
   }
 
@@ -344,6 +352,20 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     };
   }, [editingFlight]);
 
+  if (forbidden) {
+    return (
+      <div className={styles.forbiddenState}>
+        <Lock size={40} className={styles.forbiddenIcon} aria-hidden="true" />
+        <h1 className={styles.forbiddenHeading}>This trip is private</h1>
+        <p className={styles.forbiddenBody}>You don&apos;t have permission to view this trip.</p>
+        <Link href="/trips" className={styles.forbiddenBack}>
+          <ChevronLeft size={16} aria-hidden="true" />
+          Back to my trips
+        </Link>
+      </div>
+    );
+  }
+
   if (tripLoading) {
     return (
       <div className={styles.loadingState}>
@@ -485,6 +507,16 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
             onEdit={(a) => setEditingResidence(a)}
             onRemove={handleRemoveAttraction}
             onView={(a) => setViewingAttraction(a)}
+          />
+
+          {/* Expenses panel */}
+          <ExpensesPanel
+            trip={trip}
+            attractions={attractions}
+            canEdit={canEdit}
+            token={token}
+            onTripUpdate={(updated) => setTrip(updated)}
+            onAttractionsChange={setAttractions}
           />
 
           {/* Attractions card */}
