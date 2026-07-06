@@ -28,7 +28,7 @@ const LocationViewMap = dynamic(
 import type { AttractionType } from "@/components/NewAttractionModal/attraction.types";
 import type { Attraction } from "@/types/attraction";
 import { formatDisplayDate } from "@/lib/formatDate";
-import { currencySymbol } from "@/lib/formatCurrency";
+import { formatPrice } from "@/lib/formatCurrency";
 import styles from "./AttractionDetailModal.module.css";
 
 const DAY_KEYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
@@ -242,7 +242,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime }: Attra
             {attraction.price != null && (
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}><Wallet size={13} aria-hidden="true" />Price</span>
-                <span className={styles.infoValue}>{currencySymbol(attraction.currency ?? "USD")}{attraction.price}</span>
+                <span className={styles.infoValue}>{formatPrice(attraction.price!, attraction.currency ?? "USD")}</span>
               </div>
             )}
             {/* Coordinates shown in the map caption above — removed from info grid */}

@@ -34,6 +34,7 @@ export async function GET(req: Request) {
 
     const trips = await Trip.find(filter)
       .sort({ startDate: -1 })
+      .populate("ownerId", "name avatarUrl")
       .populate("collaborators.userId", "name email avatarUrl");
     return NextResponse.json(trips.map(formatTrip));
   } catch {
@@ -94,6 +95,7 @@ export async function POST(req: Request) {
       isPrivate: false,
     });
 
+    await trip.populate("ownerId", "name avatarUrl");
     return NextResponse.json(formatTrip(trip), { status: 201 });
   } catch {
     return NextResponse.json({ error: "Failed to create trip" }, { status: 500 });

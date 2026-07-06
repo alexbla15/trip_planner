@@ -33,7 +33,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { TripSharingPanel } from "@/components/TripSharingPanel/TripSharingPanel";
 import { ExpensesPanel } from "@/components/ExpensesPanel/ExpensesPanel";
 import { formatDisplayDate } from "@/lib/formatDate";
-import { currencySymbol } from "@/lib/formatCurrency";
+import { currencySymbol, formatPrice } from "@/lib/formatCurrency";
 import type { ResidenceFormData, ResidenceInitialData } from "@/components/AddResidenceModal/AddResidenceModal.types";
 import type { FlightFormData, FlightInitialData } from "@/components/AddFlightModal/AddFlightModal.types";
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
@@ -598,7 +598,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                   const icon = firstType ? ICONS[firstType] : null;
                   const durationLabel = attraction.durationValue
                     ? `${attraction.durationValue} ${attraction.durationUnit ?? "h"}` : null;
-                  const priceLabel = attraction.price != null ? `$${attraction.price}` : null;
+                  const priceLabel = attraction.price != null ? formatPrice(attraction.price, attraction.currency ?? "USD") : null;
                   const metaLine = [
                     attraction.types.join(", "),
                     attraction.city || null,

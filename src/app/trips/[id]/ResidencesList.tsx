@@ -2,7 +2,7 @@
 
 import { BedDouble, Plus, PenLine, Trash2 } from "lucide-react";
 import { formatDisplayDate } from "@/lib/formatDate";
-import { currencySymbol } from "@/lib/formatCurrency";
+import { formatPrice } from "@/lib/formatCurrency";
 import type { Attraction } from "@/types/attraction";
 import styles from "./ResidencesList.module.css";
 
@@ -19,7 +19,7 @@ function residenceMeta(a: Attraction): string {
   const checkIn  = a.checkInDate  ? formatDisplayDate(a.checkInDate)  : "";
   const checkOut = a.checkOutDate ? formatDisplayDate(a.checkOutDate) : "";
   const dates    = checkIn && checkOut ? `${checkIn} → ${checkOut}` : checkIn || checkOut;
-  const price    = a.price != null ? `${currencySymbol(a.currency ?? "USD")}${a.price}` : "";
+  const price    = a.price != null ? formatPrice(a.price, a.currency ?? "USD") : "";
   return [a.residenceType, dates, a.city, price].filter(Boolean).join(" · ");
 }
 

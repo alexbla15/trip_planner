@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, TriangleAlert } from "lucide-react";
 import { renderTypeIcon } from "@/lib/attractionIcons";
 import { useAttractionTypes } from "@/hooks/useAttractionTypes";
-import { currencySymbol } from "@/lib/formatCurrency";
+import { formatPrice } from "@/lib/formatCurrency";
 import {
   DEFAULT_DAY_START,
   DEFAULT_DAY_END,
@@ -246,6 +246,8 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   const [filter, setFilter]       = useState<SidebarFilter>("unscheduled");
   const [search, setSearch]       = useState("");
 
+  const [totalSpend, setTotalSpend] = useState(0);
+
   // Sync local state whenever the parent re-fetches / updates attractions
   useEffect(() => { setLocal(attractions); }, [attractions]);
 
@@ -255,8 +257,39 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   const days        = trip.startDate && trip.endDate ? getTripDays(trip.startDate, trip.endDate) : [];
   const scheduled   = local.filter((a) => !!a.plannedDate);
   const unscheduled = local.filter((a) => !a.plannedDate);
-  const totalSpend  = calcSpend(scheduled);
   const hourSlots   = makeHourSlots(dayStart, dayEnd);
+
+  // Convert each scheduled attraction from its own currency to the trip currency before summing
+  useEffect(() => {
+    const tc = trip.currency ?? "USD";
+    const raw = calcSpend(scheduled);
+    setTotalSpend(raw);
+
+    const foreignCurrencies = [...new Set(
+      scheduled.filter((a) => a.price != null && a.currency && a.currency !== tc).map((a) => a.currency!)
+    )];
+    if (foreignCurrencies.length === 0) return;
+
+    let cancelled = false;
+    Promise.all(
+      foreignCurrencies.map(async (from) => {
+        const res = await fetch(`/api/fx?from=${encodeURIComponent(from)}&to=${encodeURIComponent(tc)}`);
+        const d = await res.json() as { rate?: number };
+        return [from, d.rate ?? 1] as [string, number];
+      })
+    ).then((entries) => {
+      if (cancelled) return;
+      const rates = new Map(entries);
+      const converted = scheduled.reduce((sum, a) => {
+        if (a.price == null) return sum;
+        const cur = a.currency ?? tc;
+        return sum + a.price * (cur === tc ? 1 : (rates.get(cur) ?? 1));
+      }, 0);
+      setTotalSpend(Math.round(converted * 100) / 100);
+    }).catch(() => { /* keep raw sum on error */ });
+
+    return () => { cancelled = true; };
+  }, [local, trip.currency]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sidebarList = useMemo(() => {
     let list = local;
@@ -793,8 +826,8 @@ function Header({
         {trip.budget ? (
           <div className={`${styles.budgetWidget} ${totalSpend > trip.budget ? styles.budgetWidgetOver : ""}`}>
             <div className={styles.budgetWidgetRow}>
-              <span className={styles.budgetSpent}>{currencySymbol(trip.currency ?? "USD")}{totalSpend.toLocaleString()}</span>
-              <span className={styles.budgetOf}>of {currencySymbol(trip.currency ?? "USD")}{trip.budget.toLocaleString()}</span>
+              <span className={styles.budgetSpent}>{formatPrice(totalSpend.toLocaleString(), trip.currency ?? "USD")}</span>
+              <span className={styles.budgetOf}>of {formatPrice(trip.budget.toLocaleString(), trip.currency ?? "USD")}</span>
             </div>
             <div className={styles.budgetTrack}>
               <div className={styles.budgetFill}

@@ -29,7 +29,9 @@ export async function DELETE(req: Request, { params }: RouteContext) {
       { _id: tripId, ownerId: payload.userId },
       { $pull: { collaborators: { userId: targetUserId } } },
       { new: true }
-    ).populate("collaborators.userId", "name email");
+    )
+      .populate("ownerId", "name avatarUrl")
+      .populate("collaborators.userId", "name email avatarUrl");
 
     if (!updated) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
     return NextResponse.json(formatTrip(updated));

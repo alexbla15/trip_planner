@@ -43,7 +43,9 @@ export async function PUT(req: Request, { params }: RouteContext) {
       filter,
       { $set: { expenses } },
       { new: true, runValidators: true }
-    ).populate("collaborators.userId", "name email");
+    )
+      .populate("ownerId", "name avatarUrl")
+      .populate("collaborators.userId", "name email avatarUrl");
 
     if (!updated) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
     return NextResponse.json(formatTrip(updated));
