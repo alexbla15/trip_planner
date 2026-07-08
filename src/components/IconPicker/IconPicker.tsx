@@ -57,6 +57,10 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
     triggerRef.current?.focus();
   }
 
+  // relatedTarget is the element receiving focus after the blur. When focus moves
+  // to a child of the container (e.g. a grid cell) this stays truthy and we keep
+  // the dropdown open. When focus leaves the component entirely it is null/outside,
+  // so we close and revert to the pre-open value.
   function handleContainerBlur(e: React.FocusEvent<HTMLDivElement>) {
     if (!open) return;
     if (!containerRef.current?.contains(e.relatedTarget as Node)) {
@@ -159,6 +163,8 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
                     aria-label={name}
                     aria-selected={isSelected}
                     className={cellClass}
+                    // preventDefault stops the search input from losing focus
+                    // before onClick fires, which would close the dropdown first.
                     onMouseDown={(e) => {
                       e.preventDefault();
                       select(name);

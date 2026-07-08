@@ -1,14 +1,9 @@
 "use client";
 
-import { useMoodTags } from "@/hooks/useMoodTags";
-import { getIconComponent } from "@/components/IconPicker/iconPicker.utils";
+import { useMoodTags, getMoodTagStyle } from "@/hooks/useMoodTags";
+import { getIconComponent } from "@/lib/attractionIcons";
 import styles from "./MoodTagButton.module.css";
-
-interface MoodTagButtonProps {
-  tag: string;
-  selected: boolean;
-  onToggle: (tag: string) => void;
-}
+import type { MoodTagButtonProps } from "./MoodTagButton.types";
 
 export function MoodTagButton({ tag, selected, onToggle }: MoodTagButtonProps) {
   const { tagByName } = useMoodTags();
@@ -21,12 +16,7 @@ export function MoodTagButton({ tag, selected, onToggle }: MoodTagButtonProps) {
       role="checkbox"
       aria-checked={selected}
       className={[styles.moodBtn, selected ? styles.moodBtnSelected : ""].filter(Boolean).join(" ")}
-      style={{
-        "--tag-color":    record?.color    ?? "#888",
-        "--tag-bg":       record?.bgColor  ?? "#f5f5f5",
-        "--tag-dark-color": record?.darkColor   ?? record?.color   ?? "#888",
-        "--tag-dark-bg":    record?.darkBgColor ?? record?.bgColor ?? "#f5f5f5",
-      } as React.CSSProperties}
+      style={getMoodTagStyle(record)}
       onClick={() => onToggle(tag)}
     >
       {Icon && <Icon size={13} aria-hidden="true" />}

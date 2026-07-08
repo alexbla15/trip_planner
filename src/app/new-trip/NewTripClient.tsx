@@ -28,58 +28,9 @@ import type { AttractionFormData } from "@/components/NewAttractionModal/attract
 import { COUNTRIES } from "@/components/NewAttractionModal/attraction.constants";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMoodTags } from "@/hooks/useMoodTags";
+import { CURRENCIES, NOTES_MAX, getDurationDays, getDateError, getNotesCountLevel } from "@/lib/tripForm";
 import styles from "./NewTripClient.module.css";
 
-const CURRENCIES = [
-  { code: "USD", symbol: "$", name: "US Dollar" },
-  { code: "EUR", symbol: "€", name: "Euro" },
-  { code: "GBP", symbol: "£", name: "British Pound" },
-  { code: "JPY", symbol: "¥", name: "Japanese Yen" },
-  { code: "CAD", symbol: "CA$", name: "Canadian Dollar" },
-  { code: "AUD", symbol: "A$", name: "Australian Dollar" },
-  { code: "CHF", symbol: "Fr", name: "Swiss Franc" },
-  { code: "CNY", symbol: "¥", name: "Chinese Yuan" },
-  { code: "INR", symbol: "₹", name: "Indian Rupee" },
-  { code: "MXN", symbol: "MX$", name: "Mexican Peso" },
-  { code: "BRL", symbol: "R$", name: "Brazilian Real" },
-  { code: "SEK", symbol: "kr", name: "Swedish Krona" },
-  { code: "NOK", symbol: "kr", name: "Norwegian Krone" },
-  { code: "PLN", symbol: "zł", name: "Polish Zloty" },
-  { code: "TRY", symbol: "₺", name: "Turkish Lira" },
-  { code: "SGD", symbol: "S$", name: "Singapore Dollar" },
-  { code: "HKD", symbol: "HK$", name: "Hong Kong Dollar" },
-  { code: "KRW", symbol: "₩", name: "South Korean Won" },
-  { code: "THB", symbol: "฿", name: "Thai Baht" },
-  { code: "AED", symbol: "د.إ", name: "UAE Dirham" },
-  { code: "ILS", symbol: "₪", name: "Israeli Shekel" },
-  { code: "HUF", symbol: "Ft", name: "Hungarian Forint" },
-];
-
-
-const NOTES_MAX = 500;
-
-function getDurationDays(start: string, end: string): number | null {
-  if (!start || !end) return null;
-  const s = new Date(start);
-  const e = new Date(end);
-  if (isNaN(s.getTime()) || isNaN(e.getTime())) return null;
-  const days = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24));
-  return days >= 0 ? days + 1 : null;
-}
-
-function getDateError(start: string, end: string): string | null {
-  if (!start || !end) return null;
-  const s = new Date(start);
-  const e = new Date(end);
-  if (e < s) return "End date must be on or after start date";
-  return null;
-}
-
-function getNotesCountClass(count: number, max: number): string {
-  if (count >= max) return styles.charCountError;
-  if (count >= max - 50) return styles.charCountWarning;
-  return "";
-}
 
 export function NewTripClient() {
   const { token } = useAuth();
@@ -103,6 +54,7 @@ export function NewTripClient() {
 
   const dateError = getDateError(startDate, endDate);
   const durationDays = getDurationDays(startDate, endDate);
+  const notesLevel = getNotesCountLevel(notes.length, NOTES_MAX);
 
   const isValid =
     tripName.trim() !== "" &&
@@ -394,7 +346,7 @@ export function NewTripClient() {
                   className={styles.textarea}
                 />
                 <p
-                  className={`${styles.charCount} ${getNotesCountClass(notes.length, NOTES_MAX)}`}
+                  className={`${styles.charCount} ${notesLevel === "error" ? styles.charCountError : notesLevel === "warn" ? styles.charCountWarning : ""}`}
                   aria-live="polite"
                   aria-atomic="true"
                 >

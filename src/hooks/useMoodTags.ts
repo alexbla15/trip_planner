@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import type { CSSProperties } from "react";
 import type { MoodTagRecord } from "@/types/moodTag";
 
 interface UseMoodTagsResult {
@@ -27,6 +28,20 @@ async function fetchTags(): Promise<MoodTagRecord[]> {
       });
   }
   return cachePromise;
+}
+
+/**
+ * Builds the CSS custom-property object that drives MoodTagChip / MoodTagButton colours.
+ * Kept here so both components share one source of truth instead of duplicating the
+ * fallback logic. Pass the result directly to the element's `style` prop.
+ */
+export function getMoodTagStyle(record: MoodTagRecord | undefined): CSSProperties {
+  return {
+    "--tag-color":      record?.color       ?? "#888",
+    "--tag-bg":         record?.bgColor     ?? "#f5f5f5",
+    "--tag-dark-color": record?.darkColor   ?? record?.color   ?? "#888",
+    "--tag-dark-bg":    record?.darkBgColor ?? record?.bgColor ?? "#f5f5f5",
+  } as CSSProperties;
 }
 
 export function invalidateMoodTagsCache() {

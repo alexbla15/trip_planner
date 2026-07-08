@@ -51,7 +51,7 @@ export async function PUT(req: Request, { params }: Params) {
     if (mongoErr?.code === 11000) {
       return NextResponse.json({ error: "A mood tag with that name already exists" }, { status: 400 });
     }
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
 
@@ -71,6 +71,6 @@ export async function DELETE(req: Request, { params }: Params) {
     if (!deleted) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json({ success: true });
   } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

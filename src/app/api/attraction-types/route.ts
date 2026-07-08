@@ -52,6 +52,6 @@ export async function POST(req: Request) {
     if (mongoErr?.code === 11000) {
       return NextResponse.json({ error: "A type with that name already exists" }, { status: 400 });
     }
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

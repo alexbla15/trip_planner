@@ -596,8 +596,8 @@ export function AdminClient() {
                       <span className={styles.typeIcon}>{renderTypeIcon(tagRecord.icon, 15)}</span>
                       <span className={styles.typeName}>{tagRecord.name}</span>
                       <span
-                        className={styles.typeOrder}
-                        style={{ background: tagRecord.bgColor, color: tagRecord.color, borderRadius: 4, padding: "1px 6px" }}
+                        className={styles.moodOrderBadge}
+                        style={{ "--badge-color": tagRecord.color, "--badge-bg": tagRecord.bgColor } as React.CSSProperties}
                       >
                         #{tagRecord.order}
                       </span>
