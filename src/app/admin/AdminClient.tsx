@@ -9,7 +9,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useAttractionTypes, invalidateAttractionTypesCache } from "@/hooks/useAttractionTypes";
 import { useMoodTags, invalidateMoodTagsCache } from "@/hooks/useMoodTags";
-import { getIconComponent, renderTypeIcon } from "@/lib/attractionIcons";
+import { getIconComponent, renderTypeIcon } from "@/components/IconPicker";
 import { IconPicker } from "@/components/IconPicker";
 import type { AttractionTypeRecord } from "@/types/attractionType";
 import type { MoodTagRecord } from "@/types/moodTag";

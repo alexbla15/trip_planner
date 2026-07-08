@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Globe, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMoodTags } from "@/hooks/useMoodTags";
-import { getIconComponent } from "@/lib/attractionIcons";
+import { getIconComponent } from "@/components/IconPicker";
 import { ExploreCard } from "@/components/ExploreCard/ExploreCard";
 import styles from "./ExploreSection.module.css";
 import type { ExploreSectionProps } from "./ExploreSection.types";

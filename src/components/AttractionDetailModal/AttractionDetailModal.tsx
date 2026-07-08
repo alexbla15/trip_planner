@@ -28,7 +28,7 @@ const LocationViewMap = dynamic(
 import type { AttractionType } from "@/components/NewAttractionModal/attraction.types";
 import type { Attraction } from "@/types/attraction";
 import { formatDisplayDate } from "@/lib/formatDate";
-import { formatPrice } from "@/lib/formatCurrency";
+import { formatPrice } from "@/lib/currencies";
 import styles from "./AttractionDetailModal.module.css";
 
 const DAY_KEYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;

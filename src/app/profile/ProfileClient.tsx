@@ -11,6 +11,7 @@ import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
 import type { AttractionType } from "@/components/NewAttractionModal/attraction.types";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDisplayDate } from "@/lib/formatDate";
+import { formatPrice } from "@/lib/currencies";
 import { AVATARS } from "@/lib/avatarConstants";
 import styles from "./ProfileClient.module.css";
 
@@ -432,7 +433,7 @@ export function ProfileClient() {
               { icon: Landmark,    label: "My Attractions",   value: analytics.summary.totalAttractions.toLocaleString() },
               { icon: Building2,   label: "Cities Visited",   value: analytics.summary.uniqueCitiesCovered.toLocaleString() },
               { icon: Globe,       label: "Countries",        value: analytics.summary.uniqueCountriesCovered.toLocaleString() },
-              { icon: DollarSign,  label: "Budget Planned",   value: `$${analytics.summary.totalPersonalBudget.toLocaleString()}` },
+              { icon: DollarSign,  label: "Budget Planned",   value: formatPrice(analytics.summary.totalPersonalBudget, "USD") },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className={styles.statCard}>
                 <div className={styles.statIconCircle}><Icon size={18} aria-hidden="true" /></div>

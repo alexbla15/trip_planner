@@ -8,7 +8,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { X, Search, MapPin, Plus, PenLine, SearchX, ChevronLeft } from "lucide-react";
-import { renderTypeIcon, getIconComponent } from "@/lib/attractionIcons";
+import { renderTypeIcon, getIconComponent } from "@/components/IconPicker";
 import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
 import { useAttractionTypes } from "@/hooks/useAttractionTypes";
 import type { Attraction } from "@/types/attraction";

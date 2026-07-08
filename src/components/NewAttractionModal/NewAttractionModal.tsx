@@ -24,7 +24,7 @@ import {
 import { CurrencySelect } from "@/components/CurrencySelect/CurrencySelect";
 import { AttractionTypeChip } from "./AttractionTypeChip";
 import { useAttractionTypes } from "@/hooks/useAttractionTypes";
-import { getIconComponent } from "@/lib/attractionIcons";
+import { getIconComponent } from "@/components/IconPicker";
 import { MapPicker } from "./MapPicker";
 import { OpeningHoursGrid } from "./OpeningHoursGrid";
 import styles from "./NewAttractionModal.module.css";

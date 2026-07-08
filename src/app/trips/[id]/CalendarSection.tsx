@@ -3,9 +3,9 @@
 import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, TriangleAlert } from "lucide-react";
-import { renderTypeIcon } from "@/lib/attractionIcons";
+import { renderTypeIcon } from "@/components/IconPicker";
 import { useAttractionTypes } from "@/hooks/useAttractionTypes";
-import { formatPrice } from "@/lib/formatCurrency";
+import { formatPrice } from "@/lib/currencies";
 import {
   DEFAULT_DAY_START,
   DEFAULT_DAY_END,
@@ -826,8 +826,8 @@ function Header({
         {trip.budget ? (
           <div className={`${styles.budgetWidget} ${totalSpend > trip.budget ? styles.budgetWidgetOver : ""}`}>
             <div className={styles.budgetWidgetRow}>
-              <span className={styles.budgetSpent}>{formatPrice(totalSpend.toLocaleString(), trip.currency ?? "USD")}</span>
-              <span className={styles.budgetOf}>of {formatPrice(trip.budget.toLocaleString(), trip.currency ?? "USD")}</span>
+              <span className={styles.budgetSpent}>{formatPrice(totalSpend, trip.currency ?? "USD")}</span>
+              <span className={styles.budgetOf}>of {formatPrice(trip.budget, trip.currency ?? "USD")}</span>
             </div>
             <div className={styles.budgetTrack}>
               <div className={styles.budgetFill}

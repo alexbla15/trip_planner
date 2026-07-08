@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { DollarSign, Plus, Trash2, Loader2, AlertCircle, Check } from "lucide-react";
 import { CurrencySelect } from "@/components/CurrencySelect/CurrencySelect";
-import { currencySymbol, formatPrice, isPostfixCurrency } from "@/lib/formatCurrency";
+import { currencySymbol, formatPrice, isPostfixCurrency } from "@/lib/currencies";
 import type { Trip, TripExpense } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
 import styles from "./ExpensesPanel.module.css";
@@ -290,8 +290,7 @@ export function ExpensesPanel({
     }
   }, [token, trip._id, trip.budget, rows, currentRate, selectedCurrency, isCurrencyChanged, onTripUpdate]);
 
-  const fmt = (n: number) =>
-    formatPrice(n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), selectedCurrency);
+  const fmt = (n: number) => formatPrice(n, selectedCurrency, { decimals: 2 });
 
   return (
     <div className={styles.card}>

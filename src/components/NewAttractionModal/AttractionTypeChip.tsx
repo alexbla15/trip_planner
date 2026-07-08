@@ -1,6 +1,6 @@
 "use client";
 
-import { renderTypeIcon } from "@/lib/attractionIcons";
+import { renderTypeIcon } from "@/components/IconPicker";
 import styles from "./AttractionTypeChip.module.css";
 
 // Re-export for components that still need an accommodation fallback icon

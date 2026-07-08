@@ -2,7 +2,7 @@
 
 import { BedDouble, Plus, PenLine, Trash2 } from "lucide-react";
 import { formatDisplayDate } from "@/lib/formatDate";
-import { formatPrice } from "@/lib/formatCurrency";
+import { formatPrice } from "@/lib/currencies";
 import type { Attraction } from "@/types/attraction";
 import styles from "./ResidencesList.module.css";
 

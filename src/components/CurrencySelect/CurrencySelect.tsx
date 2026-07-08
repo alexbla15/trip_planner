@@ -2,44 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, X } from "lucide-react";
+import { CURRENCIES } from "@/lib/currencies";
 import styles from "./CurrencySelect.module.css";
-
-export interface Currency {
-  code: string;
-  name: string;
-}
-
-export const SUPPORTED_CURRENCIES: readonly Currency[] = [
-  { code: "USD", name: "US Dollar" },
-  { code: "EUR", name: "Euro" },
-  { code: "GBP", name: "British Pound" },
-  { code: "JPY", name: "Japanese Yen" },
-  { code: "CAD", name: "Canadian Dollar" },
-  { code: "AUD", name: "Australian Dollar" },
-  { code: "CHF", name: "Swiss Franc" },
-  { code: "CNY", name: "Chinese Yuan" },
-  { code: "INR", name: "Indian Rupee" },
-  { code: "BRL", name: "Brazilian Real" },
-  { code: "MXN", name: "Mexican Peso" },
-  { code: "SGD", name: "Singapore Dollar" },
-  { code: "AED", name: "UAE Dirham" },
-  { code: "ILS", name: "Israeli Shekel" },
-  { code: "HUF", name: "Hungarian Forint" },
-  { code: "KRW", name: "South Korean Won" },
-  { code: "THB", name: "Thai Baht" },
-  { code: "SEK", name: "Swedish Krona" },
-  { code: "NOK", name: "Norwegian Krone" },
-  { code: "DKK", name: "Danish Krone" },
-  { code: "PLN", name: "Polish Złoty" },
-  { code: "CZK", name: "Czech Koruna" },
-  { code: "TRY", name: "Turkish Lira" },
-  { code: "ZAR", name: "South African Rand" },
-  { code: "MYR", name: "Malaysian Ringgit" },
-  { code: "IDR", name: "Indonesian Rupiah" },
-  { code: "PHP", name: "Philippine Peso" },
-  { code: "NZD", name: "New Zealand Dollar" },
-  { code: "HKD", name: "Hong Kong Dollar" },
-];
 
 interface CurrencySelectProps {
   value: string;
@@ -57,7 +21,7 @@ export function CurrencySelect({ value, onChange, disabled = false }: CurrencySe
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef    = useRef<HTMLUListElement>(null);
 
-  const filtered = SUPPORTED_CURRENCIES.filter((c) => {
+  const filtered = CURRENCIES.filter((c) => {
     if (!query) return true;
     const q = query.toLowerCase();
     return c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q);

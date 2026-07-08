@@ -13,7 +13,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
-import { getIconComponent } from "@/lib/attractionIcons";
+import { getIconComponent } from "@/components/IconPicker";
 import { useAttractionTypes } from "@/hooks/useAttractionTypes";
 import type { CityWithCoords } from "./AnalyticsCitiesMap";
 import styles from "./AnalyticsClient.module.css";

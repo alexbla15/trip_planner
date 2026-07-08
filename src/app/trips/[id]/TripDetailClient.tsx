@@ -33,7 +33,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { TripSharingPanel } from "@/components/TripSharingPanel/TripSharingPanel";
 import { ExpensesPanel } from "@/components/ExpensesPanel/ExpensesPanel";
 import { formatDisplayDate } from "@/lib/formatDate";
-import { currencySymbol, formatPrice } from "@/lib/formatCurrency";
+import { currencySymbol, formatPrice } from "@/lib/currencies";
 import type { ResidenceFormData, ResidenceInitialData } from "@/components/AddResidenceModal/AddResidenceModal.types";
 import type { FlightFormData, FlightInitialData } from "@/components/AddFlightModal/AddFlightModal.types";
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";

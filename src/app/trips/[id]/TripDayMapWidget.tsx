@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker, Polyline, Tooltip } from "react-leafle
 import L from "leaflet";
 import { renderToStaticMarkup } from "react-dom/server";
 import { TriangleAlert, MapPinOff, Footprints, Car, Bus, BedDouble, Loader2, Plane } from "lucide-react";
-import { renderTypeIcon } from "@/lib/attractionIcons";
+import { renderTypeIcon } from "@/components/IconPicker";
 import { useAttractionTypes } from "@/hooks/useAttractionTypes";
 import { MIN_OVERLAP_DURATION_MINS } from "@/config/ui";
 import type { Trip } from "@/types/trip";
