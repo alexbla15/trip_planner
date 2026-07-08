@@ -1,6 +1,6 @@
 # Task: Searchable Currency Picker
 
-Status: reviewing
+Status: done
 
 Track: A
 Track reason: Replaces native <select> with a custom searchable combobox — new form-field interaction pattern not yet in the design system
@@ -42,3 +42,6 @@ Users can type a few characters to filter the currency list and select their cur
 - Deviations from brief:
   - Trigger displays only the code ("USD") rather than "USD — US Dollar" — the 92px width constraint makes the full label unreadable; the name is visible in the dropdown. Designer was aware of this trade-off and documented it explicitly in the brief.
 - New design tokens used: none — all tokens already existed
+
+## Completion Summary
+Replaced the native `<select>` currency picker in `NewAttractionModal` with a fully custom searchable combobox. The rewrite lives in `src/components/CurrencySelect/` — `CurrencySelect.tsx` and `CurrencySelect.module.css` were both fully replaced. The 28 supported currencies were upgraded to `{ code, name }` objects enabling search by either field. Keyboard navigation (arrow keys, Enter, Tab, Escape), blur-revert, and clear-button all work as specified. The only deviation from the brief is the trigger showing code-only ("USD") rather than "USD — US Dollar" due to the 92px width constraint — confirmed acceptable and closed 2026-07-07.

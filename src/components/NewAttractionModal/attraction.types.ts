@@ -36,7 +36,8 @@ export type AttractionType =
   | "Hotel"
   | "Apartment"
   | "Hostel"
-  | "Villa";
+  | "Villa"
+  | "Lockers & Storage Rooms";
 
 export type DurationUnit = "minutes" | "hours";
 

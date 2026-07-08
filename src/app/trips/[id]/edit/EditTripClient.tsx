@@ -25,6 +25,7 @@ import { MoodTagChip } from "@/components/MoodTagChip/MoodTagChip";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDisplayDate } from "@/lib/formatDate";
 import { COUNTRIES } from "@/components/NewAttractionModal/attraction.constants";
+import { useMoodTags } from "@/hooks/useMoodTags";
 import type { Trip } from "@/types/trip";
 import styles from "./EditTripClient.module.css";
 
@@ -51,20 +52,6 @@ const CURRENCIES = [
   { code: "AED", symbol: "د.إ", name: "UAE Dirham" },
   { code: "ILS", symbol: "₪", name: "Israeli Shekel" },
   { code: "HUF", symbol: "Ft", name: "Hungarian Forint" },
-];
-
-const MOOD_TAGS = [
-  "Vibrant Nightlife",
-  "Cultural Heritage",
-  "Adventure",
-  "Beach Life",
-  "Food & Wine",
-  "Luxury",
-  "Relaxation & Wellness",
-  "Couples & Romantic",
-  "Family",
-  "Backpacking & Budget",
-  "Cruises",
 ];
 
 const NOTES_MAX = 500;
@@ -104,6 +91,7 @@ interface EditTripClientProps {
 export function EditTripClient({ tripId }: EditTripClientProps) {
   const { token, user } = useAuth();
   const router = useRouter();
+  const { tags: moodTags } = useMoodTags();
   const tripNameRef = useRef<HTMLInputElement>(null);
 
   // Page loading (fetching existing trip data)
@@ -434,11 +422,11 @@ export function EditTripClient({ tripId }: EditTripClientProps) {
                 aria-labelledby="edit-mood-label"
                 aria-describedby={showMoodError ? "edit-error-moods" : undefined}
               >
-                {MOOD_TAGS.map((tag) => (
+                {moodTags.map((t) => (
                   <MoodTagButton
-                    key={tag}
-                    tag={tag}
-                    selected={moods.includes(tag)}
+                    key={t.name}
+                    tag={t.name}
+                    selected={moods.includes(t.name)}
                     onToggle={handleMoodToggle}
                   />
                 ))}

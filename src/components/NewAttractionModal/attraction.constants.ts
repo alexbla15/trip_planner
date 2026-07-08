@@ -1,14 +1,3 @@
-import type { LucideIcon } from "lucide-react";
-import {
-  UtensilsCrossed,
-  Landmark as LandmarkIcon,
-  TreePine,
-  Ticket,
-  ShoppingBag,
-  Heart,
-  Plane,
-  BedDouble,
-} from "lucide-react";
 import type { AttractionType, DayKey, OpeningHours } from "./attraction.types";
 
 export const ATTRACTION_TYPES: AttractionType[] = [
@@ -50,6 +39,7 @@ export const ATTRACTION_TYPES: AttractionType[] = [
   "Apartment",
   "Hostel",
   "Villa",
+  "Lockers & Storage Rooms",
 ];
 
 export const TYPE_CATEGORIES: Record<string, AttractionType[]> = {
@@ -61,6 +51,7 @@ export const TYPE_CATEGORIES: Record<string, AttractionType[]> = {
   "Wellness":        ["Spa", "Gym", "Pool"],
   "Transportation":  ["Flight", "Train", "Car Rental", "Cruise / Port", "Bus", "Taxi / Rideshare"],
   "Accommodation":   ["Hotel", "Apartment", "Hostel", "Villa"],
+  "Facilities":      ["Lockers & Storage Rooms"],
 };
 
 export const CATEGORY_ORDER: string[] = [
@@ -72,6 +63,7 @@ export const CATEGORY_ORDER: string[] = [
   "Wellness",
   "Transportation",
   "Accommodation",
+  "Facilities",
 ];
 
 export const CATEGORY_COLORS: Record<string, string> = {
@@ -83,6 +75,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   "Wellness":        "#10B981",
   "Transportation":  "#475569",
   "Accommodation":   "#D97706",
+  "Facilities":      "#8a658b",
 };
 
 export const DAY_KEYS: DayKey[] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -97,16 +90,6 @@ export const DEFAULT_OPENING_HOURS: OpeningHours = {
   Sun: { closed: true, open: "10:00", close: "17:00" },
 };
 
-export const CATEGORY_ICONS: Record<string, LucideIcon> = {
-  "Food & Drink":    UtensilsCrossed,
-  "Culture":         LandmarkIcon,
-  "Nature & Outdoor":TreePine,
-  "Entertainment":   Ticket,
-  "Shopping":        ShoppingBag,
-  "Wellness":        Heart,
-  "Transportation":  Plane,
-  "Accommodation":   BedDouble,
-};
 
 export const COUNTRIES: string[] = [
   "Afghanistan",

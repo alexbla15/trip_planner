@@ -27,6 +27,7 @@ import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
 import type { AttractionFormData } from "@/components/NewAttractionModal/attraction.types";
 import { COUNTRIES } from "@/components/NewAttractionModal/attraction.constants";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMoodTags } from "@/hooks/useMoodTags";
 import styles from "./NewTripClient.module.css";
 
 const CURRENCIES = [
@@ -54,19 +55,6 @@ const CURRENCIES = [
   { code: "HUF", symbol: "Ft", name: "Hungarian Forint" },
 ];
 
-const MOOD_TAGS = [
-  "Vibrant Nightlife",
-  "Cultural Heritage",
-  "Adventure",
-  "Beach Life",
-  "Food & Wine",
-  "Luxury",
-  "Relaxation & Wellness",
-  "Couples & Romantic",
-  "Family",
-  "Backpacking & Budget",
-  "Cruises",
-];
 
 const NOTES_MAX = 500;
 
@@ -96,6 +84,7 @@ function getNotesCountClass(count: number, max: number): string {
 export function NewTripClient() {
   const { token } = useAuth();
   const router = useRouter();
+  const { tags: moodTags } = useMoodTags();
 
   const [tripName, setTripName] = useState("");
   const [country, setCountry] = useState("");
@@ -372,11 +361,11 @@ export function NewTripClient() {
                   aria-labelledby="mood-label"
                   aria-describedby={showMoodError ? "error-moods" : undefined}
                 >
-                  {MOOD_TAGS.map((tag) => (
+                  {moodTags.map((t) => (
                     <MoodTagButton
-                      key={tag}
-                      tag={tag}
-                      selected={moods.includes(tag)}
+                      key={t.name}
+                      tag={t.name}
+                      selected={moods.includes(t.name)}
                       onToggle={handleMoodToggle}
                     />
                   ))}

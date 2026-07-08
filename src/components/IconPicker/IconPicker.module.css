@@ -1,0 +1,166 @@
+/* ── Wrapper ── */
+.wrapper {
+  position: relative;
+}
+
+/* ── Trigger (closed state) ── */
+.trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 44px;
+  padding: 0 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color var(--duration-fast) var(--easing-out),
+              box-shadow var(--duration-fast) var(--easing-out);
+}
+
+.trigger:hover {
+  border-color: var(--color-text-tertiary);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.triggerOpen,
+.triggerOpen:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.triggerIcon {
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+}
+
+.chevron {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+/* ── Dropdown panel ── */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 240px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  animation: dropdownIn var(--duration-fast) var(--easing-out) both;
+}
+
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Search bar ── */
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.searchIcon {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  height: 28px;
+  padding: 0 6px;
+  border: none;
+  outline: none;
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--color-text-secondary);
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+/* ── Icon grid ── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2px;
+  padding: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+/* ── Icon cell ── */
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 0;
+  transition: background var(--duration-fast) var(--easing-out),
+              color var(--duration-fast) var(--easing-out);
+}
+
+.cell:hover {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-primary);
+}
+
+.cellSelected {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  outline: 1.5px solid var(--color-primary);
+  outline-offset: -1px;
+}
+
+.cellHighlighted {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-primary);
+  outline: 2px solid var(--color-primary);
+  outline-offset: -1.5px;
+}
+
+.cellSelectedHighlighted {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  outline: 2px solid var(--color-primary);
+  outline-offset: -1.5px;
+}
+
+/* ── Empty state ── */
+.empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+  padding: 16px;
+  margin: 0;
+}

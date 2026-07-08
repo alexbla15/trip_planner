@@ -538,6 +538,60 @@ components:
               _id: { type: string, example: Restaurant }
               count: { type: integer, example: 18 }
 
+    MoodTag:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 65f1234567890abcdef12345
+        name:
+          type: string
+          example: Adventure
+        icon:
+          type: string
+          example: Mountain
+        color:
+          type: string
+          example: "#ea580c"
+        bgColor:
+          type: string
+          example: "#fff7ed"
+        darkColor:
+          type: string
+          example: "#fdba74"
+        darkBgColor:
+          type: string
+          example: "#431407"
+        order:
+          type: integer
+          example: 2
+
+    MoodTagInput:
+      type: object
+      required: [name, icon, color, bgColor, darkColor, darkBgColor]
+      properties:
+        name:
+          type: string
+          example: Adventure
+        icon:
+          type: string
+          example: Mountain
+        color:
+          type: string
+          example: "#ea580c"
+        bgColor:
+          type: string
+          example: "#fff7ed"
+        darkColor:
+          type: string
+          example: "#fdba74"
+        darkBgColor:
+          type: string
+          example: "#431407"
+        order:
+          type: integer
+          example: 2
+
 security:
   - BearerAuth: []
 
@@ -1118,3 +1172,146 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PersonalAnalytics'
+
+  # ==========================================
+  # 🏷️ Mood Tags
+  # ==========================================
+  /api/mood-tags:
+    get:
+      summary: List all mood tags
+      tags: [Mood Tags]
+      security: []
+      responses:
+        200:
+          description: Array of mood tags sorted by order
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MoodTag'
+        500:
+          description: Internal server error
+    post:
+      summary: Create a mood tag (admin only)
+      tags: [Mood Tags]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoodTagInput'
+      responses:
+        201:
+          description: Created mood tag
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoodTag'
+        400:
+          description: Validation error or duplicate name
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden — admin only
+
+  /api/mood-tags/{id}:
+    put:
+      summary: Update a mood tag (admin only)
+      tags: [Mood Tags]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoodTagInput'
+      responses:
+        200:
+          description: Updated mood tag
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoodTag'
+        400:
+          description: Validation error or duplicate name
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden — admin only
+        404:
+          description: Mood tag not found
+    delete:
+      summary: Delete a mood tag (admin only)
+      tags: [Mood Tags]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Deletion confirmed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden — admin only
+        404:
+          description: Mood tag not found
+
+  /api/mood-tags/seed:
+    post:
+      summary: Seed default mood tags (admin only, inserts missing defaults)
+      tags: [Mood Tags]
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: All defaults already exist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  inserted:
+                    type: integer
+        201:
+          description: Defaults seeded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  inserted:
+                    type: integer
+                  tags:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MoodTag'
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden — admin only
