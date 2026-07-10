@@ -38,6 +38,7 @@
   font-size: 30px;
   font-weight: 700;
   color: var(--color-text-primary);
+  letter-spacing: -0.5px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -95,6 +96,7 @@
   font-size: 18px;
   font-weight: 700;
   color: var(--color-text-primary);
+  letter-spacing: -0.2px;
   padding-bottom: 6px;
   border-bottom: 2px solid var(--color-primary-light);
   display: inline-block;

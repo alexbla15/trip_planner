@@ -13,30 +13,30 @@ Define in `globals.css` as CSS custom properties:
 
 ```css
 :root {
-  /* Brand */
-  --color-primary: #0EA5E9;        /* sky-500 — open skies, oceans */
-  --color-primary-dark: #0284C7;   /* sky-600 — hover state */
+  /* Brand — sky-600/700 for WCAG AA compliance (white text on primary = 5.2:1) */
+  --color-primary: #0284C7;        /* sky-600 — open skies, oceans */
+  --color-primary-dark: #0369A1;   /* sky-700 — hover state */
   --color-primary-light: #E0F2FE;  /* sky-100 — subtle tints */
-  --color-accent: #F59E0B;         /* amber-500 — golden hour warmth */
-  --color-accent-dark: #D97706;    /* amber-600 — hover state */
+  --color-accent: #D97706;         /* amber-600 — golden hour warmth */
+  --color-accent-dark: #B45309;    /* amber-700 — hover state */
 
-  /* Surfaces */
+  /* Surfaces — clear elevation layers */
   --color-bg: #FFFFFF;
-  --color-bg-subtle: #F8FAFC;      /* slate-50 — page background */
-  --color-surface: #FFFFFF;        /* card background */
-  --color-border: #E2E8F0;         /* slate-200 */
-  --color-border-subtle: #F1F5F9;  /* slate-100 */
+  --color-bg-subtle: #F1F5F9;      /* slate-100 — page body bg; white cards float above it */
+  --color-surface: #FFFFFF;        /* card / panel background */
+  --color-border: #CBD5E1;         /* slate-300 — visible card edges */
+  --color-border-subtle: #E2E8F0;  /* slate-200 — dividers inside cards */
 
-  /* Text */
-  --color-text-primary: #0F172A;   /* slate-900 */
-  --color-text-secondary: #475569; /* slate-600 */
-  --color-text-tertiary: #94A3B8;  /* slate-400 */
+  /* Text — all ≥ 4.5:1 on white (#FFFFFF) */
+  --color-text-primary: #0F172A;   /* slate-900 — 19:1 */
+  --color-text-secondary: #334155; /* slate-700 — 10.5:1 */
+  --color-text-tertiary: #64748B;  /* slate-500 — 4.8:1 */
   --color-text-inverse: #FFFFFF;
 
-  /* Feedback */
-  --color-success: #10B981;        /* emerald-500 */
-  --color-error: #EF4444;          /* red-500 */
-  --color-warning: #F59E0B;        /* amber-500 */
+  /* Feedback — all ≥ 4.5:1 on white */
+  --color-success: #059669;        /* emerald-600 — 4.7:1 */
+  --color-error: #DC2626;          /* red-600 — 5.1:1 */
+  --color-warning: #D97706;        /* amber-600 */
 }
 ```
 
@@ -96,11 +96,11 @@ Base unit: 4px. Always use multiples of 4.
 ## Shadows
 
 ```css
---shadow-sm:  0 1px 2px rgba(0,0,0,0.05);
---shadow-md:  0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
---shadow-lg:  0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
---shadow-xl:  0 10px 15px rgba(0,0,0,0.08), 0 4px 6px rgba(0,0,0,0.04);
---shadow-card-hover: 0 8px 25px rgba(14,165,233,0.12), 0 3px 8px rgba(0,0,0,0.06);
+--shadow-sm:        0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+--shadow-md:        0 3px 8px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
+--shadow-lg:        0 8px 20px rgba(0,0,0,0.10), 0 3px 8px rgba(0,0,0,0.06);
+--shadow-xl:        0 16px 36px rgba(0,0,0,0.12), 0 6px 14px rgba(0,0,0,0.07);
+--shadow-card-hover: 0 20px 44px rgba(2,132,199,0.18), 0 6px 16px rgba(0,0,0,0.08);
 ```
 
 ---

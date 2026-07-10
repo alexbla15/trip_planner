@@ -1,5 +1,4 @@
 import type { Attraction } from "@/types/attraction";
-import { MIN_OVERLAP_DURATION_MINS } from "@/config/ui";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -26,7 +25,7 @@ function attractionEndMins(a: Attraction): number {
   const val   = parseFloat(a.actualDurationValue ?? a.durationValue ?? "0");
   const unit  = a.actualDurationUnit ?? a.durationUnit ?? "hours";
   const dur   = unit === "hours" ? val * 60 : val;
-  return start + Math.max(dur, MIN_OVERLAP_DURATION_MINS);
+  return start + dur;
 }
 
 // ── Condition A: venue closed at planned time ─────────────────────────────────

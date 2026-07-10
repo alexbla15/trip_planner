@@ -474,29 +474,27 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
             <div className={styles.heroPlaceholder} aria-hidden="true" />
           )}
           <div className={styles.heroOverlay} aria-hidden="true" />
-          <div className={styles.heroContent}>
+          {/* Navigation controls — top of hero */}
+          <div className={styles.heroTopBar}>
             <Link href="/trips" className={styles.backLink}>
               <ChevronLeft size={16} aria-hidden="true" />
               My Trips
             </Link>
-            {(isOwner || isCollaborator) && (
-              <Link href={`/trips/${trip._id}/edit`} className={styles.heroEditBtn}>
-                <PenLine size={13} aria-hidden="true" />
-                Edit trip
-              </Link>
-            )}
+          </div>
+
+          {/* Hero text — bottom of hero */}
+          <div className={styles.heroContent}>
             <h1 className={styles.destination}>{name}</h1>
-            {isCollaborator && (
-              <span className={styles.heroSharedBadge}>
-                <Users size={13} aria-hidden="true" />
-                Shared with you
-              </span>
+            {moods.length > 0 && (
+              <div className={styles.heroTagRow}>
+                {moods.slice(0, 3).map((tag) => (
+                  <MoodTagChip key={tag} tag={tag} />
+                ))}
+                {moods.length > 3 && (
+                  <span className={styles.heroOverflowBadge}>+{moods.length - 3}</span>
+                )}
+              </div>
             )}
-            <div className={styles.tags}>
-              {moods.map((tag) => (
-                <MoodTagChip key={tag} tag={tag} />
-              ))}
-            </div>
           </div>
         </div>
 
@@ -512,7 +510,15 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
             {activeTab === "overview" && (
               <>
                 <div className={styles.card}>
-                  <h2 className={styles.sectionHeading}>Trip Overview</h2>
+                  <div className={styles.attractionsHeader}>
+                    <h2 className={styles.sectionHeading}>Trip Overview</h2>
+                    {canEdit && (
+                      <Link href={`/trips/${trip._id}/edit`} className={styles.cardEditLink}>
+                        <PenLine size={13} aria-hidden="true" />
+                        Edit trip
+                      </Link>
+                    )}
+                  </div>
 
                   <dl className={styles.infoGrid}>
                     <div className={styles.infoItem}>
