@@ -19,7 +19,8 @@ import {
   Plane,
   Tag,
 } from "lucide-react";
-import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
+import { renderTypeIcon } from "@/components/IconPicker";
+import { useAttractionTypes } from "@/hooks/useAttractionTypes";
 
 const LocationViewMap = dynamic(
   () => import("./LocationViewMap").then((m) => ({ default: m.LocationViewMap })),
@@ -40,6 +41,7 @@ interface AttractionDetailModalProps {
 }
 
 export function AttractionDetailModal({ attraction, onClose, onEditTime }: AttractionDetailModalProps) {
+  const { findType } = useAttractionTypes();
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -67,7 +69,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime }: Attra
   const firstType = attraction.types?.[0] as AttractionType | undefined;
   const typeIcon = isResidence && !firstType
     ? <BedDouble size={16} aria-hidden="true" />
-    : firstType ? ICONS[firstType] : null;
+    : firstType ? renderTypeIcon(findType(firstType)?.icon ?? "Globe") : null;
 
   const durationLabel = attraction.durationValue
     ? `${attraction.durationValue} ${attraction.durationUnit ?? "hours"}`
@@ -125,15 +127,12 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime }: Attra
           {attraction.types?.length > 0 && (
             <div className={styles.section}>
               <div className={styles.chips}>
-                {attraction.types.map((t) => {
-                  const icon = ICONS[t as AttractionType];
-                  return (
-                    <span key={t} className={styles.chip}>
-                      {icon}
-                      {t}
-                    </span>
-                  );
-                })}
+                {attraction.types.map((t) => (
+                  <span key={t} className={styles.chip}>
+                    {renderTypeIcon(findType(t)?.icon ?? "Globe")}
+                    {t}
+                  </span>
+                ))}
               </div>
             </div>
           )}

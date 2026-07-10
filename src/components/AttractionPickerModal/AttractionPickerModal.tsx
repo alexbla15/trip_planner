@@ -5,7 +5,8 @@ import { createPortal } from "react-dom";
 import { X, Search, Plus, MapPin, ChevronDown, AlertCircle } from "lucide-react";
 import { useGlobalAttractions } from "@/contexts/AttractionsContext";
 import { NewAttractionModal } from "@/components/NewAttractionModal/NewAttractionModal";
-import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
+import { renderTypeIcon } from "@/components/IconPicker";
+import { useAttractionTypes } from "@/hooks/useAttractionTypes";
 import type { AttractionFormData } from "@/components/NewAttractionModal/attraction.types";
 import { COUNTRIES } from "@/components/NewAttractionModal/attraction.constants";
 import styles from "./AttractionPickerModal.module.css";
@@ -34,6 +35,7 @@ export function AttractionPickerModal({
   alreadyAdded = [],
 }: AttractionPickerModalProps) {
   const { globalAttractions, addGlobalAttraction } = useGlobalAttractions();
+  const { findType } = useAttractionTypes();
 
   const [countryFilter, setCountryFilter] = useState("");
   const [cityFilter, setCityFilter] = useState("");
@@ -196,7 +198,7 @@ export function AttractionPickerModal({
                 const isSelected = selectedIndices.has(index);
                 const isAlreadyAdded = alreadyAddedKeys.has(`${a.name}|${a.country}|${a.city}`);
                 const firstType = a.types[0];
-                const icon = firstType ? ICONS[firstType] : null;
+                const icon = firstType ? renderTypeIcon(findType(firstType)?.icon ?? "Globe") : null;
 
                 return (
                   <li key={index} role="option" aria-selected={isSelected}>

@@ -23,7 +23,8 @@ import {
 } from "lucide-react";
 import { AttractionPickerModal } from "@/components/AttractionPickerModal/AttractionPickerModal";
 import { MoodTagButton } from "@/components/MoodTagButton/MoodTagButton";
-import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
+import { renderTypeIcon } from "@/components/IconPicker";
+import { useAttractionTypes } from "@/hooks/useAttractionTypes";
 import type { AttractionFormData } from "@/components/NewAttractionModal/attraction.types";
 import { COUNTRIES } from "@/components/NewAttractionModal/attraction.constants";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,6 +37,7 @@ export function NewTripClient() {
   const { token } = useAuth();
   const router = useRouter();
   const { tags: moodTags } = useMoodTags();
+  const { findType } = useAttractionTypes();
 
   const [tripName, setTripName] = useState("");
   const [country, setCountry] = useState("");
@@ -411,7 +413,7 @@ export function NewTripClient() {
                   <ul className={styles.attractionList}>
                     {attractions.map((a, i) => {
                       const firstType = a.types[0];
-                      const icon = firstType ? ICONS[firstType] : null;
+                      const icon = firstType ? renderTypeIcon(findType(firstType)?.icon ?? "Globe") : null;
                       return (
                         <li key={i} className={styles.attractionItem}>
                           <div className={styles.attractionIconCircle} aria-hidden="true">

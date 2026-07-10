@@ -23,3 +23,5 @@ export { ExpensesPanel } from "./ExpensesPanel/ExpensesPanel";
 export { CurrencySelect } from "./CurrencySelect/CurrencySelect";
 export { IconPicker, ICON_REGISTRY, ICON_NAMES, getIconComponent, renderTypeIcon } from "./IconPicker";
 export { TripTabBar } from "./TripTabBar";
+export { AttractionFilter } from "./AttractionFilter/AttractionFilter";
+export type { AttractionFilterProps } from "./AttractionFilter/AttractionFilter.types";

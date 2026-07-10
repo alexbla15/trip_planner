@@ -7,8 +7,8 @@ import {
   MapPinned, Landmark, Building2, Globe, DollarSign,
   BarChart2, Map, ChevronRight, Lock,
 } from "lucide-react";
-import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
-import type { AttractionType } from "@/components/NewAttractionModal/attraction.types";
+import { renderTypeIcon } from "@/components/IconPicker";
+import { useAttractionTypes } from "@/hooks/useAttractionTypes";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDisplayDate } from "@/lib/formatDate";
 import { formatPrice } from "@/lib/currencies";
@@ -82,6 +82,7 @@ const OUTER_R = 100; const INNER_R = 60;
 
 export function ProfileClient() {
   const { user: authUser, token, login } = useAuth();
+  const { findType } = useAttractionTypes();
 
   const [analytics, setAnalytics] = useState<PersonalAnalytics | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
@@ -502,7 +503,7 @@ export function ProfileClient() {
                   const pct = categoryTotal > 0
                     ? ((cat.count / categoryTotal) * 100).toFixed(1)
                     : "0";
-                  const icon = ICONS[cat._id as AttractionType];
+                  const icon = renderTypeIcon(findType(cat._id)?.icon ?? "Globe");
                   const isHovered = hoveredIndex === i;
                   return (
                     <li

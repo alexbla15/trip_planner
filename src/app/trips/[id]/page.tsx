@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import mongoose from "mongoose";
+import { dbConnect } from "@/lib/mongoose";
+import { Trip } from "@/models/Trip";
 import { RouteGuard } from "@/components/RouteGuard/RouteGuard";
 import { TripDetailClient } from "./TripDetailClient";
 
@@ -8,11 +11,19 @@ interface TripDetailPageProps {
 
 export async function generateMetadata({ params }: TripDetailPageProps): Promise<Metadata> {
   const { id } = await params;
+  let tripName = "Trip";
+  try {
+    if (mongoose.isValidObjectId(id)) {
+      await dbConnect();
+      const trip = await Trip.findById(id).select("name").lean();
+      if (trip) tripName = (trip as { name: string }).name;
+    }
+  } catch {
+    // fall through to default title
+  }
   return {
-    title: `Trip – TripPlanner`,
+    title: `${tripName} · Trip Planner`,
     description: `View your trip details.`,
-    // id surfaced so Next can cache per-trip; real title set client-side after fetch
-    other: { tripId: id },
   };
 }
 

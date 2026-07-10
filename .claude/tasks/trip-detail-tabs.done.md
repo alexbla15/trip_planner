@@ -1,6 +1,6 @@
 # Task: Trip Detail Page Tab Navigation
 
-Status: reviewing
+Status: done
 
 Track: A
 Track reason: New navigation surface on an existing page — tabbed or equivalent layout with no existing pattern in the design system
@@ -280,3 +280,6 @@ No new API routes. No swagger changes.
   - `switchTab` accepts `string` (not `TripTabId`) so its signature matches TripTabBar's `onChange: (id: string) => void` — casts to TripTabId internally. Required to satisfy TypeScript without over-coupling the generic component to the consumer's narrow type.
   - CalendarSection moved inside the container div (under the attractions tab panel) — it was previously rendered outside the container. CalendarSection is a card component that renders cleanly at container width; no visual regression.
 - New design tokens used: none — all existing tokens
+
+## Completion Summary
+Implemented the TripTabBar component and wired it into the trips/[id] page with five tabs: Overview, Attractions, Flights, Residences, Expenses. Each tab shows only its own content (not hidden with CSS), the active tab is indicated by a 2px primary-colored bottom border, arrow-key navigation follows the ARIA tablist pattern, and the selected tab syncs to the URL via `?tab=<id>` using `window.history.replaceState`. CalendarSection was moved into the Overview tab. Confirmed done by user on 2026-07-10.

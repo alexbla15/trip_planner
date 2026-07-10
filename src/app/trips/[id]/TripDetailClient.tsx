@@ -22,6 +22,7 @@ import {
   Wallet,
   Plane,
   MapPin,
+  SearchX,
 } from "lucide-react";
 import { MoodTagChip } from "@/components/MoodTagChip/MoodTagChip";
 import { NewAttractionModal } from "@/components/NewAttractionModal/NewAttractionModal";
@@ -32,8 +33,10 @@ import { ResidencesList } from "./ResidencesList";
 import { CalendarSection } from "./CalendarSection";
 import { AttractionDetailModal } from "@/components/AttractionDetailModal/AttractionDetailModal";
 import { AttractionSearchModal } from "@/components/AttractionSearchModal/AttractionSearchModal";
-import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
+import { AttractionFilter } from "@/components/AttractionFilter/AttractionFilter";
 import { DEFAULT_OPENING_HOURS } from "@/components/NewAttractionModal/attraction.constants";
+import { renderTypeIcon } from "@/components/IconPicker";
+import { useAttractionTypes } from "@/hooks/useAttractionTypes";
 import { useAuth } from "@/contexts/AuthContext";
 import { TripSharingPanel } from "@/components/TripSharingPanel/TripSharingPanel";
 import { ExpensesPanel } from "@/components/ExpensesPanel/ExpensesPanel";
@@ -69,6 +72,7 @@ interface TripDetailClientProps {
 }
 
 export function TripDetailClient({ tripId }: TripDetailClientProps) {
+  const { findType } = useAttractionTypes();
   const { token, user: authUser, loading: authLoading } = useAuth();
   const router = useRouter();
 
@@ -103,6 +107,9 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   const [editingResidence, setEditingResidence]     = useState<Attraction | null>(null);
   const [editingFlight, setEditingFlight]           = useState<Attraction | null>(null);
   const [viewingAttraction, setViewingAttraction]   = useState<Attraction | null>(null);
+
+  const [searchQuery, setSearchQuery]           = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   // Fetch trip — waits for auth to settle so token-less unauthenticated users
   // aren't confused with still-loading authenticated users
@@ -387,6 +394,34 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     };
   }, [editingFlight]);
 
+  const regularAttractions = useMemo(
+    () => attractions.filter((a) => !a.subtype && a.types?.[0] !== "Flight"),
+    [attractions]
+  );
+
+  const presentCategories = useMemo(
+    () => [...new Set(
+      regularAttractions.flatMap((a) =>
+        a.types.map((t) => findType(t)?.category).filter((c): c is string => Boolean(c))
+      )
+    )],
+    [regularAttractions, findType]
+  );
+
+  const filteredAttractions = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return regularAttractions
+      .filter((a) => {
+        const matchesText = !q || a.name.toLowerCase().includes(q);
+        const matchesCategory =
+          !selectedCategory || a.types.some((t) => findType(t)?.category === selectedCategory);
+        return matchesText && matchesCategory;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [regularAttractions, searchQuery, selectedCategory, findType]);
+
+  useEffect(() => { setPage(1); }, [searchQuery, selectedCategory]);
+
   if (forbidden) {
     return (
       <div className={styles.forbiddenState}>
@@ -418,10 +453,9 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
 
   const flightAttractions    = attractions.filter((a) => a.subtype === "flight"    || a.types?.[0] === "Flight");
   const residenceAttractions = attractions.filter((a) => a.subtype === "residence");
-  const regularAttractions   = attractions.filter((a) => !a.subtype && a.types?.[0] !== "Flight");
 
-  const totalPages = Math.ceil(regularAttractions.length / ATTRACTIONS_PAGE_SIZE);
-  const paginatedAttractions = regularAttractions.slice((page - 1) * ATTRACTIONS_PAGE_SIZE, page * ATTRACTIONS_PAGE_SIZE);
+  const totalPages = Math.ceil(filteredAttractions.length / ATTRACTIONS_PAGE_SIZE);
+  const paginatedAttractions = filteredAttractions.slice((page - 1) * ATTRACTIONS_PAGE_SIZE, page * ATTRACTIONS_PAGE_SIZE);
 
   return (
     <>
@@ -632,6 +666,17 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                     )}
                   </div>
 
+                  {!attractionsLoading && regularAttractions.length > 0 && (
+                    <AttractionFilter
+                      searchValue={searchQuery}
+                      onSearchChange={setSearchQuery}
+                      categories={presentCategories}
+                      selectedCategory={selectedCategory}
+                      onCategoryChange={setSelectedCategory}
+                      resultCount={filteredAttractions.length}
+                    />
+                  )}
+
                   {attractionsLoading ? (
                     <div className={styles.attractionsLoading}>
                       <Loader2 size={22} className={styles.loadingIcon} aria-hidden="true" />
@@ -644,12 +689,25 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                         Start building your itinerary by adding places to visit.
                       </p>
                     </div>
+                  ) : filteredAttractions.length === 0 ? (
+                    <div className={styles.emptyAttractions}>
+                      <SearchX size={28} className={styles.emptyIcon} aria-hidden="true" />
+                      <p className={styles.emptyText}>No attractions match your search</p>
+                      <p className={styles.emptySubtext}>Try a different name or category</p>
+                      <button
+                        type="button"
+                        className={styles.clearFiltersBtn}
+                        onClick={() => { setSearchQuery(""); setSelectedCategory(null); }}
+                      >
+                        Clear filters
+                      </button>
+                    </div>
                   ) : (
                     <>
                       <ul className={styles.attractionList} aria-label="Attraction list">
                         {paginatedAttractions.map((attraction) => {
                           const firstType = attraction.types[0] as AttractionType | undefined;
-                          const icon = firstType ? ICONS[firstType] : null;
+                          const icon = firstType ? renderTypeIcon(findType(firstType)?.icon ?? "Globe") : null;
                           const durationLabel = attraction.durationValue
                             ? `${attraction.durationValue} ${attraction.durationUnit ?? "h"}` : null;
                           const priceLabel = attraction.price != null ? formatPrice(attraction.price, attraction.currency ?? "USD") : null;

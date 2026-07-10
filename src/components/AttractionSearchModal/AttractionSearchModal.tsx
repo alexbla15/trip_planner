@@ -5,12 +5,13 @@ import {
   useEffect,
   useRef,
   useCallback,
+  useMemo,
 } from "react";
 import { createPortal } from "react-dom";
-import { X, Search, MapPin, Plus, PenLine, SearchX, ChevronLeft } from "lucide-react";
-import { renderTypeIcon, getIconComponent } from "@/components/IconPicker";
-import { ICONS } from "@/components/NewAttractionModal/AttractionTypeChip";
+import { X, Search, MapPin, Plus, PenLine, SearchX } from "lucide-react";
+import { renderTypeIcon } from "@/components/IconPicker";
 import { useAttractionTypes } from "@/hooks/useAttractionTypes";
+import { AttractionFilter } from "@/components/AttractionFilter/AttractionFilter";
 import type { Attraction } from "@/types/attraction";
 import type { AttractionSearchModalProps } from "./AttractionSearchModal.types";
 import styles from "./AttractionSearchModal.module.css";
@@ -26,9 +27,8 @@ export function AttractionSearchModal({
 }: AttractionSearchModalProps) {
   const [mounted, setMounted] = useState(false);
   const [query, setQuery] = useState("");
-  const [selectedType, setSelectedType] = useState<string | null>(null);
-  const { categories, byCategory } = useAttractionTypes();
-  const [activeSearchCategory, setActiveSearchCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const { categories, findType } = useAttractionTypes();
   const [results, setResults] = useState<Attraction[]>([]);
   const [bodyState, setBodyState] = useState<BodyState>("initial");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -40,8 +40,7 @@ export function AttractionSearchModal({
   useEffect(() => {
     if (isOpen) {
       setQuery("");
-      setSelectedType(null);
-      setActiveSearchCategory(null);
+      setSelectedCategory(null);
       setResults([]);
       setBodyState("initial");
       requestAnimationFrame(() => searchRef.current?.focus());
@@ -62,10 +61,10 @@ export function AttractionSearchModal({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  function runSearch(q: string, type: string | null) {
+  function runSearch(q: string) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    if (!q.trim() && !type) {
+    if (!q.trim()) {
       setBodyState("initial");
       setResults([]);
       return;
@@ -76,7 +75,6 @@ export function AttractionSearchModal({
       try {
         const params = new URLSearchParams({ country });
         if (q.trim()) params.set("q", q.trim());
-        if (type) params.set("type", type);
         const res = await fetch(`/api/attractions?${params}`);
         const data = (await res.json()) as Attraction[];
         const list = Array.isArray(data) ? data : [];
@@ -91,14 +89,15 @@ export function AttractionSearchModal({
 
   function handleQueryChange(value: string) {
     setQuery(value);
-    runSearch(value, selectedType);
+    runSearch(value);
   }
 
-  function handleTypeToggle(type: string) {
-    const next = selectedType === type ? null : type;
-    setSelectedType(next);
-    runSearch(query, next);
-  }
+  const filteredResults = useMemo(() => {
+    if (!selectedCategory) return results;
+    return results.filter((a) =>
+      a.types.some((t) => findType(t)?.category === selectedCategory)
+    );
+  }, [results, selectedCategory, findType]);
 
   function handleAdd(attraction: Attraction) {
     onAdd(attraction);
@@ -141,88 +140,18 @@ export function AttractionSearchModal({
           </button>
         </div>
 
-        {/* Search bar */}
+        {/* Search bar + category chips */}
         <div className={styles.searchBar}>
-          <div className={styles.searchWrapper}>
-            <Search size={15} className={styles.searchIcon} aria-hidden="true" />
-            <input
-              ref={searchRef}
-              type="search"
-              className={styles.searchInput}
-              placeholder={`Search in ${country}…`}
-              aria-label={`Search attractions in ${country}`}
-              value={query}
-              onChange={(e) => handleQueryChange(e.target.value)}
-            />
-          </div>
-
-          {/* Category filter — two-level */}
-          <div className={styles.categoryFilter}>
-            {activeSearchCategory === null ? (
-              <div className={styles.catChips} role="group" aria-label="Filter by category">
-                <button
-                  type="button"
-                  className={`${styles.catChip} ${selectedType === null ? styles.catChipActive : ""}`}
-                  aria-pressed={selectedType === null}
-                  onClick={() => {
-                    setSelectedType(null);
-                    runSearch(query, null);
-                  }}
-                >
-                  All
-                </button>
-                {categories.map((cat) => {
-                  const catTypes = byCategory[cat] ?? [];
-                  const CatIcon = getIconComponent(catTypes[0]?.categoryIcon ?? "Globe");
-                  const isActive = selectedType !== null && catTypes.some((t) => t.name === selectedType);
-                  return (
-                    <button
-                      key={cat}
-                      type="button"
-                      className={`${styles.catChip} ${isActive ? styles.catChipActive : ""}`}
-                      aria-pressed={isActive}
-                      onClick={() => setActiveSearchCategory(cat)}
-                    >
-                      <CatIcon size={12} aria-hidden="true" />
-                      {cat}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div>
-                <button
-                  type="button"
-                  className={styles.catBackBtn}
-                  onClick={() => setActiveSearchCategory(null)}
-                >
-                  <ChevronLeft size={13} aria-hidden="true" />
-                  All categories
-                </button>
-                <div
-                  className={styles.typeChips}
-                  role="group"
-                  aria-label={`Filter by type in ${activeSearchCategory}`}
-                >
-                  {(byCategory[activeSearchCategory] ?? []).map((typeRecord) => {
-                    const active = selectedType === typeRecord.name;
-                    return (
-                      <button
-                        key={typeRecord.name}
-                        type="button"
-                        className={`${styles.typeChip} ${active ? styles.typeChipActive : ""}`}
-                        aria-pressed={active}
-                        onClick={() => handleTypeToggle(typeRecord.name)}
-                      >
-                        {renderTypeIcon(typeRecord.icon)}
-                        {typeRecord.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
+          <AttractionFilter
+            searchValue={query}
+            onSearchChange={handleQueryChange}
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+            placeholder={`Search in ${country}…`}
+            searchLabel={`Search attractions in ${country}`}
+            inputRef={searchRef}
+          />
         </div>
 
         {/* Body */}
@@ -250,11 +179,11 @@ export function AttractionSearchModal({
             </ul>
           )}
 
-          {bodyState === "results" && (
+          {bodyState === "results" && filteredResults.length > 0 && (
             <ul className={styles.resultsList} aria-label="Search results">
-              {results.map((attraction) => {
+              {filteredResults.map((attraction) => {
                 const firstType = attraction.types?.[0];
-                const icon = firstType ? ICONS[firstType] : null;
+                const icon = firstType ? renderTypeIcon(findType(firstType)?.icon ?? "Globe") : null;
                 return (
                   <li key={attraction._id}>
                     <button
@@ -279,6 +208,22 @@ export function AttractionSearchModal({
                 );
               })}
             </ul>
+          )}
+
+          {bodyState === "results" && filteredResults.length === 0 && (
+            <div className={styles.placeholder}>
+              <SearchX size={36} className={styles.placeholderIcon} aria-hidden="true" />
+              <p className={styles.placeholderText}>
+                No attractions found in this category
+              </p>
+              <button
+                type="button"
+                className={styles.createInlineBtn}
+                onClick={() => setSelectedCategory(null)}
+              >
+                Show all results
+              </button>
+            </div>
           )}
 
           {bodyState === "empty" && (
