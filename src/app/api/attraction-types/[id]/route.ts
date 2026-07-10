@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongoose";
 import { AttractionType, formatAttractionType } from "@/models/AttractionType";
+import "@/models/AttractionCategory"; // register model so populate("categoryId") resolves
 import { Attraction } from "@/models/Attraction";
 import { User } from "@/models/User";
 import { getUserFromRequest } from "@/lib/auth";
@@ -20,24 +21,22 @@ export async function PUT(req: Request, { params }: RouteContext) {
     }
 
     const body = await req.json() as {
-      name?: string; category?: string; icon?: string;
-      categoryIcon?: string; color?: string; subtype?: string | null; order?: number;
+      name?: string; categoryId?: string; icon?: string; subtype?: string | null; order?: number;
     };
 
     const doc = await AttractionType.findById(id);
     if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    if (body.name !== undefined)         doc.name         = body.name.trim();
-    if (body.category !== undefined)     doc.category     = body.category.trim();
-    if (body.icon !== undefined)         doc.icon         = body.icon.trim();
-    if (body.categoryIcon !== undefined) doc.categoryIcon = body.categoryIcon.trim();
-    if (body.color !== undefined)        doc.color        = body.color.trim();
-    if (body.order !== undefined)        doc.order        = body.order;
+    if (body.name       !== undefined) doc.name       = body.name.trim();
+    if (body.categoryId !== undefined) doc.categoryId = body.categoryId as unknown as import("mongoose").Types.ObjectId;
+    if (body.icon       !== undefined) doc.icon       = body.icon.trim();
+    if (body.order      !== undefined) doc.order      = body.order;
     if ("subtype" in body) {
       doc.subtype = (body.subtype as "flight" | "residence" | null) ?? undefined;
     }
 
     await doc.save();
+    try { await doc.populate("categoryId"); } catch { /* skip if schema stale in dev */ }
     return NextResponse.json(formatAttractionType(doc));
   } catch (err) {
     const mongoErr = err as { code?: number };

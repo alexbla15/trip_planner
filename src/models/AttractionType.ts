@@ -1,35 +1,50 @@
-import mongoose, { Schema, type Document } from "mongoose";
+import mongoose, { Schema, type Document, type Types } from "mongoose";
+import type { IAttractionCategory } from "./AttractionCategory";
 
 export interface IAttractionType extends Document {
   name: string;
-  category: string;
-  icon: string;         // Lucide icon name for the type chip (e.g. "Utensils")
-  categoryIcon: string; // Lucide icon name for the category header (e.g. "UtensilsCrossed")
-  color: string;        // hex color shared by all types in the same category
+  /** Reference to AttractionCategory. Populated when queried with .populate("categoryId"). */
+  categoryId?: Types.ObjectId | IAttractionCategory;
+  icon: string;
   subtype?: "flight" | "residence";
   order: number;
+  // Legacy fields — kept so existing documents don't lose data before migration runs.
+  category?: string;
+  categoryIcon?: string;
+  color?: string;
 }
 
 const AttractionTypeSchema = new Schema<IAttractionType>({
   name:         { type: String, required: true, unique: true, trim: true },
-  category:     { type: String, required: true, trim: true },
+  categoryId:   { type: Schema.Types.ObjectId, ref: "AttractionCategory" },
   icon:         { type: String, required: true },
-  categoryIcon: { type: String, required: true },
-  color:        { type: String, required: true },
   subtype:      { type: String, enum: ["flight", "residence"] },
   order:        { type: Number, default: 0 },
+  // Legacy — no longer written by new code; read-only for backward compat with unmigrated docs
+  category:     { type: String, trim: true },
+  categoryIcon: { type: String },
+  color:        { type: String },
 });
 
-AttractionTypeSchema.index({ category: 1, order: 1 });
+AttractionTypeSchema.index({ categoryId: 1, order: 1 });
 
 export function formatAttractionType(doc: IAttractionType) {
+  const cat = doc.categoryId as (IAttractionCategory & { _id: Types.ObjectId }) | null | undefined;
+  const populated = cat && typeof cat === "object" && "name" in cat;
+
+  const catId    = populated ? cat._id.toString() : (doc.categoryId?.toString() ?? null);
+  const catName  = populated ? cat.name  : (doc.category     ?? "Uncategorized");
+  const catIcon  = populated ? cat.icon  : (doc.categoryIcon ?? "Globe");
+  const catColor = populated ? cat.color : (doc.color        ?? "#64748B");
+
   return {
     _id:          doc._id.toString(),
     name:         doc.name,
-    category:     doc.category,
+    categoryId:   catId,
+    category:     catName,
     icon:         doc.icon,
-    categoryIcon: doc.categoryIcon,
-    color:        doc.color,
+    categoryIcon: catIcon,
+    color:        catColor,
     subtype:      doc.subtype,
     order:        doc.order,
   };

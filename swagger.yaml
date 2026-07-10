@@ -538,6 +538,106 @@ components:
               _id: { type: string, example: Restaurant }
               count: { type: integer, example: 18 }
 
+    AttractionType:
+      type: object
+      description: An attraction type with its category data populated
+      properties:
+        _id:
+          type: string
+          example: 65f1234567890abcdef12345
+        name:
+          type: string
+          example: Restaurant
+        categoryId:
+          type: string
+          nullable: true
+          description: ID of the linked AttractionCategory (null for unmigrated legacy types)
+          example: 65f1234567890abcdef12346
+        category:
+          type: string
+          description: Category name (populated from the linked category)
+          example: Food & Drink
+        icon:
+          type: string
+          description: Lucide icon name for the type chip
+          example: Utensils
+        categoryIcon:
+          type: string
+          description: Lucide icon name for the category header (from linked category)
+          example: UtensilsCrossed
+        color:
+          type: string
+          description: Hex color from the linked category
+          example: "#f59e0b"
+        subtype:
+          type: string
+          enum: [flight, residence]
+          nullable: true
+          description: Distinguishes special types from generic ones
+        order:
+          type: integer
+          example: 0
+
+    AttractionTypeInput:
+      type: object
+      required: [name, categoryId, icon]
+      properties:
+        name:
+          type: string
+          example: Restaurant
+        categoryId:
+          type: string
+          description: ID of the AttractionCategory this type belongs to
+          example: 65f1234567890abcdef12346
+        icon:
+          type: string
+          example: Utensils
+        subtype:
+          type: string
+          enum: [flight, residence]
+          nullable: true
+        order:
+          type: integer
+          example: 0
+
+    AttractionCategory:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 65f1234567890abcdef12345
+        name:
+          type: string
+          example: Food & Drink
+        icon:
+          type: string
+          description: Lucide icon name for the category header
+          example: UtensilsCrossed
+        color:
+          type: string
+          description: Hex color shared by all types in this category
+          example: "#f59e0b"
+        order:
+          type: integer
+          example: 0
+
+    AttractionCategoryInput:
+      type: object
+      required: [name, icon, color]
+      properties:
+        name:
+          type: string
+          example: Food & Drink
+        icon:
+          type: string
+          example: UtensilsCrossed
+        color:
+          type: string
+          example: "#f59e0b"
+        order:
+          type: integer
+          example: 0
+
     MoodTag:
       type: object
       properties:
@@ -1172,6 +1272,245 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PersonalAnalytics'
+
+  # ==========================================
+  # 🔖 Attraction Types
+  # ==========================================
+  /api/attraction-types:
+    get:
+      summary: List all attraction types (with populated category data)
+      tags: [Attraction Types]
+      security: []
+      responses:
+        200:
+          description: Array of attraction types sorted by display order
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AttractionType'
+        500:
+          description: Internal server error
+    post:
+      summary: Create an attraction type (admin only)
+      tags: [Attraction Types]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttractionTypeInput'
+      responses:
+        201:
+          description: Created attraction type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttractionType'
+        400:
+          description: Validation error or duplicate name
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden — admin only
+
+  /api/attraction-types/{id}:
+    put:
+      summary: Update an attraction type (admin only)
+      tags: [Attraction Types]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttractionTypeInput'
+      responses:
+        200:
+          description: Updated attraction type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttractionType'
+        400:
+          description: Validation error or duplicate name
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden — admin only
+        404:
+          description: Attraction type not found
+    delete:
+      summary: Delete an attraction type (admin only)
+      tags: [Attraction Types]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Deletion confirmed; type also removed from all attractions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden — admin only
+        404:
+          description: Attraction type not found
+
+  # ==========================================
+  # 📂 Attraction Categories
+  # ==========================================
+  /api/attraction-categories:
+    get:
+      summary: List all attraction categories
+      tags: [Attraction Categories]
+      security: []
+      responses:
+        200:
+          description: Array of categories sorted by order
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AttractionCategory'
+        500:
+          description: Internal server error
+    post:
+      summary: Create an attraction category (admin only)
+      tags: [Attraction Categories]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttractionCategoryInput'
+      responses:
+        201:
+          description: Created category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttractionCategory'
+        400:
+          description: Validation error or duplicate name
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden — admin only
+
+  /api/attraction-categories/{id}:
+    put:
+      summary: Update an attraction category (admin only)
+      tags: [Attraction Categories]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttractionCategoryInput'
+      responses:
+        200:
+          description: Updated category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttractionCategory'
+        400:
+          description: Validation error or duplicate name
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden — admin only
+        404:
+          description: Category not found
+    delete:
+      summary: Delete an attraction category (admin only)
+      tags: [Attraction Categories]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Deletion confirmed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden — admin only
+        404:
+          description: Category not found
+        409:
+          description: Cannot delete — attraction types are still assigned to this category
+
+  /api/attraction-categories/seed-from-types:
+    post:
+      summary: Migrate embedded category data to AttractionCategory documents (admin only, one-time)
+      tags: [Attraction Categories]
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Migration result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  categories:
+                    type: integer
+                    description: Number of categories created or found
+                  migrated:
+                    type: integer
+                    description: Number of attraction types updated with a categoryId
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden — admin only
 
   # ==========================================
   # 🏷️ Mood Tags

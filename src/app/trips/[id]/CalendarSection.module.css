@@ -261,6 +261,37 @@
 
 @media (max-width: 768px) {
   .calendarBody { flex-direction: column; }
+
+  /* Tighter card padding on phones */
+  .card { padding: 16px; }
+
+  /* Compress heading row so controls don't overflow */
+  .sectionHeadingRow {
+    gap: 8px;
+  }
+
+  .rangeControls {
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+
+  .summaryBadges {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  /* Sidebar list shorter so the calendar columns get enough room */
+  .sidebarList { max-height: 220px; }
+
+  /* Center the edit popup instead of positioning it by mouse coords */
+  .popup {
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100dvw - 32px);
+    max-width: 300px;
+  }
 }
 
 /* ── Sidebar (item #1) ── */

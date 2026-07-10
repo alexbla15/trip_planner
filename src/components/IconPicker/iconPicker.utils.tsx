@@ -1,68 +1,263 @@
 import React from "react";
 import type { LucideIcon } from "lucide-react";
 import {
-  Utensils, Wine, Coffee, ShoppingCart, Truck, Building2,
-  ImageIcon, Ticket, Church, Landmark, TreePine, Waves,
-  Footprints, Mountain, Clapperboard, Mic2, Dices, FerrisWheel,
-  Droplets, KeyRound, Mic, Music, Store, ShoppingBag, Tent,
-  Sparkles, Dumbbell, Droplet, Plane, TrainFront, Car, Ship,
-  BusFront, CarFront, Hotel, Building, BedDouble, Home,
-  Archive, Luggage,
-  UtensilsCrossed, Globe, Heart, Gem, Anchor,
-  Moon, Users, Backpack, Camera,
+  // Food & Drink
+  Utensils, UtensilsCrossed, Wine, Coffee, Beer, Croissant, IceCream2, Pizza,
+  Sandwich, Soup, Salad, Cake, Cookie, CupSoda, Milk, Apple, Cherry,
+  Citrus, Grape, Fish, Egg, Carrot, Wheat, Amphora,
+
+  // Shopping & Commerce
+  ShoppingCart, ShoppingBag, Store, Package, Tag, Tags, Receipt, Wallet,
+  CreditCard, Gift, Gem, BadgePercent, Barcode, ShoppingBasket,
+
+  // Culture & Art
+  Landmark, Castle, LibraryBig, BookOpen, BookMarked, ScrollText, Feather,
+  Palette, PaintbrushVertical, Brush, ImageIcon, Aperture, Film, Image, Video,
+  Clapperboard, Theater, Ticket, Drama, Mic, Mic2, Music, Music2, Music4,
+  Headphones, Radio, Disc3, Guitar, Piano,
+
+  // Religion & Heritage
+  Church, Cross, Star, Sword,
+
+  // Nature & Outdoors
+  TreePine, TreeDeciduous, Leaf, Flower2, Flower, Sprout,
+  Mountain, MountainSnow, Waves, Umbrella, Sailboat, Shell, Footprints, Tent,
+  Compass, Map, MapPin, MapPinned, Binoculars, Telescope, Sun, Sunset, Sunrise, Moon,
+  CloudSun, Snowflake, Flame, Droplets, Droplet, Wind, CloudRain, Rainbow,
+  Palmtree,
+
+  // Sports & Fitness
+  Dumbbell, Bike, PersonStanding, Swords, Trophy, Medal, Target, Volleyball,
+  Zap, Activity, Stethoscope, Axe,
+
+  // Entertainment & Leisure
+  FerrisWheel, Dices, Gamepad2, Joystick, PartyPopper, Sparkles, Wand2,
+  Heart, Smile, Laugh, Puzzle,
+
+  // Transport
+  Plane, PlaneLanding, PlaneTakeoff, TrainFront, Train, Car, Truck,
+  Ship, BusFront, CarFront, Cable, Anchor, Fuel,
+  Navigation, Navigation2, Route, LocateFixed, Crosshair,
+
+  // Accommodation
+  Hotel, BedDouble, Home, Building, Building2, KeyRound, DoorOpen,
+  Sofa, Lamp, Bath,
+
+  // Travel & Luggage
+  Luggage, Archive, Backpack, Briefcase, Globe, Globe2, Camera, ScanLine,
+
+  // People & Social
+  Users, User, UserRound, UserCheck, Baby, Dog, Cat,
+  Handshake, UsersRound, ThumbsUp,
+
+  // Infrastructure
+  Warehouse, Factory, School2, Hospital,
+
+  // Fallback
   Circle,
 } from "lucide-react";
 
 export const ICON_REGISTRY: Record<string, LucideIcon> = {
+  // ── Food & Drink ──────────────────────────────────────────────────────────
   Utensils,
+  UtensilsCrossed,
   Wine,
   Coffee,
+  Beer,
+  Croissant,
+  IceCream2,
+  Pizza,
+  Sandwich,
+  Soup,
+  Salad,
+  Cake,
+  Cookie,
+  CupSoda,
+  Milk,
+  Apple,
+  Cherry,
+  Citrus,
+  Grape,
+  Fish,
+  Egg,
+  Carrot,
+  Wheat,
+  Amphora,
+
+  // ── Shopping & Commerce ───────────────────────────────────────────────────
   ShoppingCart,
-  Truck,
-  Building2,
-  ImageIcon,
-  Ticket,
-  Church,
-  Landmark,
-  TreePine,
-  Waves,
-  Footprints,
-  Mountain,
-  Clapperboard,
-  Mic2,
-  Dices,
-  FerrisWheel,
-  Droplets,
-  KeyRound,
-  Mic,
-  Music,
-  Store,
   ShoppingBag,
+  ShoppingBasket,
+  Store,
+  Package,
+  Tag,
+  Tags,
+  Receipt,
+  Wallet,
+  CreditCard,
+  Gift,
+  Gem,
+  BadgePercent,
+  Barcode,
+
+  // ── Culture & Art ─────────────────────────────────────────────────────────
+  Landmark,
+  Castle,
+  LibraryBig,
+  BookOpen,
+  BookMarked,
+  ScrollText,
+  Feather,
+  Palette,
+  PaintbrushVertical,
+  Brush,
+  ImageIcon,
+  Image,
+  Video,
+  Aperture,
+  Film,
+  Clapperboard,
+  Theater,
+  Ticket,
+  Drama,
+  Mic,
+  Mic2,
+  Music,
+  Music2,
+  Music4,
+  Headphones,
+  Radio,
+  Disc3,
+  Guitar,
+  Piano,
+
+  // ── Religion & Heritage ───────────────────────────────────────────────────
+  Church,
+  Cross,
+  Star,
+  Sword,
+
+  // ── Nature & Outdoors ─────────────────────────────────────────────────────
+  TreePine,
+  TreeDeciduous,
+  Leaf,
+  Flower2,
+  Flower,
+  Sprout,
+  Mountain,
+  MountainSnow,
+  Waves,
+  Umbrella,
+  Sailboat,
+  Shell,
+  Footprints,
   Tent,
-  Sparkles,
-  Dumbbell,
+  Compass,
+  Map,
+  MapPin,
+  MapPinned,
+  Binoculars,
+  Telescope,
+  Sun,
+  Sunset,
+  Sunrise,
+  Moon,
+  CloudSun,
+  Snowflake,
+  Flame,
+  Droplets,
   Droplet,
+  Wind,
+  CloudRain,
+  Rainbow,
+  Palmtree,
+
+  // ── Sports & Fitness ──────────────────────────────────────────────────────
+  Dumbbell,
+  Bike,
+  PersonStanding,
+  Swords,
+  Trophy,
+  Medal,
+  Target,
+  Volleyball,
+  Zap,
+  Activity,
+  Stethoscope,
+  Axe,
+
+  // ── Entertainment & Leisure ───────────────────────────────────────────────
+  FerrisWheel,
+  Dices,
+  Gamepad2,
+  Joystick,
+  PartyPopper,
+  Sparkles,
+  Wand2,
+  Heart,
+  Smile,
+  Laugh,
+  Puzzle,
+
+  // ── Transport ─────────────────────────────────────────────────────────────
   Plane,
+  PlaneLanding,
+  PlaneTakeoff,
   TrainFront,
+  Train,
   Car,
+  Truck,
   Ship,
   BusFront,
   CarFront,
+  Cable,
+  Anchor,
+  Fuel,
+  Navigation,
+  Navigation2,
+  Route,
+  LocateFixed,
+  Crosshair,
+
+  // ── Accommodation ─────────────────────────────────────────────────────────
   Hotel,
-  Building,
   BedDouble,
   Home,
-  Archive,
+  Building,
+  Building2,
+  KeyRound,
+  DoorOpen,
+  Sofa,
+  Lamp,
+  Bath,
+
+  // ── Travel & Luggage ──────────────────────────────────────────────────────
   Luggage,
-  UtensilsCrossed,
-  Globe,
-  Heart,
-  Gem,
-  Anchor,
-  Moon,
-  Users,
+  Archive,
   Backpack,
+  Briefcase,
+  Globe,
+  Globe2,
   Camera,
+  ScanLine,
+
+  // ── People & Social ───────────────────────────────────────────────────────
+  Users,
+  User,
+  UserRound,
+  UserCheck,
+  Baby,
+  Dog,
+  Cat,
+  Handshake,
+  UsersRound,
+  ThumbsUp,
+
+  // ── Infrastructure ────────────────────────────────────────────────────────
+  Warehouse,
+  Factory,
+  School2,
+  Hospital,
 };
 
 export const ICON_NAMES: string[] = Object.keys(ICON_REGISTRY).sort();
@@ -75,4 +270,3 @@ export function renderTypeIcon(iconName: string, size = 13): React.ReactNode {
   const Icon = getIconComponent(iconName);
   return <Icon size={size} aria-hidden="true" />;
 }
-

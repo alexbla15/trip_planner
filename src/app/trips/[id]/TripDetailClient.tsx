@@ -17,6 +17,11 @@ import {
   PenLine,
   Users,
   Lock,
+  LayoutDashboard,
+  BedDouble,
+  Wallet,
+  Plane,
+  MapPin,
 } from "lucide-react";
 import { MoodTagChip } from "@/components/MoodTagChip/MoodTagChip";
 import { NewAttractionModal } from "@/components/NewAttractionModal/NewAttractionModal";
@@ -32,6 +37,7 @@ import { DEFAULT_OPENING_HOURS } from "@/components/NewAttractionModal/attractio
 import { useAuth } from "@/contexts/AuthContext";
 import { TripSharingPanel } from "@/components/TripSharingPanel/TripSharingPanel";
 import { ExpensesPanel } from "@/components/ExpensesPanel/ExpensesPanel";
+import { TripTabBar } from "@/components/TripTabBar";
 import { formatDisplayDate } from "@/lib/formatDate";
 import { currencySymbol, formatPrice } from "@/lib/currencies";
 import type { ResidenceFormData, ResidenceInitialData } from "@/components/AddResidenceModal/AddResidenceModal.types";
@@ -46,6 +52,17 @@ import type {
   OpeningHours,
 } from "@/components/NewAttractionModal/attraction.types";
 import styles from "./TripDetailClient.module.css";
+
+const TRIP_TABS = [
+  { id: "overview",    label: "Overview",    Icon: LayoutDashboard },
+  { id: "attractions", label: "Attractions", Icon: MapPin          },
+  { id: "flights",     label: "Flights",     Icon: Plane           },
+  { id: "residences",  label: "Residences",  Icon: BedDouble       },
+  { id: "expenses",    label: "Expenses",    Icon: Wallet          },
+] as const;
+
+type TripTabId = typeof TRIP_TABS[number]["id"];
+const VALID_TAB_IDS = new Set<string>(TRIP_TABS.map((t) => t.id));
 
 interface TripDetailClientProps {
   tripId: string;
@@ -63,6 +80,20 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   const [attractionsLoading, setAttractionsLoading] = useState(false);
 
   const [page, setPage] = useState(1);
+
+  const [activeTab, setActiveTab] = useState<TripTabId>("overview");
+
+  // Read initial tab from URL on mount (client-side only — no Suspense needed)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+    if (tab && VALID_TAB_IDS.has(tab)) setActiveTab(tab as TripTabId);
+  }, []);
+
+  function switchTab(id: string) {
+    setActiveTab(id as TripTabId);
+    window.history.replaceState({}, "", `?tab=${id}`);
+  }
 
   const [searchModalOpen, setSearchModalOpen]       = useState(false);
   const [modalOpen, setModalOpen]                   = useState(false);
@@ -435,271 +466,289 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
           </div>
         </div>
 
+        <TripTabBar tabs={TRIP_TABS} active={activeTab} onChange={switchTab} />
+
         <div className={styles.container}>
-          {/* Trip overview card */}
-          <div className={styles.card}>
-            <h2 className={styles.sectionHeading}>Trip Overview</h2>
+          <div
+            role="tabpanel"
+            id={`tabpanel-${activeTab}`}
+            aria-labelledby={`tab-${activeTab}`}
+            className={styles.tabPanel}
+          >
+            {activeTab === "overview" && (
+              <>
+                <div className={styles.card}>
+                  <h2 className={styles.sectionHeading}>Trip Overview</h2>
 
-            <dl className={styles.infoGrid}>
-              <div className={styles.infoItem}>
-                <dt className={styles.infoLabel}>
-                  <Globe size={14} aria-hidden="true" />
-                  Country
-                </dt>
-                <dd className={styles.infoValue}>{country}</dd>
-              </div>
+                  <dl className={styles.infoGrid}>
+                    <div className={styles.infoItem}>
+                      <dt className={styles.infoLabel}>
+                        <Globe size={14} aria-hidden="true" />
+                        Country
+                      </dt>
+                      <dd className={styles.infoValue}>{country}</dd>
+                    </div>
 
-              <div className={styles.infoItem}>
-                <dt className={styles.infoLabel}>
-                  <Calendar size={14} aria-hidden="true" />
-                  Dates
-                </dt>
-                <dd className={styles.infoValue}>
-                  {formatDisplayDate(startDate)} – {formatDisplayDate(endDate)}
-                </dd>
-              </div>
+                    <div className={styles.infoItem}>
+                      <dt className={styles.infoLabel}>
+                        <Calendar size={14} aria-hidden="true" />
+                        Dates
+                      </dt>
+                      <dd className={styles.infoValue}>
+                        {formatDisplayDate(startDate)} – {formatDisplayDate(endDate)}
+                      </dd>
+                    </div>
 
-              {budget !== undefined && budget !== null && (
-                <div className={styles.infoItem}>
-                  <dt className={styles.infoLabel}>
-                    <DollarSign size={14} aria-hidden="true" />
-                    Budget
-                  </dt>
-                  <dd className={styles.infoValue}>
-                    {currency && <span className={styles.currencyBadge}>{currencySymbol(currency)}</span>}
-                    {budget.toLocaleString()}
-                  </dd>
-                </div>
-              )}
-
-              <div className={styles.infoItem}>
-                <dt className={styles.infoLabel}>
-                  <MapPinned size={14} aria-hidden="true" />
-                  Attractions
-                </dt>
-                <dd className={styles.infoValue}>{regularAttractions.length} added</dd>
-              </div>
-            </dl>
-
-            {/* People */}
-            {(ownerName || (collaborators ?? []).length > 0) && (
-              <div className={styles.peopleRow}>
-                <span className={styles.peopleLabel}>
-                  <Users size={14} aria-hidden="true" />
-                  People
-                </span>
-                <div className={styles.peopleList}>
-                  {ownerName && (
-                    <div className={styles.personChip}>
-                      <div className={styles.personAvatar} aria-hidden="true">
-                        {ownerAvatarUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={ownerAvatarUrl} alt="" className={styles.personAvatarImg} />
-                        ) : (
-                          ownerName.charAt(0).toUpperCase()
-                        )}
+                    {budget !== undefined && budget !== null && (
+                      <div className={styles.infoItem}>
+                        <dt className={styles.infoLabel}>
+                          <DollarSign size={14} aria-hidden="true" />
+                          Budget
+                        </dt>
+                        <dd className={styles.infoValue}>
+                          {currency && <span className={styles.currencyBadge}>{currencySymbol(currency)}</span>}
+                          {budget.toLocaleString()}
+                        </dd>
                       </div>
-                      <span className={styles.personName}>{ownerName}</span>
-                      <span className={styles.personRole}>Owner</span>
+                    )}
+
+                    <div className={styles.infoItem}>
+                      <dt className={styles.infoLabel}>
+                        <MapPinned size={14} aria-hidden="true" />
+                        Attractions
+                      </dt>
+                      <dd className={styles.infoValue}>{regularAttractions.length} added</dd>
+                    </div>
+                  </dl>
+
+                  {(ownerName || (collaborators ?? []).length > 0) && (
+                    <div className={styles.peopleRow}>
+                      <span className={styles.peopleLabel}>
+                        <Users size={14} aria-hidden="true" />
+                        People
+                      </span>
+                      <div className={styles.peopleList}>
+                        {ownerName && (
+                          <div className={styles.personChip}>
+                            <div className={styles.personAvatar} aria-hidden="true">
+                              {ownerAvatarUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={ownerAvatarUrl} alt="" className={styles.personAvatarImg} />
+                              ) : (
+                                ownerName.charAt(0).toUpperCase()
+                              )}
+                            </div>
+                            <span className={styles.personName}>{ownerName}</span>
+                            <span className={styles.personRole}>Owner</span>
+                          </div>
+                        )}
+                        {(collaborators ?? []).map((c) => (
+                          <div key={c.userId} className={styles.personChip}>
+                            <div className={styles.personAvatar} aria-hidden="true">
+                              {c.avatarUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={c.avatarUrl} alt="" className={styles.personAvatarImg} />
+                              ) : (
+                                c.name.charAt(0).toUpperCase()
+                              )}
+                            </div>
+                            <span className={styles.personName}>{c.name}</span>
+                            <span className={styles.personRole}>Contributor</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
-                  {(collaborators ?? []).map((c) => (
-                    <div key={c.userId} className={styles.personChip}>
-                      <div className={styles.personAvatar} aria-hidden="true">
-                        {c.avatarUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={c.avatarUrl} alt="" className={styles.personAvatarImg} />
-                        ) : (
-                          c.name.charAt(0).toUpperCase()
-                        )}
-                      </div>
-                      <span className={styles.personName}>{c.name}</span>
-                      <span className={styles.personRole}>Contributor</span>
-                    </div>
-                  ))}
                 </div>
-              </div>
-            )}
-          </div>
 
-          {/* Sharing & Privacy panel — owner only */}
-          {isOwner && token && (
-            <div className={styles.sharingSection}>
-              <TripSharingPanel
+                {isOwner && token && (
+                  <div className={styles.sharingSection}>
+                    <TripSharingPanel
+                      trip={trip}
+                      token={token}
+                      onTripUpdate={(updated) => setTrip(updated)}
+                    />
+                  </div>
+                )}
+
+                <CalendarSection
+                  trip={trip}
+                  attractions={attractions}
+                  onAttractionsChange={setAttractions}
+                  token={token ?? ""}
+                  canEdit={canEdit}
+                />
+              </>
+            )}
+
+            {activeTab === "flights" && (
+              <FlightsList
+                flights={flightAttractions}
+                canEdit={canEdit}
+                onAdd={() => setFlightModalOpen(true)}
+                onEdit={(a) => setEditingFlight(a)}
+                onRemove={handleRemoveAttraction}
+                onView={(a) => setViewingAttraction(a)}
+              />
+            )}
+
+            {activeTab === "residences" && (
+              <ResidencesList
+                residences={residenceAttractions}
+                canEdit={canEdit}
+                onAdd={() => setResidenceModalOpen(true)}
+                onEdit={(a) => setEditingResidence(a)}
+                onRemove={handleRemoveAttraction}
+                onView={(a) => setViewingAttraction(a)}
+              />
+            )}
+
+            {activeTab === "expenses" && (
+              <ExpensesPanel
                 trip={trip}
+                attractions={attractions}
+                canEdit={canEdit}
                 token={token}
                 onTripUpdate={(updated) => setTrip(updated)}
+                onAttractionsChange={setAttractions}
               />
-            </div>
-          )}
+            )}
 
-          {/* Flights section */}
-          <FlightsList
-            flights={flightAttractions}
-            canEdit={canEdit}
-            onAdd={() => setFlightModalOpen(true)}
-            onEdit={(a) => setEditingFlight(a)}
-            onRemove={handleRemoveAttraction}
-            onView={(a) => setViewingAttraction(a)}
-          />
-
-          {/* Residences section */}
-          <ResidencesList
-            residences={residenceAttractions}
-            canEdit={canEdit}
-            onAdd={() => setResidenceModalOpen(true)}
-            onEdit={(a) => setEditingResidence(a)}
-            onRemove={handleRemoveAttraction}
-            onView={(a) => setViewingAttraction(a)}
-          />
-
-          {/* Expenses panel */}
-          <ExpensesPanel
-            trip={trip}
-            attractions={attractions}
-            canEdit={canEdit}
-            token={token}
-            onTripUpdate={(updated) => setTrip(updated)}
-            onAttractionsChange={setAttractions}
-          />
-
-          {/* Attractions card */}
-          <div className={styles.card}>
-            <div className={styles.attractionsHeader}>
-              <h2 className={styles.sectionHeading}>Attractions</h2>
-              {canEdit && <button
-                className={styles.addBtn}
-                type="button"
-                onClick={() => setSearchModalOpen(true)}
-                aria-label="Add an attraction to this trip"
-              >
-                <Plus size={14} aria-hidden="true" />
-                Add Attraction
-              </button>}
-            </div>
-
-            {attractionsLoading ? (
-              <div className={styles.attractionsLoading}>
-                <Loader2 size={22} className={styles.loadingIcon} aria-hidden="true" />
-              </div>
-            ) : regularAttractions.length === 0 ? (
-              <div className={styles.emptyAttractions}>
-                <MapPinned size={36} className={styles.emptyIcon} aria-hidden="true" />
-                <p className={styles.emptyText}>No attractions added yet.</p>
-                <p className={styles.emptySubtext}>
-                  Start building your itinerary by adding places to visit.
-                </p>
-              </div>
-            ) : (
+            {activeTab === "attractions" && (
               <>
-              <ul className={styles.attractionList} aria-label="Attraction list">
-                {paginatedAttractions.map((attraction) => {
-                  const firstType = attraction.types[0] as AttractionType | undefined;
-                  const icon = firstType ? ICONS[firstType] : null;
-                  const durationLabel = attraction.durationValue
-                    ? `${attraction.durationValue} ${attraction.durationUnit ?? "h"}` : null;
-                  const priceLabel = attraction.price != null ? formatPrice(attraction.price, attraction.currency ?? "USD") : null;
-                  const metaLine = [
-                    attraction.types.join(", "),
-                    attraction.city || null,
-                    durationLabel,
-                    priceLabel,
-                  ].filter(Boolean).join(" · ");
+                <div className={styles.card}>
+                  <div className={styles.attractionsHeader}>
+                    <h2 className={styles.sectionHeading}>Attractions</h2>
+                    {canEdit && (
+                      <button
+                        className={styles.addBtn}
+                        type="button"
+                        onClick={() => setSearchModalOpen(true)}
+                        aria-label="Add an attraction to this trip"
+                      >
+                        <Plus size={14} aria-hidden="true" />
+                        Add Attraction
+                      </button>
+                    )}
+                  </div>
 
-                  return (
-                    <li
-                      key={attraction._id}
-                      className={styles.attractionItem}
-                      onClick={() => setViewingAttraction(attraction)}
-                      role="button"
-                      tabIndex={0}
-                      aria-label={`View details for ${attraction.name}`}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setViewingAttraction(attraction); } }}
-                    >
-                      <div className={styles.attractionIconCircle} aria-hidden="true">
-                        {icon}
-                      </div>
-                      <div className={styles.attractionInfo}>
-                        <span className={styles.attractionName}>{attraction.name}</span>
-                        <span className={styles.attractionMeta}>{metaLine}</span>
-                        {attraction.notes && (
-                          <span className={styles.attractionNotes}>{attraction.notes}</span>
-                        )}
-                      </div>
-                      {attraction.photoUrl?.startsWith("http") && (
-                        <div className={styles.attractionThumb} aria-hidden="true">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={attraction.photoUrl} alt="" className={styles.attractionThumbImg} />
-                        </div>
-                      )}
-                      {canEdit && (
-                        <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
+                  {attractionsLoading ? (
+                    <div className={styles.attractionsLoading}>
+                      <Loader2 size={22} className={styles.loadingIcon} aria-hidden="true" />
+                    </div>
+                  ) : regularAttractions.length === 0 ? (
+                    <div className={styles.emptyAttractions}>
+                      <MapPinned size={36} className={styles.emptyIcon} aria-hidden="true" />
+                      <p className={styles.emptyText}>No attractions added yet.</p>
+                      <p className={styles.emptySubtext}>
+                        Start building your itinerary by adding places to visit.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <ul className={styles.attractionList} aria-label="Attraction list">
+                        {paginatedAttractions.map((attraction) => {
+                          const firstType = attraction.types[0] as AttractionType | undefined;
+                          const icon = firstType ? ICONS[firstType] : null;
+                          const durationLabel = attraction.durationValue
+                            ? `${attraction.durationValue} ${attraction.durationUnit ?? "h"}` : null;
+                          const priceLabel = attraction.price != null ? formatPrice(attraction.price, attraction.currency ?? "USD") : null;
+                          const metaLine = [
+                            attraction.types.join(", "),
+                            attraction.city || null,
+                            durationLabel,
+                            priceLabel,
+                          ].filter(Boolean).join(" · ");
+
+                          return (
+                            <li
+                              key={attraction._id}
+                              className={styles.attractionItem}
+                              onClick={() => setViewingAttraction(attraction)}
+                              role="button"
+                              tabIndex={0}
+                              aria-label={`View details for ${attraction.name}`}
+                              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setViewingAttraction(attraction); } }}
+                            >
+                              <div className={styles.attractionIconCircle} aria-hidden="true">
+                                {icon}
+                              </div>
+                              <div className={styles.attractionInfo}>
+                                <span className={styles.attractionName}>{attraction.name}</span>
+                                <span className={styles.attractionMeta}>{metaLine}</span>
+                                {attraction.notes && (
+                                  <span className={styles.attractionNotes}>{attraction.notes}</span>
+                                )}
+                              </div>
+                              {attraction.photoUrl?.startsWith("http") && (
+                                <div className={styles.attractionThumb} aria-hidden="true">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={attraction.photoUrl} alt="" className={styles.attractionThumbImg} />
+                                </div>
+                              )}
+                              {canEdit && (
+                                <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
+                                  <button
+                                    type="button"
+                                    className={styles.editBtn}
+                                    onClick={() => setEditingAttraction(attraction)}
+                                    aria-label={`Edit ${attraction.name}`}
+                                  >
+                                    <PenLine size={14} aria-hidden="true" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={styles.removeBtn}
+                                    onClick={() => handleRemoveAttraction(attraction._id)}
+                                    aria-label={`Remove ${attraction.name}`}
+                                  >
+                                    <Trash2 size={14} aria-hidden="true" />
+                                  </button>
+                                </div>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                      {totalPages > 1 && (
+                        <div className={styles.pagination}>
                           <button
                             type="button"
-                            className={styles.editBtn}
-                            onClick={() => setEditingAttraction(attraction)}
-                            aria-label={`Edit ${attraction.name}`}
+                            className={`${styles.paginationBtn} ${page === 1 ? styles.paginationBtnDisabled : ""}`}
+                            onClick={() => setPage((p) => p - 1)}
+                            disabled={page === 1}
+                            aria-label="Go to previous page"
                           >
-                            <PenLine size={14} aria-hidden="true" />
+                            <ChevronLeft size={14} aria-hidden="true" />
+                            Previous
                           </button>
+                          <span
+                            className={styles.paginationInfo}
+                            aria-live="polite"
+                            aria-atomic="true"
+                          >
+                            Page {page} of {totalPages}
+                          </span>
                           <button
                             type="button"
-                            className={styles.removeBtn}
-                            onClick={() => handleRemoveAttraction(attraction._id)}
-                            aria-label={`Remove ${attraction.name}`}
+                            className={`${styles.paginationBtn} ${page === totalPages ? styles.paginationBtnDisabled : ""}`}
+                            onClick={() => setPage((p) => p + 1)}
+                            disabled={page === totalPages}
+                            aria-label="Go to next page"
                           >
-                            <Trash2 size={14} aria-hidden="true" />
+                            Next
+                            <ChevronRight size={14} aria-hidden="true" />
                           </button>
                         </div>
                       )}
-                    </li>
-                  );
-                })}
-              </ul>
-              {totalPages > 1 && (
-                <div className={styles.pagination}>
-                  <button
-                    type="button"
-                    className={`${styles.paginationBtn} ${page === 1 ? styles.paginationBtnDisabled : ""}`}
-                    onClick={() => setPage((p) => p - 1)}
-                    disabled={page === 1}
-                    aria-label="Go to previous page"
-                  >
-                    <ChevronLeft size={14} aria-hidden="true" />
-                    Previous
-                  </button>
-                  <span
-                    className={styles.paginationInfo}
-                    aria-live="polite"
-                    aria-atomic="true"
-                  >
-                    Page {page} of {totalPages}
-                  </span>
-                  <button
-                    type="button"
-                    className={`${styles.paginationBtn} ${page === totalPages ? styles.paginationBtnDisabled : ""}`}
-                    onClick={() => setPage((p) => p + 1)}
-                    disabled={page === totalPages}
-                    aria-label="Go to next page"
-                  >
-                    Next
-                    <ChevronRight size={14} aria-hidden="true" />
-                  </button>
+                    </>
+                  )}
                 </div>
-              )}
+
               </>
             )}
           </div>
         </div>
-
-        {/* ── Calendar / Itinerary section ── */}
-        <CalendarSection
-          trip={trip}
-          attractions={attractions}
-          onAttractionsChange={setAttractions}
-          token={token ?? ""}
-          canEdit={canEdit}
-        />
       </main>
 
       <AttractionSearchModal

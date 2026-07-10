@@ -18,21 +18,25 @@ interface UseAttractionTypesResult {
   findType: (typeName: string) => AttractionTypeRecord | undefined;
 }
 
+// null = never fetched successfully; [] = fetched, zero results (valid empty state)
 let cache: AttractionTypeRecord[] | null = null;
 let cachePromise: Promise<AttractionTypeRecord[]> | null = null;
 
 async function fetchTypes(): Promise<AttractionTypeRecord[]> {
-  if (cache) return cache;
+  if (cache !== null) return cache;
   if (!cachePromise) {
     cachePromise = fetch("/api/attraction-types")
-      .then((r) => r.json() as Promise<AttractionTypeRecord[]>)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json() as Promise<AttractionTypeRecord[]>;
+      })
       .then((data) => {
         cache = Array.isArray(data) ? data : [];
         return cache;
       })
       .catch(() => {
-        cachePromise = null;
-        return [];
+        cachePromise = null; // allow retry on next render
+        return [];           // return empty for this request only; cache stays null
       });
   }
   return cachePromise;
@@ -46,10 +50,10 @@ export function invalidateAttractionTypesCache() {
 
 export function useAttractionTypes(): UseAttractionTypesResult {
   const [types, setTypes] = useState<AttractionTypeRecord[]>(cache ?? []);
-  const [loading, setLoading] = useState(!cache);
+  const [loading, setLoading] = useState(cache === null);
 
   useEffect(() => {
-    if (cache) { setTypes(cache); setLoading(false); return; }
+    if (cache !== null) { setTypes(cache); setLoading(false); return; }
     fetchTypes().then((data) => { setTypes(data); setLoading(false); });
   }, []);
 

@@ -1,0 +1,1 @@
+export { TripTabBar } from "./TripTabBar";

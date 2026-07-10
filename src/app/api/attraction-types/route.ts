@@ -1,16 +1,21 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongoose";
 import { AttractionType, formatAttractionType } from "@/models/AttractionType";
+import "@/models/AttractionCategory"; // register model so populate("categoryId") resolves
 import { User } from "@/models/User";
 import { getUserFromRequest } from "@/lib/auth";
 
-/** Public — returns all attraction types sorted by category order then display order. */
+/** Public — returns all attraction types sorted by display order, with category data populated. */
 export async function GET() {
   try {
     await dbConnect();
     const types = await AttractionType.find().sort({ order: 1 });
+    // populate is best-effort: if the cached schema (hot-reload) doesn't know categoryId yet,
+    // formatAttractionType falls back to the embedded legacy fields on each document.
+    try { await AttractionType.populate(types, { path: "categoryId" }); } catch { /* skip */ }
     return NextResponse.json(types.map(formatAttractionType));
-  } catch {
+  } catch (err) {
+    console.error("[attraction-types GET]", err);
     return NextResponse.json({ error: "Failed to fetch attraction types" }, { status: 500 });
   }
 }
@@ -27,24 +32,22 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json() as {
-      name?: string; category?: string; icon?: string;
-      categoryIcon?: string; color?: string; subtype?: string; order?: number;
+      name?: string; categoryId?: string; icon?: string; subtype?: string; order?: number;
     };
 
-    const { name, category, icon, categoryIcon, color, subtype, order } = body;
-    if (!name?.trim() || !category?.trim() || !icon?.trim() || !categoryIcon?.trim() || !color?.trim()) {
-      return NextResponse.json({ error: "name, category, icon, categoryIcon, and color are required" }, { status: 400 });
+    const { name, categoryId, icon, subtype, order } = body;
+    if (!name?.trim() || !categoryId?.trim() || !icon?.trim()) {
+      return NextResponse.json({ error: "name, categoryId, and icon are required" }, { status: 400 });
     }
 
     const created = await AttractionType.create({
-      name: name.trim(),
-      category: category.trim(),
-      icon: icon.trim(),
-      categoryIcon: categoryIcon.trim(),
-      color: color.trim(),
-      subtype: (subtype as "flight" | "residence" | undefined) || undefined,
-      order: order ?? 0,
+      name:       name.trim(),
+      categoryId: categoryId.trim(),
+      icon:       icon.trim(),
+      subtype:    (subtype as "flight" | "residence" | undefined) || undefined,
+      order:      order ?? 0,
     });
+    try { await created.populate("categoryId"); } catch { /* skip if schema stale in dev */ }
 
     return NextResponse.json(formatAttractionType(created), { status: 201 });
   } catch (err) {
