@@ -31,6 +31,8 @@ export interface Trip {
   collaborators: TripCollaborator[];
   isPrivate: boolean;
   expenses?: TripExpense[];
+  calDayStart?: number;
+  calDayEnd?: number;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -1,6 +1,6 @@
 # Task: Attraction Search & Filter in Trip Detail
 
-Status: reviewing
+Status: done
 
 Track: A
 Track reason: New UI surface — search input + category filter tabs/chips inside the existing attractions tab panel
@@ -30,6 +30,9 @@ Users can quickly find attractions in a trip by typing a name or filtering by at
 - Sorting attractions (separate future task)
 - Saving filter state to URL or localStorage
 - Server-side search
+
+## Completion Summary
+Real-time text search and category filter chips added to the Attractions tab in TripDetailClient. Both filters compose client-side. Pagination resets on filter change. Category chips hidden for single-category trips. Closed 2026-07-11.
 
 ## Implementation Notes
 - Files created/modified: `src/app/trips/[id]/TripDetailClient.tsx`, `src/app/trips/[id]/TripDetailClient.module.css`

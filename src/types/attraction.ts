@@ -21,7 +21,7 @@ export interface Attraction {
   createdAt?: string;
   updatedAt?: string;
   // ── Subtype discriminator ──────────────────────────────────────────────────
-  subtype?: "residence" | "flight";
+  subtype?: "residence" | "flight" | "custom-slot";
   // Residence-specific fields
   residenceType?: "Hotel" | "Apartment" | "Hostel" | "Villa" | "Other";
   checkInDate?: string;   // "YYYY-MM-DD"

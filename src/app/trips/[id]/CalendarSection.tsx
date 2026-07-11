@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, TriangleAlert } from "lucide-react";
+import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, TriangleAlert, Plus, Coffee } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { useAttractionTypes } from "@/hooks/useAttractionTypes";
 import { formatPrice } from "@/lib/currencies";
@@ -17,6 +17,8 @@ import {
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
 import { AttractionDetailModal } from "@/components/AttractionDetailModal/AttractionDetailModal";
+import { AddCustomSlotModal } from "@/components/AddCustomSlotModal/AddCustomSlotModal";
+import type { CustomSlotFormData } from "@/components/AddCustomSlotModal/AddCustomSlotModal.types";
 import { computeAlerts } from "./CalendarSection.utils";
 import type { ScheduleAlert } from "./CalendarSection.utils";
 import styles from "./CalendarSection.module.css";
@@ -237,10 +239,12 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   const [showMap, setShowMap]                  = useState(false);
   const [dismissedAlerts, setDismissedAlerts]  = useState<Set<string>>(new Set());
   const [viewingAttraction, setViewingAttraction] = useState<Attraction | null>(null);
+  const [customSlotModalOpen, setCustomSlotModalOpen] = useState(false);
+  const [editingCustomSlot, setEditingCustomSlot]     = useState<Attraction | null>(null);
 
-  // Day-range controls (view only — persisted locally)
-  const [dayStart, setDayStart]   = useState(DEFAULT_DAY_START);
-  const [dayEnd, setDayEnd]       = useState(DEFAULT_DAY_END);
+  // Day-range controls — initialized from DB and saved back on change
+  const [dayStart, setDayStart]   = useState(trip.calDayStart ?? DEFAULT_DAY_START);
+  const [dayEnd, setDayEnd]       = useState(trip.calDayEnd   ?? DEFAULT_DAY_END);
 
   // Sidebar
   const [filter, setFilter]       = useState<SidebarFilter>("unscheduled");
@@ -254,9 +258,11 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   // Clear dismissed alerts on every mutation so re-triggered conditions re-appear
   useEffect(() => { setDismissedAlerts(new Set()); }, [local]);
 
-  const days        = trip.startDate && trip.endDate ? getTripDays(trip.startDate, trip.endDate) : [];
-  const scheduled   = local.filter((a) => !!a.plannedDate);
-  const unscheduled = local.filter((a) => !a.plannedDate);
+  const days = trip.startDate && trip.endDate ? getTripDays(trip.startDate, trip.endDate) : [];
+  // Custom slots are always scheduled (schedule-only entries) — exclude from sidebar counts
+  const regularAttractions = local.filter((a) => a.subtype !== "custom-slot");
+  const scheduled   = regularAttractions.filter((a) => !!a.plannedDate);
+  const unscheduled = regularAttractions.filter((a) => !a.plannedDate);
   const hourSlots   = makeHourSlots(dayStart, dayEnd);
 
   // Convert each scheduled attraction from its own currency to the trip currency before summing
@@ -292,12 +298,13 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   }, [local, trip.currency]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sidebarList = useMemo(() => {
-    let list = local;
+    // Custom slots are not shown in the sidebar — they're calendar-only entries
+    let list = regularAttractions;
     if (filter === "scheduled")   list = scheduled;
     if (filter === "unscheduled") list = unscheduled;
     const q = search.trim().toLowerCase();
     return q ? list.filter((a) => a.name.toLowerCase().includes(q)) : list;
-  }, [local, scheduled, unscheduled, filter, search]);
+  }, [regularAttractions, scheduled, unscheduled, filter, search]);
 
   const alerts: ScheduleAlert[] = useMemo(
     () => (canEdit ? computeAlerts(local, dayStart, dayEnd) : []),
@@ -425,9 +432,92 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
     });
   }
 
+  async function handleCustomSlotSave(data: CustomSlotFormData) {
+    if (!token) return;
+    try {
+      const res = await fetch(`/api/trips/${trip._id}/attractions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name:                data.name,
+          subtype:             "custom-slot",
+          types:               data.types,
+          price:               data.price,
+          currency:            data.currency,
+          notes:               data.notes,
+          plannedDate:         data.plannedDate,
+          plannedTime:         data.plannedTime,
+          actualDurationValue: data.actualDurationValue,
+          actualDurationUnit:  data.actualDurationUnit,
+        }),
+      });
+      if (res.ok) {
+        const created = (await res.json()) as Attraction;
+        applyLocal([created, ...local]);
+      }
+    } catch { /* silent */ }
+  }
+
+  async function handleCustomSlotUpdate(data: CustomSlotFormData) {
+    if (!token || !editingCustomSlot) return;
+    const id = editingCustomSlot._id;
+    setEditingCustomSlot(null);
+    try {
+      const res = await fetch(`/api/trips/${trip._id}/attractions/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name:                data.name,
+          typeNames:           data.types,
+          price:               data.price,
+          currency:            data.currency,
+          notes:               data.notes,
+          plannedDate:         data.plannedDate,
+          plannedTime:         data.plannedTime,
+          actualDurationValue: data.actualDurationValue,
+          actualDurationUnit:  data.actualDurationUnit,
+        }),
+      });
+      if (res.ok) {
+        const updated = (await res.json()) as Attraction;
+        applyLocal(local.map((a) => a._id !== updated._id ? a : updated));
+      }
+    } catch { /* silent */ }
+  }
+
+  async function handleDeleteCustomSlot(id: string) {
+    if (!token) return;
+    try {
+      await fetch(`/api/trips/${trip._id}/attractions/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      applyLocal(local.filter((a) => a._id !== id));
+    } catch { /* silent */ }
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   const hasPending = pending.size > 0;
+
+  function saveCalRange(start: number, end: number) {
+    if (!token) return;
+    fetch(`/api/trips/${trip._id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ calDayStart: start, calDayEnd: end }),
+    }).catch(() => { /* ignore — not critical */ });
+  }
+
+  function handleDayStartChange(h: number) {
+    setDayStart(h);
+    saveCalRange(h, dayEnd);
+  }
+
+  function handleDayEndChange(h: number) {
+    setDayEnd(h);
+    saveCalRange(dayStart, h);
+  }
 
   const headerProps = {
     totalSpend, trip, canEdit,
@@ -435,22 +525,50 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
     dayStart, dayEnd,
     showMap,
     onSave: handleSaveAll,
-    onDayStartChange: setDayStart,
-    onDayEndChange: setDayEnd,
+    onDayStartChange: handleDayStartChange,
+    onDayEndChange: handleDayEndChange,
     onToggleMap: () => setShowMap((v) => !v),
+    onAddCustomSlot: () => setCustomSlotModalOpen(true),
   };
+
+  // Shared modal — must be rendered in BOTH branches so the modal works even
+  // when there are no regular attractions yet (early-return branch).
+  const customSlotModal = (
+    <AddCustomSlotModal
+      isOpen={customSlotModalOpen || !!editingCustomSlot}
+      onClose={() => { setCustomSlotModalOpen(false); setEditingCustomSlot(null); }}
+      onSave={editingCustomSlot ? handleCustomSlotUpdate : handleCustomSlotSave}
+      tripStartDate={trip.startDate}
+      tripEndDate={trip.endDate}
+      currency={trip.currency ?? "USD"}
+      initialData={editingCustomSlot ? {
+        name:                editingCustomSlot.name,
+        plannedDate:         editingCustomSlot.plannedDate  ?? "",
+        plannedTime:         editingCustomSlot.plannedTime  ?? "",
+        actualDurationValue: editingCustomSlot.actualDurationValue ?? editingCustomSlot.durationValue ?? "",
+        actualDurationUnit:  editingCustomSlot.actualDurationUnit  ?? editingCustomSlot.durationUnit  ?? "hours",
+        types:               editingCustomSlot.types,
+        price:               editingCustomSlot.price  ?? null,
+        currency:            editingCustomSlot.currency ?? trip.currency ?? "USD",
+        notes:               editingCustomSlot.notes   ?? "",
+      } : undefined}
+    />
+  );
 
   if (attractions.length === 0) {
     return (
-      <div className={styles.card}>
-        <Header {...headerProps} hasPending={false} saving={false} savedOk={false} onSave={() => {}} />
-        <div className={styles.emptyState}>
-          <Calendar size={36} className={styles.emptyIcon} aria-hidden="true" />
-          <p className={styles.emptyText}>
-            {canEdit ? "Add attractions to start planning your itinerary." : "No itinerary scheduled yet."}
-          </p>
+      <>
+        <div className={styles.card}>
+          <Header {...headerProps} hasPending={false} saving={false} savedOk={false} onSave={() => {}} />
+          <div className={styles.emptyState}>
+            <Calendar size={36} className={styles.emptyIcon} aria-hidden="true" />
+            <p className={styles.emptyText}>
+              {canEdit ? "Add attractions to start planning your itinerary." : "No itinerary scheduled yet."}
+            </p>
+          </div>
         </div>
-      </div>
+        {customSlotModal}
+      </>
     );
   }
 
@@ -593,10 +711,12 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                       {/* Side-by-side overlap layout */}
                       {layout.map(({ attraction: a, col, numCols }) => {
                         if (!a.plannedTime) return null;
-                        const top       = slotTop(a.plannedTime, dayStart);
-                        const height    = cardPx(a);
-                        const color     = colorForType(a.types?.[0] ?? "");
-                        const icon      = renderTypeIcon(findType(a.types?.[0] ?? "")?.icon ?? "");
+                        const top        = slotTop(a.plannedTime, dayStart);
+                        const height     = cardPx(a);
+                        const isCustomSlot = a.subtype === "custom-slot";
+                        const color        = isCustomSlot ? "var(--color-accent)" : colorForType(a.types?.[0] ?? "");
+                        const rawIcon      = renderTypeIcon(findType(a.types?.[0] ?? "")?.icon ?? "");
+                        const icon         = (!rawIcon && isCustomSlot) ? <Coffee size={10} /> : rawIcon;
                         const isPending = pending.has(a._id);
                         const blockW    = availW / numCols;
                         const blockL    = LABEL_W + col * blockW;
@@ -609,7 +729,11 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                           : a.name;
 
                         function handleBlockClick(e: React.MouseEvent) {
-                          // Subtype entries (residence, flight) always open detail modal
+                          if (isCustomSlot) {
+                            if (canEdit) setEditingCustomSlot(a);
+                            else setViewingAttraction(a);
+                            return;
+                          }
                           if (a.subtype || isFlight) { setViewingAttraction(a); return; }
                           if (canEdit) openPopup(e, a);
                           else setViewingAttraction(a);
@@ -618,7 +742,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                         return (
                           <div
                             key={a._id}
-                            className={`${styles.attractionBlock} ${isPending ? styles.blockPending : ""} ${isCompact ? styles.blockCompact : ""}`}
+                            className={`${styles.attractionBlock} ${isPending ? styles.blockPending : ""} ${isCompact ? styles.blockCompact : ""} ${isCustomSlot ? styles.blockFreeSlot : ""}`}
                             style={{
                               ["--block-top"    as string]: `${top}px`,
                               ["--block-height" as string]: `${height}px`,
@@ -635,7 +759,11 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                                 handleBlockClick(e as unknown as React.MouseEvent);
                               }
                             }}
-                            aria-label={`${a.name} at ${a.plannedTime}${!a.subtype && !isFlight && canEdit ? " — click to edit" : " — click to view details"}`}
+                            aria-label={`${a.name} at ${a.plannedTime}${
+                              isCustomSlot && canEdit ? " — click to edit" :
+                              !a.subtype && !isFlight && canEdit ? " — click to edit time" :
+                              " — click to view details"
+                            }`}
                           >
                             <div className={styles.blockTopRow}>
                               {icon && <span className={styles.blockIcon} aria-hidden="true">{icon}</span>}
@@ -644,7 +772,11 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                             <span className={styles.blockName}>{blockLabel}</span>
                             {canEdit && (
                               <button type="button" className={styles.unassignBtnBlock}
-                                onClick={(e) => { e.stopPropagation(); handleUnassign(a._id); }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (isCustomSlot) handleDeleteCustomSlot(a._id);
+                                  else handleUnassign(a._id);
+                                }}
                                 aria-label={`Remove ${a.name}`}>
                                 <X size={9} aria-hidden="true" />
                               </button>
@@ -768,6 +900,8 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
         attraction={viewingAttraction}
         onClose={() => setViewingAttraction(null)}
       />
+
+      {customSlotModal}
     </>
   );
 }
@@ -788,6 +922,7 @@ interface HeaderProps {
   onDayStartChange: (h: number) => void;
   onDayEndChange: (h: number) => void;
   onToggleMap: () => void;
+  onAddCustomSlot: () => void;
 }
 
 function Header({
@@ -795,7 +930,7 @@ function Header({
   hasPending, saving, savedOk,
   dayStart, dayEnd,
   showMap,
-  onSave, onDayStartChange, onDayEndChange, onToggleMap,
+  onSave, onDayStartChange, onDayEndChange, onToggleMap, onAddCustomSlot,
 }: HeaderProps) {
   return (
     <div className={styles.sectionHeadingRow}>
@@ -823,6 +958,13 @@ function Header({
       </div>
 
       <div className={styles.summaryBadges}>
+        {canEdit && (
+          <button type="button" className={styles.addFreeSlotBtn} onClick={onAddCustomSlot}>
+            <Plus size={13} aria-hidden="true" />
+            Custom time-slot
+          </button>
+        )}
+
         {trip.budget ? (
           <div className={`${styles.budgetWidget} ${totalSpend > trip.budget ? styles.budgetWidgetOver : ""}`}>
             <div className={styles.budgetWidgetRow}>

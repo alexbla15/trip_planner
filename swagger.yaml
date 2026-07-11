@@ -154,6 +154,16 @@ components:
           type: boolean
           default: false
           description: When true, the trip is visible only to the owner and collaborators.
+        calDayStart:
+          type: integer
+          minimum: 0
+          maximum: 23
+          description: First hour shown in the calendar day view (0–23). Persisted per trip.
+        calDayEnd:
+          type: integer
+          minimum: 1
+          maximum: 24
+          description: Last hour shown in the calendar day view (1–24, must be > calDayStart).
         createdAt:
           type: string
           format: date-time
@@ -201,6 +211,16 @@ components:
         isPrivate:
           type: boolean
           description: Set to true to restrict visibility to owner and collaborators only.
+        calDayStart:
+          type: integer
+          minimum: 0
+          maximum: 23
+          description: First hour shown in the calendar day view.
+        calDayEnd:
+          type: integer
+          minimum: 1
+          maximum: 24
+          description: Last hour shown in the calendar day view (must be > calDayStart).
 
     # --- ATTRACTION SCHEMAS ---
     OpeningHoursDay:
@@ -337,7 +357,7 @@ components:
         subtype:
           type: string
           nullable: true
-          enum: [residence, flight]
+          enum: [residence, flight, custom-slot]
           description: Distinguishes special attraction types from generic ones. Absent for regular attractions.
         # --- Residence-specific fields (present when subtype = "residence") ---
         residenceType:
@@ -430,10 +450,10 @@ components:
           example: EUR
         openingHours:
           type: object
-        # Subtype fields — include when creating residence or flight entries
+        # Subtype fields — include when creating residence, flight, or custom-slot (custom time-slot) entries
         subtype:
           type: string
-          enum: [residence, flight]
+          enum: [residence, flight, custom-slot]
         residenceType:
           type: string
           enum: [Hotel, Apartment, Hostel, Villa, Other]

@@ -1,6 +1,6 @@
 # Task: Design Overhaul — Impressive, Professional & Light Mode Contrast
 
-Status: reviewing
+Status: done
 
 Track: A
 Track reason: Broad visual redesign — new color palette values, elevated component aesthetics, contrast improvements; affects the design system foundation and every screen.
@@ -144,6 +144,9 @@ Apply these by updating existing CSS property values only:
 ### 7. Dark Mode — Do Not Regress
 
 The `[data-theme="dark"]` block in `globals.css` must **not** be touched. The updated `:root` tokens do not cascade into dark mode (dark mode overrides everything). Verify after changes that dark mode still looks correct.
+
+## Completion Summary
+Light-mode color tokens updated to meet WCAG AA across all text/bg pairs. Shadow tokens deepened for visual elevation. Letter-spacing applied to section and hero headings across all pages. Navbar border strengthened. Dark mode untouched. Closed 2026-07-11.
 
 ## Implementation Notes
 

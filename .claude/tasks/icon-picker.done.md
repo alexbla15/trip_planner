@@ -1,6 +1,6 @@
 # Task: Searchable Icon Picker
 
-Status: reviewing
+Status: done
 
 Track: A
 Track reason: New visual component — icon grid with real-time search, no existing pattern in the design system
@@ -164,6 +164,9 @@ Remove `ChevronDown` from AdminClient imports only if it becomes unused after re
 - Trigger: `<button type="button">`, `aria-expanded`, `aria-haspopup="true"`
 - Search input: `aria-label="Search icons"`
 - Each icon cell: `aria-label={iconName}`, `aria-selected="true"` when selected
+
+## Completion Summary
+Searchable icon picker implemented with visual grid, real-time search, keyboard navigation (arrows/Enter/Escape), and accessible attributes. Replaces both native `<select>` elements in AdminClient. Icon utilities moved to `src/components/IconPicker/`; `src/lib/attractionIcons.tsx` becomes a thin re-export. Closed 2026-07-11.
 
 ## Implementation Notes
 - Files created/modified:

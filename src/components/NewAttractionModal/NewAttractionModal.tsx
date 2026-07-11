@@ -8,7 +8,7 @@ import {
   type ChangeEvent,
 } from "react";
 import { createPortal } from "react-dom";
-import { X, MapPin, Clock, ChevronDown, ChevronLeft, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check, FileText, ImageIcon } from "lucide-react";
+import { X, MapPin, Clock, ChevronDown, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check, FileText, ImageIcon } from "lucide-react";
 import type {
   AttractionFormData,
   Coordinates,
@@ -22,9 +22,7 @@ import {
   DAY_KEYS,
 } from "./attraction.constants";
 import { CurrencySelect } from "@/components/CurrencySelect/CurrencySelect";
-import { AttractionTypeChip } from "./AttractionTypeChip";
-import { useAttractionTypes } from "@/hooks/useAttractionTypes";
-import { getIconComponent } from "@/components/IconPicker";
+import { AttractionTypePicker } from "@/components/AttractionTypePicker/AttractionTypePicker";
 import { MapPicker } from "./MapPicker";
 import { OpeningHoursGrid } from "./OpeningHoursGrid";
 import styles from "./NewAttractionModal.module.css";
@@ -52,7 +50,6 @@ interface FieldErrors {
 
 export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, initialData }: NewAttractionModalProps) {
   const isEditMode = Boolean(initialData);
-  const { categories, byCategory } = useAttractionTypes();
 
   const [name, setName] = useState("");
   const [country, setCountry] = useState(defaultCountry ?? "");
@@ -90,7 +87,6 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
   const [currency, setCurrency] = useState("USD");
   const [openingHours, setOpeningHours] = useState<OpeningHours>(buildInitialHours);
   const [is24h, setIs24h]               = useState(false);
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -129,7 +125,6 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
     setErrors({});
     setTouched({});
     setIs24h(false);
-    setActiveCategory(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
@@ -412,67 +407,15 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
               Type{" "}
               <span className={styles.required} aria-hidden="true">*</span>
             </span>
-            <div className={styles.typePicker}>
-              {activeCategory === null ? (
-                /* ── Category view ── */
-                <div className={styles.categoryChips} role="group" aria-label="Attraction categories">
-                  {categories.map((cat) => {
-                    const catTypes = byCategory[cat] ?? [];
-                    const selCount = catTypes.filter((t) => selectedTypes.includes(t.name)).length;
-                    const CatIcon = getIconComponent(catTypes[0]?.categoryIcon ?? "Globe");
-                    return (
-                      <button
-                        key={cat}
-                        type="button"
-                        className={`${styles.categoryChip} ${selCount > 0 ? styles.categoryChipActive : ""}`}
-                        onClick={() => setActiveCategory(cat)}
-                        aria-pressed={selCount > 0}
-                      >
-                        <CatIcon size={14} aria-hidden="true" />
-                        {cat}
-                        {selCount > 0 && (
-                          <span className={styles.categoryBadge} aria-label={`${selCount} selected`}>
-                            {selCount}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                /* ── Type view ── */
-                <div>
-                  <button
-                    type="button"
-                    className={styles.backBtn}
-                    onClick={() => setActiveCategory(null)}
-                  >
-                    <ChevronLeft size={13} aria-hidden="true" />
-                    All categories
-                  </button>
-                  <p className={styles.categoryTitle}>{activeCategory}</p>
-                  <div
-                    className={styles.chipGroup}
-                    role="group"
-                    aria-labelledby="types-label"
-                    aria-describedby={touched.types && errors.types ? "error-types" : undefined}
-                  >
-                    {(byCategory[activeCategory] ?? []).map((typeRecord) => (
-                      <AttractionTypeChip
-                        key={typeRecord.name}
-                        type={typeRecord.name}
-                        iconName={typeRecord.icon}
-                        selected={selectedTypes.includes(typeRecord.name)}
-                        onToggle={(t) => {
-                          toggleType(t);
-                          setTouched((prev) => ({ ...prev, types: true }));
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            <AttractionTypePicker
+              selectedTypes={selectedTypes}
+              onToggle={(t) => {
+                toggleType(t);
+                setTouched((prev) => ({ ...prev, types: true }));
+              }}
+              labelId="types-label"
+              errorId={touched.types && errors.types ? "error-types" : undefined}
+            />
             {touched.types && errors.types && (
               <p id="error-types" className={styles.errorMsg} role="alert">
                 <AlertCircle size={12} aria-hidden="true" />

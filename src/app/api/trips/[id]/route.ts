@@ -62,6 +62,7 @@ export async function PUT(req: Request, { params }: RouteContext) {
     const {
       name, cities, country, coverImage, startDate, endDate,
       budget, currency, moods, notes, isPrivate,
+      calDayStart, calDayEnd,
     } = body as Record<string, unknown>;
 
     // Build the $set object explicitly — avoids Mongoose Map-field change-detection bugs
@@ -76,7 +77,9 @@ export async function PUT(req: Request, { params }: RouteContext) {
     if (currency !== undefined)   $set.currency    = currency;
     if (moods)                    $set.moods       = moods;
     if (notes !== undefined)      $set.notes       = notes;
-    if (isPrivate !== undefined)  $set.isPrivate   = isPrivate;
+    if (isPrivate !== undefined)   $set.isPrivate   = isPrivate;
+    if (calDayStart !== undefined) $set.calDayStart = calDayStart;
+    if (calDayEnd   !== undefined) $set.calDayEnd   = calDayEnd;
 
     const filter = {
       _id: id,

@@ -5,6 +5,13 @@ export interface IScheduleEntry {
   plannedTime?: string | null;
   actualDurationValue?: string;
   actualDurationUnit?: "minutes" | "hours";
+  /** True for custom time-slot entries — no corresponding Attraction document exists. */
+  isCustomSlot?: boolean;
+  name?: string;
+  typeNames?: string[];
+  price?: number | null;
+  currency?: string;
+  notes?: string;
 }
 
 export interface ICollaborator {
@@ -35,6 +42,8 @@ export interface ITrip extends Document {
   collaborators: ICollaborator[];
   isPrivate: boolean;
   expenses: IExpense[];
+  calDayStart?: number;
+  calDayEnd?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -75,6 +84,12 @@ const TripSchema = new Schema<ITrip>(
           plannedTime:         { type: String, default: null },
           actualDurationValue: { type: String },
           actualDurationUnit:  { type: String, enum: ["minutes", "hours"] },
+          isCustomSlot:        { type: Boolean },
+          name:                { type: String },
+          typeNames:           [{ type: String }],
+          price:               { type: Number, default: null },
+          currency:            { type: String },
+          notes:               { type: String },
         },
         { _id: false }
       ),
@@ -83,6 +98,8 @@ const TripSchema = new Schema<ITrip>(
     collaborators: { type: [CollaboratorSchema], default: [] },
     isPrivate:     { type: Boolean, default: false },
     expenses:      { type: [ExpenseSchema], default: [] },
+    calDayStart:   { type: Number },
+    calDayEnd:     { type: Number },
   },
   { timestamps: true }
 );
@@ -127,6 +144,8 @@ export function formatTrip(doc: ITrip): import("@/types/trip").Trip {
       return { userId: u._id.toString(), name: u.name, email: u.email, avatarUrl: u.avatarUrl ?? null };
     }),
     isPrivate: doc.isPrivate ?? false,
+    calDayStart: doc.calDayStart,
+    calDayEnd:   doc.calDayEnd,
     expenses: (doc.expenses ?? []).map((e) => ({
       _id: e._id.toString(),
       label: e.label,

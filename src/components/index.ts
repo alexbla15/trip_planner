@@ -25,3 +25,6 @@ export { IconPicker, ICON_REGISTRY, ICON_NAMES, getIconComponent, renderTypeIcon
 export { TripTabBar } from "./TripTabBar";
 export { AttractionFilter } from "./AttractionFilter/AttractionFilter";
 export type { AttractionFilterProps } from "./AttractionFilter/AttractionFilter.types";
+export { AddCustomSlotModal } from "./AddCustomSlotModal/AddCustomSlotModal";
+export type { CustomSlotFormData, AddCustomSlotModalProps } from "./AddCustomSlotModal/AddCustomSlotModal.types";
+export { AttractionTypePicker } from "./AttractionTypePicker/AttractionTypePicker";

@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import { Types } from "mongoose";
 import { dbConnect } from "@/lib/mongoose";
 import { getUserFromRequest } from "@/lib/auth";
 import { Trip } from "@/models/Trip";
 import { Attraction, formatAttraction } from "@/models/Attraction";
 import { AttractionType } from "@/models/AttractionType";
+import type { Attraction as AttractionShape } from "@/types/attraction";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -67,7 +69,42 @@ export async function GET(req: Request, { params }: RouteContext) {
       return formatAttraction(doc, schedule ?? null);
     });
 
-    return NextResponse.json(result);
+    // Append custom time-slots (schedule-only entries — no Attraction document).
+    // toObject({ flattenMaps: true }) bypasses Mongoose strict mode and returns raw
+    // MongoDB data including fields not declared in the sub-schema (isCustomSlot, name, etc.).
+    type RawEntry = {
+      isCustomSlot?: boolean; name?: string; typeNames?: string[];
+      price?: number | null; currency?: string; notes?: string;
+      plannedDate?: string | null; plannedTime?: string | null;
+      actualDurationValue?: string; actualDurationUnit?: "minutes" | "hours";
+    };
+    const rawTrip = trip.toObject({ flattenMaps: true }) as unknown as {
+      schedules?: Record<string, RawEntry>;
+    };
+    const customSlots: AttractionShape[] = [];
+    for (const [key, entry] of Object.entries(rawTrip.schedules ?? {})) {
+      if (entry?.isCustomSlot) {
+        customSlots.push({
+          _id: key,
+          ownerId: userId ?? "",
+          name: entry.name ?? "",
+          country: "",
+          city: "",
+          coordinates: null,
+          types: entry.typeNames ?? [],
+          price: entry.price ?? null,
+          currency: entry.currency ?? "USD",
+          notes: entry.notes,
+          subtype: "custom-slot",
+          plannedDate: entry.plannedDate ?? null,
+          plannedTime: entry.plannedTime ?? null,
+          actualDurationValue: entry.actualDurationValue,
+          actualDurationUnit: entry.actualDurationUnit,
+        });
+      }
+    }
+
+    return NextResponse.json([...result, ...customSlots]);
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -94,7 +131,7 @@ export async function POST(req: Request, { params }: RouteContext) {
       openingHours?: any;
       notes?: string;
       photoUrl?: string;
-      subtype?: "residence" | "flight";
+      subtype?: "residence" | "flight" | "custom-slot";
       residenceType?: string;
       checkInDate?: string;
       checkOutDate?: string;
@@ -120,7 +157,48 @@ export async function POST(req: Request, { params }: RouteContext) {
 
     let attraction;
 
-    if (existingAttractionId) {
+    if (subtype === "custom-slot") {
+      if (!name?.trim()) {
+        return NextResponse.json({ error: "name is required" }, { status: 400 });
+      }
+      const customSlotId = `cs-${new Types.ObjectId().toString()}`;
+      // Use findByIdAndUpdate + $set to bypass Mongoose strict mode — trip.schedules.set()
+      // + trip.save() would strip any fields not in the cached sub-schema.
+      await Trip.findByIdAndUpdate(tripId, {
+        $set: {
+          [`schedules.${customSlotId}`]: {
+            plannedDate:         plannedDate  ?? null,
+            plannedTime:         plannedTime  ?? null,
+            actualDurationValue: actualDurationValue || undefined,
+            actualDurationUnit:  actualDurationUnit  || undefined,
+            isCustomSlot: true,
+            name:         name.trim(),
+            typeNames:    types ?? [],
+            price:        price ?? null,
+            currency:     currency || "USD",
+            notes:        notes   || undefined,
+          },
+        },
+      });
+
+      return NextResponse.json({
+        _id: customSlotId,
+        ownerId: payload.userId,
+        name: name.trim(),
+        country: "",
+        city: "",
+        coordinates: null,
+        types: types ?? [],
+        price: price ?? null,
+        currency: currency || "USD",
+        notes: notes || undefined,
+        subtype: "custom-slot",
+        plannedDate: plannedDate ?? null,
+        plannedTime: plannedTime ?? null,
+        actualDurationValue: actualDurationValue || undefined,
+        actualDurationUnit:  actualDurationUnit  || undefined,
+      } satisfies AttractionShape, { status: 201 });
+    } else if (existingAttractionId) {
       attraction = await Attraction.findById(existingAttractionId);
       if (!attraction) {
         return NextResponse.json({ error: "Attraction not found" }, { status: 404 });

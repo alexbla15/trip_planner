@@ -1183,3 +1183,39 @@
   top: 50%;
   transform: translateY(-50%);
 }
+
+/* ── "Add free slot" button in header ── */
+.addFreeSlotBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--easing-out),
+              color var(--duration-fast) var(--easing-out);
+  white-space: nowrap;
+}
+
+.addFreeSlotBtn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.addFreeSlotBtn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ── Free slot calendar block modifier ── */
+.blockFreeSlot {
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.5);
+}

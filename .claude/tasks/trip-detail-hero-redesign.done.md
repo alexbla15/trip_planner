@@ -1,6 +1,6 @@
 # Task: Trip Detail Hero Redesign
 
-Status: reviewing
+Status: done
 
 Track: A
 Track reason: new visual pattern for hero content — existing chip layout is explicitly rejected, needs a different treatment
@@ -295,6 +295,9 @@ Note: `canEdit` is already defined (`const canEdit = isOwner || isCollaborator`)
 - `.heroSharedBadge` styles
 - `.heroEditBtn` styles (just moves to top bar)
 - Tab bar, TripTabBar, and everything below the hero
+
+## Completion Summary
+Hero redesigned into two positioned layers: `heroTopBar` (back link + edit button at top) and `heroContent` (title + meta row at bottom). Mood chips capped at 3 with `+N` overflow badge. Dual-gradient overlay ensures legibility at both top and bottom. Closed 2026-07-11.
 
 ## Implementation Notes
 - Files created/modified:
