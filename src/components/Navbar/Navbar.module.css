@@ -66,6 +66,7 @@
   transition: color var(--duration-fast) var(--easing-out),
     background var(--duration-fast) var(--easing-out);
   min-height: 44px;
+  position: relative;
 }
 
 .navLink:hover {

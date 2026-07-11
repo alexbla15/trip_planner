@@ -9,11 +9,12 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const country = searchParams.get("country");
+    const city    = searchParams.get("city");
     const q = searchParams.get("q");
     const type = searchParams.get("type");
 
-    if (!country?.trim()) {
-      return NextResponse.json({ error: "country param is required" }, { status: 400 });
+    if (!country?.trim() && !city?.trim()) {
+      return NextResponse.json({ error: "country or city param is required" }, { status: 400 });
     }
 
     await dbConnect();
@@ -39,7 +40,9 @@ export async function GET(req: Request) {
     const accessibleIds = new Set(accessibleTrips.flatMap((t) => (t.attractionIds ?? []).map((id) => id.toString())));
     const hiddenIds = [...privateIds].filter((id) => !accessibleIds.has(id));
 
-    const filter: Record<string, unknown> = { country };
+    const filter: Record<string, unknown> = {};
+    if (country?.trim()) filter.country = country.trim();
+    if (city?.trim())    filter.city    = city.trim();
     if (q?.trim()) filter.name = { $regex: q.trim(), $options: "i" };
     if (type?.trim()) {
       const typeDoc = await AttractionType.findOne({ name: type.trim() }).select("_id");
@@ -48,10 +51,12 @@ export async function GET(req: Request) {
     }
     if (hiddenIds.length > 0) filter._id = { $nin: hiddenIds };
 
+    const limit = city?.trim() ? 100 : 20;
+
     const attractions = await Attraction.find(filter)
       .populate("types")
       .sort({ name: 1 })
-      .limit(20);
+      .limit(limit);
 
     return NextResponse.json(attractions.map((doc) => formatAttraction(doc, null)));
   } catch {

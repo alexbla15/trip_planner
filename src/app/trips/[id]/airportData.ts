@@ -9,6 +9,11 @@ export interface AirportInfo {
   // often sits inside restricted terminal grounds that cause slow routes.
   carLat?: number;
   carLng?: number;
+  // Optional transit-routing coords (nearest point that Transitous can snap to a stop).
+  // Only needed when lat/lng is inside a terminal building where Transitous finds no stop.
+  // When unset, lat/lng is used for transit routing (sufficient for most airports).
+  transitLat?: number;
+  transitLng?: number;
 }
 
 // Common airports by IATA code — extend as needed
@@ -21,10 +26,24 @@ export const AIRPORTS: Record<string, AirportInfo> = {
   BUD: { name: "Ferenc Liszt International", city: "Budapest", country: "Hungary",
     lat: 47.4337, lng: 19.2548, carLat: 47.4295, carLng: 19.2480 },
   // UK
-  LHR: { name: "Heathrow", city: "London", country: "United Kingdom", lat: 51.4700, lng: -0.4543 },
-  LGW: { name: "Gatwick", city: "London", country: "United Kingdom", lat: 51.1537, lng: -0.1821 },
-  STN: { name: "Stansted", city: "London", country: "United Kingdom", lat: 51.8860, lng: 0.2389 },
-  LTN: { name: "Luton", city: "London", country: "United Kingdom", lat: 51.8747, lng: -0.3683 },
+  // lat/lng     = terminal building (display marker + default transit lookup).
+  // carLat/Lng  = public road before gates — avoids OSRM snapping to restricted aprons.
+  // transitLat/Lng = nearest point Transitous can snap to a stop (only set where lat/lng fails).
+  //   LHR: terminal coords work fine for transit (Elizabeth line stops nearby).
+  //   LGW: terminal coords miss Transitous stops; use rail station entrance (51.1565, -0.1612).
+  //   STN: car coords (road beside station) work; terminal building doesn't snap.
+  //   LTN: car coords (Airport Way, near DART Central Terminal) work; terminal building doesn't snap.
+  LHR: { name: "Heathrow", city: "London", country: "United Kingdom",
+    lat: 51.4700, lng: -0.4543, carLat: 51.4760, carLng: -0.4706 },
+  LGW: { name: "Gatwick", city: "London", country: "United Kingdom",
+    lat: 51.1537, lng: -0.1821, carLat: 51.1499, carLng: -0.1902,
+    transitLat: 51.1565, transitLng: -0.1612 },
+  STN: { name: "Stansted", city: "London", country: "United Kingdom",
+    lat: 51.8860, lng: 0.2389,  carLat: 51.8844, carLng: 0.2344,
+    transitLat: 51.8844, transitLng: 0.2344 },
+  LTN: { name: "Luton",    city: "London", country: "United Kingdom",
+    lat: 51.8747, lng: -0.3683, carLat: 51.8775, carLng: -0.3720,
+    transitLat: 51.8775, transitLng: -0.3720 },
   // France
   CDG: { name: "Charles de Gaulle", city: "Paris", country: "France", lat: 49.0097, lng: 2.5479 },
   ORY: { name: "Orly", city: "Paris", country: "France", lat: 48.7233, lng: 2.3794 },
@@ -125,4 +144,15 @@ export function getAirportCarCoord(waypointId: string): { lat: number; lng: numb
   const info = lookupAirport(match[1]);
   if (!info) return null;
   return { lat: info.carLat ?? info.lat, lng: info.carLng ?? info.lng };
+}
+
+/** Returns the transit-optimised coordinates for an airport waypoint ID.
+ *  These are the nearest point that Transitous can snap to a transit stop.
+ *  Returns null when the default lat/lng already works (most airports). */
+export function getAirportTransitCoord(waypointId: string): { lat: number; lng: number } | null {
+  const match = waypointId.match(/^__airport_(?:dep|arr)_(.+)$/);
+  if (!match) return null;
+  const info = lookupAirport(match[1]);
+  if (!info || info.transitLat === undefined || info.transitLng === undefined) return null;
+  return { lat: info.transitLat, lng: info.transitLng };
 }

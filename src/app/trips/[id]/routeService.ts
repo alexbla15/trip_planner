@@ -99,8 +99,12 @@ interface OtpLeg {
   legGeometry: { points: string; precision?: number };
 }
 
-const TRANSIT_MODES = new Set(["BUS", "SUBWAY", "RAIL", "TRAM", "FERRY", "METRO",
-  "GONDOLA", "FUNICULAR", "CABLE_CAR", "COACH", "FLEX"]);
+const TRANSIT_MODES = new Set([
+  "BUS", "SUBWAY", "RAIL", "REGIONAL_RAIL", "TRAM", "FERRY", "METRO",
+  "GONDOLA", "FUNICULAR", "CABLE_CAR", "COACH", "FLEX",
+  "INTERCITY", "LONG_DISTANCE", "NIGHT_RAIL", "REGIONAL_FAST_RAIL",
+  "OTHER", // used by Transitous for shuttles like the Luton DART
+]);
 
 async function fetchTransitLeg(from: Coord, to: Coord, date?: string): Promise<RouteLeg | null> {
   // Transitous supports `date` (YYYY-MM-DD) but rejects any `time` parameter format.
@@ -109,39 +113,44 @@ async function fetchTransitLeg(from: Coord, to: Coord, date?: string): Promise<R
     `fromPlace=${from.lat},${from.lng}` +
     `&toPlace=${to.lat},${to.lng}` +
     `&date=${d}` +
-    `&mode=TRANSIT,WALK&numItineraries=1`;
+    `&mode=TRANSIT,WALK&numItineraries=3`;
+  // Shared fallback: transit unavailable → try walk, then car
+  async function transitFallback(label: string): Promise<RouteLeg | null> {
+    const walk = await fetchValhallhaLeg(from, to, "walk");
+    if (walk) {
+      return {
+        ...walk,
+        transitUnavailable: true,
+        steps: [{ icon: "walk" as const, label, durationSec: walk.durationSec }],
+      };
+    }
+    const car = await fetchValhallhaLeg(from, to, "car");
+    if (!car) return null;
+    return {
+      ...car,
+      transitUnavailable: true,
+      steps: [{ icon: "drive" as const, label: "Ground transport – no transit data (car estimate)", durationSec: car.durationSec }],
+    };
+  }
+
   try {
     // Transitous can be slow for complex itineraries; 20s client timeout > 18s server timeout
     const res = await timedFetch(`/api/route/transit?${params}`, {}, 20000);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      // Transit service returned an error — fall back rather than leaving the leg empty
+      return transitFallback("Walk (transit service error — no data for this route)");
+    }
     // Transitous returns itineraries at the root level — NOT nested inside a "plan" wrapper
     const data = await res.json() as { itineraries?: { duration: number; legs: OtpLeg[] }[] };
-    const itinerary = data.itineraries?.[0];
 
-    // Sanity-check the result: reject itineraries that contain airplane legs
-    // or exceed 6 hours (Transitous sometimes routes internationally when near airports)
-    const isPlausible = itinerary &&
-      itinerary.duration <= 6 * 3600 &&
-      !itinerary.legs.some((l) => l.mode === "AIRPLANE");
+    // Pick the first plausible itinerary: no airplane legs, under 6 hours.
+    // Requesting 3 lets us skip implausible first results (e.g. international connection via airport).
+    const itinerary = data.itineraries?.find(
+      (itin) => itin.duration <= 6 * 3600 && !itin.legs.some((l) => l.mode === "AIRPLANE")
+    );
 
-    if (!isPlausible) {
-      // No usable transit route — try walk, then car as final fallback
-      const walk = await fetchValhallhaLeg(from, to, "walk");
-      if (walk) {
-        return {
-          ...walk,
-          transitUnavailable: true,
-          steps: [{ icon: "walk" as const, label: "Walk (no transit on this route)", durationSec: walk.durationSec }],
-        };
-      }
-      // Pedestrian routing failed (e.g. airport restricted grounds) — use car as last resort
-      const car = await fetchValhallhaLeg(from, to, "car");
-      if (!car) return null;
-      return {
-        ...car,
-        transitUnavailable: true,
-        steps: [{ icon: "drive" as const, label: "Ground transport – no transit data (car estimate)", durationSec: car.durationSec }],
-      };
+    if (!itinerary) {
+      return transitFallback("Walk (no transit on this route)");
     }
 
     // Concatenate per-leg geometries into one continuous path.
@@ -175,7 +184,7 @@ async function fetchTransitLeg(from: Coord, to: Coord, date?: string): Promise<R
 
     return { geometry, durationSec: itinerary.duration, steps };
   } catch {
-    return null;
+    return transitFallback("Walk (transit unavailable — routing error)");
   }
 }
 

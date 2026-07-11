@@ -14,7 +14,7 @@ import {
   fetchRouteLeg, fetchAirportLeg, formatLegDuration, formatStepDuration,
   type TravelMode, type RouteLeg,
 } from "./routeService";
-import { lookupAirport, getAirportCarCoord } from "./airportData";
+import { lookupAirport, getAirportCarCoord, getAirportTransitCoord } from "./airportData";
 import styles from "./TripDayMapWidget.module.css";
 import "leaflet/dist/leaflet.css";
 
@@ -373,6 +373,7 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
   // Fetch real route geometry for each leg
   useEffect(() => {
     const aborted = { cancelled: false };
+    const myKeys  = new Set<string>(); // keys added by this effect instance
     (async () => {
       const pending: Promise<void>[] = [];
       for (let i = 0; i < fullRoute.length - 1; i++) {
@@ -384,20 +385,27 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
         if (routeCache[key] !== undefined || loadingKeysRef.current.has(key)) continue;
 
         loadingKeysRef.current.add(key);
+        myKeys.add(key);
         const isAirportLeg = isAirportId(from._id) || isAirportId(to._id);
 
-        // Airport legs:
-        //  • Transit: uses terminal coords (stored in from/to.coordinates) so Transitous
-        //    finds the correct bus stops (100E etc.).
-        //  • Walk/car: use road-accessible car coords (avoids slow terminal-internal roads
-        //    in Valhalla), then route via car since pedestrian fails on airport grounds.
+        // Airport legs — coord override per mode:
+        //  • walk/car: use carLat/carLng (public road outside gates, avoids restricted aprons)
+        //  • transit:  use transitLat/transitLng when set (nearest Transitous-snappable stop),
+        //              otherwise fall back to lat/lng (e.g. BUD where lat/lng IS the 100E stop)
         let fc: { lat: number; lng: number } = from.coordinates!;
         let tc: { lat: number; lng: number } = to.coordinates!;
-        if (isAirportLeg && mode !== "transit") {
-          const carFrom = isAirportId(from._id) ? getAirportCarCoord(from._id) : null;
-          const carTo   = isAirportId(to._id)   ? getAirportCarCoord(to._id)   : null;
-          if (carFrom) fc = carFrom;
-          if (carTo)   tc = carTo;
+        if (isAirportLeg) {
+          if (mode !== "transit") {
+            const carFrom = isAirportId(from._id) ? getAirportCarCoord(from._id) : null;
+            const carTo   = isAirportId(to._id)   ? getAirportCarCoord(to._id)   : null;
+            if (carFrom) fc = carFrom;
+            if (carTo)   tc = carTo;
+          } else {
+            const trFrom = isAirportId(from._id) ? getAirportTransitCoord(from._id) : null;
+            const trTo   = isAirportId(to._id)   ? getAirportTransitCoord(to._id)   : null;
+            if (trFrom) fc = trFrom;
+            if (trTo)   tc = trTo;
+          }
         }
 
         const fetcher = (isAirportLeg && mode !== "transit")
@@ -408,6 +416,7 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
           fetcher().then((leg) => {
             if (!aborted.cancelled) {
               loadingKeysRef.current.delete(key);
+              myKeys.delete(key);
               setRouteCache((prev) => ({ ...prev, [key]: leg ?? null }));
             }
           })
@@ -415,7 +424,11 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
       }
       await Promise.all(pending);
     })();
-    return () => { aborted.cancelled = true; };
+    return () => {
+      aborted.cancelled = true;
+      // Release any keys this effect added but didn't finish — lets the next effect re-fetch them
+      for (const key of myKeys) loadingKeysRef.current.delete(key);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fullRoute, legModes, selectedDay]);
 

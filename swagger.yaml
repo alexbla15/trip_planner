@@ -1136,6 +1136,108 @@ paths:
               schema:
                 $ref: '#/components/schemas/Attraction'
 
+  /api/attractions:
+    get:
+      summary: Search public attractions by country or city
+      tags: [Attractions]
+      security: []
+      parameters:
+        - name: country
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by country. Either country or city is required.
+        - name: city
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by city. Either country or city is required. Returns up to 100 results.
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Text search on attraction name (case-insensitive regex).
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by attraction type name.
+      responses:
+        '200':
+          description: Array of matching attractions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Attraction'
+        '400':
+          description: Missing required params (country or city)
+        '500':
+          description: Internal server error
+    post:
+      summary: Create a new attraction globally
+      tags: [Attractions]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttractionInput'
+      responses:
+        '201':
+          description: Created attraction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attraction'
+        '400':
+          description: Missing required fields
+        '409':
+          description: Attraction with this name already exists
+
+  /api/attractions/cities:
+    get:
+      summary: List cities that have public attractions with coordinates
+      tags: [Attractions]
+      security: []
+      responses:
+        '200':
+          description: City list with centroid coordinates and attraction counts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cities:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          example: Budapest
+                        country:
+                          type: string
+                          example: Hungary
+                        lat:
+                          type: number
+                          example: 47.4979
+                        lng:
+                          type: number
+                          example: 19.0402
+                        count:
+                          type: integer
+                          example: 12
+        '500':
+          description: Internal server error
+
   /api/attractions/{id}:
     parameters:
       - name: id

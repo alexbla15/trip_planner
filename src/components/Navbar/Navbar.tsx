@@ -57,10 +57,13 @@ export function Navbar() {
 
           <ul className={styles.nav} role="list">
             <li>
-              <a href="/#explore" className={styles.navLink}>
+              <Link
+                href="/explore"
+                className={`${styles.navLink} ${pathname === "/explore" ? styles.navLinkActive : ""}`}
+              >
                 <Compass size={16} aria-hidden="true" />
                 Explore
-              </a>
+              </Link>
             </li>
             <li>
               <a href="/#my-trips" className={styles.navLink}>
@@ -69,7 +72,10 @@ export function Navbar() {
               </a>
             </li>
             <li>
-              <Link href="/analytics" className={styles.navLink}>
+              <Link
+                href="/analytics"
+                className={`${styles.navLink} ${pathname.startsWith("/analytics") ? styles.navLinkActive : ""}`}
+              >
                 <BarChart2 size={16} aria-hidden="true" />
                 Analytics
               </Link>
@@ -173,14 +179,14 @@ export function Navbar() {
 
       {menuOpen && (
         <div className={`${styles.mobileMenu} ${styles.mobileMenuOpen}`} role="menu">
-          <a
-            href="/#explore"
+          <Link
+            href="/explore"
             className={styles.mobileNavLink}
             onClick={() => setMenuOpen(false)}
           >
             <Compass size={18} aria-hidden="true" />
             Explore
-          </a>
+          </Link>
           <a
             href="/#my-trips"
             className={styles.mobileNavLink}
