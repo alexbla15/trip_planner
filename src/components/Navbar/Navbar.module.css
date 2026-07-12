@@ -373,6 +373,10 @@
   color: var(--color-text-primary);
 }
 
+.mobileNavLinkActive {
+  color: var(--color-primary);
+}
+
 .mobileNewTripBtn {
   display: flex;
   align-items: center;

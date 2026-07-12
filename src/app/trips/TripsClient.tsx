@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { ChevronLeft, Search, X } from "lucide-react";
+import { ChevronLeft, MapPinned, Search, X } from "lucide-react";
 import { TripCard } from "@/components/TripCard/TripCard";
 import { TripCardSkeleton } from "@/components/TripCard/TripCardSkeleton";
 import { NewTripCard } from "@/components/NewTripCard/NewTripCard";

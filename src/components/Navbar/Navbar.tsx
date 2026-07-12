@@ -66,10 +66,13 @@ export function Navbar() {
               </Link>
             </li>
             <li>
-              <a href="/#my-trips" className={styles.navLink}>
+              <Link
+                href="/trips"
+                className={`${styles.navLink} ${pathname.startsWith("/trips") ? styles.navLinkActive : ""}`}
+              >
                 <Map size={16} aria-hidden="true" />
                 My Trips
-              </a>
+              </Link>
             </li>
             <li>
               <Link
@@ -187,14 +190,14 @@ export function Navbar() {
             <Compass size={18} aria-hidden="true" />
             Explore
           </Link>
-          <a
-            href="/#my-trips"
-            className={styles.mobileNavLink}
+          <Link
+            href="/trips"
+            className={`${styles.mobileNavLink} ${pathname.startsWith("/trips") ? styles.mobileNavLinkActive : ""}`}
             onClick={() => setMenuOpen(false)}
           >
             <Map size={18} aria-hidden="true" />
             My Trips
-          </a>
+          </Link>
           <Link
             href="/analytics"
             className={styles.mobileNavLink}
@@ -225,6 +228,16 @@ export function Navbar() {
                 <User size={18} aria-hidden="true" />
                 My Profile
               </Link>
+              {user.role === "admin" && (
+                <Link
+                  href="/admin"
+                  className={styles.mobileNavLink}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <Shield size={18} aria-hidden="true" />
+                  Manager Panel
+                </Link>
+              )}
               <button
                 className={styles.mobileLogoutBtn}
                 onClick={handleLogout}

@@ -254,6 +254,33 @@ export function ExploreClient() {
         />
       )}
 
+      {/* Mobile bar — in document flow, always reachable regardless of Leaflet z-index */}
+      <div className={styles.mobileBar}>
+        <span className={styles.mobileBarLabel}>
+          {view === "city"
+            ? (selectedCity ?? "")
+            : view === "country"
+            ? (selectedCountry ?? "")
+            : "Explore"}
+        </span>
+        <button
+          type="button"
+          className={styles.mobileBarBtn}
+          onClick={() => setSidebarOpen((v) => !v)}
+          aria-label={`${sidebarOpen ? "Close" : "Open"} panel${activeFilterCount > 0 ? ` (${activeFilterCount} active)` : ""}`}
+          aria-expanded={sidebarOpen}
+        >
+          {sidebarOpen
+            ? <X size={18} aria-hidden="true" />
+            : <SlidersHorizontal size={18} aria-hidden="true" />}
+          {activeFilterCount > 0 && !sidebarOpen && (
+            <span className={styles.filterBadge} aria-hidden="true">
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
+      </div>
+
       {/* ── Sidebar ── */}
       <aside
         className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : ""}`}
@@ -423,21 +450,6 @@ export function ExploreClient() {
 
       {/* ── Map area ── */}
       <div className={styles.mapArea}>
-        <button
-          type="button"
-          className={styles.filterToggleBtn}
-          onClick={() => setSidebarOpen((v) => !v)}
-          aria-label={`${sidebarOpen ? "Close" : "Open"} filters${activeFilterCount > 0 ? ` (${activeFilterCount} active)` : ""}`}
-          aria-expanded={sidebarOpen}
-        >
-          <SlidersHorizontal size={18} aria-hidden="true" />
-          {activeFilterCount > 0 && (
-            <span className={styles.filterBadge} aria-hidden="true">
-              {activeFilterCount}
-            </span>
-          )}
-        </button>
-
         {attractionsLoading && (
           <div className={styles.mapLoadingOverlay} aria-live="polite" aria-label="Loading attractions">
             <div className={styles.spinner} />
