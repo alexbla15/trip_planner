@@ -46,5 +46,6 @@ export interface ExploreItem {
   user: string;
   userAvatarUrl?: string;
   likes: number;
+  cities: string[]; // deduplicated, sorted cities from this trip's attractions
 }
 

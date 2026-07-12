@@ -1366,6 +1366,12 @@ paths:
                       type: integer
                       description: Number of attractions in the trip
                       example: 5
+                    cities:
+                      type: array
+                      items:
+                        type: string
+                      description: Deduplicated, alphabetically sorted city names from the trip's attractions
+                      example: ["Florence", "Rome", "Venice"]
         500:
           description: Internal server error
 

@@ -1,6 +1,6 @@
 # Task: Explore Card — Cities Relevant to Trip Only
 
-Status: intake
+Status: done
 
 Track: B
 Track reason: data/logic change — filter cities shown in explore card meta to those that match the trip's attractions
@@ -23,3 +23,12 @@ Each explore card's city meta shows only the cities where that trip's attraction
 
 ## Out of scope
 - Changing the visual design of the explore card
+
+## Completion Summary
+Explore cards now show real city names sourced from each trip's own attractions (up to 3, alphabetically sorted, with +N overflow). The API populates attraction city fields server-side; no client-side fetching needed. Confirmed by user 2026-07-13.
+
+## Implementation Notes
+- Files modified: `src/types/trip.ts`, `src/app/api/explore/route.ts`, `src/components/ExploreCard/ExploreCard.tsx`, `swagger.yaml`
+- Deviations from task requirements: none
+- New design tokens used: none
+- Added `.populate("attractionIds", "city")` to the explore API query; cities are deduplicated via `Set`, sorted alphabetically, and up to 3 shown in the card (with `+N` overflow label)

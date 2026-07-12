@@ -6,8 +6,11 @@ import styles from "./ExploreCard.module.css";
 import type { ExploreCardProps } from "./ExploreCard.types";
 
 export function ExploreCard({ item }: ExploreCardProps) {
-  const { id, destination, coverImage, tag, tags, user, userAvatarUrl, likes } = item;
+  const { id, destination, coverImage, tag, tags, user, userAvatarUrl, likes, cities } = item;
   const displayTags = tags?.length ? tags : [tag];
+  const cityLabel = cities.length > 0
+    ? cities.slice(0, 3).join(", ") + (cities.length > 3 ? ` +${cities.length - 3}` : "")
+    : null;
   const hasAvatar = !!userAvatarUrl;
 
   return (
@@ -40,10 +43,12 @@ export function ExploreCard({ item }: ExploreCardProps) {
       <div className={styles.body}>
         <h3 className={styles.destination}>{destination}</h3>
         <div className={styles.meta}>
-          <div className={styles.metaItem}>
-            <MapPin size={13} className={styles.metaIcon} aria-hidden="true" />
-            <span>{destination.split(",")[1]?.trim() ?? destination}</span>
-          </div>
+          {cityLabel && (
+            <div className={styles.metaItem}>
+              <MapPin size={13} className={styles.metaIcon} aria-hidden="true" />
+              <span>{cityLabel}</span>
+            </div>
+          )}
           <div className={styles.metaItem} aria-label={`${likes} likes`}>
             <Heart size={13} className={styles.metaIcon} aria-hidden="true" />
             <span>{likes.toLocaleString()}</span>
