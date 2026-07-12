@@ -38,68 +38,6 @@
   max-width: 480px;
 }
 
-.heroCtas {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-}
-
-.btnPrimary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 24px;
-  height: 48px;
-  border-radius: var(--radius-md);
-  background: var(--color-primary);
-  color: var(--color-text-inverse);
-  font-size: 15px;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  transition: background var(--duration-fast) var(--easing-out),
-    transform var(--duration-fast) var(--easing-out);
-  text-decoration: none;
-  min-height: 48px;
-}
-
-.btnPrimary:hover {
-  background: var(--color-primary-dark);
-  transform: scale(1.01);
-}
-
-.btnPrimary:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 3px;
-}
-
-.btnGhost {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 24px;
-  height: 48px;
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--color-primary);
-  font-size: 15px;
-  font-weight: 600;
-  border: 1.5px solid var(--color-primary);
-  cursor: pointer;
-  transition: background var(--duration-fast) var(--easing-out);
-  text-decoration: none;
-  min-height: 48px;
-}
-
-.btnGhost:hover {
-  background: var(--color-primary-light);
-}
-
-.btnGhost:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 3px;
-}
 
 /* ── My Trips ─────────────────────────────── */
 

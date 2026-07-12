@@ -1,6 +1,6 @@
 # Task: Index Page Cleanup
 
-Status: intake
+Status: done
 
 Track: B
 Track reason: removing elements and a color tweak — all values exist in the design system
@@ -25,3 +25,11 @@ A cleaner homepage with the call-to-action card at the bottom and sufficient con
 
 ## Out of scope
 - Redesigning the card layout or adding new content to it
+
+## Completion Summary
+Removed "Plan a New Trip" and "Explore Destinations" hero buttons and their CSS, moved NewTripCard to last in the trips grid, and changed the card icon from `--color-primary-light` to `--color-primary` for sufficient light-mode contrast. Confirmed by user 2026-07-13.
+
+## Implementation Notes
+- Files modified: `src/app/page.tsx`, `src/app/page.module.css`, `src/components/NewTripCard/NewTripCard.module.css`
+- Deviations from task requirements: none
+- New design tokens used: none — icon color changed from `--color-primary-light` to `--color-primary`

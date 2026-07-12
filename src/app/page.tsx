@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { MapPinned, Compass, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { TripCard } from "@/components/TripCard/TripCard";
 import { TripCardSkeleton } from "@/components/TripCard/TripCardSkeleton";
 import { NewTripCard } from "@/components/NewTripCard/NewTripCard";
@@ -59,16 +59,6 @@ function HomeContent() {
           <p className={styles.heroSubline}>
             Where will your next adventure take you?
           </p>
-          <div className={styles.heroCtas}>
-            <Link href="/new-trip" className={styles.btnPrimary} aria-label="Plan a new trip">
-              <MapPinned size={18} aria-hidden="true" />
-              Plan a New Trip
-            </Link>
-            <a href="#explore" className={styles.btnGhost} aria-label="Explore destinations">
-              <Compass size={18} aria-hidden="true" />
-              Explore Destinations
-            </a>
-          </div>
         </div>
       </section>
 
@@ -90,7 +80,6 @@ function HomeContent() {
           </div>
 
           <div className={styles.tripsGrid} aria-busy={tripsLoading}>
-            <NewTripCard />
             {tripsLoading
               ? Array.from({ length: SKELETON_COUNT }).map((_, i) => (
                   <TripCardSkeleton key={i} />
@@ -100,6 +89,7 @@ function HomeContent() {
                     <TripCard trip={trip} />
                   </Link>
                 ))}
+            <NewTripCard />
           </div>
         </div>
       </section>
