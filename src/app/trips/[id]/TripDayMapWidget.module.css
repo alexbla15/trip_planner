@@ -321,5 +321,17 @@
 }
 
 @media (max-width: 480px) {
-  .legName { display: none; }
+  /* Show A→B label on mobile but allow it to wrap and use a smaller font */
+  .legName {
+    font-size: 11px;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  /* Stack the mode buttons below the name on very narrow screens */
+  .legHeader {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
 }

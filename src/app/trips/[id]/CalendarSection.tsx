@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, TriangleAlert, Plus, Coffee } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
@@ -66,6 +66,7 @@ function formatDayLabel(iso: string): string {
     weekday: "short", month: "short", day: "numeric", timeZone: "UTC",
   });
 }
+
 
 /** px from timeline top for a "HH:MM" string — supports minutes */
 function slotTop(time: string, startHour: number): number {
@@ -250,6 +251,12 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   const [filter, setFilter]       = useState<SidebarFilter>("unscheduled");
   const [search, setSearch]       = useState("");
 
+  // Mobile swipe carousel — tracks which day is visible
+  const [mobileDayIdx, setMobileDayIdx] = useState(0);
+  const pointerStartX = useRef<number | null>(null);
+  const pointerStartY = useRef<number | null>(null);
+  const daysCountRef  = useRef(0); // always-current; updated each render below
+
   const [totalSpend, setTotalSpend] = useState(0);
 
   // Sync local state whenever the parent re-fetches / updates attractions
@@ -259,6 +266,9 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   useEffect(() => { setDismissedAlerts(new Set()); }, [local]);
 
   const days = trip.startDate && trip.endDate ? getTripDays(trip.startDate, trip.endDate) : [];
+  daysCountRef.current = days.length; // keep ref in sync every render
+
+
   // Custom slots are always scheduled (schedule-only entries) — exclude from sidebar counts
   const regularAttractions = local.filter((a) => a.subtype !== "custom-slot");
   const scheduled   = regularAttractions.filter((a) => !!a.plannedDate);
@@ -670,9 +680,39 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
           </div>}
 
           {/* ── Day columns (shown to everyone) ── */}
-          <div className={styles.dayColumnsWrapper} role="region" aria-label="Itinerary calendar">
-            <div className={styles.dayColumns}>
-              {days.map((dayIso) => {
+          <div
+            className={styles.dayColumnsWrapper}
+            role="region"
+            aria-label="Itinerary calendar"
+            onPointerDown={(e) => {
+              pointerStartX.current = e.clientX;
+              pointerStartY.current = e.clientY;
+            }}
+            onPointerUp={(e) => {
+              if (pointerStartX.current === null || pointerStartY.current === null) return;
+              const dx = e.clientX - pointerStartX.current;
+              const dy = e.clientY - pointerStartY.current;
+              pointerStartX.current = null;
+              pointerStartY.current = null;
+              if (Math.abs(dx) < 40 || Math.abs(dy) > Math.abs(dx)) return;
+              if (dx < 0) setMobileDayIdx((i) => Math.min(i + 1, daysCountRef.current - 1));
+              else        setMobileDayIdx((i) => Math.max(i - 1, 0));
+            }}
+            onPointerLeave={() => {
+              pointerStartX.current = null;
+              pointerStartY.current = null;
+            }}
+          >
+            {days.length > 1 && (
+              <div className={styles.mobileDayIndicator} aria-hidden="true">
+                {days.map((_, i) => (
+                  <span key={i} className={i === mobileDayIdx ? styles.mobileDotActive : styles.mobileDot} />
+                ))}
+              </div>
+            )}
+            <div className={styles.dayColumns}
+              style={{ ["--mobile-day-idx" as string]: mobileDayIdx }}>
+              {days.map((dayIso, dayIndex) => {
                 const dayAttractions = local.filter((a) => a.plannedDate === dayIso);
                 const untimed = dayAttractions.filter((a) => !a.plannedTime);
                 const dayMins = calcDaySpanMinutes(dayAttractions.filter((a) => !!a.plannedTime));
@@ -688,7 +728,8 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                 const availW     = colWidth - LABEL_W - PAD_R;
 
                 return (
-                  <div key={dayIso} className={styles.dayColumn}
+                  <div key={dayIso}
+                    className={styles.dayColumn}
                     style={{ ["--day-width" as string]: `${colWidth}px` }}>
                     <div className={styles.dayHeader}>
                       <h3 className={styles.dayTitle}>{dayLabel}</h3>

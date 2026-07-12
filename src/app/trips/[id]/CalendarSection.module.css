@@ -293,6 +293,54 @@
     width: calc(100dvw - 32px);
     max-width: 300px;
   }
+
+}
+
+@media (max-width: 768px) {
+  /* Transform-based carousel: clip the strip, no scroll container */
+  .dayColumnsWrapper {
+    overflow: hidden;
+    touch-action: pan-y; /* browser handles vertical; JS handles horizontal swipes */
+  }
+
+  /* The strip slides left/right via translateX driven by --mobile-day-idx */
+  .dayColumns {
+    min-width: unset;
+    gap: 0;
+    flex-wrap: nowrap;
+    transform: translateX(calc(var(--mobile-day-idx, 0) * -100%));
+    transition: transform 250ms ease;
+    will-change: transform;
+  }
+
+  /* Each column occupies exactly one viewport-width slot in the strip */
+  .dayColumn {
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: unset;
+  }
+
+  /* Dot indicator row */
+  .mobileDayIndicator {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding-bottom: 12px;
+  }
+
+  .mobileDot {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-full);
+    background: var(--color-border);
+  }
+
+  .mobileDotActive {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-full);
+    background: var(--color-primary);
+  }
 }
 
 /* ── Sidebar (item #1) ── */
@@ -426,6 +474,11 @@
   background: var(--color-primary-light);
   width: fit-content;
 }
+
+.mobileDayIndicator { display: none; }
+.mobileDot { display: none; }
+.mobileDotActive { display: none; }
+.dayColumnMobileHidden { display: none; } /* unused safety — remove if confirmed */
 
 /* ── Day columns wrapper ── */
 .dayColumnsWrapper {

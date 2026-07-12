@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { ChevronLeft, Search, MapPinned, X } from "lucide-react";
+import { ChevronLeft, Search, X } from "lucide-react";
 import { TripCard } from "@/components/TripCard/TripCard";
 import { TripCardSkeleton } from "@/components/TripCard/TripCardSkeleton";
 import { NewTripCard } from "@/components/NewTripCard/NewTripCard";
@@ -82,18 +82,14 @@ export function TripsClient() {
               </button>
             )}
           </div>
-          <Link href="/new-trip" className={styles.newTripBtn} aria-label="Plan a new trip">
-            <MapPinned size={16} aria-hidden="true" />
-            New Trip
-          </Link>
         </div>
 
         {loading ? (
           <div className={styles.grid}>
-            <NewTripCard />
             {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
               <TripCardSkeleton key={i} />
             ))}
+            <NewTripCard />
           </div>
         ) : filtered.length === 0 ? (
           <div className={styles.emptyState}>
@@ -116,12 +112,12 @@ export function TripsClient() {
           </div>
         ) : (
           <div className={styles.grid}>
-            <NewTripCard />
             {filtered.map((trip) => (
               <Link key={trip._id} href={`/trips/${trip._id}`} className={styles.cardLink}>
                 <TripCard trip={trip} />
               </Link>
             ))}
+            <NewTripCard />
           </div>
         )}
       </div>
