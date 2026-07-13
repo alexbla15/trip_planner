@@ -10,11 +10,16 @@ import {
   Globe,
   Trophy,
   Users,
-  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
-import { CategoryDonutChart } from "@/components";
-import type { CityEntry } from "@/components";
+import {
+  CategoryDonutChart,
+  SectionCard,
+  StatCardsGrid,
+  RankedList,
+  CountryFilterSelect,
+} from "@/components";
+import type { CityEntry, RankedListItem } from "@/components";
 import styles from "./AnalyticsClient.module.css";
 
 const DynamicCountriesMap = dynamic(
@@ -43,13 +48,6 @@ interface GlobalAnalytics {
   topCities: CityEntry[];
 }
 
-interface DetailRow {
-  name: string;
-  count: number;
-  href?: string;
-  subtitle?: string;
-}
-
 const SKELETON_ROWS = 5;
 
 export function AnalyticsClient() {
@@ -74,8 +72,7 @@ export function AnalyticsClient() {
 
   const rawTypes = data?.categoryDistribution ?? [];
 
-  // ── Stat card detail rows ────────────────────────────────────────────────
-  const detailRows = useMemo((): DetailRow[] => {
+  const detailRows = useMemo((): RankedListItem[] => {
     if (!activeStat || !data) return [];
     switch (activeStat) {
       case "Total Trips":
@@ -104,11 +101,9 @@ export function AnalyticsClient() {
     }
   }, [activeStat, data, rawTypes, cityCountryFilter]);
 
-  // ── Geo map flags ─────────────────────────────────────────────────────────
   const showCountriesMap = activeStat === "Countries" && !loading && !!data;
   const showCitiesMap    = activeStat === "Cities Covered" && !loading && !!data;
 
-  // Countries that have at least one city with coordinates, for the filter dropdown
   const cityCountryOptions = useMemo(() => {
     if (!showCitiesMap) return [];
     const set = new Set<string>();
@@ -123,10 +118,9 @@ export function AnalyticsClient() {
     const withCoords = (data!.topCities ?? []).filter(
       (c): c is CityEntry => c.lat != null && c.lng != null
     );
-    const filtered = cityCountryFilter === "all"
-      ? withCoords
-      : withCoords.filter((c) => c.country === cityCountryFilter);
-    return filtered.slice(0, 20);
+    return cityCountryFilter === "all"
+      ? withCoords.slice(0, 20)
+      : withCoords.filter((c) => c.country === cityCountryFilter).slice(0, 20);
   }, [showCitiesMap, data, cityCountryFilter]);
 
   if (!loading && (error || !data)) {
@@ -147,6 +141,14 @@ export function AnalyticsClient() {
     );
   }
 
+  const statItems = !loading && data ? [
+    { icon: MapPinned, label: "Total Trips",       value: data.summary.totalTrips },
+    { icon: Landmark,  label: "Total Attractions", value: data.summary.totalAttractions },
+    { icon: Users,     label: "Users",             value: data.summary.totalUsers },
+    { icon: Globe,     label: "Countries",         value: data.summary.uniqueCountriesCovered },
+    { icon: Building2, label: "Cities Covered",    value: data.summary.uniqueCitiesCovered },
+  ] : [];
+
   return (
     <main className={styles.page}>
       {/* Hero */}
@@ -165,45 +167,14 @@ export function AnalyticsClient() {
 
       <div className={styles.content}>
         {/* ── Stat cards ── */}
-        {loading ? (
-          <div className={styles.statsGrid} aria-busy="true">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div key={i} className={styles.statCard} aria-hidden="true">
-                <div className={`${styles.skeletonCircle} ${styles.shimmer}`} />
-                <div className={`${styles.skeletonNumber} ${styles.shimmer}`} />
-                <div className={`${styles.skeletonLabel} ${styles.shimmer}`} />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className={styles.statsGrid}>
-            {[
-              { icon: MapPinned, label: "Total Trips",       value: data!.summary.totalTrips },
-              { icon: Landmark,  label: "Total Attractions", value: data!.summary.totalAttractions },
-              { icon: Users,     label: "Users",             value: data!.summary.totalUsers },
-              { icon: Globe,     label: "Countries",         value: data!.summary.uniqueCountriesCovered },
-              { icon: Building2, label: "Cities Covered",    value: data!.summary.uniqueCitiesCovered },
-            ].map(({ icon: Icon, label, value }) => {
-              const isActive = activeStat === label;
-              return (
-                <button
-                  key={label}
-                  type="button"
-                  className={`${styles.statCard} ${isActive ? styles.statCardActive : ""}`}
-                  onClick={() => selectStat(label)}
-                  aria-expanded={isActive}
-                  aria-controls="stat-detail-panel"
-                >
-                  <div className={styles.statIconCircle}>
-                    <Icon size={18} aria-hidden="true" />
-                  </div>
-                  <span className={styles.statValue}>{value.toLocaleString()}</span>
-                  <span className={styles.statLabel}>{label}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        <StatCardsGrid
+          items={statItems}
+          loading={loading}
+          skeletonCount={5}
+          activeStat={activeStat}
+          onStatClick={selectStat}
+          panelId="stat-detail-panel"
+        />
 
         {/* ── Stat detail panel ── */}
         {activeStat && !loading &&
@@ -216,25 +187,14 @@ export function AnalyticsClient() {
           >
             <p className={styles.detailPanelHeading}>{activeStat}</p>
 
-            {/* Country filter — Cities map only */}
             {showCitiesMap && cityCountryOptions.length > 0 && (
-              <div className={styles.citySelectWrapper}>
-                <select
-                  value={cityCountryFilter}
-                  onChange={(e) => setCityCountryFilter(e.target.value)}
-                  className={styles.citySelect}
-                  aria-label="Filter cities by country"
-                >
-                  <option value="all">All countries</option>
-                  {cityCountryOptions.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className={styles.citySelectIcon} aria-hidden="true" />
-              </div>
+              <CountryFilterSelect
+                value={cityCountryFilter}
+                options={cityCountryOptions}
+                onChange={setCityCountryFilter}
+              />
             )}
 
-            {/* Geographic map — Countries or Cities */}
             {(showCountriesMap || (showCitiesMap && mappedCities.length > 0)) && (
               <div className={styles.analyticsMapContainer}>
                 {showCountriesMap && <DynamicCountriesMap countries={data!.topCountries} />}
@@ -251,50 +211,19 @@ export function AnalyticsClient() {
               <p className={styles.mapEmptyNote}>No cities with coordinates for this selection.</p>
             )}
 
-            {/* Ranked list — hidden for Countries (map is sufficient) */}
             {!showCountriesMap && detailRows.length > 0 && (
-              <ol className={styles.detailList}>
-                {detailRows.map(({ name, count, href, subtitle }, i) => (
-                  <li key={`${name}-${i}`} className={styles.detailRow}>
-                    <span className={styles.detailRank}>{i + 1}</span>
-                    <span className={styles.detailNameCol}>
-                      {href ? (
-                        <Link href={href} className={styles.detailLink}>{name}</Link>
-                      ) : (
-                        <span className={styles.detailName}>{name}</span>
-                      )}
-                      {subtitle && (
-                        <span className={styles.detailSubtitle}>{subtitle}</span>
-                      )}
-                    </span>
-                    <span className={styles.detailCount}>{count.toLocaleString()}</span>
-                  </li>
-                ))}
-              </ol>
+              <RankedList items={detailRows} />
             )}
           </div>
         )}
 
         {/* ── Attraction Types Pie Chart ── */}
-        <div className={styles.card}>
-          <div className={styles.sectionHeadingRow}>
-            <div className={styles.sectionIconCircle}>
-              <BarChart2 size={18} aria-hidden="true" />
-            </div>
-            <h2 className={styles.sectionHeading}>Attractions by Category</h2>
-          </div>
+        <SectionCard icon={BarChart2} title="Attractions by Category">
           <CategoryDonutChart rawTypes={rawTypes} loading={loading} />
-        </div>
+        </SectionCard>
 
         {/* ── Top Explorers ── */}
-        <div className={styles.card}>
-          <div className={styles.sectionHeadingRow}>
-            <div className={styles.sectionIconCircle}>
-              <Trophy size={18} aria-hidden="true" />
-            </div>
-            <h2 className={styles.sectionHeading}>Top Explorers</h2>
-          </div>
-
+        <SectionCard icon={Trophy} title="Top Explorers">
           {loading ? (
             <div aria-hidden="true">
               {Array.from({ length: SKELETON_ROWS }).map((_, i) => (
@@ -340,7 +269,7 @@ export function AnalyticsClient() {
               </table>
             </div>
           )}
-        </div>
+        </SectionCard>
       </div>
     </main>
   );

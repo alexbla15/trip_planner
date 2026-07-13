@@ -22,12 +22,13 @@ export async function GET() {
       topCities,
     ] = await Promise.all([
       Trip.countDocuments(),
-      Attraction.countDocuments(),
+      Attraction.countDocuments({ subtype: { $ne: "flight" } }),
       User.countDocuments(),
-      Attraction.distinct("city"),
+      Attraction.distinct("city", { city: { $nin: ["", null] }, subtype: { $ne: "flight" } }),
       Trip.distinct("country"),
       Trip.aggregate([{ $group: { _id: null, total: { $sum: "$budget" } } }]),
       Attraction.aggregate([
+        { $match: { subtype: { $ne: "flight" } } },
         { $unwind: "$types" },
         {
           $lookup: {
@@ -91,6 +92,7 @@ export async function GET() {
       ]),
       // Top countries by attraction count
       Attraction.aggregate([
+        { $match: { subtype: { $ne: "flight" } } },
         { $group: { _id: "$country", count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 10 },
@@ -98,6 +100,7 @@ export async function GET() {
       // Cities by attraction count (include country + avg coordinates).
       // Not limited to a small top-N — the client filters/slices this per country.
       Attraction.aggregate([
+        { $match: { city: { $nin: ["", null] }, subtype: { $ne: "flight" } } },
         {
           $group: {
             _id: "$city",

@@ -6,9 +6,16 @@ import Link from "next/link";
 import {
   PenLine, Check, X, AlertCircle, Loader2,
   MapPinned, Landmark, Building2, Globe, DollarSign,
-  BarChart2, Lock, Sparkles, ChevronDown,
+  BarChart2, Lock, Sparkles,
 } from "lucide-react";
-import { CategoryDonutChart } from "@/components";
+import {
+  CategoryDonutChart,
+  SectionCard,
+  StatCardsGrid,
+  RankedList,
+  CountryFilterSelect,
+} from "@/components";
+import type { RankedListItem } from "@/components";
 import { useAttractionTypes } from "@/hooks/useAttractionTypes";
 
 const DynamicCitiesMap = dynamic(
@@ -42,14 +49,6 @@ interface PersonalAnalytics {
   topCountries: Array<{ _id: string; count: number }>;
   moodDistribution: Array<{ _id: string; count: number; icon?: string; color?: string }>;
 }
-
-interface DetailRow {
-  name: string;
-  count: number;
-  href?: string;
-  subtitle?: string;
-}
-
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -159,7 +158,6 @@ export function ProfileClient() {
         setSaveError(data.error ?? "Failed to save profile");
         return;
       }
-      // Re-hydrate AuthContext so Navbar name updates
       await login(token);
       setIsEditing(false);
     } catch {
@@ -186,7 +184,7 @@ export function ProfileClient() {
       .sort((a, b) => b.count - a.count);
   }, [rawTypes, byCategory]);
 
-  const detailRows = useMemo((): DetailRow[] => {
+  const detailRows = useMemo((): RankedListItem[] => {
     if (!activeStat || !analytics) return [];
     switch (activeStat) {
       case "My Trips":
@@ -237,6 +235,14 @@ export function ProfileClient() {
   if (!authUser) return null;
 
   const userInitial = authUser.name?.[0]?.toUpperCase() ?? "?";
+
+  const statItems = analytics ? [
+    { icon: MapPinned,  label: "My Trips",       value: analytics.summary.totalTrips },
+    { icon: Landmark,   label: "My Attractions", value: analytics.summary.totalAttractions },
+    { icon: Building2,  label: "Cities Visited", value: analytics.summary.uniqueCitiesCovered },
+    { icon: Globe,      label: "Countries",      value: analytics.summary.uniqueCountriesCovered },
+    { icon: DollarSign, label: "Budget Planned", value: formatPrice(analytics.summary.totalPersonalBudget, "USD"), clickable: false },
+  ] : [];
 
   return (
     <main className={styles.page}>
@@ -354,12 +360,7 @@ export function ProfileClient() {
         </div>
 
         {/* ── Security card ── */}
-        <div className={styles.card}>
-          <div className={styles.sectionHeadingRow}>
-            <div className={styles.sectionIconCircle}><Lock size={18} aria-hidden="true" /></div>
-            <h2 className={styles.sectionHeading}>Security</h2>
-          </div>
-
+        <SectionCard icon={Lock} title="Security">
           {!showPwForm ? (
             <div className={styles.pwIdle}>
               <p className={styles.pwIdleText}>Keep your account secure by updating your password regularly.</p>
@@ -434,137 +435,70 @@ export function ProfileClient() {
               )}
             </div>
           )}
-        </div>
+        </SectionCard>
 
         {/* ── Personal stats cards ── */}
-        {analyticsLoading ? (
-          <div className={styles.statsGrid} aria-busy="true">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div key={i} className={styles.statCard} aria-hidden="true">
-                <div className={`${styles.skeletonCircle} ${styles.shimmer}`} />
-                <div className={`${styles.skeletonNumber} ${styles.shimmer}`} />
-                <div className={`${styles.skeletonLabel} ${styles.shimmer}`} />
-              </div>
-            ))}
-          </div>
-        ) : analytics ? (
-          <>
-            <div className={styles.statsGrid}>
-              {[
-                { icon: MapPinned,  label: "My Trips",       value: analytics.summary.totalTrips.toLocaleString() },
-                { icon: Landmark,   label: "My Attractions", value: analytics.summary.totalAttractions.toLocaleString() },
-                { icon: Building2,  label: "Cities Visited", value: analytics.summary.uniqueCitiesCovered.toLocaleString() },
-                { icon: Globe,      label: "Countries",      value: analytics.summary.uniqueCountriesCovered.toLocaleString() },
-              ].map(({ icon: Icon, label, value }) => (
-                <button
-                  key={label}
-                  type="button"
-                  className={`${styles.statCard} ${styles.statCardClickable} ${activeStat === label ? styles.statCardActive : ""}`}
-                  onClick={() => {
-                    setActiveStat(activeStat === label ? null : label);
-                    setCityCountryFilter("all");
-                  }}
-                  aria-pressed={activeStat === label}
-                >
-                  <div className={styles.statIconCircle}><Icon size={18} aria-hidden="true" /></div>
-                  <span className={styles.statValue}>{value}</span>
-                  <span className={styles.statLabel}>{label}</span>
-                </button>
-              ))}
-              <div className={styles.statCard}>
-                <div className={styles.statIconCircle}><DollarSign size={18} aria-hidden="true" /></div>
-                <span className={styles.statValue}>{formatPrice(analytics.summary.totalPersonalBudget, "USD")}</span>
-                <span className={styles.statLabel}>Budget Planned</span>
-              </div>
-            </div>
-            {activeStat && (detailRows.length > 0 || showCitiesMap || showCountriesMap) && (
-              <div className={styles.detailPanel}>
-                <h3 className={styles.detailPanelHeading}>{activeStat}</h3>
+        <StatCardsGrid
+          items={statItems}
+          loading={analyticsLoading}
+          skeletonCount={5}
+          activeStat={activeStat}
+          onStatClick={(label) => {
+            setActiveStat((prev) => (prev === label ? null : label));
+            setCityCountryFilter("all");
+          }}
+        />
 
-                {/* Country filter — Cities Visited only */}
-                {showCitiesMap && cityCountryOptions.length > 0 && (
-                  <div className={styles.citySelectWrapper}>
-                    <select
-                      value={cityCountryFilter}
-                      onChange={(e) => setCityCountryFilter(e.target.value)}
-                      className={styles.citySelect}
-                      aria-label="Filter cities by country"
-                    >
-                      <option value="all">All countries</option>
-                      {cityCountryOptions.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                    <ChevronDown size={14} className={styles.citySelectIcon} aria-hidden="true" />
-                  </div>
-                )}
+        {/* ── Stat detail panel ── */}
+        {!analyticsLoading && analytics && activeStat &&
+          (detailRows.length > 0 || showCitiesMap || showCountriesMap) && (
+          <div className={styles.detailPanel}>
+            <h3 className={styles.detailPanelHeading}>{activeStat}</h3>
 
-                {/* Countries choropleth map */}
-                {showCountriesMap && analytics.topCountries.length > 0 && (
-                  <div className={styles.mapContainer}>
-                    <DynamicCountriesMap
-                      countries={analytics.topCountries}
-                      countLabel="trip"
-                    />
-                  </div>
-                )}
+            {showCitiesMap && cityCountryOptions.length > 0 && (
+              <CountryFilterSelect
+                value={cityCountryFilter}
+                options={cityCountryOptions}
+                onChange={setCityCountryFilter}
+              />
+            )}
 
-                {/* Cities polygon map */}
-                {showCitiesMap && mappedCities.length > 0 && (
-                  <div className={styles.mapContainer}>
-                    <DynamicCitiesMap
-                      cities={mappedCities}
-                      selectedCountry={cityCountryFilter !== "all" ? cityCountryFilter : undefined}
-                    />
-                  </div>
-                )}
-
-                {/* Ranked list — hidden for Countries (map is sufficient) */}
-                {!showCountriesMap && detailRows.length > 0 && (
-                  <ol className={styles.detailList}>
-                    {detailRows.map((row, i) => (
-                      <li key={row.name} className={styles.detailRow}>
-                        <span className={styles.detailRank}>{i + 1}</span>
-                        <span className={styles.detailNameCol}>
-                          {row.href ? (
-                            <Link href={row.href} className={styles.detailLink}>
-                              <span className={styles.detailName}>{row.name}</span>
-                            </Link>
-                          ) : (
-                            <span className={styles.detailName}>{row.name}</span>
-                          )}
-                          {row.subtitle && <span className={styles.detailSubtitle}>{row.subtitle}</span>}
-                        </span>
-                        <span className={styles.detailCount}>{row.count.toLocaleString()}</span>
-                      </li>
-                    ))}
-                  </ol>
-                )}
+            {showCountriesMap && analytics.topCountries.length > 0 && (
+              <div className={styles.mapContainer}>
+                <DynamicCountriesMap
+                  countries={analytics.topCountries}
+                  countLabel="trip"
+                />
               </div>
             )}
-          </>
-        ) : null}
+
+            {showCitiesMap && mappedCities.length > 0 && (
+              <div className={styles.mapContainer}>
+                <DynamicCitiesMap
+                  cities={mappedCities}
+                  selectedCountry={cityCountryFilter !== "all" ? cityCountryFilter : undefined}
+                />
+              </div>
+            )}
+
+            {!showCountriesMap && detailRows.length > 0 && (
+              <RankedList items={detailRows} />
+            )}
+          </div>
+        )}
 
         {/* ── Attractions by Category ── */}
-        <div className={styles.card}>
-          <div className={styles.sectionHeadingRow}>
-            <div className={styles.sectionIconCircle}><BarChart2 size={18} aria-hidden="true" /></div>
-            <h2 className={styles.sectionHeading}>Attractions by Category</h2>
-          </div>
+        <SectionCard icon={BarChart2} title="Attractions by Category">
           <CategoryDonutChart
             rawTypes={rawTypes}
             loading={analyticsLoading}
             emptyText="No attractions yet — start planning!"
           />
-        </div>
+        </SectionCard>
 
         {/* ── Mood Tag Distribution ── */}
         {!analyticsLoading && analytics && analytics.moodDistribution.length > 0 && (
-          <div className={styles.card}>
-            <div className={styles.sectionHeadingRow}>
-              <div className={styles.sectionIconCircle}><Sparkles size={18} aria-hidden="true" /></div>
-              <h2 className={styles.sectionHeading}>My Trip Moods</h2>
-            </div>
+          <SectionCard icon={Sparkles} title="My Trip Moods">
             <ul className={styles.moodList}>
               {(() => {
                 const maxCount = Math.max(1, ...analytics.moodDistribution.map((m) => m.count));
@@ -588,7 +522,7 @@ export function ProfileClient() {
                 });
               })()}
             </ul>
-          </div>
+          </SectionCard>
         )}
 
       </div>
