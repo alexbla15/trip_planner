@@ -31,6 +31,4 @@ export { AttractionTypePicker } from "./AttractionTypePicker/AttractionTypePicke
 export { CoverImageField } from "./CoverImageField/CoverImageField";
 export { isValidCoverUrl } from "./CoverImageField/CoverImageField.utils";
 export { CategoryDonutChart } from "./CategoryDonutChart/CategoryDonutChart";
-export { CitiesMap } from "./CitiesMap/CitiesMap";
 export type { CityEntry } from "./CitiesMap/CitiesMap";
-export { CountriesMap } from "./CountriesMap/CountriesMap";
