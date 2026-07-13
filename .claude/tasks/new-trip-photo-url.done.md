@@ -1,6 +1,6 @@
 # Task: New Trip — Add Photo URL Field
 
-Status: intake
+Status: done
 
 Track: B
 Track reason: adding a standard text input to an existing form — no new visual pattern needed
@@ -25,3 +25,12 @@ The "New Trip" form includes an optional cover photo URL field that saves to the
 ## Out of scope
 - File upload / image hosting — URL only
 - Changing the trips API schema
+
+## Implementation Notes
+- Files modified: `src/app/new-trip/NewTripClient.tsx`, `src/app/new-trip/NewTripClient.module.css`
+- Deviations from task requirements: none
+- New design tokens used: none
+
+## Completion Summary
+Added an optional cover photo URL field to the new-trip form, wired to `coverImage` in the POST body. Extracted the input + 16:9 preview pattern into a shared `CoverImageField` component used by `NewTripClient`, `EditTripClient`, and `NewAttractionModal` (add + edit). Preview uses `aspect-ratio: 16/9`, onLoad/onError toggling, and `isValidCoverUrl` (new URL() constructor). Confirmed by user on 2026-07-13.
+- URL validation uses `new URL()` constructor (catches malformed URLs); field is optional so empty string passes validation. Preview image starts hidden (`display: none`) and is shown via `onLoad`, hidden via `onError` — avoids a broken-image flash if the URL 404s.

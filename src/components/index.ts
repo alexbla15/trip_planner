@@ -28,3 +28,5 @@ export type { AttractionFilterProps } from "./AttractionFilter/AttractionFilter.
 export { AddCustomSlotModal } from "./AddCustomSlotModal/AddCustomSlotModal";
 export type { CustomSlotFormData, AddCustomSlotModalProps } from "./AddCustomSlotModal/AddCustomSlotModal.types";
 export { AttractionTypePicker } from "./AttractionTypePicker/AttractionTypePicker";
+export { CoverImageField } from "./CoverImageField/CoverImageField";
+export { isValidCoverUrl } from "./CoverImageField/CoverImageField.utils";

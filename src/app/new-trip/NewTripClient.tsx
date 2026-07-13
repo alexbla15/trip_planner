@@ -30,6 +30,7 @@ import { COUNTRIES } from "@/components/NewAttractionModal/attraction.constants"
 import { useAuth } from "@/contexts/AuthContext";
 import { useMoodTags } from "@/hooks/useMoodTags";
 import { CURRENCIES, NOTES_MAX, getDurationDays, getDateError, getNotesCountLevel } from "@/lib/tripForm";
+import { CoverImageField, isValidCoverUrl } from "@/components";
 import styles from "./NewTripClient.module.css";
 
 
@@ -49,6 +50,7 @@ export function NewTripClient() {
   const [notes, setNotes] = useState("");
   const [attractions, setAttractions] = useState<AttractionFormData[]>([]);
   const [attractionPickerOpen, setAttractionPickerOpen] = useState(false);
+  const [coverPhotoUrl, setCoverPhotoUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
@@ -58,13 +60,16 @@ export function NewTripClient() {
   const durationDays = getDurationDays(startDate, endDate);
   const notesLevel = getNotesCountLevel(notes.length, NOTES_MAX);
 
+  const coverPhotoUrlValid = isValidCoverUrl(coverPhotoUrl);
+
   const isValid =
     tripName.trim() !== "" &&
     country !== "" &&
     startDate !== "" &&
     endDate !== "" &&
     dateError === null &&
-    moods.length > 0;
+    moods.length > 0 &&
+    coverPhotoUrlValid;
 
   function handleBlur(field: string) {
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -86,7 +91,7 @@ export function NewTripClient() {
   }
 
   async function handleContinue() {
-    setTouched({ tripName: true, country: true, startDate: true, endDate: true, moods: true });
+    setTouched({ tripName: true, country: true, startDate: true, endDate: true, moods: true, coverPhotoUrl: true });
     if (!isValid) return;
 
     setSubmitting(true);
@@ -108,6 +113,7 @@ export function NewTripClient() {
           currency,
           moods,
           notes: notes || undefined,
+          coverImage: coverPhotoUrl || undefined,
         }),
       });
 
@@ -355,6 +361,17 @@ export function NewTripClient() {
                   {notes.length} / {NOTES_MAX}
                 </p>
               </div>
+
+              {/* Cover photo URL */}
+              <CoverImageField
+                id="trip-cover-photo"
+                label="Cover photo URL"
+                placeholder="https://example.com/photo.jpg"
+                value={coverPhotoUrl}
+                onChange={setCoverPhotoUrl}
+                onBlur={() => handleBlur("coverPhotoUrl")}
+                error={touched.coverPhotoUrl && !coverPhotoUrlValid ? "Please enter a valid URL" : undefined}
+              />
 
               {/* Submit error */}
               {submitError && (

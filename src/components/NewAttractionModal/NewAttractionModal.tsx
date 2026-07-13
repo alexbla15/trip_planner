@@ -8,7 +8,7 @@ import {
   type ChangeEvent,
 } from "react";
 import { createPortal } from "react-dom";
-import { X, MapPin, Clock, ChevronDown, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check, FileText, ImageIcon } from "lucide-react";
+import { X, MapPin, Clock, ChevronDown, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check, FileText } from "lucide-react";
 import type {
   AttractionFormData,
   Coordinates,
@@ -23,6 +23,7 @@ import {
 } from "./attraction.constants";
 import { CurrencySelect } from "@/components/CurrencySelect/CurrencySelect";
 import { AttractionTypePicker } from "@/components/AttractionTypePicker/AttractionTypePicker";
+import { CoverImageField } from "@/components";
 import { MapPicker } from "./MapPicker";
 import { OpeningHoursGrid } from "./OpeningHoursGrid";
 import styles from "./NewAttractionModal.module.css";
@@ -533,26 +534,12 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
           </div>
 
           {/* Photo URL */}
-          <div className={styles.field}>
-            <label htmlFor="attraction-photo" className={styles.labelWithIcon}>
-              <ImageIcon size={14} aria-hidden="true" />
-              Photo URL
-            </label>
-            <input
-              id="attraction-photo"
-              type="url"
-              placeholder="https://…"
-              value={photoUrl}
-              onChange={(e) => setPhotoUrl(e.target.value)}
-              className={styles.input}
-            />
-            {photoUrl.startsWith("http") && (
-              <div className={styles.photoPreview}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photoUrl} alt="Attraction photo preview" className={styles.photoPreviewImg} />
-              </div>
-            )}
-          </div>
+          <CoverImageField
+            id="attraction-photo"
+            label="Photo URL"
+            value={photoUrl}
+            onChange={setPhotoUrl}
+          />
 
         </div>
 

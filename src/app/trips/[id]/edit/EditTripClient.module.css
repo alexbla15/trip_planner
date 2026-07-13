@@ -348,21 +348,6 @@
   color: var(--color-error);
 }
 
-/* ── Cover image preview ── */
-.coverPreviewWrapper {
-  margin-top: 8px;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  border: 1px solid var(--color-border);
-  position: relative;
-}
-
-.coverPreviewImg {
-  object-fit: cover;
-}
-
 /* ── CTA row ── */
 .ctaRow {
   display: flex;

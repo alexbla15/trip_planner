@@ -13,7 +13,6 @@ import {
   DollarSign,
   Sparkles,
   FileText,
-  ImageIcon,
   AlertCircle,
   Check,
   Trash2,
@@ -22,6 +21,7 @@ import {
 } from "lucide-react";
 import { MoodTagButton } from "@/components/MoodTagButton/MoodTagButton";
 import { MoodTagChip } from "@/components/MoodTagChip/MoodTagChip";
+import { CoverImageField } from "@/components";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDisplayDate } from "@/lib/formatDate";
 import { COUNTRIES } from "@/components/NewAttractionModal/attraction.constants";
@@ -416,38 +416,12 @@ export function EditTripClient({ tripId }: EditTripClientProps) {
             </div>
 
             {/* Cover image URL */}
-            <div className={styles.field}>
-              <label htmlFor="edit-cover-image" className={styles.label}>
-                <ImageIcon size={14} aria-hidden="true" />
-                Cover image
-              </label>
-              <p className={styles.fieldHint}>Paste a direct image URL (e.g. from Unsplash)</p>
-              <input
-                id="edit-cover-image"
-                type="url"
-                placeholder="https://…"
-                value={coverImage}
-                onChange={(e) => setCoverImage(e.target.value)}
-                className={styles.input}
-                aria-describedby="edit-cover-hint"
-              />
-              {showCoverPreview && (
-                <div
-                  className={styles.coverPreviewWrapper}
-                  aria-live="polite"
-                  aria-label="Cover image preview"
-                >
-                  <Image
-                    src={coverImage}
-                    fill
-                    className={styles.coverPreviewImg}
-                    alt="Cover preview"
-                    sizes="(max-width: 768px) 100vw, 600px"
-                    unoptimized
-                  />
-                </div>
-              )}
-            </div>
+            <CoverImageField
+              id="edit-cover-image"
+              label="Cover image"
+              value={coverImage}
+              onChange={setCoverImage}
+            />
 
             {/* Submit error */}
             {submitError && (
