@@ -1,6 +1,6 @@
 # Goal: UI Polish Round 2
 
-Status: in progress
+Status: done
 
 Six-cluster polish pass: nav/mobile fixes, homepage cleanup, explore improvements, map enhancements, profile analytics, and new-trip form additions.
 
@@ -10,7 +10,7 @@ Six-cluster polish pass: nav/mobile fixes, homepage cleanup, explore improvement
 - [x] .claude/tasks/explore-card-cities-filter.done.md
 - [x] .claude/tasks/new-trip-photo-url.done.md
 - [x] .claude/tasks/analytics-city-regions-map.done.md
-- [ ] .claude/tasks/profile-page-analytics.md
+- [x] .claude/tasks/profile-page-analytics.done.md
 
 ## Plan
 1. **navbar-fixes** — unblocks mobile navigation for admin and explore; highest UX priority

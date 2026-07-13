@@ -549,7 +549,6 @@ components:
             uniqueCitiesCovered: { type: integer, example: 9 }
             uniqueCountriesCovered: { type: integer, example: 3 }
             totalPersonalBudget: { type: number, example: 8500.00 }
-            totalPersonalSpent: { type: number, example: 4120.50 }
         categoryDistribution:
           type: array
           items:
@@ -557,6 +556,40 @@ components:
             properties:
               _id: { type: string, example: Restaurant }
               count: { type: integer, example: 18 }
+        topCities:
+          type: array
+          items:
+            type: object
+            properties:
+              _id: { type: string, example: Tokyo }
+              count: { type: integer, example: 8 }
+              country: { type: string, example: Japan }
+              lat: { type: number, example: 35.6762, nullable: true }
+              lng: { type: number, example: 139.6503, nullable: true }
+        topTrips:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string, example: Japan 2024 }
+              tripId: { type: string, example: 65f1234567890abcdef12345 }
+              attractionCount: { type: integer, example: 12 }
+        topCountries:
+          type: array
+          items:
+            type: object
+            properties:
+              _id: { type: string, example: Japan }
+              count: { type: integer, example: 3 }
+        moodDistribution:
+          type: array
+          items:
+            type: object
+            properties:
+              _id: { type: string, example: Adventure }
+              count: { type: integer, example: 5 }
+              icon: { type: string, example: Zap }
+              color: { type: string, example: "#F59E0B" }
 
     AttractionType:
       type: object

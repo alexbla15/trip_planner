@@ -1,14 +1,25 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
   PenLine, Check, X, AlertCircle, Loader2,
   MapPinned, Landmark, Building2, Globe, DollarSign,
-  BarChart2, Map, ChevronRight, Lock,
+  BarChart2, Lock, Sparkles, ChevronDown,
 } from "lucide-react";
-import { renderTypeIcon } from "@/components/IconPicker";
+import { CategoryDonutChart } from "@/components";
 import { useAttractionTypes } from "@/hooks/useAttractionTypes";
+
+const DynamicCitiesMap = dynamic(
+  () => import("@/components/CitiesMap/CitiesMap").then((m) => ({ default: m.CitiesMap })),
+  { ssr: false, loading: () => <div className={styles.mapLoading}>Loading map…</div> },
+);
+
+const DynamicCountriesMap = dynamic(
+  () => import("@/components/CountriesMap/CountriesMap").then((m) => ({ default: m.CountriesMap })),
+  { ssr: false, loading: () => <div className={styles.mapLoading}>Loading map…</div> },
+);
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDisplayDate } from "@/lib/formatDate";
 import { formatPrice } from "@/lib/currencies";
@@ -26,63 +37,25 @@ interface PersonalAnalytics {
     totalPersonalBudget: number;
   };
   categoryDistribution: Array<{ _id: string; count: number }>;
+  topCities: Array<{ _id: string; count: number; country?: string; lat?: number; lng?: number }>;
+  topTrips: Array<{ name: string; tripId: string; attractionCount: number }>;
+  topCountries: Array<{ _id: string; count: number }>;
+  moodDistribution: Array<{ _id: string; count: number; icon?: string; color?: string }>;
 }
 
-// ── Donut chart helpers (same as /analytics) ────────────────────────────────
-
-const TYPE_COLORS: Record<string, string> = {
-  Restaurant: "#0EA5E9",
-  Bar:        "#7C3AED",
-  Café:       "#F59E0B",
-  Museum:     "#D97706",
-  Gallery:    "#E11D48",
-  Park:       "#059669",
-  Beach:      "#0891B2",
-  Landmark:   "#EA580C",
-  Shopping:   "#DC2626",
-  Nightclub:  "#6D28D9",
-  Theatre:    "#4F46E5",
-  Spa:        "#10B981",
-};
-
-function getTypeColor(type: string, index: number): string {
-  return TYPE_COLORS[type] ?? `hsl(${(index * 47) % 360}, 65%, 50%)`;
+interface DetailRow {
+  name: string;
+  count: number;
+  href?: string;
+  subtitle?: string;
 }
 
-function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
-  const rad = ((angleDeg - 90) * Math.PI) / 180;
-  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
-}
-
-function donutSlicePath(
-  cx: number, cy: number,
-  outerR: number, innerR: number,
-  startAngle: number, endAngle: number,
-): string {
-  const sweep = Math.min(endAngle - startAngle, 359.999);
-  const end = startAngle + sweep;
-  const os = polarToCartesian(cx, cy, outerR, startAngle);
-  const oe = polarToCartesian(cx, cy, outerR, end);
-  const ie = polarToCartesian(cx, cy, innerR, end);
-  const is = polarToCartesian(cx, cy, innerR, startAngle);
-  const large = sweep > 180 ? 1 : 0;
-  return [
-    `M ${os.x.toFixed(3)} ${os.y.toFixed(3)}`,
-    `A ${outerR} ${outerR} 0 ${large} 1 ${oe.x.toFixed(3)} ${oe.y.toFixed(3)}`,
-    `L ${ie.x.toFixed(3)} ${ie.y.toFixed(3)}`,
-    `A ${innerR} ${innerR} 0 ${large} 0 ${is.x.toFixed(3)} ${is.y.toFixed(3)}`,
-    `Z`,
-  ].join(" ");
-}
-
-const CX = 110; const CY = 110;
-const OUTER_R = 100; const INNER_R = 60;
 
 // ── Component ────────────────────────────────────────────────────────────────
 
 export function ProfileClient() {
   const { user: authUser, token, login } = useAuth();
-  const { findType } = useAttractionTypes();
+  const { byCategory } = useAttractionTypes();
 
   const [analytics, setAnalytics] = useState<PersonalAnalytics | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
@@ -103,8 +76,9 @@ export function ProfileClient() {
   const [pwError, setPwError] = useState("");
   const [pwSuccess, setPwSuccess] = useState("");
 
-  // Chart hover
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  // Stat card drill-down
+  const [activeStat, setActiveStat] = useState<string | null>(null);
+  const [cityCountryFilter, setCityCountryFilter] = useState<string>("all");
 
   // Fetch personal analytics
   useEffect(() => {
@@ -195,24 +169,70 @@ export function ProfileClient() {
     }
   }
 
-  // Donut chart slices
-  const categories = analytics?.categoryDistribution ?? [];
-  const categoryTotal = useMemo(
-    () => categories.reduce((s, c) => s + c.count, 0),
-    [categories],
-  );
+  const rawTypes = analytics?.categoryDistribution ?? [];
 
-  const slices = useMemo(() => {
-    let cum = 0;
-    return categories.map((cat, i) => {
-      const pct = categoryTotal > 0 ? cat.count / categoryTotal : 0;
-      const startAngle = cum;
-      const endAngle = cum + pct * 360;
-      cum = endAngle;
-      const color = getTypeColor(cat._id, i);
-      return { cat, i, startAngle, endAngle, color };
-    });
-  }, [categories, categoryTotal]);
+  const categoryAggregated = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const { _id, count } of rawTypes) {
+      for (const [cat, catTypes] of Object.entries(byCategory)) {
+        if (catTypes.some((t) => t.name === _id)) {
+          map[cat] = (map[cat] ?? 0) + count;
+          break;
+        }
+      }
+    }
+    return Object.entries(map)
+      .map(([cat, count]) => ({ _id: cat, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [rawTypes, byCategory]);
+
+  const detailRows = useMemo((): DetailRow[] => {
+    if (!activeStat || !analytics) return [];
+    switch (activeStat) {
+      case "My Trips":
+        return (analytics.topTrips ?? []).map((t) => ({
+          name: t.name,
+          count: t.attractionCount,
+          href: `/trips/${t.tripId}`,
+        }));
+      case "My Attractions":
+        return categoryAggregated.map((c) => ({ name: c._id, count: c.count }));
+      case "Cities Visited":
+        return (analytics.topCities ?? [])
+          .filter((c) => cityCountryFilter === "all" || c.country === cityCountryFilter)
+          .map((c) => ({
+            name: c._id || "Unknown",
+            count: c.count,
+            subtitle: c.country,
+          }));
+      case "Countries":
+        return (analytics.topCountries ?? []).map((c) => ({
+          name: c._id || "Unknown",
+          count: c.count,
+        }));
+      default:
+        return [];
+    }
+  }, [activeStat, analytics, categoryAggregated, cityCountryFilter]);
+
+  const showCitiesMap = activeStat === "Cities Visited" && !analyticsLoading && !!analytics;
+  const showCountriesMap = activeStat === "Countries" && !analyticsLoading && !!analytics;
+
+  const cityCountryOptions = useMemo(() => {
+    if (!showCitiesMap) return [];
+    const set = new Set<string>();
+    for (const c of analytics?.topCities ?? []) {
+      if (c.country) set.add(c.country);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [showCitiesMap, analytics]);
+
+  const mappedCities = useMemo(() => {
+    if (!showCitiesMap) return [];
+    return (analytics?.topCities ?? []).filter(
+      (c) => cityCountryFilter === "all" || c.country === cityCountryFilter,
+    );
+  }, [showCitiesMap, analytics, cityCountryFilter]);
 
   if (!authUser) return null;
 
@@ -428,119 +448,149 @@ export function ProfileClient() {
             ))}
           </div>
         ) : analytics ? (
-          <div className={styles.statsGrid}>
-            {[
-              { icon: MapPinned,   label: "My Trips",         value: analytics.summary.totalTrips.toLocaleString() },
-              { icon: Landmark,    label: "My Attractions",   value: analytics.summary.totalAttractions.toLocaleString() },
-              { icon: Building2,   label: "Cities Visited",   value: analytics.summary.uniqueCitiesCovered.toLocaleString() },
-              { icon: Globe,       label: "Countries",        value: analytics.summary.uniqueCountriesCovered.toLocaleString() },
-              { icon: DollarSign,  label: "Budget Planned",   value: formatPrice(analytics.summary.totalPersonalBudget, "USD") },
-            ].map(({ icon: Icon, label, value }) => (
-              <div key={label} className={styles.statCard}>
-                <div className={styles.statIconCircle}><Icon size={18} aria-hidden="true" /></div>
-                <span className={styles.statValue}>{value}</span>
-                <span className={styles.statLabel}>{label}</span>
+          <>
+            <div className={styles.statsGrid}>
+              {[
+                { icon: MapPinned,  label: "My Trips",       value: analytics.summary.totalTrips.toLocaleString() },
+                { icon: Landmark,   label: "My Attractions", value: analytics.summary.totalAttractions.toLocaleString() },
+                { icon: Building2,  label: "Cities Visited", value: analytics.summary.uniqueCitiesCovered.toLocaleString() },
+                { icon: Globe,      label: "Countries",      value: analytics.summary.uniqueCountriesCovered.toLocaleString() },
+              ].map(({ icon: Icon, label, value }) => (
+                <button
+                  key={label}
+                  type="button"
+                  className={`${styles.statCard} ${styles.statCardClickable} ${activeStat === label ? styles.statCardActive : ""}`}
+                  onClick={() => {
+                    setActiveStat(activeStat === label ? null : label);
+                    setCityCountryFilter("all");
+                  }}
+                  aria-pressed={activeStat === label}
+                >
+                  <div className={styles.statIconCircle}><Icon size={18} aria-hidden="true" /></div>
+                  <span className={styles.statValue}>{value}</span>
+                  <span className={styles.statLabel}>{label}</span>
+                </button>
+              ))}
+              <div className={styles.statCard}>
+                <div className={styles.statIconCircle}><DollarSign size={18} aria-hidden="true" /></div>
+                <span className={styles.statValue}>{formatPrice(analytics.summary.totalPersonalBudget, "USD")}</span>
+                <span className={styles.statLabel}>Budget Planned</span>
               </div>
-            ))}
-          </div>
+            </div>
+            {activeStat && (detailRows.length > 0 || showCitiesMap || showCountriesMap) && (
+              <div className={styles.detailPanel}>
+                <h3 className={styles.detailPanelHeading}>{activeStat}</h3>
+
+                {/* Country filter — Cities Visited only */}
+                {showCitiesMap && cityCountryOptions.length > 0 && (
+                  <div className={styles.citySelectWrapper}>
+                    <select
+                      value={cityCountryFilter}
+                      onChange={(e) => setCityCountryFilter(e.target.value)}
+                      className={styles.citySelect}
+                      aria-label="Filter cities by country"
+                    >
+                      <option value="all">All countries</option>
+                      {cityCountryOptions.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} className={styles.citySelectIcon} aria-hidden="true" />
+                  </div>
+                )}
+
+                {/* Countries choropleth map */}
+                {showCountriesMap && analytics.topCountries.length > 0 && (
+                  <div className={styles.mapContainer}>
+                    <DynamicCountriesMap
+                      countries={analytics.topCountries}
+                      countLabel="trip"
+                    />
+                  </div>
+                )}
+
+                {/* Cities polygon map */}
+                {showCitiesMap && mappedCities.length > 0 && (
+                  <div className={styles.mapContainer}>
+                    <DynamicCitiesMap
+                      cities={mappedCities}
+                      selectedCountry={cityCountryFilter !== "all" ? cityCountryFilter : undefined}
+                    />
+                  </div>
+                )}
+
+                {/* Ranked list — hidden for Countries (map is sufficient) */}
+                {!showCountriesMap && detailRows.length > 0 && (
+                  <ol className={styles.detailList}>
+                    {detailRows.map((row, i) => (
+                      <li key={row.name} className={styles.detailRow}>
+                        <span className={styles.detailRank}>{i + 1}</span>
+                        <span className={styles.detailNameCol}>
+                          {row.href ? (
+                            <Link href={row.href} className={styles.detailLink}>
+                              <span className={styles.detailName}>{row.name}</span>
+                            </Link>
+                          ) : (
+                            <span className={styles.detailName}>{row.name}</span>
+                          )}
+                          {row.subtitle && <span className={styles.detailSubtitle}>{row.subtitle}</span>}
+                        </span>
+                        <span className={styles.detailCount}>{row.count.toLocaleString()}</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            )}
+          </>
         ) : null}
 
-        {/* ── My Category Breakdown ── */}
+        {/* ── Attractions by Category ── */}
         <div className={styles.card}>
           <div className={styles.sectionHeadingRow}>
             <div className={styles.sectionIconCircle}><BarChart2 size={18} aria-hidden="true" /></div>
-            <h2 className={styles.sectionHeading}>My Attraction Types</h2>
+            <h2 className={styles.sectionHeading}>Attractions by Category</h2>
           </div>
+          <CategoryDonutChart
+            rawTypes={rawTypes}
+            loading={analyticsLoading}
+            emptyText="No attractions yet — start planning!"
+          />
+        </div>
 
-          {analyticsLoading ? (
-            <div className={styles.pieSkeleton} aria-hidden="true">
-              <div className={`${styles.skeletonPieCircle} ${styles.shimmer}`} />
-              <div className={styles.skeletonLegend}>
-                {[0, 1, 2, 3].map((i) => (
-                  <div key={i} className={styles.skeletonLegendRow}>
-                    <div className={`${styles.skeletonDot} ${styles.shimmer}`} />
-                    <div className={`${styles.skeletonLegendText} ${styles.shimmer}`} />
-                  </div>
-                ))}
-              </div>
+        {/* ── Mood Tag Distribution ── */}
+        {!analyticsLoading && analytics && analytics.moodDistribution.length > 0 && (
+          <div className={styles.card}>
+            <div className={styles.sectionHeadingRow}>
+              <div className={styles.sectionIconCircle}><Sparkles size={18} aria-hidden="true" /></div>
+              <h2 className={styles.sectionHeading}>My Trip Moods</h2>
             </div>
-          ) : categories.length === 0 ? (
-            <div className={styles.chartEmpty}>
-              <BarChart2 size={36} className={styles.chartEmptyIcon} aria-hidden="true" />
-              <p className={styles.chartEmptyText}>No attractions yet — start planning!</p>
-              <Link href="/new-trip" className={styles.chartEmptyLink}>
-                <MapPinned size={14} aria-hidden="true" />
-                Plan a New Trip
-              </Link>
-            </div>
-          ) : (
-            <div className={styles.pieSection}>
-              <svg
-                viewBox="0 0 220 220"
-                width="220"
-                height="220"
-                className={styles.pieSvg}
-                aria-label="Personal attraction types donut chart"
-                role="img"
-              >
-                {slices.map(({ cat, i, startAngle, endAngle, color }) => (
-                  <path
-                    key={cat._id}
-                    d={donutSlicePath(CX, CY, OUTER_R, INNER_R, startAngle, endAngle)}
-                    fill={color}
-                    stroke="white"
-                    strokeWidth="2"
-                    className={hoveredIndex === i ? styles.sliceHovered : styles.slice}
-                    onMouseEnter={() => setHoveredIndex(i)}
-                    onMouseLeave={() => setHoveredIndex(null)}
-                    aria-label={`${cat._id}: ${cat.count}`}
-                  />
-                ))}
-              </svg>
-
-              <ul className={styles.pieLegend} aria-label="Category breakdown">
-                {slices.map(({ cat, i, color }) => {
-                  const pct = categoryTotal > 0
-                    ? ((cat.count / categoryTotal) * 100).toFixed(1)
-                    : "0";
-                  const icon = renderTypeIcon(findType(cat._id)?.icon ?? "Globe");
-                  const isHovered = hoveredIndex === i;
+            <ul className={styles.moodList}>
+              {(() => {
+                const maxCount = Math.max(1, ...analytics.moodDistribution.map((m) => m.count));
+                return analytics.moodDistribution.map(({ _id, count, color }) => {
+                  const pct = Math.round((count / maxCount) * 100);
                   return (
-                    <li
-                      key={cat._id}
-                      className={`${styles.legendItem} ${isHovered ? styles.legendItemHovered : ""}`}
-                      onMouseEnter={() => setHoveredIndex(i)}
-                      onMouseLeave={() => setHoveredIndex(null)}
-                    >
-                      <span className={styles.legendDot} style={{ ["--dot-color" as string]: color }} />
-                      {icon && <span className={styles.legendIcon} aria-hidden="true">{icon}</span>}
-                      <span className={styles.legendName}>{cat._id}</span>
-                      <span className={styles.legendCount}>{cat.count.toLocaleString()}</span>
-                      <span className={styles.legendPct}>{pct}%</span>
+                    <li key={_id} className={styles.moodRow}>
+                      <span className={styles.moodName}>{_id}</span>
+                      <span className={styles.moodBarTrack}>
+                        <span
+                          className={styles.moodBarFill}
+                          style={{
+                            ["--bar-width" as string]: `${pct}%`,
+                            ["--bar-color" as string]: color ?? "var(--color-primary)",
+                          }}
+                        />
+                      </span>
+                      <span className={styles.moodCount}>{count}</span>
                     </li>
                   );
-                })}
-              </ul>
-            </div>
-          )}
-        </div>
+                });
+              })()}
+            </ul>
+          </div>
+        )}
 
-        {/* ── Quick links ── */}
-        <div className={styles.quickLinks}>
-          {[
-            { icon: MapPinned, title: "Plan a New Trip",  subtitle: "Start your next adventure", href: "/new-trip" },
-            { icon: Map,       title: "My Trips",         subtitle: "Browse all your trips",     href: "/trips" },
-          ].map(({ icon: Icon, title, subtitle, href }) => (
-            <Link key={href} href={href} className={styles.quickCard}>
-              <div className={styles.sectionIconCircle}><Icon size={18} aria-hidden="true" /></div>
-              <span className={styles.quickTitle}>{title}</span>
-              <span className={styles.quickSubtitle}>{subtitle}</span>
-              <span className={styles.quickArrowRow}>
-                <ChevronRight size={18} className={styles.quickArrow} aria-hidden="true" />
-              </span>
-            </Link>
-          ))}
-        </div>
       </div>
     </main>
   );

@@ -22,17 +22,18 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-export interface CityWithCoords {
+export interface CityEntry {
   _id: string;
   count: number;
   country?: string;
-  lat: number;
-  lng: number;
+  lat?: number;
+  lng?: number;
 }
 
-interface AnalyticsCitiesMapProps {
-  cities: CityWithCoords[];
+interface CitiesMapProps {
+  cities: CityEntry[];
   selectedCountry?: string;
+  countLabel?: string;
 }
 
 type BoundaryState = Map<string, GeoJsonObject | null>;
@@ -45,18 +46,25 @@ function BoundsUpdater({ bounds }: { bounds: L.LatLngBounds }) {
   return null;
 }
 
-export function AnalyticsCitiesMap({ cities, selectedCountry }: AnalyticsCitiesMapProps) {
-  // null = fetched, no polygon; undefined key = still loading
+export function CitiesMap({ cities, selectedCountry, countLabel = "attraction" }: CitiesMapProps) {
   const [cityBoundaries, setCityBoundaries] = useState<BoundaryState>(new Map());
-  // undefined = not yet fetched; null = fetched, no polygon
   const [countryBoundary, setCountryBoundary] = useState<GeoJsonObject | null | undefined>(undefined);
 
-  const bounds = useMemo(
-    () => L.latLngBounds(cities.map((c) => [c.lat, c.lng] as [number, number])),
+  const citiesWithCoords = useMemo(
+    () => cities.filter((c): c is CityEntry & { lat: number; lng: number } =>
+      c.lat != null && c.lng != null
+    ),
     [cities],
   );
 
-  // Fetch city polygon for each city
+  const bounds = useMemo(
+    () =>
+      citiesWithCoords.length > 0
+        ? L.latLngBounds(citiesWithCoords.map((c) => [c.lat, c.lng] as [number, number]))
+        : null,
+    [citiesWithCoords],
+  );
+
   useEffect(() => {
     setCityBoundaries(new Map());
     cities.forEach((city) => {
@@ -73,7 +81,6 @@ export function AnalyticsCitiesMap({ cities, selectedCountry }: AnalyticsCitiesM
     });
   }, [cities]);
 
-  // Fetch country boundary when filter changes
   useEffect(() => {
     if (!selectedCountry) { setCountryBoundary(undefined); return; }
     setCountryBoundary(undefined);
@@ -83,10 +90,13 @@ export function AnalyticsCitiesMap({ cities, selectedCountry }: AnalyticsCitiesM
       .catch(() => setCountryBoundary(null));
   }, [selectedCountry]);
 
+  const mapProps = bounds?.isValid()
+    ? { bounds, boundsOptions: { padding: [40, 40] as [number, number] } }
+    : ({ center: [20, 0] as [number, number], zoom: 3 });
+
   return (
     <MapContainer
-      bounds={bounds}
-      boundsOptions={{ padding: [40, 40] }}
+      {...mapProps}
       style={{ height: "100%", width: "100%" }}
       zoomControl
       scrollWheelZoom={false}
@@ -96,9 +106,8 @@ export function AnalyticsCitiesMap({ cities, selectedCountry }: AnalyticsCitiesM
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       />
 
-      <BoundsUpdater bounds={bounds} />
+      {bounds?.isValid() && <BoundsUpdater bounds={bounds} />}
 
-      {/* Country boundary highlight when a country filter is active */}
       {selectedCountry && countryBoundary && (
         <GeoJSONLayer
           key={selectedCountry}
@@ -113,16 +122,16 @@ export function AnalyticsCitiesMap({ cities, selectedCountry }: AnalyticsCitiesM
         />
       )}
 
-      {/* City polygons — GeoJSON if loaded, circle fallback otherwise */}
       {cities.map((city) => {
         const boundary = cityBoundaries.get(city._id);
         const isLoading = !cityBoundaries.has(city._id);
 
         if (!isLoading && boundary) {
+          const label = `${city.count.toLocaleString()} ${countLabel}${city.count !== 1 ? "s" : ""}`;
           const tooltipHtml =
             `<strong>${city._id}</strong>` +
             (city.country ? `, ${city.country}` : "") +
-            ` · ${city.count.toLocaleString()} attraction${city.count !== 1 ? "s" : ""}`;
+            ` · ${label}`;
           return (
             <GeoJSONLayer
               key={city._id}
@@ -141,24 +150,28 @@ export function AnalyticsCitiesMap({ cities, selectedCountry }: AnalyticsCitiesM
           );
         }
 
-        return (
-          <CircleMarker
-            key={city._id}
-            center={[city.lat, city.lng]}
-            radius={8}
-            pathOptions={
-              isLoading
-                ? { color: "#94A3B8", fillColor: "#CBD5E1", fillOpacity: 0.5, weight: 1.5 }
-                : { color: "#0369A1", fillColor: "#38BDF8", fillOpacity: 0.7, weight: 1.5 }
-            }
-          >
-            <Tooltip>
-              <strong>{city._id}</strong>
-              {city.country ? `, ${city.country}` : ""}
-              {" · "}{city.count.toLocaleString()} attraction{city.count !== 1 ? "s" : ""}
-            </Tooltip>
-          </CircleMarker>
-        );
+        if (city.lat != null && city.lng != null) {
+          return (
+            <CircleMarker
+              key={city._id}
+              center={[city.lat, city.lng]}
+              radius={8}
+              pathOptions={
+                isLoading
+                  ? { color: "#94A3B8", fillColor: "#CBD5E1", fillOpacity: 0.5, weight: 1.5 }
+                  : { color: "#0369A1", fillColor: "#38BDF8", fillOpacity: 0.7, weight: 1.5 }
+              }
+            >
+              <Tooltip>
+                <strong>{city._id}</strong>
+                {city.country ? `, ${city.country}` : ""}
+                {" · "}{city.count.toLocaleString()} {countLabel}{city.count !== 1 ? "s" : ""}
+              </Tooltip>
+            </CircleMarker>
+          );
+        }
+
+        return null;
       })}
     </MapContainer>
   );

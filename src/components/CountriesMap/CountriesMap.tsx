@@ -5,7 +5,6 @@ import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-// Fix default marker icons broken by webpack asset fingerprinting in Next.js
 /* eslint-disable @typescript-eslint/no-explicit-any */
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -18,8 +17,6 @@ L.Icon.Default.mergeOptions({
 const GEOJSON_URL =
   "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson";
 
-// Maps our app's country names (from attraction.constants.ts COUNTRIES list) to the
-// matching feature name in the geo-countries GeoJSON dataset, where they differ.
 const COUNTRY_NAME_ALIASES: Record<string, string> = {
   "united states": "united states of america",
   "congo (brazzaville)": "republic of the congo",
@@ -30,18 +27,18 @@ const COUNTRY_NAME_ALIASES: Record<string, string> = {
   "timor-leste": "east timor",
   "micronesia": "federated states of micronesia",
   "são tomé and príncipe": "são tomé and principe",
-  // Natural Earth (geo-countries GeoJSON) uses these older/alternative names:
   "cabo verde": "cape verde",
   "north macedonia": "macedonia",
   "eswatini": "swaziland",
   "laos": "lao pdr",
 };
 
-interface AnalyticsCountriesMapProps {
+interface CountriesMapProps {
   countries: Array<{ _id: string; count: number }>;
+  countLabel?: string;
 }
 
-export function AnalyticsCountriesMap({ countries }: AnalyticsCountriesMapProps) {
+export function CountriesMap({ countries, countLabel = "attraction" }: CountriesMapProps) {
   const [geoJson, setGeoJson] = useState<object | null>(null);
 
   useEffect(() => {
@@ -62,7 +59,7 @@ export function AnalyticsCountriesMap({ countries }: AnalyticsCountriesMapProps)
 
   const maxCount = useMemo(
     () => Math.max(1, ...countries.map((c) => c.count)),
-    [countries]
+    [countries],
   );
 
   function getStyle(feature: GeoJSON.Feature | undefined): L.PathOptions {
@@ -70,21 +67,9 @@ export function AnalyticsCountriesMap({ countries }: AnalyticsCountriesMapProps)
     const count = countMap[name.toLowerCase()];
     if (count) {
       const opacity = 0.25 + (count / maxCount) * 0.55;
-      return {
-        fillColor: "#0EA5E9",
-        fillOpacity: opacity,
-        color: "#ffffff",
-        weight: 0.5,
-        opacity: 0.6,
-      };
+      return { fillColor: "#0EA5E9", fillOpacity: opacity, color: "#ffffff", weight: 0.5, opacity: 0.6 };
     }
-    return {
-      fillColor: "#E2E8F0",
-      fillOpacity: 0.6,
-      color: "#CBD5E1",
-      weight: 0.5,
-      opacity: 0.5,
-    };
+    return { fillColor: "#E2E8F0", fillOpacity: 0.6, color: "#CBD5E1", weight: 0.5, opacity: 0.5 };
   }
 
   function onEachFeature(feature: GeoJSON.Feature, layer: L.Layer) {
@@ -92,8 +77,8 @@ export function AnalyticsCountriesMap({ countries }: AnalyticsCountriesMapProps)
     const count = countMap[name.toLowerCase()];
     if (count) {
       (layer as L.Path).bindTooltip(
-        `${name}: ${count.toLocaleString()} attractions`,
-        { sticky: true }
+        `${name}: ${count.toLocaleString()} ${countLabel}${count !== 1 ? "s" : ""}`,
+        { sticky: true },
       );
     }
   }
