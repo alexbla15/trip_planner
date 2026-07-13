@@ -349,7 +349,10 @@ export function AnalyticsClient() {
               <div className={styles.analyticsMapContainer}>
                 {showCountriesMap && <DynamicCountriesMap countries={data!.topCountries} />}
                 {showCitiesMap && mappedCities.length > 0 && (
-                  <DynamicCitiesMap cities={mappedCities} />
+                  <DynamicCitiesMap
+                    cities={mappedCities}
+                    selectedCountry={cityCountryFilter !== "all" ? cityCountryFilter : undefined}
+                  />
                 )}
               </div>
             )}

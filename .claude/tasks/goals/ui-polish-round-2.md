@@ -9,7 +9,7 @@ Six-cluster polish pass: nav/mobile fixes, homepage cleanup, explore improvement
 - [x] .claude/tasks/index-page-cleanup.done.md
 - [x] .claude/tasks/explore-card-cities-filter.done.md
 - [x] .claude/tasks/new-trip-photo-url.done.md
-- [ ] .claude/tasks/analytics-city-regions-map.md
+- [x] .claude/tasks/analytics-city-regions-map.done.md
 - [ ] .claude/tasks/profile-page-analytics.md
 
 ## Plan
