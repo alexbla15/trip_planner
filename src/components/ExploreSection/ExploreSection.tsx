@@ -1,29 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { Globe, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Globe, Search } from "lucide-react";
 import { useMoodTags } from "@/hooks";
 import { getIconComponent } from "@/components/IconPicker";
 import { ExploreCard } from "@/components/ExploreCard";
+import { Carousel } from "@/components/Carousel";
 import styles from "./ExploreSection.module.css";
 import type { ExploreSectionProps } from "./ExploreSection.types";
-
-const PAGE_SIZE = 6;
 
 export function ExploreSection({ items }: ExploreSectionProps) {
   const { tags: moodTags } = useMoodTags();
   const [activeTag, setActiveTag] = useState<string>("All");
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
 
   function handleTagChange(tag: string) {
     setActiveTag(tag);
-    setPage(1);
   }
 
   function handleSearchChange(value: string) {
     setSearch(value);
-    setPage(1);
   }
 
   const byTag =
@@ -35,10 +31,6 @@ export function ExploreSection({ items }: ExploreSectionProps) {
   const filtered = query
     ? byTag.filter((i) => i.destination.toLowerCase().includes(query))
     : byTag;
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
     <section className={styles.section} id="explore" aria-labelledby="explore-heading">
@@ -92,41 +84,19 @@ export function ExploreSection({ items }: ExploreSectionProps) {
           })}
         </div>
 
-        <div className={styles.grid} aria-live="polite" aria-atomic="false">
-          {paginated.length > 0 ? (
-            paginated.map((item) => <ExploreCard key={item.id} item={item} />)
+        <div aria-live="polite" aria-atomic="false">
+          {filtered.length > 0 ? (
+            <Carousel ariaLabel="Explore destinations">
+              {filtered.map((item) => (
+                <ExploreCard key={item.id} item={item} />
+              ))}
+            </Carousel>
           ) : (
             <p className={styles.emptyState}>
               No trips found for this vibe yet. Check back soon!
             </p>
           )}
         </div>
-
-        {totalPages > 1 && (
-          <div className={styles.pagination} role="navigation" aria-label="Pagination">
-            <button
-              className={styles.pageBtn}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={safePage === 1}
-              aria-label="Previous page"
-            >
-              <ChevronLeft size={16} aria-hidden="true" />
-              Prev
-            </button>
-            <span className={styles.pageInfo} aria-live="polite">
-              {safePage} / {totalPages}
-            </span>
-            <button
-              className={styles.pageBtn}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={safePage === totalPages}
-              aria-label="Next page"
-            >
-              Next
-              <ChevronRight size={16} aria-hidden="true" />
-            </button>
-          </div>
-        )}
       </div>
     </section>
   );

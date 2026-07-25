@@ -72,6 +72,8 @@ export { TripTabBar } from "./TripTabBar";
 
 export { CoverImageField, isValidCoverUrl } from "./CoverImageField";
 export { CategoryDonutChart } from "./CategoryDonutChart";
+export { Carousel } from "./Carousel";
+export type { CarouselProps } from "./Carousel";
 
 // CitiesMap and CountriesMap are deliberately NOT re-exported as values here:
 // both load Leaflet and run module-scope DOM/`window`-touching setup

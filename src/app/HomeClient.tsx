@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { TripCard, TripCardSkeleton, NewTripCard, ExploreSection } from "@/components";
+import { TripCard, TripCardSkeleton, NewTripCard, ExploreSection, Carousel } from "@/components";
 import { useAuth } from "@/contexts/AuthContext";
 import { listTrips, getExploreItems } from "@/services";
 import { getGreeting } from "@/lib";
@@ -66,17 +66,19 @@ export function HomeClient() {
             </Link>
           </div>
 
-          <div className={styles.tripsGrid} aria-busy={tripsLoading}>
-            {tripsLoading
-              ? Array.from({ length: SKELETON_COUNT }).map((_, i) => (
-                  <TripCardSkeleton key={i} />
-                ))
-              : trips.map((trip) => (
-                  <Link key={trip._id} href={`/trips/${trip._id}`} className={styles.cardLink}>
-                    <TripCard trip={trip} />
-                  </Link>
-                ))}
-            <NewTripCard />
+          <div aria-busy={tripsLoading}>
+            <Carousel ariaLabel="Your trips">
+              <NewTripCard />
+              {tripsLoading
+                ? Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+                    <TripCardSkeleton key={i} />
+                  ))
+                : trips.map((trip) => (
+                    <Link key={trip._id} href={`/trips/${trip._id}`} className={styles.cardLink}>
+                      <TripCard trip={trip} />
+                    </Link>
+                  ))}
+            </Carousel>
           </div>
         </div>
       </section>

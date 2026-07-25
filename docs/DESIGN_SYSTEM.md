@@ -177,6 +177,16 @@ Max content width: `1280px` (centered, `padding: 0 24px`).
 - Subtitle/count: `--text-sm`, `var(--color-text-tertiary)`, inline after title
 - "See all" link: `--text-sm`, weight 500, `var(--color-primary)`, right-aligned
 
+### Carousel
+For any row of cards that should never wrap (e.g. My Trips) — a horizontal-scroll container with snap points and optional arrow navigation, reusable beyond just My Trips.
+- Scroll container: `overflow-x: auto`, `scroll-snap-type: x mandatory`, hidden scrollbar (`scrollbar-width: none` + `::-webkit-scrollbar { display: none }`).
+- Each item: `scroll-snap-align: start`, `flex: 0 0 280px` (matches Trip Card's min-width), `24px` gap between items.
+- Prev/next arrows: `ChevronLeft`/`ChevronRight` (Lucide, 20px) inside a 40×40px circle — `background: var(--color-surface)`, `border: 1px solid var(--color-border)`, `box-shadow: var(--shadow-md)`, `border-radius: var(--radius-full)`; hover swaps to `var(--color-primary-light)` background + `var(--color-primary)` border. Positioned absolutely at vertical center, overlapping the row's edges.
+- Arrows scroll by one card-width + gap via `scrollBy({ behavior: "smooth" })`; disable/hide the prev arrow at the start and the next arrow at the end — never leave a dead-end arrow.
+- Touch/trackpad swipe works natively via `overflow-x` + `scroll-snap-type`, no extra JS.
+- Respect `prefers-reduced-motion`: skip the smooth-scroll behavior when requested.
+- Reference implementation: `src/components/Carousel/`.
+
 ### Collapsible Section
 For any `SectionCard`-style panel (list, table, chart) that benefits from being hideable — long admin lists, dense data tables.
 - The heading (icon + title + optional count) is a `<button>` acting as the toggle — `aria-expanded` + `aria-controls` on the body. A trailing `ChevronDown` (18px) rotates `-90deg` when collapsed, `0deg` when open.
@@ -191,9 +201,8 @@ For any `SectionCard`-style panel (list, table, chart) that benefits from being 
 ## Page Layout
 
 ### Dashboard Grid
-- Desktop (≥1024px): 4-column card grid for My Trips (first slot = New Trip CTA), 3-column for Explore
-- Tablet (768–1023px): 2-column grids
-- Mobile (<768px): 1-column, full-width cards (horizontally scrollable on mobile for My Trips)
+- My Trips: single-row horizontal carousel at every breakpoint (mobile through desktop) — cards never wrap to a second row. First slot = New Trip CTA. See "Carousel" under Component Patterns.
+- Explore: 3-column grid on desktop (≥1024px), 2-column tablet (768–1023px), 1-column mobile (<768px) — wraps normally, not a carousel.
 
 ### Section Spacing
 - Between sections: `64px` vertical gap

@@ -88,44 +88,6 @@
   opacity: 0.75;
 }
 
-/* Desktop grid — 4 cols; mobile horizontal scroll */
-.tripsGrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 24px;
-}
-
-@media (min-width: 640px) {
-  .tripsGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .tripsGrid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-@media (max-width: 639px) {
-  .tripsGrid {
-    display: flex;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding-bottom: 8px;
-    gap: 16px;
-  }
-
-  .tripsGrid::-webkit-scrollbar {
-    display: none;
-  }
-
-  .tripsGrid > * {
-    flex: 0 0 280px;
-  }
-}
-
 .cardLink {
   text-decoration: none;
   display: block;
