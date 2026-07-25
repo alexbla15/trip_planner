@@ -20,7 +20,6 @@ import {
   AlertCircle,
   LayoutDashboard,
   BedDouble,
-  Wallet,
   Plane,
   MapPin,
   SearchX,
@@ -36,7 +35,6 @@ import {
   DEFAULT_OPENING_HOURS,
   renderTypeIcon,
   TripSharingPanel,
-  ExpensesPanel,
   TripTabBar,
   FormErrorBanner,
 } from "@/components";
@@ -74,7 +72,6 @@ const TRIP_TABS = [
   { id: "attractions", label: "Attractions", Icon: MapPin          },
   { id: "flights",     label: "Flights",     Icon: Plane           },
   { id: "residences",  label: "Residences",  Icon: BedDouble       },
-  { id: "expenses",    label: "Expenses",    Icon: Wallet          },
 ] as const;
 
 type TripTabId = typeof TRIP_TABS[number]["id"];
@@ -635,17 +632,6 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                 onEdit={(a) => setEditingResidence(a)}
                 onRemove={handleRemoveAttraction}
                 onView={(a) => setViewingAttraction(a)}
-              />
-            )}
-
-            {activeTab === "expenses" && (
-              <ExpensesPanel
-                trip={trip}
-                attractions={attractions}
-                canEdit={canEdit}
-                token={token}
-                onTripUpdate={(updated) => setTrip(updated)}
-                onAttractionsChange={setAttractions}
               />
             )}
 

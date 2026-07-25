@@ -18,13 +18,6 @@ export interface ICollaborator {
   userId: Types.ObjectId;
 }
 
-export interface IExpense {
-  _id: Types.ObjectId;
-  label: string;
-  amount: number;
-  attractionId?: string;
-}
-
 export interface ITrip extends Document {
   ownerId: Types.ObjectId;
   name: string;
@@ -41,7 +34,6 @@ export interface ITrip extends Document {
   schedules: Map<string, IScheduleEntry>;
   collaborators: ICollaborator[];
   isPrivate: boolean;
-  expenses: IExpense[];
   calDayStart?: number;
   calDayEnd?: number;
   createdAt: Date;
@@ -51,15 +43,6 @@ export interface ITrip extends Document {
 const CollaboratorSchema = new Schema<ICollaborator>(
   { userId: { type: Schema.Types.ObjectId, ref: "User", required: true } },
   { _id: false }
-);
-
-const ExpenseSchema = new Schema<IExpense>(
-  {
-    label:        { type: String, required: true },
-    amount:       { type: Number, required: true, min: 0 },
-    attractionId: { type: String },
-  },
-  { _id: true }
 );
 
 const TripSchema = new Schema<ITrip>(
@@ -97,7 +80,6 @@ const TripSchema = new Schema<ITrip>(
     },
     collaborators: { type: [CollaboratorSchema], default: [] },
     isPrivate:     { type: Boolean, default: false },
-    expenses:      { type: [ExpenseSchema], default: [] },
     calDayStart:   { type: Number },
     calDayEnd:     { type: Number },
   },
@@ -168,12 +150,6 @@ export function formatTrip(doc: ITrip): import("@/types/trip").Trip {
     isPrivate: doc.isPrivate ?? false,
     calDayStart: doc.calDayStart,
     calDayEnd:   doc.calDayEnd,
-    expenses: (doc.expenses ?? []).map((e) => ({
-      _id: e._id.toString(),
-      label: e.label,
-      amount: e.amount,
-      attractionId: e.attractionId,
-    })),
     createdAt: doc.createdAt?.toISOString(),
     updatedAt: doc.updatedAt?.toISOString(),
   };

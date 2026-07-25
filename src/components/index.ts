@@ -63,7 +63,6 @@ export type { FreeSlotFormData, AddFreeSlotModalProps } from "./AddFreeSlotModal
 
 export { TripSharingPanel } from "./TripSharingPanel";
 export type { TripSharingPanelProps } from "./TripSharingPanel";
-export { ExpensesPanel } from "./ExpensesPanel";
 
 export { CurrencySelect } from "./CurrencySelect";
 export { IconPicker, ICON_REGISTRY, ICON_NAMES, getIconComponent, renderTypeIcon } from "./IconPicker";

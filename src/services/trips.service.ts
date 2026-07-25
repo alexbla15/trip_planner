@@ -32,9 +32,8 @@ export function getTrip(tripId: string, token?: string | null): Promise<Response
 
 // Kept as a raw Response: callers handle failure very differently — EditTripClient
 // always parses the body and shows its error message, TripSharingPanel rolls back
-// optimistic state on failure, CalendarSection fires-and-forgets ignoring the
-// result entirely, and ExpensesPanel reads it conditionally alongside a sibling
-// expenses-save response inside a Promise.all.
+// optimistic state on failure, and CalendarSection fires-and-forgets ignoring the
+// result entirely.
 export function updateTrip(
   tripId: string,
   token: string,

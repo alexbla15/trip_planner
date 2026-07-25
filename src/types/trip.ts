@@ -5,13 +5,6 @@ export interface TripCollaborator {
   avatarUrl?: string | null;
 }
 
-export interface TripExpense {
-  _id: string;
-  label: string;
-  amount: number;
-  attractionId?: string;
-}
-
 export interface Trip {
   _id: string;
   ownerId?: string;
@@ -30,7 +23,6 @@ export interface Trip {
   attractionIds?: string[];
   collaborators: TripCollaborator[];
   isPrivate: boolean;
-  expenses?: TripExpense[];
   calDayStart?: number;
   calDayEnd?: number;
   createdAt?: string;

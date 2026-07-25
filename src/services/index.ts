@@ -11,8 +11,6 @@ export { listTrips, createTrip, getTrip, updateTrip, deleteTrip } from "./trips.
 
 export { addCollaborator, removeCollaborator } from "./collaborators.service";
 
-export { saveExpenses } from "./expenses.service";
-
 export { getFxRate } from "./fx.service";
 
 export {

@@ -1017,45 +1017,6 @@ paths:
         200:
           description: Trip successfully deleted
 
-  /api/trips/{id}/expenses:
-    parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-    put:
-      summary: Replace the full expenses list for a trip (owner or collaborator)
-      tags: [Trips]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [expenses]
-              properties:
-                expenses:
-                  type: array
-                  items:
-                    type: object
-                    required: [label, amount]
-                    properties:
-                      label:        { type: string }
-                      amount:       { type: number, minimum: 0 }
-                      attractionId: { type: string, description: Set when derived from a trip attraction }
-      responses:
-        200:
-          description: Updated trip including the new expenses
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Trip'
-        400:
-          description: Validation error (missing label, negative amount, etc.)
-        404:
-          description: Trip not found or caller lacks access
-
   /api/trips/{id}/collaborators:
     parameters:
       - name: id
