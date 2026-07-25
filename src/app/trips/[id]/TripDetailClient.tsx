@@ -828,6 +828,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         country={trip.country}
         onAdd={handleSearchAdd}
         onCreateNew={handleSearchCreateNew}
+        token={token}
       />
 
       <NewAttractionModal

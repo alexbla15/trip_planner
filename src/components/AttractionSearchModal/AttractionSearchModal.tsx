@@ -21,6 +21,7 @@ export function AttractionSearchModal({
   country,
   onAdd,
   onCreateNew,
+  token,
 }: AttractionSearchModalProps) {
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -52,7 +53,7 @@ export function AttractionSearchModal({
     setBodyState("loading");
     debounceRef.current = setTimeout(async () => {
       try {
-        const data = (await searchAttractionsByCountry(country, q)) as Attraction[];
+        const data = (await searchAttractionsByCountry(country, q, token)) as Attraction[];
         const list = Array.isArray(data) ? data : [];
         setResults(list);
         setBodyState(list.length > 0 ? "results" : "empty");

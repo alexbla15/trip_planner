@@ -212,7 +212,7 @@ export async function POST(req: Request, { params }: RouteContext) {
       }
 
       attraction = await Attraction.findOne(
-        { name: name.trim() },
+        { name: name.trim(), country: country.trim() },
         undefined,
         { collation: { locale: "en", strength: 2 } }
       );

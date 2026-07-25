@@ -7,4 +7,6 @@ export interface AttractionSearchModalProps {
   country: string;
   onAdd: (attraction: Attraction) => void;
   onCreateNew: () => void;
+  /** Caller's auth token — forwarded to the search request so private-trip attractions the user can access aren't hidden. */
+  token?: string | null;
 }

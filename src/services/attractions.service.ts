@@ -15,10 +15,12 @@ export async function getAttractionsByCity(city: string): Promise<unknown[]> {
   return parseOrThrow<unknown[]>(res);
 }
 
-export async function searchAttractionsByCountry(country: string, query: string): Promise<unknown[]> {
+export async function searchAttractionsByCountry(country: string, query: string, token?: string | null): Promise<unknown[]> {
   const params = new URLSearchParams({ country });
   if (query.trim()) params.set("q", query.trim());
-  const res = await fetch(`/api/attractions?${params}`);
+  const res = await fetch(`/api/attractions?${params}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
   return parseOrThrow<unknown[]>(res);
 }
 
