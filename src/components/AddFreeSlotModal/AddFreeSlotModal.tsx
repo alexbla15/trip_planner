@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { CurrencySelect } from "@/components/CurrencySelect/CurrencySelect";
 import { AttractionTypePicker } from "@/components/AttractionTypePicker/AttractionTypePicker";
+import { toDateValue } from "@/lib/date";
 import type { AddFreeSlotModalProps, FreeSlotFormData } from "./AddFreeSlotModal.types";
 import styles from "./AddFreeSlotModal.module.css";
 
@@ -25,10 +26,6 @@ interface FieldErrors {
   name?: string;
   plannedDate?: string;
   plannedTime?: string;
-}
-
-function toDateValue(isoString: string): string {
-  try { return new Date(isoString).toISOString().split("T")[0]; } catch { return ""; }
 }
 
 export function AddFreeSlotModal({

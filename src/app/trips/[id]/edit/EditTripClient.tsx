@@ -28,13 +28,9 @@ import { formatDisplayDate } from "@/lib/formatDate";
 import { COUNTRIES } from "@/components/NewAttractionModal/attraction.constants";
 import { useMoodTags } from "@/hooks/useMoodTags";
 import { CURRENCIES, NOTES_MAX, getDurationDays, getDateError, getNotesCountLevel } from "@/lib/tripForm";
+import { toDateValue } from "@/lib/date";
 import type { Trip } from "@/types/trip";
 import styles from "./EditTripClient.module.css";
-
-function isoToDateInput(iso: string): string {
-  if (!iso) return "";
-  return new Date(iso).toISOString().split("T")[0];
-}
 
 interface EditTripClientProps {
   tripId: string;
@@ -91,8 +87,8 @@ export function EditTripClient({ tripId }: EditTripClientProps) {
         if (!data) return;
         setTripName(data.name);
         setCountry(data.country);
-        setStartDate(isoToDateInput(data.startDate));
-        setEndDate(isoToDateInput(data.endDate));
+        setStartDate(toDateValue(data.startDate));
+        setEndDate(toDateValue(data.endDate));
         setBudget(data.budget !== undefined ? String(data.budget) : "");
         setCurrency(data.currency ?? "USD");
         setMoods(data.moods ?? []);

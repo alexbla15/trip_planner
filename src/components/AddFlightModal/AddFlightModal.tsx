@@ -7,6 +7,7 @@ import {
   FileText, AlertCircle, Loader2, Check,
 } from "lucide-react";
 import { CurrencySelect } from "@/components/CurrencySelect/CurrencySelect";
+import { toDateValue, buildISODateTime, addOneDay } from "@/lib/date";
 import type { AddFlightModalProps, FlightFormData } from "./AddFlightModal.types";
 import styles from "./AddFlightModal.module.css";
 
@@ -27,20 +28,6 @@ interface FieldErrors {
   arrivalAirport?: string;
   departureTime?: string;
   arrivalTime?: string;
-}
-
-function toDateValue(isoString: string): string {
-  try { return new Date(isoString).toISOString().split("T")[0]; } catch { return ""; }
-}
-
-function buildISODateTime(date: string, time: string): string {
-  return `${date}T${time}`;
-}
-
-function addOneDay(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + 1);
-  return d.toISOString().split("T")[0];
 }
 
 export function AddFlightModal({

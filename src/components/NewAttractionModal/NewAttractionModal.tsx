@@ -18,7 +18,6 @@ import type {
 } from "./attraction.types";
 import {
   COUNTRIES,
-  DEFAULT_OPENING_HOURS,
   DAY_KEYS,
 } from "./attraction.constants";
 import { CurrencySelect } from "@/components/CurrencySelect/CurrencySelect";
@@ -27,6 +26,7 @@ import { AttractionTypePicker } from "@/components/AttractionTypePicker/Attracti
 import { CoverImageField } from "@/components";
 import { MapPicker } from "./MapPicker";
 import { OpeningHoursGrid } from "./OpeningHoursGrid";
+import { buildInitialHours } from "@/lib/openingHours";
 import styles from "./NewAttractionModal.module.css";
 
 const HEADING_ID = "new-attraction-modal-title";
@@ -39,10 +39,6 @@ const FOCUSABLE_SELECTORS = [
   "select:not([disabled])",
   "[tabindex]:not([tabindex='-1'])",
 ].join(", ");
-
-function buildInitialHours(): OpeningHours {
-  return structuredClone(DEFAULT_OPENING_HOURS);
-}
 
 interface FieldErrors {
   name?: string;

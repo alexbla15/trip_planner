@@ -15,20 +15,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { login as loginRequest } from "@/services/auth.service";
+import { validateLoginForm } from "@/lib/validation";
 import styles from "./LoginClient.module.css";
-
-interface FormErrors {
-  email?: string;
-  password?: string;
-}
-
-function validate(email: string, password: string): FormErrors {
-  const errors: FormErrors = {};
-  if (!email.trim()) errors.email = "Email is required";
-  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Enter a valid email";
-  if (!password) errors.password = "Password is required";
-  return errors;
-}
 
 export function LoginClient() {
   const { login } = useAuth();
@@ -45,7 +33,7 @@ export function LoginClient() {
   const emailId = useId();
   const passwordId = useId();
 
-  const errors = validate(email, password);
+  const errors = validateLoginForm(email, password);
   const isValid = Object.keys(errors).length === 0;
 
   function handleBlur(field: string) {

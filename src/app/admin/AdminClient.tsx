@@ -30,34 +30,22 @@ import {
 import { ApiError } from "@/services/http";
 import { getIconComponent, renderTypeIcon } from "@/components/IconPicker";
 import { IconPicker } from "@/components/IconPicker";
-import type { AttractionTypeRecord } from "@/types/attractionType";
+import {
+  type TypeFormState,
+  type CategoryFormState,
+  type MoodTagFormState,
+  typeFormFromRecord,
+  catFormFromRecord,
+  moodFormFromRecord,
+} from "@/lib/adminForms";
 import type { AttractionCategoryRecord } from "@/types/attractionCategory";
-import type { MoodTagRecord } from "@/types/moodTag";
 import styles from "./AdminClient.module.css";
 
 // ── Attraction Type form ───────────────────────────────────────────────────────
 
-interface TypeFormState {
-  name: string;
-  categoryId: string;
-  icon: string;
-  subtype: string;
-  order: string;
-}
-
 const EMPTY_TYPE_FORM: TypeFormState = {
   name: "", categoryId: "", icon: "Globe", subtype: "", order: "0",
 };
-
-function typeFormFromRecord(r: AttractionTypeRecord): TypeFormState {
-  return {
-    name:       r.name,
-    categoryId: r.categoryId ?? "",
-    icon:       r.icon,
-    subtype:    r.subtype ?? "",
-    order:      String(r.order),
-  };
-}
 
 function TypeForm({
   initial,
@@ -193,25 +181,9 @@ function TypeForm({
 
 // ── Attraction Category form ───────────────────────────────────────────────────
 
-interface CategoryFormState {
-  name: string;
-  icon: string;
-  color: string;
-  order: string;
-}
-
 const EMPTY_CAT_FORM: CategoryFormState = {
   name: "", icon: "Globe", color: "#64748B", order: "0",
 };
-
-function catFormFromRecord(r: AttractionCategoryRecord): CategoryFormState {
-  return {
-    name:  r.name,
-    icon:  r.icon,
-    color: r.color,
-    order: String(r.order),
-  };
-}
 
 function CategoryForm({
   initial,
@@ -316,31 +288,12 @@ function CategoryForm({
 
 // ── Mood Tag form ──────────────────────────────────────────────────────────────
 
-interface MoodTagFormState {
-  name: string;
-  icon: string;
-  color: string;
-  bgColor: string;
-  darkColor: string;
-  darkBgColor: string;
-  order: string;
-}
-
 const EMPTY_MOOD_FORM: MoodTagFormState = {
   name: "", icon: "Globe",
   color: "#888888", bgColor: "#f5f5f5",
   darkColor: "#cccccc", darkBgColor: "#333333",
   order: "0",
 };
-
-function moodFormFromRecord(r: MoodTagRecord): MoodTagFormState {
-  return {
-    name: r.name, icon: r.icon,
-    color: r.color, bgColor: r.bgColor,
-    darkColor: r.darkColor, darkBgColor: r.darkBgColor,
-    order: String(r.order),
-  };
-}
 
 function MoodTagForm({
   initial, token, tagId, onDone, onCancel,

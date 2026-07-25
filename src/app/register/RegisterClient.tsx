@@ -17,23 +17,8 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { register as registerRequest, login as loginRequest } from "@/services/auth.service";
 import { ApiError } from "@/services/http";
+import { validateRegisterForm } from "@/lib/validation";
 import styles from "./RegisterClient.module.css";
-
-interface FormErrors {
-  name?: string;
-  email?: string;
-  password?: string;
-}
-
-function validate(name: string, email: string, password: string): FormErrors {
-  const errors: FormErrors = {};
-  if (!name.trim()) errors.name = "Name is required";
-  if (!email.trim()) errors.email = "Email is required";
-  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Enter a valid email";
-  if (!password) errors.password = "Password is required";
-  else if (password.length < 8) errors.password = "Password must be at least 8 characters";
-  return errors;
-}
 
 export function RegisterClient() {
   const { login } = useAuth();
@@ -52,7 +37,7 @@ export function RegisterClient() {
   const emailId = useId();
   const passwordId = useId();
 
-  const errors = validate(name, email, password);
+  const errors = validateRegisterForm(name, email, password);
   const isValid = Object.keys(errors).length === 0;
 
   function handleBlur(field: string) {

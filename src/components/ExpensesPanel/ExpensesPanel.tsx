@@ -7,7 +7,14 @@ import { getFxRate } from "@/services/fx.service";
 import { saveExpenses } from "@/services/expenses.service";
 import { updateTrip } from "@/services/trips.service";
 import { currencySymbol, formatPrice, isPostfixCurrency } from "@/lib/currencies";
-import type { Trip, TripExpense } from "@/types/trip";
+import {
+  type LocalExpense,
+  tempId,
+  buildLocal,
+  applyRates,
+  toApiExpenses,
+} from "@/lib/expenses";
+import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
 import styles from "./ExpensesPanel.module.css";
 
@@ -21,51 +28,6 @@ interface ExpensesPanelProps {
   token: string | null;
   onTripUpdate: (updated: Trip) => void;
   onAttractionsChange: (updated: Attraction[]) => void;
-}
-
-interface LocalExpense {
-  id: string;
-  label: string;
-  amountStr: string;
-  originalAmount: number;
-  originalCurrency: string;
-  attractionId?: string;
-  subtype?: "flight" | "residence";
-}
-
-let nextTempId = 0;
-function tempId() { return `new-${++nextTempId}`; }
-
-function buildLocal(trip: Trip, attractions: Attraction[]): LocalExpense[] {
-  const tripCurrency = trip.currency ?? "USD";
-  const saved = trip.expenses ?? [];
-  const savedByAttrId = new Map(
-    saved.filter((e) => e.attractionId).map((e) => [e.attractionId!, e])
-  );
-  const attractionRows: LocalExpense[] = attractions
-    .filter((a) => a.price != null)
-    .map((a) => {
-      const override = savedByAttrId.get(a._id);
-      return {
-        id:               override?._id ?? tempId(),
-        label:            a.name,
-        amountStr:        String(a.price ?? 0),
-        originalAmount:   a.price ?? 0,
-        originalCurrency: a.currency ?? tripCurrency,
-        attractionId:     a._id,
-        subtype:          a.subtype as "flight" | "residence" | undefined,
-      };
-    });
-  const customRows: LocalExpense[] = saved
-    .filter((e) => !e.attractionId)
-    .map((e) => ({
-      id:               e._id,
-      label:            e.label,
-      amountStr:        String(e.amount),
-      originalAmount:   e.amount,
-      originalCurrency: tripCurrency,
-    }));
-  return [...attractionRows, ...customRows];
 }
 
 async function fetchRatesFor(
@@ -82,34 +44,6 @@ async function fetchRatesFor(
     })
   );
   return rates;
-}
-
-function applyRates(
-  rows: LocalExpense[],
-  rates: Map<string, number>,
-  targetCurrency: string,
-): LocalExpense[] {
-  return rows.map((r) => {
-    if (r.originalCurrency === targetCurrency) {
-      return { ...r, amountStr: r.originalAmount.toFixed(2) };
-    }
-    const rate = rates.get(r.originalCurrency);
-    if (rate == null) return r;
-    return {
-      ...r,
-      amountStr: (Math.round(r.originalAmount * rate * 100) / 100).toFixed(2),
-    };
-  });
-}
-
-function toApiExpenses(rows: LocalExpense[]): Omit<TripExpense, "_id">[] {
-  return rows
-    .filter((r) => r.label.trim())
-    .map((r) => ({
-      label:        r.label.trim(),
-      amount:       Math.max(0, parseFloat(r.amountStr) || 0),
-      attractionId: r.attractionId,
-    }));
 }
 
 export function ExpensesPanel({

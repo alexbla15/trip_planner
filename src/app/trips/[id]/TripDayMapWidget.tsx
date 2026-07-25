@@ -7,13 +7,19 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { TriangleAlert, MapPinOff, Footprints, Car, Bus, BedDouble, Loader2, Plane } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { useAttractionTypes } from "@/hooks/useAttractionTypes";
-import { MIN_OVERLAP_DURATION_MINS } from "@/config/ui";
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
 import {
   fetchRouteLeg, fetchAirportLeg, formatLegDuration, formatStepDuration,
   type TravelMode, type RouteLeg,
 } from "@/services/routeTransit.service";
+import { getTripDays, formatDayLabel } from "@/lib/date";
+import {
+  timeToMins,
+  legKey,
+  detectConflicts,
+  findRouteNeighbour,
+} from "@/lib/schedule";
 import { lookupAirport, getAirportCarCoord, getAirportTransitCoord } from "./airportData";
 import styles from "./TripDayMapWidget.module.css";
 import "leaflet/dist/leaflet.css";
@@ -28,43 +34,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-
-// ── Pure utils ────────────────────────────────────────────────────────────────
-
-function getTripDays(start: string, end: string): string[] {
-  const days: string[] = [];
-  const d = new Date(start);
-  const last = new Date(end);
-  while (d <= last) {
-    days.push(d.toISOString().split("T")[0]);
-    d.setUTCDate(d.getUTCDate() + 1);
-  }
-  return days;
-}
-
-function formatDayLabel(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    weekday: "short", month: "short", day: "numeric", timeZone: "UTC",
-  });
-}
-
-function timeToMins(time: string): number {
-  const [h, m] = time.split(":").map(Number);
-  return h * 60 + (m || 0);
-}
-
-function attractionEndMins(a: Attraction): number {
-  const start = timeToMins(a.plannedTime!);
-  const val = parseFloat(a.actualDurationValue ?? a.durationValue ?? "0");
-  const unit = a.actualDurationUnit ?? a.durationUnit ?? "hours";
-  const dur = unit === "hours" ? val * 60 : val;
-  return start + Math.max(dur, MIN_OVERLAP_DURATION_MINS);
-}
-
-
-function legKey(fromId: string, toId: string, mode: TravelMode): string {
-  return `${mode}__${fromId}__${toId}`;
-}
 
 // ── DivIcon marker ────────────────────────────────────────────────────────────
 
@@ -119,48 +88,6 @@ function makeResidenceMarkerIcon(): L.DivIcon {
     iconAnchor: [16, 16] as [number, number],
     className: "",
   });
-}
-
-// ── Conflict detection ────────────────────────────────────────────────────────
-
-interface ConflictGroup {
-  key: string;
-  attractions: Attraction[];
-}
-
-function detectConflicts(sorted: Attraction[]): ConflictGroup[] {
-  const groups: ConflictGroup[] = [];
-  let i = 0;
-  while (i < sorted.length) {
-    const group: Attraction[] = [sorted[i]];
-    let groupEnd = attractionEndMins(sorted[i]);
-    let j = i + 1;
-    while (j < sorted.length) {
-      const jStart = timeToMins(sorted[j].plannedTime!);
-      if (jStart < groupEnd) {
-        group.push(sorted[j]);
-        groupEnd = Math.max(groupEnd, attractionEndMins(sorted[j]));
-        j++;
-      } else {
-        break;
-      }
-    }
-    if (group.length > 1) {
-      groups.push({ key: String(timeToMins(sorted[i].plannedTime!)), attractions: group });
-    }
-    i = j > i + 1 ? j : i + 1;
-  }
-  return groups;
-}
-
-function findRouteNeighbour(alt: Attraction, route: Attraction[]): Attraction | null {
-  if (route.length === 0) return null;
-  const altTime = timeToMins(alt.plannedTime!);
-  return route.reduce((nearest, r) =>
-    Math.abs(timeToMins(r.plannedTime!) - altTime) <
-    Math.abs(timeToMins(nearest.plannedTime!) - altTime)
-      ? r : nearest
-  );
 }
 
 // ── Transit label (Leaflet marker placed at segment midpoint) ─────────────────

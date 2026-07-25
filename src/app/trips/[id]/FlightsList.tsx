@@ -1,7 +1,7 @@
 "use client";
 
 import { Plane, Plus, PenLine, Trash2 } from "lucide-react";
-import { formatDisplayDate } from "@/lib/formatDate";
+import { flightMeta } from "@/lib/attractionDisplay";
 import type { Attraction } from "@/types/attraction";
 import styles from "./FlightsList.module.css";
 
@@ -12,15 +12,6 @@ interface FlightsListProps {
   onEdit: (a: Attraction) => void;
   onRemove: (id: string) => void;
   onView: (a: Attraction) => void;
-}
-
-function flightMeta(a: Attraction): string {
-  const route = [a.departureAirport, a.arrivalAirport].filter(Boolean).join(" → ");
-  const depTime = a.departureTime ? a.departureTime.split("T")[1]?.slice(0, 5) : "";
-  const arrTime = a.arrivalTime   ? a.arrivalTime.split("T")[1]?.slice(0, 5)   : "";
-  const times   = depTime && arrTime ? `${depTime}–${arrTime}` : depTime || arrTime;
-  const date    = a.plannedDate ? formatDisplayDate(a.plannedDate) : "";
-  return [a.airline, a.flightNumber, route, times, date].filter(Boolean).join(" · ");
 }
 
 export function FlightsList({ flights, canEdit, onAdd, onEdit, onRemove, onView }: FlightsListProps) {

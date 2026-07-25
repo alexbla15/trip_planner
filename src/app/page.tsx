@@ -11,15 +11,9 @@ import { RouteGuard } from "@/components/RouteGuard/RouteGuard";
 import { useAuth } from "@/contexts/AuthContext";
 import { listTrips } from "@/services/trips.service";
 import { getExploreItems } from "@/services/attractions.service";
+import { getGreeting } from "@/lib/date";
 import type { Trip, ExploreItem } from "@/types/trip";
 import styles from "./page.module.css";
-
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
 
 const SKELETON_COUNT = 3;
 

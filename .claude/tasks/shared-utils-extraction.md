@@ -1,6 +1,6 @@
 # Task: Shared Utils Extraction
 
-Status: intake
+Status: reviewing
 Track: B
 Track reason: Refactor/cleanup — internal structure only, no user-facing visual change.
 Goal: .claude/tasks/goals/architecture-standards-remediation.md
@@ -33,3 +33,14 @@ No pure, non-React helper function is defined inside a component/page file when 
 - Data fetching service layer (separate task, should land first: `data-fetching-service-layer`).
 - Barrel files (separate task: `component-barrel-files`).
 - Any behavior or output changes to the moved functions.
+
+## Implementation Notes
+- Files created: 9 modules under `src/lib/` — `date.ts` (toDateValue, buildISODateTime, addOneDay, getTripDays, formatDayLabel, getGreeting), `schedule.ts` (timeToMins, attractionEndMins, legKey, detectConflicts, findRouteNeighbour, layoutTimed, findEarliestFreeSlot, dayColumnWidth, calcDaySpanMinutes, calcSpend, fmt, slotTop, cardPx, makeHourSlots + LayoutItem/ConflictGroup types), `geometry.ts` (polarToCartesian, donutSlicePath, tintColor), `mapIcons.tsx` (makeCountryMarkerIcon, makeCityMarkerIcon, makeAttractionMarkerIcon — `.tsx` since these embed JSX for `renderToStaticMarkup`), `validation.ts` (validateLoginForm, validateRegisterForm), `adminForms.ts` (typeFormFromRecord/catFormFromRecord/moodFormFromRecord + their FormState types), `attractionDisplay.ts` (residenceMeta, flightMeta), `openingHours.ts` (buildInitialHours), `expenses.ts` (tempId, buildLocal, applyRates, toApiExpenses + LocalExpense type).
+- Files modified (local helper removed, import from `src/lib` added): `AddFlightModal.tsx`, `AddResidenceModal.tsx`, `AddFreeSlotModal.tsx`, `AddCustomSlotModal.tsx`, `EditTripClient.tsx`, `TripDayMapWidget.tsx`, `CalendarSection.tsx`, `CalendarSection.utils.ts`, `CategoryDonutChart.tsx`, `src/app/page.tsx`, `LoginClient.tsx`, `RegisterClient.tsx`, `AdminClient.tsx`, `ResidencesList.tsx`, `FlightsList.tsx`, `NewAttractionModal.tsx`, `ExpensesPanel.tsx`, `ExploreMapWidget.tsx`.
+- Deviations from task requirements:
+  - **`CalendarSection.utils.ts`'s `attractionEndMins` was NOT folded into the shared `src/lib/schedule.ts` version, despite the task explicitly asking for that.** On inspection the two "duplicate" implementations weren't actually duplicates: the shared one applies a `MIN_OVERLAP_DURATION_MINS` (30-min) floor to the computed duration and asserts `plannedTime` is set, while `CalendarSection.utils.ts`'s version has no floor and tolerates a missing `plannedTime` (returns 0). Routing it through the shared version would have silently changed the alert-computation logic (closed/conflict/overflow warnings) for any attraction with an actual duration under 30 minutes. Kept it local with a comment explaining why, and only deduplicated `timeToMins` (which genuinely was identical in both places).
+  - `EditTripClient.tsx`'s `isoToDateInput` and `AddFlightModal.tsx`'s `toDateValue` were near-identical but not byte-identical (`isoToDateInput` guarded `if (!iso) return ""` before constructing the Date; `toDateValue` wraps in try/catch instead). Verified both produce `""` for falsy/invalid input either way, so this dedup is safe — `toDateValue` is a strict superset (also survives a malformed-but-truthy date string without throwing, where the original would not have).
+  - Two lint warnings appeared immediately after the mechanical moves (`LayoutItem` imported-but-unused in `CalendarSection.tsx`, `attractionEndMins` imported-but-unused in `TripDayMapWidget.tsx` — both cases where the moved function is only used *inside* another moved function, not called directly by the file that imports it) and were removed; final lint output matches the pre-task baseline exactly.
+- New design tokens used: none (no UI change).
+
+Verification: `npx tsc --noEmit` clean; `npm run build` succeeds (Turbopack, all 33 routes); `npm run lint` reports the identical 70 problems (47 errors / 23 warnings) as the pre-task baseline.

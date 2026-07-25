@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { CurrencySelect } from "@/components/CurrencySelect/CurrencySelect";
 import { reverseGeocode } from "@/services/geocoding.service";
+import { toDateValue } from "@/lib/date";
 import { MapPicker } from "@/components/NewAttractionModal/MapPicker";
 import type { Coordinates } from "@/components/NewAttractionModal/attraction.types";
 import type { AddResidenceModalProps, ResidenceFormData, ResidenceType, ResidenceInitialData } from "./AddResidenceModal.types";
@@ -30,10 +31,6 @@ interface FieldErrors {
   residenceType?: string;
   checkInDate?: string;
   checkOutDate?: string;
-}
-
-function toDateValue(isoString: string): string {
-  try { return new Date(isoString).toISOString().split("T")[0]; } catch { return ""; }
 }
 
 export function AddResidenceModal({

@@ -1,4 +1,5 @@
 import type { Attraction } from "@/types/attraction";
+import { timeToMins } from "@/lib/schedule";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -14,11 +15,11 @@ export interface ScheduleAlert {
 
 const DOW_KEYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
-function timeToMins(t: string): number {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + (m || 0);
-}
-
+// Not the same function as src/lib/schedule.ts#attractionEndMins: this one has
+// no minimum-duration floor and tolerates a missing plannedTime (returns 0)
+// rather than asserting it's set — the two were never true duplicates despite
+// sharing a name, so this stays local rather than being folded into the shared
+// helper (which would change alert behavior for short-duration attractions).
 function attractionEndMins(a: Attraction): number {
   if (!a.plannedTime) return 0;
   const start = timeToMins(a.plannedTime);

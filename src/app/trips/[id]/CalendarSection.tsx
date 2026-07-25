@@ -13,13 +13,22 @@ import {
   removeAttractionFromTrip,
 } from "@/services/attractions.service";
 import { formatPrice } from "@/lib/currencies";
+import { getTripDays, formatDayLabel } from "@/lib/date";
+import {
+  makeHourSlots,
+  slotTop,
+  cardPx,
+  layoutTimed,
+  findEarliestFreeSlot,
+  dayColumnWidth,
+  calcDaySpanMinutes,
+  calcSpend,
+  fmt,
+} from "@/lib/schedule";
 import {
   DEFAULT_DAY_START,
   DEFAULT_DAY_END,
   SLOT_HEIGHT_PX,
-  MIN_CARD_HEIGHT_PX,
-  MIN_BLOCK_WIDTH_PX,
-  MIN_OVERLAP_DURATION_MINS,
 } from "@/config/ui";
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
@@ -45,172 +54,7 @@ const TripDayMapWidget = dynamic(
 /** Hour options for the day-range selects */
 const ALL_HOURS = Array.from({ length: 25 }, (_, i) => i); // 0..24
 
-function makeHourSlots(start: number, end: number): string[] {
-  return Array.from({ length: end - start }, (_, i) => {
-    const h = start + i;
-    return `${String(h).padStart(2, "0")}:00`;
-  });
-}
-
-
 type SidebarFilter = "all" | "scheduled" | "unscheduled";
-
-// ── Pure utils ────────────────────────────────────────────────────────────────
-
-function getTripDays(start: string, end: string): string[] {
-  const days: string[] = [];
-  const d = new Date(start);
-  const last = new Date(end);
-  while (d <= last) {
-    days.push(d.toISOString().split("T")[0]);
-    d.setUTCDate(d.getUTCDate() + 1);
-  }
-  return days;
-}
-
-function formatDayLabel(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    weekday: "short", month: "short", day: "numeric", timeZone: "UTC",
-  });
-}
-
-
-/** px from timeline top for a "HH:MM" string — supports minutes */
-function slotTop(time: string, startHour: number): number {
-  const [h, m] = time.split(":").map(Number);
-  return ((h - startHour) + (m || 0) / 60) * SLOT_HEIGHT_PX;
-}
-
-/** Card height in px from duration */
-function cardPx(a: Attraction): number {
-  const raw = parseFloat(a.actualDurationValue ?? a.durationValue ?? "");
-  if (isNaN(raw) || raw <= 0) return MIN_CARD_HEIGHT_PX;
-  const unit = a.actualDurationUnit ?? a.durationUnit ?? "hours";
-  const hours = unit === "minutes" ? raw / 60 : raw;
-  return Math.max(hours * SLOT_HEIGHT_PX, MIN_CARD_HEIGHT_PX);
-}
-
-// ── Overlap layout ────────────────────────────────────────────────────────────
-
-
-interface LayoutItem {
-  attraction: Attraction;
-  startMins: number;
-  endMins: number;
-  col: number;     // 0-based column index within overlapping group
-  numCols: number; // total columns in the widest overlap
-}
-
-function timeToMins(time: string): number {
-  const [h, m] = time.split(":").map(Number);
-  return h * 60 + (m || 0);
-}
-
-function endMins(a: Attraction): number {
-  const start = timeToMins(a.plannedTime!);
-  const val   = parseFloat(a.actualDurationValue ?? a.durationValue ?? "0");
-  const unit  = a.actualDurationUnit ?? a.durationUnit ?? "hours";
-  const dur   = unit === "hours" ? val * 60 : val;
-  return start + Math.max(dur, MIN_OVERLAP_DURATION_MINS);
-}
-
-/**
- * Assigns each timed attraction a column index (col) and the total
- * number of columns it shares with overlapping peers (numCols).
- */
-function layoutTimed(timed: Attraction[]): LayoutItem[] {
-  if (timed.length === 0) return [];
-
-  const items: LayoutItem[] = timed
-    .filter((a) => !!a.plannedTime)
-    .map((a) => ({
-      attraction: a,
-      startMins:  timeToMins(a.plannedTime!),
-      endMins:    endMins(a),
-      col: 0,
-      numCols: 1,
-    }))
-    .sort((a, b) => a.startMins - b.startMins);
-
-  // Interval-graph colouring: assign each item the lowest free column
-  const colEnd: number[] = []; // colEnd[c] = end time of last item placed in column c
-  for (const item of items) {
-    const freeCol = colEnd.findIndex((e) => e <= item.startMins);
-    if (freeCol !== -1) {
-      item.col = freeCol;
-      colEnd[freeCol] = item.endMins;
-    } else {
-      item.col = colEnd.length;
-      colEnd.push(item.endMins);
-    }
-  }
-
-  // Post-pass: set numCols = max columns used by any set of concurrent items
-  for (const item of items) {
-    const concurrent = items.filter(
-      (o) => o.startMins < item.endMins && o.endMins > item.startMins,
-    );
-    item.numCols = Math.max(...concurrent.map((o) => o.col + 1));
-  }
-
-  return items;
-}
-
-/**
- * Returns the earliest "HH:MM" that fits a new attraction of `durationMins`
- * without overlapping any already-timed attraction on the same day.
- */
-function findEarliestFreeSlot(timedOnDay: Attraction[], durationMins: number): string {
-  const events = timedOnDay
-    .filter((a) => !!a.plannedTime)
-    .map((a) => ({ start: timeToMins(a.plannedTime!), end: endMins(a) }))
-    .sort((a, b) => a.start - b.start);
-
-  let candidate = DEFAULT_DAY_START * 60; // start at 07:00
-
-  for (const ev of events) {
-    // If the new block fits before this event, stop
-    if (candidate + durationMins <= ev.start) break;
-    // Otherwise push candidate to the end of this event
-    candidate = Math.max(candidate, ev.end);
-  }
-
-  // Clamp to within the visible range
-  candidate = Math.min(candidate, (DEFAULT_DAY_END - 1) * 60);
-
-  const h = Math.floor(candidate / 60);
-  const m = candidate % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
-
-/** Width in px of a day column given its max concurrent overlaps */
-function dayColumnWidth(maxOverlap: number): number {
-  const LABEL_W = 46; // px for time labels + divider
-  const PAD_R   = 4;
-  return Math.max(200, LABEL_W + maxOverlap * MIN_BLOCK_WIDTH_PX + PAD_R);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Fix #2 — span from earliest start to latest end across timed attractions.
- * e.g. 9:00–11:00 and 13:00–14:30 → span = 14:30−9:00 = 5.5h, not 2+1.5=3.5h.
- */
-function calcDaySpanMinutes(timedItems: Attraction[]): number {
-  const timed = timedItems.filter((a) => !!a.plannedTime);
-  if (timed.length === 0) return 0;
-  const earliest = Math.min(...timed.map((a) => timeToMins(a.plannedTime!)));
-  const latest   = Math.max(...timed.map((a) => endMins(a)));
-  return Math.max(0, latest - earliest);
-}
-
-function calcSpend(items: Attraction[]): number {
-  return items.reduce((s, a) => s + (a.price ?? 0), 0);
-}
-
-function fmt(n: number): string {
-  return n % 1 === 0 ? String(n) : n.toFixed(1);
-}
 
 // ── Popup state type ──────────────────────────────────────────────────────────
 
