@@ -9,6 +9,8 @@ import { NewTripCard } from "@/components/NewTripCard/NewTripCard";
 import { ExploreSection } from "@/components/ExploreSection/ExploreSection";
 import { RouteGuard } from "@/components/RouteGuard/RouteGuard";
 import { useAuth } from "@/contexts/AuthContext";
+import { listTrips } from "@/services/trips.service";
+import { getExploreItems } from "@/services/attractions.service";
 import type { Trip, ExploreItem } from "@/types/trip";
 import styles from "./page.module.css";
 
@@ -32,19 +34,15 @@ function HomeContent() {
 
   useEffect(() => {
     if (!token) return;
-    fetch("/api/trips", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data: Trip[]) => setTrips(Array.isArray(data) ? data : []))
+    listTrips(token)
+      .then((data) => setTrips(Array.isArray(data) ? (data as Trip[]) : []))
       .catch(() => setTrips([]))
       .finally(() => setTripsLoading(false));
   }, [token]);
 
   useEffect(() => {
-    fetch("/api/explore")
-      .then((r) => r.json())
-      .then((data: ExploreItem[]) => setExploreItems(Array.isArray(data) ? data : []))
+    getExploreItems()
+      .then((data) => setExploreItems(Array.isArray(data) ? (data as ExploreItem[]) : []))
       .catch(() => setExploreItems([]));
   }, []);
 

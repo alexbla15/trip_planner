@@ -20,6 +20,7 @@ import {
   CountryFilterSelect,
 } from "@/components";
 import type { CityEntry, RankedListItem } from "@/components";
+import { getGlobalAnalytics } from "@/services/analytics.service";
 import styles from "./AnalyticsClient.module.css";
 
 const DynamicCountriesMap = dynamic(
@@ -58,9 +59,8 @@ export function AnalyticsClient() {
   const [cityCountryFilter, setCityCountryFilter] = useState<string>("all");
 
   useEffect(() => {
-    fetch("/api/analytics/global")
-      .then((r) => r.json())
-      .then((d: GlobalAnalytics) => setData(d))
+    getGlobalAnalytics()
+      .then((d) => setData(d as GlobalAnalytics))
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);

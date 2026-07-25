@@ -3,6 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { DollarSign, Plus, Trash2, Loader2, AlertCircle, Check } from "lucide-react";
 import { CurrencySelect } from "@/components/CurrencySelect/CurrencySelect";
+import { getFxRate } from "@/services/fx.service";
+import { saveExpenses } from "@/services/expenses.service";
+import { updateTrip } from "@/services/trips.service";
 import { currencySymbol, formatPrice, isPostfixCurrency } from "@/lib/currencies";
 import type { Trip, TripExpense } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
@@ -74,8 +77,7 @@ async function fetchRatesFor(
   await Promise.all(
     unique.map(async (from) => {
       if (from === targetCurrency) { rates.set(from, 1); return; }
-      const res = await fetch(`/api/fx?from=${encodeURIComponent(from)}&to=${encodeURIComponent(targetCurrency)}`);
-      const d = await res.json() as { rate?: number };
+      const d = await getFxRate(from, targetCurrency);
       if (d.rate != null) rates.set(from, d.rate);
     })
   );
@@ -252,21 +254,13 @@ export function ExpensesPanel({
     setSaving(true); setError("");
     try {
       const [expRes, tripRes] = await Promise.all([
-        fetch(`/api/trips/${trip._id}/expenses`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ expenses: toApiExpenses(rows) }),
-        }),
+        saveExpenses(trip._id, token, toApiExpenses(rows)),
         isCurrencyChanged
-          ? fetch(`/api/trips/${trip._id}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-              body: JSON.stringify({
-                currency: selectedCurrency,
-                ...(trip.budget != null
-                  ? { budget: Math.round(trip.budget * currentRate) }
-                  : {}),
-              }),
+          ? updateTrip(trip._id, token, {
+              currency: selectedCurrency,
+              ...(trip.budget != null
+                ? { budget: Math.round(trip.budget * currentRate) }
+                : {}),
             })
           : Promise.resolve(null),
       ]);

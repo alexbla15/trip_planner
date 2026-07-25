@@ -5,6 +5,13 @@ import dynamic from "next/dynamic";
 import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, TriangleAlert, Plus, Coffee } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { useAttractionTypes } from "@/hooks/useAttractionTypes";
+import { getFxRate } from "@/services/fx.service";
+import { updateTrip } from "@/services/trips.service";
+import {
+  addAttractionToTrip,
+  updateTripAttractionSchedule,
+  removeAttractionFromTrip,
+} from "@/services/attractions.service";
 import { formatPrice } from "@/lib/currencies";
 import {
   DEFAULT_DAY_START,
@@ -289,8 +296,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
     let cancelled = false;
     Promise.all(
       foreignCurrencies.map(async (from) => {
-        const res = await fetch(`/api/fx?from=${encodeURIComponent(from)}&to=${encodeURIComponent(tc)}`);
-        const d = await res.json() as { rate?: number };
+        const d = await getFxRate(from, tc);
         return [from, d.rate ?? 1] as [string, number];
       })
     ).then((entries) => {
@@ -327,11 +333,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   async function putOne(id: string, patch: Partial<Attraction>) {
     // Schedule fields (plannedDate, plannedTime, actualDuration) live in Trip.schedules,
     // so we PATCH the trip-scoped schedule endpoint rather than the global attraction.
-    const res = await fetch(`/api/trips/${trip._id}/attractions/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(patch),
-    });
+    const res = await updateTripAttractionSchedule(trip._id, id, token, patch);
     if (!res.ok) throw new Error(`Save failed (${res.status})`);
   }
 
@@ -445,26 +447,19 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   async function handleCustomSlotSave(data: CustomSlotFormData) {
     if (!token) return;
     try {
-      const res = await fetch(`/api/trips/${trip._id}/attractions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          name:                data.name,
-          subtype:             "custom-slot",
-          types:               data.types,
-          price:               data.price,
-          currency:            data.currency,
-          notes:               data.notes,
-          plannedDate:         data.plannedDate,
-          plannedTime:         data.plannedTime,
-          actualDurationValue: data.actualDurationValue,
-          actualDurationUnit:  data.actualDurationUnit,
-        }),
-      });
-      if (res.ok) {
-        const created = (await res.json()) as Attraction;
-        applyLocal([created, ...local]);
-      }
+      const created = (await addAttractionToTrip(trip._id, token, {
+        name:                data.name,
+        subtype:             "custom-slot",
+        types:               data.types,
+        price:               data.price,
+        currency:            data.currency,
+        notes:               data.notes,
+        plannedDate:         data.plannedDate,
+        plannedTime:         data.plannedTime,
+        actualDurationValue: data.actualDurationValue,
+        actualDurationUnit:  data.actualDurationUnit,
+      })) as Attraction;
+      applyLocal([created, ...local]);
     } catch { /* silent */ }
   }
 
@@ -473,20 +468,16 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
     const id = editingCustomSlot._id;
     setEditingCustomSlot(null);
     try {
-      const res = await fetch(`/api/trips/${trip._id}/attractions/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          name:                data.name,
-          typeNames:           data.types,
-          price:               data.price,
-          currency:            data.currency,
-          notes:               data.notes,
-          plannedDate:         data.plannedDate,
-          plannedTime:         data.plannedTime,
-          actualDurationValue: data.actualDurationValue,
-          actualDurationUnit:  data.actualDurationUnit,
-        }),
+      const res = await updateTripAttractionSchedule(trip._id, id, token, {
+        name:                data.name,
+        typeNames:           data.types,
+        price:               data.price,
+        currency:            data.currency,
+        notes:               data.notes,
+        plannedDate:         data.plannedDate,
+        plannedTime:         data.plannedTime,
+        actualDurationValue: data.actualDurationValue,
+        actualDurationUnit:  data.actualDurationUnit,
       });
       if (res.ok) {
         const updated = (await res.json()) as Attraction;
@@ -498,10 +489,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   async function handleDeleteCustomSlot(id: string) {
     if (!token) return;
     try {
-      await fetch(`/api/trips/${trip._id}/attractions/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await removeAttractionFromTrip(trip._id, id, token);
       applyLocal(local.filter((a) => a._id !== id));
     } catch { /* silent */ }
   }
@@ -512,11 +500,8 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
 
   function saveCalRange(start: number, end: number) {
     if (!token) return;
-    fetch(`/api/trips/${trip._id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ calDayStart: start, calDayEnd: end }),
-    }).catch(() => { /* ignore — not critical */ });
+    updateTrip(trip._id, token, { calDayStart: start, calDayEnd: end })
+      .catch(() => { /* ignore — not critical */ });
   }
 
   function handleDayStartChange(h: number) {

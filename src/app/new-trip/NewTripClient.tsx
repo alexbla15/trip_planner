@@ -28,6 +28,8 @@ import { useAttractionTypes } from "@/hooks/useAttractionTypes";
 import type { AttractionFormData } from "@/components/NewAttractionModal/attraction.types";
 import { COUNTRIES } from "@/components/NewAttractionModal/attraction.constants";
 import { useAuth } from "@/contexts/AuthContext";
+import { createTrip } from "@/services/trips.service";
+import { ApiError } from "@/services/http";
 import { useMoodTags } from "@/hooks/useMoodTags";
 import { CURRENCIES, NOTES_MAX, getDurationDays, getDateError, getNotesCountLevel } from "@/lib/tripForm";
 import { CoverImageField, isValidCoverUrl } from "@/components";
@@ -98,35 +100,25 @@ export function NewTripClient() {
     setSubmitError("");
 
     try {
-      const res = await fetch("/api/trips", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: tripName,
-          country,
-          startDate,
-          endDate,
-          budget: budget ? Number(budget) : undefined,
-          currency,
-          moods,
-          notes: notes || undefined,
-          coverImage: coverPhotoUrl || undefined,
-        }),
-      });
+      const data = (await createTrip(token, {
+        name: tripName,
+        country,
+        startDate,
+        endDate,
+        budget: budget ? Number(budget) : undefined,
+        currency,
+        moods,
+        notes: notes || undefined,
+        coverImage: coverPhotoUrl || undefined,
+      })) as { _id: string };
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setSubmitError(data.error ?? "Failed to create trip. Please try again.");
-        return;
+      router.push(`/trips/${data._id}`);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setSubmitError((err.body as { error?: string } | null)?.error ?? "Failed to create trip. Please try again.");
+      } else {
+        setSubmitError("Network error. Please check your connection and try again.");
       }
-
-      router.push(`/trips/${data._id as string}`);
-    } catch {
-      setSubmitError("Network error. Please check your connection and try again.");
     } finally {
       setSubmitting(false);
     }

@@ -28,6 +28,9 @@ const DynamicCountriesMap = dynamic(
   { ssr: false, loading: () => <div className={styles.mapLoading}>Loading map…</div> },
 );
 import { useAuth } from "@/contexts/AuthContext";
+import { getPersonalAnalytics } from "@/services/analytics.service";
+import { changePassword, updateCurrentUser } from "@/services/users.service";
+import { ApiError } from "@/services/http";
 import { formatDisplayDate } from "@/lib/formatDate";
 import { formatPrice } from "@/lib/currencies";
 import { AVATARS } from "@/lib/avatarConstants";
@@ -82,11 +85,8 @@ export function ProfileClient() {
   // Fetch personal analytics
   useEffect(() => {
     if (!token) return;
-    fetch("/api/analytics/summary", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((d: PersonalAnalytics) => setAnalytics(d))
+    getPersonalAnalytics(token)
+      .then((d) => setAnalytics(d as PersonalAnalytics))
       .catch(() => setAnalytics(null))
       .finally(() => setAnalyticsLoading(false));
   }, [token]);
@@ -123,18 +123,16 @@ export function ProfileClient() {
     if (newPw.length < 8)    { setPwError("New password must be at least 8 characters"); return; }
     setPwSaving(true); setPwError(""); setPwSuccess("");
     try {
-      const res = await fetch("/api/users/me/password", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setPwError(data.error ?? "Failed to update password"); return; }
+      await changePassword(token, { currentPassword: currentPw, newPassword: newPw });
       setPwSuccess("Password updated successfully.");
       setCurrentPw(""); setNewPw(""); setConfirmPw("");
       setTimeout(() => { setShowPwForm(false); setPwSuccess(""); }, 2000);
-    } catch {
-      setPwError("Network error. Please try again.");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setPwError((err.body as { error?: string } | null)?.error ?? "Failed to update password");
+      } else {
+        setPwError("Network error. Please try again.");
+      }
     } finally {
       setPwSaving(false);
     }
@@ -145,23 +143,15 @@ export function ProfileClient() {
     setSaving(true);
     setSaveError("");
     try {
-      const res = await fetch("/api/users/me", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name: editName, avatarUrl: editAvatarUrl || undefined }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setSaveError(data.error ?? "Failed to save profile");
-        return;
-      }
+      await updateCurrentUser(token, { name: editName, avatarUrl: editAvatarUrl || undefined });
       await login(token);
       setIsEditing(false);
-    } catch {
-      setSaveError("Network error. Please try again.");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setSaveError((err.body as { error?: string } | null)?.error ?? "Failed to save profile");
+      } else {
+        setSaveError("Network error. Please try again.");
+      }
     } finally {
       setSaving(false);
     }

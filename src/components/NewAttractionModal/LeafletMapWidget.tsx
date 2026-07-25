@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import { Search } from "lucide-react";
+import { reverseGeocode, searchLocation } from "@/services/geocoding.service";
 import type { Coordinates } from "./attraction.types";
 import styles from "./MapPicker.module.css";
 import "leaflet/dist/leaflet.css";
@@ -50,10 +51,7 @@ function MapPanController({ target }: { target: Coordinates | null }) {
 }
 
 async function geocode(query: string): Promise<NominatimResult[]> {
-  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(query)}`;
-  const res = await fetch(url, { headers: { "Accept-Language": "en" } });
-  if (!res.ok) return [];
-  return res.json();
+  return searchLocation(query) as Promise<NominatimResult[]>;
 }
 
 export function LeafletMapWidget({ coordinates, onChange }: LeafletMapWidgetProps) {
@@ -73,14 +71,11 @@ export function LeafletMapWidget({ coordinates, onChange }: LeafletMapWidgetProp
     const sugg = suggestionCoordsRef.current;
     if (sugg && sugg.lat === coordinates.lat && sugg.lng === coordinates.lng) return; // came from suggestion — query already set
     if (query.trim()) return; // user has typed something — don't overwrite
-    fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${coordinates.lat}&lon=${coordinates.lng}&format=json&accept-language=en`,
-      { headers: { "User-Agent": "TripPlannerApp/1.0" } }
-    )
-      .then((r) => r.json())
-      .then((data: { display_name?: string }) => {
-        if (data.display_name) {
-          setQuery(data.display_name.split(",").slice(0, 3).join(",").trim());
+    reverseGeocode(coordinates.lat, coordinates.lng)
+      .then((data) => {
+        const displayName = (data as { display_name?: string }).display_name;
+        if (displayName) {
+          setQuery(displayName.split(",").slice(0, 3).join(",").trim());
         }
       })
       .catch(() => {});

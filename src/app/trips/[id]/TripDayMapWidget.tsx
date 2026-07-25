@@ -13,7 +13,7 @@ import type { Attraction } from "@/types/attraction";
 import {
   fetchRouteLeg, fetchAirportLeg, formatLegDuration, formatStepDuration,
   type TravelMode, type RouteLeg,
-} from "./routeService";
+} from "@/services/routeTransit.service";
 import { lookupAirport, getAirportCarCoord, getAirportTransitCoord } from "./airportData";
 import styles from "./TripDayMapWidget.module.css";
 import "leaflet/dist/leaflet.css";

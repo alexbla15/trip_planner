@@ -15,6 +15,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { register as registerRequest, login as loginRequest } from "@/services/auth.service";
+import { ApiError } from "@/services/http";
 import styles from "./RegisterClient.module.css";
 
 interface FormErrors {
@@ -69,25 +71,18 @@ export function RegisterClient() {
     setApiError("");
 
     try {
-      const registerRes = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      const registerData = await registerRes.json();
-
-      if (!registerRes.ok) {
-        setApiError(registerData.error ?? "Registration failed. Please try again.");
-        return;
+      try {
+        await registerRequest(name, email, password);
+      } catch (err) {
+        if (err instanceof ApiError) {
+          setApiError((err.body as { error?: string } | null)?.error ?? "Registration failed. Please try again.");
+          return;
+        }
+        throw err;
       }
 
       // Auto-login after successful registration
-      const loginRes = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const loginRes = await loginRequest(email, password);
 
       const loginData = await loginRes.json();
 

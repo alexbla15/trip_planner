@@ -7,6 +7,7 @@ import L from "leaflet";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Globe, MapPin } from "lucide-react";
 import { useAttractionTypes } from "@/hooks/useAttractionTypes";
+import { getCityBoundary, getCountryBoundary } from "@/services/geo.service";
 import { getIconComponent } from "@/components/IconPicker";
 import type { Attraction } from "@/types/attraction";
 import type { CityEntry, CountryEntry, MapHandle } from "./ExploreClient";
@@ -112,10 +113,9 @@ export function ExploreMapWidget({
   useEffect(() => {
     if (countries.length === 0) return;
     countries.forEach((c) => {
-      fetch(`/api/geo/country?name=${encodeURIComponent(c.name)}`)
-        .then((r) => r.json())
-        .then((data: GeoJsonObject | null) =>
-          setCountryBoundaries((prev) => new Map(prev).set(c.name, data))
+      getCountryBoundary(c.name)
+        .then((data) =>
+          setCountryBoundaries((prev) => new Map(prev).set(c.name, data as GeoJsonObject | null))
         )
         .catch(() =>
           setCountryBoundaries((prev) => new Map(prev).set(c.name, null))
@@ -125,11 +125,8 @@ export function ExploreMapWidget({
 
   useEffect(() => {
     if (!selectedCity) { setCityBoundary(null); return; }
-    const params = new URLSearchParams({ name: selectedCity });
-    if (selectedCountry) params.set("country", selectedCountry);
-    fetch(`/api/geo/city?${params}`)
-      .then((r) => r.json())
-      .then((data: GeoJsonObject | null) => setCityBoundary(data))
+    getCityBoundary(selectedCity, selectedCountry ?? undefined)
+      .then((data) => setCityBoundary(data as GeoJsonObject | null))
       .catch(() => setCityBoundary(null));
   }, [selectedCity, selectedCountry]);
 

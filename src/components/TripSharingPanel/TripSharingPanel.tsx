@@ -2,7 +2,11 @@
 
 import { useState, useRef } from "react";
 import { Lock, Users, X, Loader2, Search } from "lucide-react";
-import type { TripCollaborator } from "@/types/trip";
+import type { Trip, TripCollaborator } from "@/types/trip";
+import { updateTrip } from "@/services/trips.service";
+import { searchUsers } from "@/services/users.service";
+import { addCollaborator, removeCollaborator } from "@/services/collaborators.service";
+import { ApiError } from "@/services/http";
 import type { TripSharingPanelProps } from "./TripSharingPanel.types";
 import { getInitials } from "./TripSharingPanel.utils";
 import styles from "./TripSharingPanel.module.css";
@@ -33,11 +37,7 @@ export function TripSharingPanel({ trip, token, onTripUpdate }: TripSharingPanel
     setTogglingPrivacy(true);
     setPrivacyError(null);
     try {
-      const res = await fetch(`/api/trips/${trip._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ isPrivate: next }),
-      });
+      const res = await updateTrip(trip._id, token, { isPrivate: next });
       if (res.ok) {
         const updated = await res.json();
         onTripUpdate(updated);
@@ -70,16 +70,10 @@ export function TripSharingPanel({ trip, token, onTripUpdate }: TripSharingPanel
     setSearching(true);
     searchTimeout.current = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `/api/users/search?q=${encodeURIComponent(q.trim())}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (res.ok) {
-          const all: UserResult[] = await res.json();
-          const addedIds = new Set((trip.collaborators ?? []).map((c) => c.userId));
-          setSearchResults(all.filter((u) => !addedIds.has(u._id)));
-          setDropdownOpen(true);
-        }
+        const all = (await searchUsers(token, q.trim())) as UserResult[];
+        const addedIds = new Set((trip.collaborators ?? []).map((c) => c.userId));
+        setSearchResults(all.filter((u) => !addedIds.has(u._id)));
+        setDropdownOpen(true);
       } catch {
         // silent
       } finally {
@@ -104,19 +98,14 @@ export function TripSharingPanel({ trip, token, onTripUpdate }: TripSharingPanel
     setInviteError(null);
 
     try {
-      const res = await fetch(`/api/trips/${trip._id}/collaborators`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ email: user.email }),
-      });
-      const json = await res.json();
-      if (res.ok) {
-        onTripUpdate(json);
+      const json = await addCollaborator(trip._id, token, user.email);
+      onTripUpdate(json as Trip);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setInviteError((err.body as { error?: string } | null)?.error ?? "Something went wrong.");
       } else {
-        setInviteError(json.error ?? "Something went wrong.");
+        setInviteError("Network error. Please try again.");
       }
-    } catch {
-      setInviteError("Network error. Please try again.");
     } finally {
       setInviting(false);
     }
@@ -127,16 +116,8 @@ export function TripSharingPanel({ trip, token, onTripUpdate }: TripSharingPanel
     onTripUpdate({ ...trip, collaborators: trip.collaborators.filter((c) => c.userId !== collaborator.userId) });
 
     try {
-      const res = await fetch(`/api/trips/${trip._id}/collaborators/${collaborator.userId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const updated = await res.json();
-        onTripUpdate(updated);
-      } else {
-        onTripUpdate({ ...trip, collaborators: snapshot });
-      }
+      const updated = await removeCollaborator(trip._id, collaborator.userId, token);
+      onTripUpdate(updated as Trip);
     } catch {
       onTripUpdate({ ...trip, collaborators: snapshot });
     }

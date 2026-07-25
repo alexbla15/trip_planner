@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { login as loginRequest } from "@/services/auth.service";
 import styles from "./LoginClient.module.css";
 
 interface FormErrors {
@@ -64,11 +65,7 @@ export function LoginClient() {
     setApiError("");
 
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const res = await loginRequest(email, password);
 
       const data = await res.json();
 

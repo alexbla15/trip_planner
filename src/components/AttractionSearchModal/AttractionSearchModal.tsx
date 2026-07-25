@@ -11,6 +11,7 @@ import { createPortal } from "react-dom";
 import { X, Search, MapPin, Plus, PenLine, SearchX } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { useAttractionTypes } from "@/hooks/useAttractionTypes";
+import { searchAttractionsByCountry } from "@/services/attractions.service";
 import { AttractionFilter } from "@/components/AttractionFilter/AttractionFilter";
 import type { Attraction } from "@/types/attraction";
 import type { AttractionSearchModalProps } from "./AttractionSearchModal.types";
@@ -73,10 +74,7 @@ export function AttractionSearchModal({
     setBodyState("loading");
     debounceRef.current = setTimeout(async () => {
       try {
-        const params = new URLSearchParams({ country });
-        if (q.trim()) params.set("q", q.trim());
-        const res = await fetch(`/api/attractions?${params}`);
-        const data = (await res.json()) as Attraction[];
+        const data = (await searchAttractionsByCountry(country, q)) as Attraction[];
         const list = Array.isArray(data) ? data : [];
         setResults(list);
         setBodyState(list.length > 0 ? "results" : "empty");

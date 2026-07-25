@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import L from "leaflet";
+import { getWorldCountriesGeoJson } from "@/services/geo.service";
 import "leaflet/dist/leaflet.css";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -13,9 +14,6 @@ L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
-
-const GEOJSON_URL =
-  "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson";
 
 const COUNTRY_NAME_ALIASES: Record<string, string> = {
   "united states": "united states of america",
@@ -42,9 +40,8 @@ export function CountriesMap({ countries, countLabel = "attraction" }: Countries
   const [geoJson, setGeoJson] = useState<object | null>(null);
 
   useEffect(() => {
-    fetch(GEOJSON_URL)
-      .then((r) => r.json())
-      .then(setGeoJson)
+    getWorldCountriesGeoJson()
+      .then((data) => setGeoJson(data as object))
       .catch(() => {});
   }, []);
 

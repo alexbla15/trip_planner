@@ -38,6 +38,14 @@ import { DEFAULT_OPENING_HOURS } from "@/components/NewAttractionModal/attractio
 import { renderTypeIcon } from "@/components/IconPicker";
 import { useAttractionTypes } from "@/hooks/useAttractionTypes";
 import { useAuth } from "@/contexts/AuthContext";
+import { getTrip } from "@/services/trips.service";
+import {
+  getTripAttractions,
+  addAttractionToTrip,
+  updateAttraction,
+  updateTripAttractionSchedule,
+  removeAttractionFromTrip,
+} from "@/services/attractions.service";
 import { TripSharingPanel } from "@/components/TripSharingPanel/TripSharingPanel";
 import { ExpensesPanel } from "@/components/ExpensesPanel/ExpensesPanel";
 import { TripTabBar } from "@/components/TripTabBar";
@@ -116,8 +124,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   useEffect(() => {
     if (authLoading) return;
     setTripLoading(true);
-    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
-    fetch(`/api/trips/${tripId}`, { headers })
+    getTrip(tripId, token)
       .then((res) => {
         if (res.status === 404) { router.replace("/trips"); return null; }
         if (res.status === 403) { setForbidden(true); return null; }
@@ -132,10 +139,8 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   useEffect(() => {
     if (!trip) return;
     setAttractionsLoading(true);
-    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
-    fetch(`/api/trips/${trip._id}/attractions`, { headers })
-      .then((res) => res.json())
-      .then((data: Attraction[]) => setAttractions(Array.isArray(data) ? data : []))
+    getTripAttractions(trip._id, token)
+      .then((data) => setAttractions(Array.isArray(data) ? (data as Attraction[]) : []))
       .catch(() => setAttractions([]))
       .finally(() => setAttractionsLoading(false));
   }, [token, trip]);
@@ -144,20 +149,10 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     if (!token || !trip) return;
     setSearchModalOpen(false);
     try {
-      const res = await fetch(`/api/trips/${trip._id}/attractions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          existingAttractionId: existing._id,
-        }),
-      });
-      if (res.ok) {
-        const created = (await res.json()) as Attraction;
-        setAttractions((prev) => [created, ...prev]);
-      }
+      const created = (await addAttractionToTrip(trip._id, token, {
+        existingAttractionId: existing._id,
+      })) as Attraction;
+      setAttractions((prev) => [created, ...prev]);
     } catch {
       // silent
     }
@@ -171,30 +166,16 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   async function handleResidenceSave(data: ResidenceFormData) {
     if (!token || !trip) return;
     try {
-      const res = await fetch(`/api/trips/${trip._id}/attractions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(data),
-      });
-      if (res.ok) {
-        const created = (await res.json()) as Attraction;
-        setAttractions((prev) => [created, ...prev]);
-      }
+      const created = (await addAttractionToTrip(trip._id, token, data)) as Attraction;
+      setAttractions((prev) => [created, ...prev]);
     } catch { /* silent */ }
   }
 
   async function handleFlightSave(data: FlightFormData) {
     if (!token || !trip) return;
     try {
-      const res = await fetch(`/api/trips/${trip._id}/attractions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(data),
-      });
-      if (res.ok) {
-        const created = (await res.json()) as Attraction;
-        setAttractions((prev) => [created, ...prev]);
-      }
+      const created = (await addAttractionToTrip(trip._id, token, data)) as Attraction;
+      setAttractions((prev) => [created, ...prev]);
     } catch { /* silent */ }
   }
 
@@ -203,19 +184,12 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     const id = editingResidence._id;
     setEditingResidence(null);
     try {
-      const res = await fetch(`/api/attractions/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(data),
-      });
-      if (res.ok) {
-        const updated = (await res.json()) as Attraction;
-        setAttractions((prev) => prev.map((a) => a._id !== updated._id ? a : {
-          ...updated,
-          plannedDate: a.plannedDate,
-          plannedTime: a.plannedTime,
-        }));
-      }
+      const updated = (await updateAttraction(id, token, data)) as Attraction;
+      setAttractions((prev) => prev.map((a) => a._id !== updated._id ? a : {
+        ...updated,
+        plannedDate: a.plannedDate,
+        plannedTime: a.plannedTime,
+      }));
     } catch { /* silent */ }
   }
 
@@ -225,28 +199,20 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     setEditingFlight(null);
     try {
       // Step 1: update attraction-level fields (departureTime, arrivalTime, airline, etc.)
-      const attrRes = await fetch(`/api/attractions/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(data),
-      });
-      if (!attrRes.ok) return;
+      const attrUpdated = (await updateAttraction(id, token, data)) as Attraction;
 
       // Step 2: update trip schedule (plannedDate/Time/duration) so calendar position updates.
       // Must run after the PUT so the PATCH reads the already-updated attraction from DB.
-      const schedRes = await fetch(`/api/trips/${trip._id}/attractions/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          plannedDate:         data.plannedDate,
-          plannedTime:         data.plannedTime,
-          actualDurationValue: data.actualDurationValue,
-          actualDurationUnit:  data.actualDurationUnit,
-        }),
+      const schedRes = await updateTripAttractionSchedule(trip._id, id, token, {
+        plannedDate:         data.plannedDate,
+        plannedTime:         data.plannedTime,
+        actualDurationValue: data.actualDurationValue,
+        actualDurationUnit:  data.actualDurationUnit,
       });
 
-      // PATCH response merges updated attraction + updated schedule — use it as the source of truth
-      const updated = (await (schedRes.ok ? schedRes : attrRes).json()) as Attraction;
+      // PATCH response merges updated attraction + updated schedule — use it as the source of
+      // truth, falling back to the attraction-update result if the schedule PATCH itself failed.
+      const updated = schedRes.ok ? ((await schedRes.json()) as Attraction) : attrUpdated;
       setAttractions((prev) => prev.map((a) => a._id !== updated._id ? a : updated));
     } catch { /* silent */ }
   }
@@ -256,32 +222,21 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     setModalOpen(false);
 
     try {
-      const res = await fetch(`/api/trips/${trip._id}/attractions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: data.name,
-          country: data.country,
-          city: data.city,
-          coordinates: data.coordinates,
-          types: data.types,
-          durationValue: data.durationValue || undefined,
-          durationUnit: data.durationUnit,
-          price: data.price,
-          currency: data.currency,
-          openingHours: data.openingHours,
-          notes: data.notes || undefined,
-          photoUrl: data.photoUrl || undefined,
-        }),
-      });
-
-      if (res.ok) {
-        const created = (await res.json()) as Attraction;
-        setAttractions((prev) => [created, ...prev]);
-      }
+      const created = (await addAttractionToTrip(trip._id, token, {
+        name: data.name,
+        country: data.country,
+        city: data.city,
+        coordinates: data.coordinates,
+        types: data.types,
+        durationValue: data.durationValue || undefined,
+        durationUnit: data.durationUnit,
+        price: data.price,
+        currency: data.currency,
+        openingHours: data.openingHours,
+        notes: data.notes || undefined,
+        photoUrl: data.photoUrl || undefined,
+      })) as Attraction;
+      setAttractions((prev) => [created, ...prev]);
     } catch {
       // Silent failure — attraction list won't update but no crash
     }
@@ -312,29 +267,19 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     setEditingAttraction(null);
 
     try {
-      const res = await fetch(`/api/attractions/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
-      if (res.ok) {
-        const updated = (await res.json()) as Attraction;
-        setAttractions((prev) =>
-          prev.map((a) => {
-            if (a._id !== updated._id) return a;
-            return {
-              ...updated,
-              plannedDate: a.plannedDate,
-              plannedTime: a.plannedTime,
-              actualDurationValue: a.actualDurationValue,
-              actualDurationUnit: a.actualDurationUnit,
-            };
-          })
-        );
-      }
+      const updated = (await updateAttraction(id, token, data)) as Attraction;
+      setAttractions((prev) =>
+        prev.map((a) => {
+          if (a._id !== updated._id) return a;
+          return {
+            ...updated,
+            plannedDate: a.plannedDate,
+            plannedTime: a.plannedTime,
+            actualDurationValue: a.actualDurationValue,
+            actualDurationUnit: a.actualDurationUnit,
+          };
+        })
+      );
     } catch {
       // Silent — stale data remains until next page load
     }
@@ -349,10 +294,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
 
     try {
       // Unlinks from this trip — does NOT delete the global attraction from the DB
-      const res = await fetch(`/api/trips/${trip._id}/attractions/${attractionId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token ?? ""}` },
-      });
+      const res = await removeAttractionFromTrip(trip._id, attractionId, token);
       if (!res.ok) setAttractions(snapshot);
     } catch {
       setAttractions(snapshot);

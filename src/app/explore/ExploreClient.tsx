@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Globe, Plus, ChevronLeft, SlidersHorizontal, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAttractionTypes } from "@/hooks/useAttractionTypes";
+import { getCities, getAttractionsByCity, createAttraction } from "@/services/attractions.service";
 import { AttractionDetailModal } from "@/components/AttractionDetailModal/AttractionDetailModal";
 import { NewAttractionModal } from "@/components/NewAttractionModal/NewAttractionModal";
 import type { Attraction } from "@/types/attraction";
@@ -67,9 +68,8 @@ export function ExploreClient() {
   // Load cities on mount
   useEffect(() => {
     setCitiesLoading(true);
-    fetch("/api/attractions/cities")
-      .then((r) => r.json())
-      .then((data: { cities: CityEntry[] }) => setCities(data.cities ?? []))
+    getCities()
+      .then((data) => setCities((data as { cities: CityEntry[] }).cities ?? []))
       .catch(() => {})
       .finally(() => setCitiesLoading(false));
   }, []);
@@ -78,9 +78,8 @@ export function ExploreClient() {
   useEffect(() => {
     if (!selectedCity) { setCityAttractions([]); return; }
     setAttractionsLoading(true);
-    fetch(`/api/attractions?city=${encodeURIComponent(selectedCity)}`)
-      .then((r) => r.json())
-      .then((data: Attraction[]) => setCityAttractions(Array.isArray(data) ? data : []))
+    getAttractionsByCity(selectedCity)
+      .then((data) => setCityAttractions(Array.isArray(data) ? (data as Attraction[]) : []))
       .catch(() => {})
       .finally(() => setAttractionsLoading(false));
   }, [selectedCity]);
@@ -227,13 +226,12 @@ export function ExploreClient() {
 
   async function handleAddSave(data: AttractionFormData) {
     if (!token) return;
-    const res = await fetch("/api/attractions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) return;
-    const newAttraction = (await res.json()) as Attraction;
+    let newAttraction: Attraction;
+    try {
+      newAttraction = (await createAttraction(token, data)) as Attraction;
+    } catch {
+      return;
+    }
     setAddModalOpen(false);
     if (selectedCity && newAttraction.city === selectedCity) {
       setCityAttractions((prev) => [...prev, newAttraction]);

@@ -10,6 +10,24 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAttractionTypes, invalidateAttractionTypesCache } from "@/hooks/useAttractionTypes";
 import { useAttractionCategories, invalidateAttractionCategoriesCache } from "@/hooks/useAttractionCategories";
 import { useMoodTags, invalidateMoodTagsCache } from "@/hooks/useMoodTags";
+import {
+  createAttractionType,
+  updateAttractionType,
+  deleteAttractionType,
+} from "@/services/attractionTypes.service";
+import {
+  createAttractionCategory,
+  updateAttractionCategory,
+  deleteAttractionCategory,
+  migrateLegacyTypes,
+} from "@/services/attractionCategories.service";
+import {
+  createMoodTag,
+  updateMoodTag,
+  deleteMoodTag,
+  seedMoodTags,
+} from "@/services/moodTags.service";
+import { ApiError } from "@/services/http";
 import { getIconComponent, renderTypeIcon } from "@/components/IconPicker";
 import { IconPicker } from "@/components/IconPicker";
 import type { AttractionTypeRecord } from "@/types/attractionType";
@@ -72,24 +90,19 @@ function TypeForm({
     setSaving(true);
     setError("");
 
-    const url    = typeId ? `/api/attraction-types/${typeId}` : "/api/attraction-types";
-    const method = typeId ? "PUT" : "POST";
-
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        name:       form.name.trim(),
-        categoryId: form.categoryId.trim(),
-        icon:       form.icon.trim(),
-        subtype:    form.subtype || null,
-        order:      parseInt(form.order, 10) || 0,
-      }),
-    });
-
-    const data = await res.json() as { error?: string };
-    if (!res.ok) {
-      setError(data.error ?? (typeId ? "Failed to update" : "Failed to create"));
+    const payload = {
+      name:       form.name.trim(),
+      categoryId: form.categoryId.trim(),
+      icon:       form.icon.trim(),
+      subtype:    form.subtype || null,
+      order:      parseInt(form.order, 10) || 0,
+    };
+    try {
+      if (typeId) await updateAttractionType(typeId, token, payload);
+      else await createAttractionType(token, payload);
+    } catch (err) {
+      const body = err instanceof ApiError ? (err.body as { error?: string } | null) : null;
+      setError(body?.error ?? (typeId ? "Failed to update" : "Failed to create"));
       setSaving(false);
       return;
     }
@@ -229,23 +242,18 @@ function CategoryForm({
     setSaving(true);
     setError("");
 
-    const url    = catId ? `/api/attraction-categories/${catId}` : "/api/attraction-categories";
-    const method = catId ? "PUT" : "POST";
-
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        name:  form.name.trim(),
-        icon:  form.icon.trim(),
-        color: form.color.trim(),
-        order: parseInt(form.order, 10) || 0,
-      }),
-    });
-
-    const data = await res.json() as { error?: string };
-    if (!res.ok) {
-      setError(data.error ?? (catId ? "Failed to update" : "Failed to create"));
+    const payload = {
+      name:  form.name.trim(),
+      icon:  form.icon.trim(),
+      color: form.color.trim(),
+      order: parseInt(form.order, 10) || 0,
+    };
+    try {
+      if (catId) await updateAttractionCategory(catId, token, payload);
+      else await createAttractionCategory(token, payload);
+    } catch (err) {
+      const body = err instanceof ApiError ? (err.body as { error?: string } | null) : null;
+      setError(body?.error ?? (catId ? "Failed to update" : "Failed to create"));
       setSaving(false);
       return;
     }
@@ -359,26 +367,21 @@ function MoodTagForm({
     setSaving(true);
     setError("");
 
-    const url    = tagId ? `/api/mood-tags/${tagId}` : "/api/mood-tags";
-    const method = tagId ? "PUT" : "POST";
-
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        name: form.name.trim(),
-        icon: form.icon.trim(),
-        color: form.color.trim(),
-        bgColor: form.bgColor.trim(),
-        darkColor: form.darkColor.trim(),
-        darkBgColor: form.darkBgColor.trim(),
-        order: parseInt(form.order, 10) || 0,
-      }),
-    });
-
-    const data = await res.json() as { error?: string };
-    if (!res.ok) {
-      setError(data.error ?? (tagId ? "Failed to update" : "Failed to create"));
+    const payload = {
+      name: form.name.trim(),
+      icon: form.icon.trim(),
+      color: form.color.trim(),
+      bgColor: form.bgColor.trim(),
+      darkColor: form.darkColor.trim(),
+      darkBgColor: form.darkBgColor.trim(),
+      order: parseInt(form.order, 10) || 0,
+    };
+    try {
+      if (tagId) await updateMoodTag(tagId, token, payload);
+      else await createMoodTag(token, payload);
+    } catch (err) {
+      const body = err instanceof ApiError ? (err.body as { error?: string } | null) : null;
+      setError(body?.error ?? (tagId ? "Failed to update" : "Failed to create"));
       setSaving(false);
       return;
     }
@@ -512,13 +515,11 @@ export function AdminClient() {
   async function handleCatDelete(id: string) {
     if (!token) return;
     setCatDeleting(true);
-    const res = await fetch(`/api/attraction-categories/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) {
-      const data = await res.json() as { error?: string };
-      alert(data.error ?? "Failed to delete category");
+    try {
+      await deleteAttractionCategory(id, token);
+    } catch (err) {
+      const body = err instanceof ApiError ? (err.body as { error?: string } | null) : null;
+      alert(body?.error ?? "Failed to delete category");
       setCatDeleting(false);
       setCatDeleteId(null);
       return;
@@ -538,10 +539,7 @@ export function AdminClient() {
     if (!token) return;
     setMigrating(true);
     setMigrateMsg("");
-    const res = await fetch("/api/attraction-categories/seed-from-types", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await migrateLegacyTypes(token);
     const data = await res.json() as { message?: string };
     setMigrateMsg(data.message ?? "Done.");
     setMigrating(false);
@@ -555,10 +553,7 @@ export function AdminClient() {
   async function handleDelete(id: string) {
     if (!token) return;
     setDeleting(true);
-    await fetch(`/api/attraction-types/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    await deleteAttractionType(id, token);
     invalidateAttractionTypesCache();
     window.location.reload();
   }
@@ -574,10 +569,7 @@ export function AdminClient() {
   async function handleMoodDelete(id: string) {
     if (!token) return;
     setMoodDeleting(true);
-    await fetch(`/api/mood-tags/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    await deleteMoodTag(id, token);
     invalidateMoodTagsCache();
     window.location.reload();
   }
@@ -591,10 +583,7 @@ export function AdminClient() {
   async function handleSeedMoodTags() {
     if (!token) return;
     setSeeding(true);
-    await fetch("/api/mood-tags/seed", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    await seedMoodTags(token);
     invalidateMoodTagsCache();
     window.location.reload();
   }

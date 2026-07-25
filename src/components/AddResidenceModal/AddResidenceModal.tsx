@@ -7,6 +7,7 @@ import {
   FileText, ChevronDown, AlertCircle, Loader2, Check,
 } from "lucide-react";
 import { CurrencySelect } from "@/components/CurrencySelect/CurrencySelect";
+import { reverseGeocode } from "@/services/geocoding.service";
 import { MapPicker } from "@/components/NewAttractionModal/MapPicker";
 import type { Coordinates } from "@/components/NewAttractionModal/attraction.types";
 import type { AddResidenceModalProps, ResidenceFormData, ResidenceType, ResidenceInitialData } from "./AddResidenceModal.types";
@@ -53,12 +54,7 @@ export function AddResidenceModal({
   async function handleCoordinatesChange(coords: Coordinates) {
     setCoordinates(coords);
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${coords.lat}&lon=${coords.lng}&format=json&accept-language=en`,
-        { headers: { "User-Agent": "TripPlannerApp/1.0" } }
-      );
-      if (!res.ok) return;
-      const data = await res.json() as {
+      const data = await reverseGeocode(coords.lat, coords.lng) as {
         name?: string;
         address?: { city?: string; town?: string; municipality?: string; village?: string };
       };

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { AttractionCategoryRecord } from "@/types/attractionCategory";
+import { fetchAttractionCategories } from "@/services/attractionCategories.service";
 
 let cache: AttractionCategoryRecord[] | null = null;
 let cachePromise: Promise<AttractionCategoryRecord[]> | null = null;
@@ -9,13 +10,9 @@ let cachePromise: Promise<AttractionCategoryRecord[]> | null = null;
 async function fetchCategories(): Promise<AttractionCategoryRecord[]> {
   if (cache !== null) return cache;
   if (!cachePromise) {
-    cachePromise = fetch("/api/attraction-categories")
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json() as Promise<AttractionCategoryRecord[]>;
-      })
+    cachePromise = fetchAttractionCategories()
       .then((data) => {
-        cache = Array.isArray(data) ? data : [];
+        cache = Array.isArray(data) ? (data as AttractionCategoryRecord[]) : [];
         return cache;
       })
       .catch(() => {

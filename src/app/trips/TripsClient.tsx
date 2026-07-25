@@ -7,6 +7,7 @@ import { TripCard } from "@/components/TripCard/TripCard";
 import { TripCardSkeleton } from "@/components/TripCard/TripCardSkeleton";
 import { NewTripCard } from "@/components/NewTripCard/NewTripCard";
 import { useAuth } from "@/contexts/AuthContext";
+import { listTrips } from "@/services/trips.service";
 import type { Trip } from "@/types/trip";
 import styles from "./TripsClient.module.css";
 
@@ -20,11 +21,8 @@ export function TripsClient() {
 
   useEffect(() => {
     if (!token) return;
-    fetch("/api/trips", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data: Trip[]) => setTrips(Array.isArray(data) ? data : []))
+    listTrips(token)
+      .then((data) => setTrips(Array.isArray(data) ? (data as Trip[]) : []))
       .catch(() => setTrips([]))
       .finally(() => setLoading(false));
   }, [token]);

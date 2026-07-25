@@ -23,6 +23,7 @@ import { MoodTagButton } from "@/components/MoodTagButton/MoodTagButton";
 import { MoodTagChip } from "@/components/MoodTagChip/MoodTagChip";
 import { CoverImageField } from "@/components";
 import { useAuth } from "@/contexts/AuthContext";
+import { getTrip, updateTrip, deleteTrip } from "@/services/trips.service";
 import { formatDisplayDate } from "@/lib/formatDate";
 import { COUNTRIES } from "@/components/NewAttractionModal/attraction.constants";
 import { useMoodTags } from "@/hooks/useMoodTags";
@@ -81,9 +82,7 @@ export function EditTripClient({ tripId }: EditTripClientProps) {
   // Fetch existing trip on mount
   useEffect(() => {
     if (!token) return;
-    fetch(`/api/trips/${tripId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    getTrip(tripId, token)
       .then((res) => {
         if (res.status === 404) { router.replace("/trips"); return null; }
         return res.json() as Promise<Trip>;
@@ -127,23 +126,16 @@ export function EditTripClient({ tripId }: EditTripClientProps) {
     setSubmitError("");
 
     try {
-      const res = await fetch(`/api/trips/${tripId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token ?? ""}`,
-        },
-        body: JSON.stringify({
-          name: tripName,
-          country,
-          startDate,
-          endDate,
-          budget: budget ? Number(budget) : undefined,
-          currency,
-          moods,
-          notes: notes || undefined,
-          coverImage: coverImage || undefined,
-        }),
+      const res = await updateTrip(tripId, token ?? "", {
+        name: tripName,
+        country,
+        startDate,
+        endDate,
+        budget: budget ? Number(budget) : undefined,
+        currency,
+        moods,
+        notes: notes || undefined,
+        coverImage: coverImage || undefined,
       });
 
       const data = await res.json();
@@ -166,11 +158,8 @@ export function EditTripClient({ tripId }: EditTripClientProps) {
 
     setDeleting(true);
     try {
-      const res = await fetch(`/api/trips/${tripId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token ?? ""}` },
-      });
-      if (res.ok) router.push("/trips");
+      await deleteTrip(tripId, token ?? "");
+      router.push("/trips");
     } catch {
       // Leave deleting=true so user knows something happened
     } finally {

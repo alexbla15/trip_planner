@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import type { CSSProperties } from "react";
 import type { MoodTagRecord } from "@/types/moodTag";
+import { fetchMoodTags } from "@/services/moodTags.service";
 
 interface UseMoodTagsResult {
   tags: MoodTagRecord[];
@@ -16,10 +17,9 @@ let cachePromise: Promise<MoodTagRecord[]> | null = null;
 async function fetchTags(): Promise<MoodTagRecord[]> {
   if (cache) return cache;
   if (!cachePromise) {
-    cachePromise = fetch("/api/mood-tags")
-      .then((r) => r.json() as Promise<MoodTagRecord[]>)
+    cachePromise = fetchMoodTags()
       .then((data) => {
-        cache = Array.isArray(data) ? data : [];
+        cache = Array.isArray(data) ? (data as MoodTagRecord[]) : [];
         return cache;
       })
       .catch(() => {

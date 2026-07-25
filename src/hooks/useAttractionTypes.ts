@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import type { AttractionTypeRecord } from "@/types/attractionType";
+import { fetchAttractionTypes } from "@/services/attractionTypes.service";
 
 interface UseAttractionTypesResult {
   types: AttractionTypeRecord[];
@@ -25,13 +26,9 @@ let cachePromise: Promise<AttractionTypeRecord[]> | null = null;
 async function fetchTypes(): Promise<AttractionTypeRecord[]> {
   if (cache !== null) return cache;
   if (!cachePromise) {
-    cachePromise = fetch("/api/attraction-types")
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json() as Promise<AttractionTypeRecord[]>;
-      })
+    cachePromise = fetchAttractionTypes()
       .then((data) => {
-        cache = Array.isArray(data) ? data : [];
+        cache = Array.isArray(data) ? (data as AttractionTypeRecord[]) : [];
         return cache;
       })
       .catch(() => {

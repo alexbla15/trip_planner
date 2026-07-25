@@ -8,6 +8,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { getCurrentUser } from "@/services/users.service";
 
 export interface UserProfile {
   _id: string;
@@ -30,14 +31,6 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 const TOKEN_KEY = "tp_auth_token";
 
-async function fetchProfile(token: string): Promise<UserProfile> {
-  const res = await fetch("/api/users/me", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error("Token invalid or expired");
-  return res.json() as Promise<UserProfile>;
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -45,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hydrateFromToken = useCallback(async (t: string) => {
     try {
-      const profile = await fetchProfile(t);
+      const profile = await getCurrentUser(t);
       setUser(profile);
       setToken(t);
     } catch {

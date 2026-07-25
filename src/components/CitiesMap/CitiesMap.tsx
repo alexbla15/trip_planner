@@ -11,6 +11,7 @@ import {
 } from "react-leaflet";
 import type { GeoJsonObject } from "geojson";
 import L from "leaflet";
+import { getCityBoundary, getCountryBoundary } from "@/services/geo.service";
 import "leaflet/dist/leaflet.css";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -68,12 +69,9 @@ export function CitiesMap({ cities, selectedCountry, countLabel = "attraction" }
   useEffect(() => {
     setCityBoundaries(new Map());
     cities.forEach((city) => {
-      const params = new URLSearchParams({ name: city._id });
-      if (city.country) params.set("country", city.country);
-      fetch(`/api/geo/city?${params}`)
-        .then((r) => r.json())
-        .then((data: GeoJsonObject | null) =>
-          setCityBoundaries((prev) => new Map(prev).set(city._id, data)),
+      getCityBoundary(city._id, city.country)
+        .then((data) =>
+          setCityBoundaries((prev) => new Map(prev).set(city._id, data as GeoJsonObject | null)),
         )
         .catch(() =>
           setCityBoundaries((prev) => new Map(prev).set(city._id, null)),
@@ -84,9 +82,8 @@ export function CitiesMap({ cities, selectedCountry, countLabel = "attraction" }
   useEffect(() => {
     if (!selectedCountry) { setCountryBoundary(undefined); return; }
     setCountryBoundary(undefined);
-    fetch(`/api/geo/country?name=${encodeURIComponent(selectedCountry)}`)
-      .then((r) => r.json())
-      .then((data: GeoJsonObject | null) => setCountryBoundary(data))
+    getCountryBoundary(selectedCountry)
+      .then((data) => setCountryBoundary(data as GeoJsonObject | null))
       .catch(() => setCountryBoundary(null));
   }, [selectedCountry]);
 
