@@ -155,6 +155,21 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
       .finally(() => setAttractionsLoading(false));
   }, [token, trip, attractionsReloadKey]);
 
+  // The backend no-ops (returns the existing document, doesn't re-link) when an attraction is
+  // already on the trip — e.g. re-picking one via search, or a residence/flight save that
+  // resolves by name+country to an already-added document. Prepending unconditionally would
+  // duplicate it in the on-screen list even though the DB stayed correct, so replace in place
+  // for an already-present id instead of always prepending.
+  function upsertAttraction(created: Attraction) {
+    setAttractions((prev) => {
+      const idx = prev.findIndex((a) => a._id === created._id);
+      if (idx === -1) return [created, ...prev];
+      const next = [...prev];
+      next[idx] = created;
+      return next;
+    });
+  }
+
   async function handleSearchAdd(existing: Attraction) {
     if (!token || !trip) return;
     setSearchModalOpen(false);
@@ -163,7 +178,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
       const created = (await addAttractionToTrip(trip._id, token, {
         existingAttractionId: existing._id,
       })) as Attraction;
-      setAttractions((prev) => [created, ...prev]);
+      upsertAttraction(created);
     } catch {
       setActionError("Couldn't add that attraction. Please try again.");
     }
@@ -179,7 +194,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     setActionError(null);
     try {
       const created = (await addAttractionToTrip(trip._id, token, data)) as Attraction;
-      setAttractions((prev) => [created, ...prev]);
+      upsertAttraction(created);
     } catch {
       setActionError("Couldn't save the residence. Please try again.");
     }
@@ -190,7 +205,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     setActionError(null);
     try {
       const created = (await addAttractionToTrip(trip._id, token, data)) as Attraction;
-      setAttractions((prev) => [created, ...prev]);
+      upsertAttraction(created);
     } catch {
       setActionError("Couldn't save the flight. Please try again.");
     }
@@ -260,7 +275,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         notes: data.notes || undefined,
         photoUrl: data.photoUrl || undefined,
       })) as Attraction;
-      setAttractions((prev) => [created, ...prev]);
+      upsertAttraction(created);
     } catch {
       setActionError("Couldn't save the attraction. Please try again.");
     }
@@ -815,6 +830,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         onAdd={handleSearchAdd}
         onCreateNew={handleSearchCreateNew}
         token={token}
+        existingAttractionIds={attractions.map((a) => a._id)}
       />
 
       <NewAttractionModal

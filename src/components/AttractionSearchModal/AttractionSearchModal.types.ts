@@ -9,4 +9,6 @@ export interface AttractionSearchModalProps {
   onCreateNew: () => void;
   /** Caller's auth token — forwarded to the search request so private-trip attractions the user can access aren't hidden. */
   token?: string | null;
+  /** IDs of attractions already in the trip — matching results render disabled with an "Added" indicator instead of being addable again. */
+  existingAttractionIds?: string[];
 }

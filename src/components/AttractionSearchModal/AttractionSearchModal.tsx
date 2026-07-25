@@ -22,9 +22,11 @@ export function AttractionSearchModal({
   onAdd,
   onCreateNew,
   token,
+  existingAttractionIds = [],
 }: AttractionSearchModalProps) {
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const existingIdSet = useMemo(() => new Set(existingAttractionIds), [existingAttractionIds]);
   const { categories, findType } = useAttractionTypes();
   const [results, setResults] = useState<Attraction[]>([]);
   const [bodyState, setBodyState] = useState<BodyState>("initial");
@@ -77,6 +79,7 @@ export function AttractionSearchModal({
   }, [results, selectedCategory, findType]);
 
   function handleAdd(attraction: Attraction) {
+    if (existingIdSet.has(attraction._id)) return;
     onAdd(attraction);
     onClose();
   }
@@ -149,13 +152,15 @@ export function AttractionSearchModal({
             {filteredResults.map((attraction) => {
               const firstType = attraction.types?.[0];
               const icon = firstType ? renderTypeIcon(findType(firstType)?.icon ?? "Globe") : null;
+              const isAdded = existingIdSet.has(attraction._id);
               return (
                 <li key={attraction._id}>
                   <button
                     type="button"
-                    className={styles.resultRow}
+                    className={`${styles.resultRow} ${isAdded ? styles.resultRowAdded : ""}`}
                     onClick={() => handleAdd(attraction)}
-                    aria-label={`Add ${attraction.name} to trip`}
+                    disabled={isAdded}
+                    aria-label={`${isAdded ? "Already added: " : "Add "}${attraction.name}${isAdded ? "" : " to trip"}`}
                   >
                     <div className={styles.resultIcon} aria-hidden="true">
                       {icon ?? <MapPin size={15} />}
@@ -167,7 +172,11 @@ export function AttractionSearchModal({
                         {attraction.city ? ` · ${attraction.city}` : ""}
                       </span>
                     </div>
-                    <Plus size={16} className={styles.resultAdd} aria-hidden="true" />
+                    {isAdded ? (
+                      <span className={styles.addedTag}>Added</span>
+                    ) : (
+                      <Plus size={16} className={styles.resultAdd} aria-hidden="true" />
+                    )}
                   </button>
                 </li>
               );

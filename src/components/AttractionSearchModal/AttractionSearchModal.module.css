@@ -283,6 +283,25 @@
   flex-shrink: 0;
 }
 
+.resultRowAdded {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.resultRowAdded:hover {
+  background: transparent;
+}
+
+.addedTag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-success);
+  background: #ecfdf5;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
 /* ── Footer ── */
 .footer {
   position: sticky;
