@@ -42,7 +42,6 @@ export async function POST(req: Request) {
     }
 
     // Upsert categories
-    let order = (await AttractionCategory.countDocuments()) * 10;
     const nameToId = new Map<string, string>();
 
     for (const [name, { icon, color }] of seen) {
@@ -50,9 +49,8 @@ export async function POST(req: Request) {
       if (existing) {
         nameToId.set(name, existing._id.toString());
       } else {
-        const created = await AttractionCategory.create({ name, icon, color, order });
+        const created = await AttractionCategory.create({ name, icon, color });
         nameToId.set(name, created._id.toString());
-        order += 10;
       }
     }
 

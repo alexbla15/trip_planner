@@ -56,12 +56,12 @@ export function useAttractionTypes(): UseAttractionTypesResult {
 
   const { categories, byCategory } = useMemo(() => {
     const map: Record<string, AttractionTypeRecord[]> = {};
-    const seen = new Set<string>();
-    const order: string[] = [];
     for (const t of types) {
-      if (!seen.has(t.category)) { seen.add(t.category); order.push(t.category); }
       (map[t.category] ??= []).push(t);
     }
+    // Types already arrive name-sorted from the API, so each byCategory group stays
+    // alphabetical; the category names themselves need their own explicit sort.
+    const order = Object.keys(map).sort((a, b) => a.localeCompare(b));
     return { categories: order, byCategory: map };
   }, [types]);
 

@@ -21,7 +21,7 @@ export async function PUT(req: Request, { params }: RouteContext) {
     }
 
     const body = await req.json() as {
-      name?: string; categoryId?: string; icon?: string; subtype?: string | null; order?: number;
+      name?: string; categoryId?: string; icon?: string; subtype?: string | null;
     };
 
     const doc = await AttractionType.findById(id);
@@ -30,7 +30,6 @@ export async function PUT(req: Request, { params }: RouteContext) {
     if (body.name       !== undefined) doc.name       = body.name.trim();
     if (body.categoryId !== undefined) doc.categoryId = body.categoryId as unknown as import("mongoose").Types.ObjectId;
     if (body.icon       !== undefined) doc.icon       = body.icon.trim();
-    if (body.order      !== undefined) doc.order      = body.order;
     if ("subtype" in body) {
       doc.subtype = (body.subtype as "flight" | "residence" | null) ?? undefined;
     }

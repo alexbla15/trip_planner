@@ -22,10 +22,9 @@ export async function PUT(req: Request, { params }: Params) {
       name?: string; icon?: string;
       color?: string; bgColor?: string;
       darkColor?: string; darkBgColor?: string;
-      order?: number;
     };
 
-    const { name, icon, color, bgColor, darkColor, darkBgColor, order } = body;
+    const { name, icon, color, bgColor, darkColor, darkBgColor } = body;
     if (!name?.trim() || !icon?.trim() || !color?.trim() || !bgColor?.trim() || !darkColor?.trim() || !darkBgColor?.trim()) {
       return NextResponse.json(
         { error: "name, icon, color, bgColor, darkColor, and darkBgColor are required" },
@@ -39,7 +38,6 @@ export async function PUT(req: Request, { params }: Params) {
         name: name.trim(), icon: icon.trim(),
         color: color.trim(), bgColor: bgColor.trim(),
         darkColor: darkColor.trim(), darkBgColor: darkBgColor.trim(),
-        order: order ?? 0,
       },
       { new: true }
     );

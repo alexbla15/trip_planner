@@ -4,11 +4,11 @@ import { AttractionCategory, formatAttractionCategory } from "@/models/Attractio
 import { User } from "@/models/User";
 import { getUserFromRequest } from "@/lib/auth";
 
-/** Public — returns all attraction categories sorted by display order. */
+/** Public — returns all attraction categories sorted alphabetically by name. */
 export async function GET() {
   try {
     await dbConnect();
-    const cats = await AttractionCategory.find().sort({ order: 1 });
+    const cats = await AttractionCategory.find().sort({ name: 1 });
     return NextResponse.json(cats.map(formatAttractionCategory));
   } catch {
     return NextResponse.json({ error: "Failed to fetch categories" }, { status: 500 });
@@ -27,10 +27,10 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json() as {
-      name?: string; icon?: string; color?: string; order?: number;
+      name?: string; icon?: string; color?: string;
     };
 
-    const { name, icon, color, order } = body;
+    const { name, icon, color } = body;
     if (!name?.trim() || !icon?.trim() || !color?.trim()) {
       return NextResponse.json(
         { error: "name, icon, and color are required" },
@@ -42,7 +42,6 @@ export async function POST(req: Request) {
       name:  name.trim(),
       icon:  icon.trim(),
       color: color.trim(),
-      order: order ?? 0,
     });
 
     return NextResponse.json(formatAttractionCategory(created), { status: 201 });

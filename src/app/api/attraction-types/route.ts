@@ -5,11 +5,11 @@ import "@/models/AttractionCategory"; // register model so populate("categoryId"
 import { User } from "@/models/User";
 import { getUserFromRequest } from "@/lib/auth";
 
-/** Public — returns all attraction types sorted by display order, with category data populated. */
+/** Public — returns all attraction types sorted alphabetically by name, with category data populated. */
 export async function GET() {
   try {
     await dbConnect();
-    const types = await AttractionType.find().sort({ order: 1 });
+    const types = await AttractionType.find().sort({ name: 1 });
     // populate is best-effort: if the cached schema (hot-reload) doesn't know categoryId yet,
     // formatAttractionType falls back to the embedded legacy fields on each document.
     try { await AttractionType.populate(types, { path: "categoryId" }); } catch { /* skip */ }
@@ -32,10 +32,10 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json() as {
-      name?: string; categoryId?: string; icon?: string; subtype?: string; order?: number;
+      name?: string; categoryId?: string; icon?: string; subtype?: string;
     };
 
-    const { name, categoryId, icon, subtype, order } = body;
+    const { name, categoryId, icon, subtype } = body;
     if (!name?.trim() || !categoryId?.trim() || !icon?.trim()) {
       return NextResponse.json({ error: "name, categoryId, and icon are required" }, { status: 400 });
     }
@@ -45,7 +45,6 @@ export async function POST(req: Request) {
       categoryId: categoryId.trim(),
       icon:       icon.trim(),
       subtype:    (subtype as "flight" | "residence" | undefined) || undefined,
-      order:      order ?? 0,
     });
     try { await created.populate("categoryId"); } catch { /* skip if schema stale in dev */ }
 

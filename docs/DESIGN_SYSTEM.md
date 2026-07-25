@@ -177,6 +177,15 @@ Max content width: `1280px` (centered, `padding: 0 24px`).
 - Subtitle/count: `--text-sm`, `var(--color-text-tertiary)`, inline after title
 - "See all" link: `--text-sm`, weight 500, `var(--color-primary)`, right-aligned
 
+### Collapsible Section
+For any `SectionCard`-style panel (list, table, chart) that benefits from being hideable — long admin lists, dense data tables.
+- The heading (icon + title + optional count) is a `<button>` acting as the toggle — `aria-expanded` + `aria-controls` on the body. A trailing `ChevronDown` (18px) rotates `-90deg` when collapsed, `0deg` when open.
+- Any header-row actions (e.g. an "Add" button) render as a sibling **outside** the toggle button, so they stay clickable while the section is collapsed.
+- Body collapse uses the CSS grid technique — no JS height measurement: outer wrapper `display: grid; grid-template-rows: 1fr` (open) / `0fr` (collapsed), `transition: grid-template-rows var(--duration-base) var(--easing-out)`; inner wrapper `overflow: hidden; min-height: 0`.
+- Default state is always expanded (`defaultOpen: true`) — collapsing is an opt-in declutter action, never a surprise-hidden default.
+- State is local component state, not persisted across page reloads.
+- Reference implementation: `src/components/SectionCard/SectionCard.tsx` (`collapsible`, `defaultOpen`, `headingCount`, `actions` props).
+
 ---
 
 ## Page Layout

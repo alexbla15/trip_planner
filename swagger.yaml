@@ -627,9 +627,6 @@ components:
           enum: [flight, residence]
           nullable: true
           description: Distinguishes special types from generic ones
-        order:
-          type: integer
-          example: 0
 
     AttractionTypeInput:
       type: object
@@ -649,9 +646,6 @@ components:
           type: string
           enum: [flight, residence]
           nullable: true
-        order:
-          type: integer
-          example: 0
 
     AttractionCategory:
       type: object
@@ -670,9 +664,6 @@ components:
           type: string
           description: Hex color shared by all types in this category
           example: "#f59e0b"
-        order:
-          type: integer
-          example: 0
 
     AttractionCategoryInput:
       type: object
@@ -687,9 +678,6 @@ components:
         color:
           type: string
           example: "#f59e0b"
-        order:
-          type: integer
-          example: 0
 
     MoodTag:
       type: object
@@ -715,9 +703,6 @@ components:
         darkBgColor:
           type: string
           example: "#431407"
-        order:
-          type: integer
-          example: 2
 
     MoodTagInput:
       type: object
@@ -741,9 +726,6 @@ components:
         darkBgColor:
           type: string
           example: "#431407"
-        order:
-          type: integer
-          example: 2
 
 security:
   - BearerAuth: []
@@ -1405,7 +1387,7 @@ paths:
       security: []
       responses:
         200:
-          description: Array of attraction types sorted by display order
+          description: Array of attraction types sorted alphabetically by name
           content:
             application/json:
               schema:
@@ -1510,7 +1492,7 @@ paths:
       security: []
       responses:
         200:
-          description: Array of categories sorted by order
+          description: Array of categories sorted alphabetically by name
           content:
             application/json:
               schema:
@@ -1644,7 +1626,7 @@ paths:
       security: []
       responses:
         200:
-          description: Array of mood tags sorted by order
+          description: Array of mood tags sorted alphabetically by name
           content:
             application/json:
               schema:

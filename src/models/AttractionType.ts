@@ -7,7 +7,6 @@ export interface IAttractionType extends Document {
   categoryId?: Types.ObjectId | IAttractionCategory;
   icon: string;
   subtype?: "flight" | "residence";
-  order: number;
   // Legacy fields — kept so existing documents don't lose data before migration runs.
   category?: string;
   categoryIcon?: string;
@@ -19,14 +18,13 @@ const AttractionTypeSchema = new Schema<IAttractionType>({
   categoryId:   { type: Schema.Types.ObjectId, ref: "AttractionCategory" },
   icon:         { type: String, required: true },
   subtype:      { type: String, enum: ["flight", "residence"] },
-  order:        { type: Number, default: 0 },
   // Legacy — no longer written by new code; read-only for backward compat with unmigrated docs
   category:     { type: String, trim: true },
   categoryIcon: { type: String },
   color:        { type: String },
 });
 
-AttractionTypeSchema.index({ categoryId: 1, order: 1 });
+AttractionTypeSchema.index({ categoryId: 1 });
 
 export function formatAttractionType(doc: IAttractionType) {
   const cat = doc.categoryId as (IAttractionCategory & { _id: Types.ObjectId }) | null | undefined;
@@ -46,7 +44,6 @@ export function formatAttractionType(doc: IAttractionType) {
     categoryIcon: catIcon,
     color:        catColor,
     subtype:      doc.subtype,
-    order:        doc.order,
   };
 }
 

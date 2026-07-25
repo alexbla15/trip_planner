@@ -20,7 +20,7 @@ export async function PUT(req: Request, { params }: RouteContext) {
     }
 
     const body = await req.json() as {
-      name?: string; icon?: string; color?: string; order?: number;
+      name?: string; icon?: string; color?: string;
     };
 
     const doc = await AttractionCategory.findById(id);
@@ -29,7 +29,6 @@ export async function PUT(req: Request, { params }: RouteContext) {
     if (body.name  !== undefined) doc.name  = body.name.trim();
     if (body.icon  !== undefined) doc.icon  = body.icon.trim();
     if (body.color !== undefined) doc.color = body.color.trim();
-    if (body.order !== undefined) doc.order = body.order;
 
     await doc.save();
     return NextResponse.json(formatAttractionCategory(doc));

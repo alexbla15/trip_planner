@@ -7,7 +7,6 @@ export interface IMoodTag extends Document {
   bgColor: string;
   darkColor: string;
   darkBgColor: string;
-  order: number;
 }
 
 const MoodTagSchema = new Schema<IMoodTag>({
@@ -17,10 +16,7 @@ const MoodTagSchema = new Schema<IMoodTag>({
   bgColor:     { type: String, required: true },
   darkColor:   { type: String, required: true },
   darkBgColor: { type: String, required: true },
-  order:       { type: Number, default: 0 },
 });
-
-MoodTagSchema.index({ order: 1 });
 
 export function formatMoodTag(doc: IMoodTag) {
   return {
@@ -31,7 +27,6 @@ export function formatMoodTag(doc: IMoodTag) {
     bgColor:     doc.bgColor,
     darkColor:   doc.darkColor,
     darkBgColor: doc.darkBgColor,
-    order:       doc.order,
   };
 }
 

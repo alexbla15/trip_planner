@@ -4,17 +4,13 @@ export interface IAttractionCategory extends Document {
   name: string;
   icon: string;
   color: string;
-  order: number;
 }
 
 const AttractionCategorySchema = new Schema<IAttractionCategory>({
   name:  { type: String, required: true, unique: true, trim: true },
   icon:  { type: String, required: true },
   color: { type: String, required: true },
-  order: { type: Number, default: 0 },
 });
-
-AttractionCategorySchema.index({ order: 1 });
 
 export function formatAttractionCategory(doc: IAttractionCategory) {
   return {
@@ -22,7 +18,6 @@ export function formatAttractionCategory(doc: IAttractionCategory) {
     name:  doc.name,
     icon:  doc.icon,
     color: doc.color,
-    order: doc.order,
   };
 }
 

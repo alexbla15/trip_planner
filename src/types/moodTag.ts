@@ -6,5 +6,4 @@ export interface MoodTagRecord {
   bgColor: string;
   darkColor: string;
   darkBgColor: string;
-  order: number;
 }

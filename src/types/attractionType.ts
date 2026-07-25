@@ -8,5 +8,4 @@ export interface AttractionTypeRecord {
   categoryIcon: string;
   color: string;
   subtype?: "flight" | "residence";
-  order: number;
 }

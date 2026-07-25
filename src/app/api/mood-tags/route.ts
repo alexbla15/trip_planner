@@ -4,11 +4,11 @@ import { MoodTag, formatMoodTag } from "@/models/MoodTag";
 import { User } from "@/models/User";
 import { getUserFromRequest } from "@/lib/auth";
 
-/** Public — returns all mood tags sorted by order. */
+/** Public — returns all mood tags sorted alphabetically by name. */
 export async function GET() {
   try {
     await dbConnect();
-    const tags = await MoodTag.find().sort({ order: 1 });
+    const tags = await MoodTag.find().sort({ name: 1 });
     return NextResponse.json(tags.map(formatMoodTag));
   } catch {
     return NextResponse.json({ error: "Failed to fetch mood tags" }, { status: 500 });
@@ -30,10 +30,9 @@ export async function POST(req: Request) {
       name?: string; icon?: string;
       color?: string; bgColor?: string;
       darkColor?: string; darkBgColor?: string;
-      order?: number;
     };
 
-    const { name, icon, color, bgColor, darkColor, darkBgColor, order } = body;
+    const { name, icon, color, bgColor, darkColor, darkBgColor } = body;
     if (!name?.trim() || !icon?.trim() || !color?.trim() || !bgColor?.trim() || !darkColor?.trim() || !darkBgColor?.trim()) {
       return NextResponse.json(
         { error: "name, icon, color, bgColor, darkColor, and darkBgColor are required" },
@@ -48,7 +47,6 @@ export async function POST(req: Request) {
       bgColor: bgColor.trim(),
       darkColor: darkColor.trim(),
       darkBgColor: darkBgColor.trim(),
-      order: order ?? 0,
     });
 
     return NextResponse.json(formatMoodTag(created), { status: 201 });

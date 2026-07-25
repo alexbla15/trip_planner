@@ -29,7 +29,7 @@ import {
   seedMoodTags,
   ApiError,
 } from "@/services";
-import { getIconComponent, renderTypeIcon, IconPicker } from "@/components";
+import { getIconComponent, renderTypeIcon, IconPicker, SectionCard } from "@/components";
 import {
   type TypeFormState,
   type CategoryFormState,
@@ -44,7 +44,7 @@ import styles from "./AdminClient.module.css";
 // ── Attraction Type form ───────────────────────────────────────────────────────
 
 const EMPTY_TYPE_FORM: TypeFormState = {
-  name: "", categoryId: "", icon: "Globe", subtype: "", order: "0",
+  name: "", categoryId: "", icon: "Globe", subtype: "",
 };
 
 function TypeForm({
@@ -83,7 +83,6 @@ function TypeForm({
       categoryId: form.categoryId.trim(),
       icon:       form.icon.trim(),
       subtype:    form.subtype || null,
-      order:      parseInt(form.order, 10) || 0,
     };
     try {
       if (typeId) await updateAttractionType(typeId, token, payload);
@@ -153,11 +152,6 @@ function TypeForm({
           </div>
         </div>
 
-        {/* Order */}
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>Display order</label>
-          <input type="number" className={styles.input} value={form.order} onChange={(e) => set("order", e.target.value)} />
-        </div>
       </div>
 
       {error && (
@@ -182,7 +176,7 @@ function TypeForm({
 // ── Attraction Category form ───────────────────────────────────────────────────
 
 const EMPTY_CAT_FORM: CategoryFormState = {
-  name: "", icon: "Globe", color: "#64748B", order: "0",
+  name: "", icon: "Globe", color: "#64748B",
 };
 
 function CategoryForm({
@@ -218,7 +212,6 @@ function CategoryForm({
       name:  form.name.trim(),
       icon:  form.icon.trim(),
       color: form.color.trim(),
-      order: parseInt(form.order, 10) || 0,
     };
     try {
       if (catId) await updateAttractionCategory(catId, token, payload);
@@ -261,10 +254,6 @@ function CategoryForm({
           </div>
         </div>
 
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>Display order</label>
-          <input type="number" className={styles.input} value={form.order} onChange={(e) => set("order", e.target.value)} />
-        </div>
       </div>
 
       {error && (
@@ -292,7 +281,6 @@ const EMPTY_MOOD_FORM: MoodTagFormState = {
   name: "", icon: "Globe",
   color: "#888888", bgColor: "#f5f5f5",
   darkColor: "#cccccc", darkBgColor: "#333333",
-  order: "0",
 };
 
 function MoodTagForm({
@@ -327,7 +315,6 @@ function MoodTagForm({
       bgColor: form.bgColor.trim(),
       darkColor: form.darkColor.trim(),
       darkBgColor: form.darkBgColor.trim(),
-      order: parseInt(form.order, 10) || 0,
     };
     try {
       if (tagId) await updateMoodTag(tagId, token, payload);
@@ -393,10 +380,6 @@ function MoodTagForm({
           </div>
         </div>
 
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>Display order</label>
-          <input type="number" className={styles.input} value={form.order} onChange={(e) => set("order", e.target.value)} />
-        </div>
       </div>
 
       {error && (
@@ -556,13 +539,13 @@ export function AdminClient() {
 
       <div className={styles.content}>
         {/* ── Categories card ────────────────────────────────────────────────── */}
-        <div className={styles.card}>
-          <div className={styles.sectionHeadingRow}>
-            <div className={styles.sectionIconCircle} aria-hidden="true">
-              <Layers size={18} />
-            </div>
-            <h2 className={styles.sectionHeading}>Attraction Categories ({catRecords.length})</h2>
-            {!catAdding && !catEditingId && (
+        <SectionCard
+          icon={Layers}
+          title="Attraction Categories"
+          headingCount={catRecords.length}
+          collapsible
+          actions={
+            !catAdding && !catEditingId && (
               <>
                 <button className={styles.addBtn} onClick={() => setCatAdding(true)}>
                   <Plus size={14} aria-hidden="true" /> Add category
@@ -574,9 +557,9 @@ export function AdminClient() {
                   </button>
                 )}
               </>
-            )}
-          </div>
-
+            )
+          }
+        >
           {migrateMsg && (
             <p className={styles.fieldHint}>{migrateMsg}</p>
           )}
@@ -613,7 +596,6 @@ export function AdminClient() {
                       <span className={styles.categoryDot} style={{ background: cat.color }} />
                       <span className={styles.typeIcon}>{renderTypeIcon(cat.icon, 15)}</span>
                       <span className={styles.typeName}>{cat.name}</span>
-                      <span className={styles.typeOrder}>#{cat.order}</span>
                       <div className={styles.typeActions}>
                         <button
                           className={styles.iconBtn}
@@ -652,22 +634,22 @@ export function AdminClient() {
               ))}
             </div>
           )}
-        </div>
+        </SectionCard>
 
         {/* ── Types card ─────────────────────────────────────────────────────── */}
-        <div className={styles.card}>
-          <div className={styles.sectionHeadingRow}>
-            <div className={styles.sectionIconCircle} aria-hidden="true">
-              <Tag size={18} />
-            </div>
-            <h2 className={styles.sectionHeading}>Attraction Types ({types.length})</h2>
-            {!adding && !editingId && (
+        <SectionCard
+          icon={Tag}
+          title="Attraction Types"
+          headingCount={types.length}
+          collapsible
+          actions={
+            !adding && !editingId && (
               <button className={styles.addBtn} onClick={() => setAdding(true)}>
                 <Plus size={14} aria-hidden="true" /> Add type
               </button>
-            )}
-          </div>
-
+            )
+          }
+        >
           {adding && token && (
             <TypeForm
               key="new"
@@ -720,7 +702,6 @@ export function AdminClient() {
                             {typeRecord.subtype && (
                               <span className={styles.subtypeBadge}>{typeRecord.subtype}</span>
                             )}
-                            <span className={styles.typeOrder}>#{typeRecord.order}</span>
                             <div className={styles.typeActions}>
                               <button
                                 className={styles.iconBtn}
@@ -762,16 +743,16 @@ export function AdminClient() {
               ))}
             </div>
           )}
-        </div>
+        </SectionCard>
 
         {/* ── Mood Tags card ─────────────────────────────────────────────────── */}
-        <div className={styles.card}>
-          <div className={styles.sectionHeadingRow}>
-            <div className={styles.sectionIconCircle} aria-hidden="true">
-              <Smile size={18} />
-            </div>
-            <h2 className={styles.sectionHeading}>Travel Moods ({moodTags.length})</h2>
-            {!moodAdding && !moodEditingId && (
+        <SectionCard
+          icon={Smile}
+          title="Travel Moods"
+          headingCount={moodTags.length}
+          collapsible
+          actions={
+            !moodAdding && !moodEditingId && (
               <>
                 <button className={styles.addBtn} onClick={() => setMoodAdding(true)}>
                   <Plus size={14} aria-hidden="true" /> Add mood
@@ -783,9 +764,9 @@ export function AdminClient() {
                   </button>
                 )}
               </>
-            )}
-          </div>
-
+            )
+          }
+        >
           {moodAdding && token && (
             <MoodTagForm
               key="new-mood"
@@ -815,12 +796,6 @@ export function AdminClient() {
                     <div className={styles.typeItem}>
                       <span className={styles.typeIcon}>{renderTypeIcon(tagRecord.icon, 15)}</span>
                       <span className={styles.typeName}>{tagRecord.name}</span>
-                      <span
-                        className={styles.moodOrderBadge}
-                        style={{ "--badge-color": tagRecord.color, "--badge-bg": tagRecord.bgColor } as React.CSSProperties}
-                      >
-                        #{tagRecord.order}
-                      </span>
                       <div className={styles.typeActions}>
                         <button
                           className={styles.iconBtn}
@@ -859,7 +834,7 @@ export function AdminClient() {
               ))}
             </div>
           )}
-        </div>
+        </SectionCard>
       </div>
     </main>
   );

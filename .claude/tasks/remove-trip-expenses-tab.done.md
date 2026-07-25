@@ -1,6 +1,6 @@
 # Task: Remove the expenses tab from trip detail
 
-Status: reviewing
+Status: done
 Track: B
 Track reason: pure removal of an existing, self-contained feature — no new visual pattern or design decision involved.
 
@@ -44,3 +44,6 @@ The expenses tab, its UI, its API route, and its data model are fully removed fr
 - New design tokens used: none (pure removal).
 
 Verification: `tsc --noEmit` clean (after clearing a stale `.next` types cache referencing the deleted route file), `eslint` on all touched files shows only 4 pre-existing errors in `TripDetailClient.tsx` at lines untouched by this change (confirmed via `git diff --stat` — this file only had deletions, no additions), `next build` succeeds and `/api/trips/[id]/expenses` no longer appears in the route list. Calendar and Analytics untouched, as scoped.
+
+## Completion Summary
+The Expenses tab, its `ExpensesPanel` UI, API route, and `Trip.expenses` data model field were fully removed from the trip detail page and codebase, with no dead code/exports left behind and `swagger.yaml` kept in sync. Confirmed the Calendar budget-spent widget and Analytics budget totals are independently sourced and unaffected. Confirmed by user 2026-07-25.

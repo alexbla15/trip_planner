@@ -3,5 +3,4 @@ export interface AttractionCategoryRecord {
   name: string;
   icon: string;
   color: string;
-  order: number;
 }

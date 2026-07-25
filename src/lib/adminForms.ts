@@ -2,13 +2,12 @@ import type { AttractionTypeRecord } from "@/types/attractionType";
 import type { AttractionCategoryRecord } from "@/types/attractionCategory";
 import type { MoodTagRecord } from "@/types/moodTag";
 
-/** Editable form state for an attraction type in the admin panel — mirrors {@link AttractionTypeRecord} with numeric fields as strings for controlled inputs. */
+/** Editable form state for an attraction type in the admin panel — mirrors {@link AttractionTypeRecord}. */
 export interface TypeFormState {
   name: string;
   categoryId: string;
   icon: string;
   subtype: string;
-  order: string;
 }
 
 /** Converts a saved attraction type into editable form state. */
@@ -18,16 +17,14 @@ export function typeFormFromRecord(r: AttractionTypeRecord): TypeFormState {
     categoryId: r.categoryId ?? "",
     icon:       r.icon,
     subtype:    r.subtype ?? "",
-    order:      String(r.order),
   };
 }
 
-/** Editable form state for an attraction category in the admin panel — mirrors {@link AttractionCategoryRecord} with numeric fields as strings for controlled inputs. */
+/** Editable form state for an attraction category in the admin panel — mirrors {@link AttractionCategoryRecord}. */
 export interface CategoryFormState {
   name: string;
   icon: string;
   color: string;
-  order: string;
 }
 
 /** Converts a saved attraction category into editable form state. */
@@ -36,11 +33,10 @@ export function catFormFromRecord(r: AttractionCategoryRecord): CategoryFormStat
     name:  r.name,
     icon:  r.icon,
     color: r.color,
-    order: String(r.order),
   };
 }
 
-/** Editable form state for a mood tag in the admin panel — mirrors {@link MoodTagRecord} with numeric fields as strings for controlled inputs. */
+/** Editable form state for a mood tag in the admin panel — mirrors {@link MoodTagRecord}. */
 export interface MoodTagFormState {
   name: string;
   icon: string;
@@ -48,7 +44,6 @@ export interface MoodTagFormState {
   bgColor: string;
   darkColor: string;
   darkBgColor: string;
-  order: string;
 }
 
 /** Converts a saved mood tag into editable form state. */
@@ -57,6 +52,5 @@ export function moodFormFromRecord(r: MoodTagRecord): MoodTagFormState {
     name: r.name, icon: r.icon,
     color: r.color, bgColor: r.bgColor,
     darkColor: r.darkColor, darkBgColor: r.darkBgColor,
-    order: String(r.order),
   };
 }

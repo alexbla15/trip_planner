@@ -223,7 +223,12 @@ export function AnalyticsClient() {
         </SectionCard>
 
         {/* ── Top Explorers ── */}
-        <SectionCard icon={Trophy} title="Top Explorers">
+        <SectionCard
+          icon={Trophy}
+          title="Top Explorers"
+          collapsible
+          headingCount={loading ? undefined : data!.topUsers.length}
+        >
           {loading ? (
             <div aria-hidden="true">
               {Array.from({ length: SKELETON_ROWS }).map((_, i) => (
