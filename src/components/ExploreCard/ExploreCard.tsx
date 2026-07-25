@@ -11,7 +11,6 @@ export function ExploreCard({ item }: ExploreCardProps) {
   const cityLabel = cities.length > 0
     ? cities.slice(0, 3).join(", ") + (cities.length > 3 ? ` +${cities.length - 3}` : "")
     : null;
-  const hasAvatar = !!userAvatarUrl;
 
   return (
     <Link href={`/trips/${id}`} className={styles.card}>
@@ -30,9 +29,8 @@ export function ExploreCard({ item }: ExploreCardProps) {
         </div>
         <div className={styles.attribution}>
           <div className={styles.avatarCircle} aria-hidden="true">
-            {hasAvatar ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={userAvatarUrl} alt="" className={styles.avatarImg} />
+            {userAvatarUrl ? (
+              <Image src={userAvatarUrl} alt="" width={28} height={28} className={styles.avatarImg} />
             ) : (
               user.charAt(0).toUpperCase()
             )}

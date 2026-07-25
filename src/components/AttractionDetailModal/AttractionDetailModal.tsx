@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import {
   X,
   MapPin,
@@ -113,11 +114,12 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime }: Attra
           {/* Photo */}
           {attraction.photoUrl?.startsWith("http") && (
             <div className={styles.photo}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={attraction.photoUrl}
                 alt={`${attraction.name} photo`}
+                fill
                 className={styles.photoImg}
+                sizes="(max-width: 640px) 100vw, 500px"
               />
             </div>
           )}

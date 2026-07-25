@@ -517,8 +517,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                           <div className={styles.personChip}>
                             <div className={styles.personAvatar} aria-hidden="true">
                               {ownerAvatarUrl ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={ownerAvatarUrl} alt="" className={styles.personAvatarImg} />
+                                <Image src={ownerAvatarUrl} alt="" width={28} height={28} className={styles.personAvatarImg} />
                               ) : (
                                 ownerName.charAt(0).toUpperCase()
                               )}
@@ -531,8 +530,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                           <div key={c.userId} className={styles.personChip}>
                             <div className={styles.personAvatar} aria-hidden="true">
                               {c.avatarUrl ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={c.avatarUrl} alt="" className={styles.personAvatarImg} />
+                                <Image src={c.avatarUrl} alt="" width={28} height={28} className={styles.personAvatarImg} />
                               ) : (
                                 c.name.charAt(0).toUpperCase()
                               )}
@@ -691,8 +689,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                               </div>
                               {attraction.photoUrl?.startsWith("http") && (
                                 <div className={styles.attractionThumb} aria-hidden="true">
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img src={attraction.photoUrl} alt="" className={styles.attractionThumbImg} />
+                                  <Image src={attraction.photoUrl} alt="" width={52} height={52} className={styles.attractionThumbImg} />
                                 </div>
                               )}
                               {canEdit && (

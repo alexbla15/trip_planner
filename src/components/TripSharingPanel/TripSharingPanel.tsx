@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Image from "next/image";
 import { Lock, Users, X, Loader2, Search } from "lucide-react";
 import type { Trip, TripCollaborator } from "@/types/trip";
 import { updateTrip, searchUsers, addCollaborator, removeCollaborator, ApiError } from "@/services";
@@ -177,8 +178,7 @@ export function TripSharingPanel({ trip, token, onTripUpdate }: TripSharingPanel
             <li key={c.userId} className={styles.collaboratorRow}>
               <div className={styles.avatar} aria-hidden="true">
                 {c.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={c.avatarUrl} alt="" className={styles.avatarImg} />
+                  <Image src={c.avatarUrl} alt="" width={36} height={36} className={styles.avatarImg} />
                 ) : (
                   getInitials(c.name)
                 )}
@@ -247,8 +247,7 @@ export function TripSharingPanel({ trip, token, onTripUpdate }: TripSharingPanel
               >
                 <div className={styles.dropdownAvatar} aria-hidden="true">
                   {u.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={u.avatarUrl} alt="" className={styles.avatarImg} />
+                    <Image src={u.avatarUrl} alt="" width={32} height={32} className={styles.avatarImg} />
                   ) : (
                     getInitials(u.name)
                   )}

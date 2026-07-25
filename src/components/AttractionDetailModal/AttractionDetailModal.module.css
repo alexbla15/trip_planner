@@ -113,6 +113,7 @@
 
 /* ── Photo ── */
 .photo {
+  position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
   border-radius: var(--radius-md);

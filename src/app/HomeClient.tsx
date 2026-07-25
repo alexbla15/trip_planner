@@ -1,0 +1,88 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { TripCard, TripCardSkeleton, NewTripCard, ExploreSection } from "@/components";
+import { useAuth } from "@/contexts/AuthContext";
+import { listTrips, getExploreItems } from "@/services";
+import { getGreeting } from "@/lib";
+import type { Trip, ExploreItem } from "@/types/trip";
+import styles from "./page.module.css";
+
+const SKELETON_COUNT = 3;
+
+export function HomeClient() {
+  const { user, token } = useAuth();
+  const greeting = getGreeting();
+
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [tripsLoading, setTripsLoading] = useState(true);
+
+  const [exploreItems, setExploreItems] = useState<ExploreItem[]>([]);
+
+  useEffect(() => {
+    if (!token) return;
+    listTrips(token)
+      .then((data) => setTrips(Array.isArray(data) ? (data as Trip[]) : []))
+      .catch(() => setTrips([]))
+      .finally(() => setTripsLoading(false));
+  }, [token]);
+
+  useEffect(() => {
+    getExploreItems()
+      .then((data) => setExploreItems(Array.isArray(data) ? (data as ExploreItem[]) : []))
+      .catch(() => setExploreItems([]));
+  }, []);
+
+  return (
+    <main id="main-content" className={styles.main}>
+      {/* Hero */}
+      <section className={styles.hero} aria-labelledby="hero-heading">
+        <div className={styles.heroInner}>
+          <h1 id="hero-heading" className={styles.heroGreeting}>
+            {greeting}, {user?.name ?? "Traveler"}! ✈️
+          </h1>
+          <p className={styles.heroSubline}>
+            Where will your next adventure take you?
+          </p>
+        </div>
+      </section>
+
+      {/* My Trips */}
+      <section className={styles.myTrips} id="my-trips" aria-labelledby="my-trips-heading">
+        <div className={styles.container}>
+          <div className={styles.sectionHeader}>
+            <h2 id="my-trips-heading" className={styles.sectionTitle}>
+              My Trips
+            </h2>
+            {!tripsLoading && (
+              <span className={styles.sectionCount} aria-label={`${trips.length} trips`}>
+                ({trips.length})
+              </span>
+            )}
+            <Link href="/trips" className={styles.sectionSeeAll} aria-label="See all trips">
+              See all <ArrowRight size={14} aria-hidden="true" />
+            </Link>
+          </div>
+
+          <div className={styles.tripsGrid} aria-busy={tripsLoading}>
+            {tripsLoading
+              ? Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+                  <TripCardSkeleton key={i} />
+                ))
+              : trips.map((trip) => (
+                  <Link key={trip._id} href={`/trips/${trip._id}`} className={styles.cardLink}>
+                    <TripCard trip={trip} />
+                  </Link>
+                ))}
+            <NewTripCard />
+          </div>
+        </div>
+      </section>
+
+      {/* Explore */}
+      <ExploreSection items={exploreItems} />
+    </main>
+  );
+}

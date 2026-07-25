@@ -1,14 +1,14 @@
 # Goal: Architecture Standards Remediation
 
-Status: in progress
+Status: done
 
 Bring the codebase into compliance with the project's architectural rules (service layer for data fetching, barrel-file imports, shared `/lib` utilities, Next.js best practices) — surfaced by a full-codebase `/qc` audit — without changing user-facing behavior.
 
 ## Tasks
 - [x] .claude/tasks/data-fetching-service-layer.done.md
 - [x] .claude/tasks/shared-utils-extraction.done.md
-- [ ] .claude/tasks/component-barrel-files.md
-- [ ] .claude/tasks/nextjs-practice-fixes.md
+- [x] .claude/tasks/component-barrel-files.done.md
+- [x] .claude/tasks/nextjs-practice-fixes.done.md
 
 ## Plan
 1. **Data fetching service layer** — move all raw `fetch()` calls out of components/hooks/contexts into `src/services`. Done first because it's the highest-value, most self-contained change and other steps don't depend on it.

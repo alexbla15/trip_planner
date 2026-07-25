@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Plane, MapPinned, Menu, X, Compass, Map, LogIn, LogOut, BarChart2, User, Shield } from "lucide-react";
@@ -107,10 +108,11 @@ export function Navbar() {
                     onClick={() => setDropdownOpen((v) => !v)}
                   >
                     {user.avatarUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={user.avatarUrl}
                         alt=""
+                        width={36}
+                        height={36}
                         className={styles.avatarImg}
                       />
                     ) : (

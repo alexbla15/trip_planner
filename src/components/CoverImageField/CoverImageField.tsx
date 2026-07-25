@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { AlertCircle, Image as ImageIcon } from "lucide-react";
 import { isValidCoverUrl } from "./CoverImageField.utils";
 import styles from "./CoverImageField.module.css";
@@ -54,11 +55,13 @@ export function CoverImageField({
           aria-live="polite"
           aria-label="Cover photo preview"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={value}
             alt="Cover photo preview"
+            fill
             className={styles.previewImg}
+            sizes="(max-width: 640px) 100vw, 480px"
+            unoptimized
             onLoad={(e) => {
               (e.currentTarget as HTMLImageElement).style.display = "block";
             }}

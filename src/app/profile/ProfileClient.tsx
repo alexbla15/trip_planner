@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import Link from "next/link";
 import {
   PenLine, Check, X, AlertCircle, Loader2,
@@ -249,10 +250,11 @@ export function ProfileClient() {
             {/* Avatar */}
             <div className={styles.avatarCircle} aria-hidden="true">
               {authUser.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={authUser.avatarUrl}
                   alt=""
+                  width={80}
+                  height={80}
                   className={styles.avatarImage}
                 />
               ) : (
@@ -289,8 +291,7 @@ export function ProfileClient() {
                           aria-pressed={editAvatarUrl === src}
                           aria-label={src.split("/").pop()?.replace(/\.\w+$/, "")}
                         >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={src} alt="" className={styles.avatarOptionImg} />
+                          <Image src={src} alt="" width={56} height={56} className={styles.avatarOptionImg} />
                         </button>
                       ))}
                     </div>
