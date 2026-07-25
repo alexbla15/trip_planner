@@ -19,13 +19,12 @@ import {
   Loader2,
   ChevronDown,
 } from "lucide-react";
-import { MoodTagButton, MoodTagChip, CoverImageField, COUNTRIES } from "@/components";
+import { MoodTagButton, MoodTagChip, CoverImageField, COUNTRIES, CurrencySelect } from "@/components";
 import { useAuth } from "@/contexts/AuthContext";
 import { getTrip, updateTrip, deleteTrip } from "@/services";
 import { useMoodTags } from "@/hooks";
 import {
   formatDisplayDate,
-  CURRENCIES,
   NOTES_MAX,
   getDurationDays,
   getDateError,
@@ -55,7 +54,7 @@ export function EditTripClient({ tripId }: EditTripClientProps) {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [budget, setBudget] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState("ILS");
   const [moods, setMoods] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [coverImage, setCoverImage] = useState("");
@@ -93,7 +92,7 @@ export function EditTripClient({ tripId }: EditTripClientProps) {
         setStartDate(toDateValue(data.startDate));
         setEndDate(toDateValue(data.endDate));
         setBudget(data.budget !== undefined ? String(data.budget) : "");
-        setCurrency(data.currency ?? "USD");
+        setCurrency(data.currency ?? "ILS");
         setMoods(data.moods ?? []);
         setNotes(data.notes ?? "");
         setCoverImage(data.coverImage ?? "");
@@ -318,22 +317,7 @@ export function EditTripClient({ tripId }: EditTripClientProps) {
                 Budget
               </label>
               <div className={styles.currencyRow}>
-                <div className={styles.currencySelectWrapper}>
-                  <select
-                    id="edit-trip-currency"
-                    value={currency}
-                    onChange={(e) => setCurrency(e.target.value)}
-                    className={styles.currencySelect}
-                    aria-label="Currency"
-                  >
-                    {CURRENCIES.map((c) => (
-                      <option key={c.code} value={c.code}>
-                        {c.symbol} {c.code}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown size={14} className={styles.currencySelectIcon} aria-hidden="true" />
-                </div>
+                <CurrencySelect value={currency} onChange={setCurrency} />
                 <input
                   id="edit-trip-budget"
                   type="number"

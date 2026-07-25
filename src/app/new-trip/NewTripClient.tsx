@@ -28,12 +28,13 @@ import {
   COUNTRIES,
   CoverImageField,
   isValidCoverUrl,
+  CurrencySelect,
 } from "@/components";
 import type { AttractionFormData } from "@/components";
 import { useAttractionTypes, useMoodTags } from "@/hooks";
 import { useAuth } from "@/contexts/AuthContext";
 import { createTrip, ApiError } from "@/services";
-import { CURRENCIES, NOTES_MAX, getDurationDays, getDateError, getNotesCountLevel } from "@/lib";
+import { NOTES_MAX, getDurationDays, getDateError, getNotesCountLevel } from "@/lib";
 import styles from "./NewTripClient.module.css";
 
 
@@ -48,7 +49,7 @@ export function NewTripClient() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [budget, setBudget] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState("ILS");
   const [moods, setMoods] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [attractions, setAttractions] = useState<AttractionFormData[]>([]);
@@ -270,22 +271,7 @@ export function NewTripClient() {
                   Budget
                 </label>
                 <div className={styles.currencyRow}>
-                  <div className={styles.currencySelectWrapper}>
-                    <select
-                      id="trip-currency"
-                      value={currency}
-                      onChange={(e) => setCurrency(e.target.value)}
-                      className={styles.currencySelect}
-                      aria-label="Currency"
-                    >
-                      {CURRENCIES.map((c) => (
-                        <option key={c.code} value={c.code}>
-                          {c.symbol} {c.code}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={14} className={styles.currencySelectIcon} aria-hidden="true" />
-                  </div>
+                  <CurrencySelect value={currency} onChange={setCurrency} />
                   <input
                     id="trip-budget"
                     type="number"
