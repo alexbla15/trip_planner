@@ -12,6 +12,11 @@ export interface IScheduleEntry {
   price?: number | null;
   currency?: string;
   notes?: string;
+  /** Per-trip stay-date override for a shared residence Attraction document — see the
+   *  "pick existing residence" flow. Never write these onto the shared document itself;
+   *  a residence can be reused across trips with different stay dates each time. */
+  checkInDate?: string;
+  checkOutDate?: string;
 }
 
 export interface ICollaborator {
@@ -73,6 +78,8 @@ const TripSchema = new Schema<ITrip>(
           price:               { type: Number, default: null },
           currency:            { type: String },
           notes:               { type: String },
+          checkInDate:         { type: String },
+          checkOutDate:        { type: String },
         },
         { _id: false }
       ),

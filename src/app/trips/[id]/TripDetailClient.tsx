@@ -41,6 +41,7 @@ import {
 import type {
   ResidenceFormData,
   ResidenceInitialData,
+  ResidencePrefillData,
   FlightFormData,
   FlightInitialData,
   AttractionFormData,
@@ -116,7 +117,9 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
 
   const [searchModalOpen, setSearchModalOpen]       = useState(false);
   const [modalOpen, setModalOpen]                   = useState(false);
+  const [residenceSearchOpen, setResidenceSearchOpen] = useState(false);
   const [residenceModalOpen, setResidenceModalOpen] = useState(false);
+  const [residencePrefill, setResidencePrefill]     = useState<ResidencePrefillData | undefined>(undefined);
   const [flightModalOpen, setFlightModalOpen]       = useState(false);
   const [editingAttraction, setEditingAttraction]   = useState<Attraction | null>(null);
   const [editingResidence, setEditingResidence]     = useState<Attraction | null>(null);
@@ -189,12 +192,31 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     setModalOpen(true);
   }
 
+  function handleResidenceSearchPick(existing: Attraction) {
+    setResidenceSearchOpen(false);
+    setResidencePrefill({
+      existingAttractionId: existing._id,
+      name: existing.name,
+      city: existing.city,
+      coordinates: existing.coordinates ?? null,
+      residenceType: (existing.residenceType as ResidencePrefillData["residenceType"]) ?? "Hotel",
+    });
+    setResidenceModalOpen(true);
+  }
+
+  function handleResidenceSearchCreateNew() {
+    setResidenceSearchOpen(false);
+    setResidencePrefill(undefined);
+    setResidenceModalOpen(true);
+  }
+
   async function handleResidenceSave(data: ResidenceFormData) {
     if (!token || !trip) return;
     setActionError(null);
     try {
       const created = (await addAttractionToTrip(trip._id, token, data)) as Attraction;
       upsertAttraction(created);
+      setResidencePrefill(undefined);
     } catch {
       setActionError("Couldn't save the residence. Please try again.");
     }
@@ -643,7 +665,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
               <ResidencesList
                 residences={residenceAttractions}
                 canEdit={canEdit}
-                onAdd={() => setResidenceModalOpen(true)}
+                onAdd={() => setResidenceSearchOpen(true)}
                 onEdit={(a) => setEditingResidence(a)}
                 onRemove={handleRemoveAttraction}
                 onView={(a) => setViewingAttraction(a)}
@@ -846,9 +868,25 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         onClose={() => setViewingAttraction(null)}
       />
 
+      {/* No existingAttractionIds here, deliberately: unlike regular attractions, re-picking the
+          same residence for a second stay (different dates) within the same trip is legitimate —
+          see the "duplicate attraction prevention" task, which scoped id-based "already added"
+          blocking to regular attractions only. */}
+      <AttractionSearchModal
+        isOpen={residenceSearchOpen}
+        onClose={() => setResidenceSearchOpen(false)}
+        country={trip.country}
+        onAdd={handleResidenceSearchPick}
+        onCreateNew={handleResidenceSearchCreateNew}
+        token={token}
+        subtypeFilter="residence"
+        title="Add Residence"
+        createLabel="Add a new residence"
+      />
+
       <AddResidenceModal
         isOpen={residenceModalOpen || !!editingResidence}
-        onClose={() => { setResidenceModalOpen(false); setEditingResidence(null); }}
+        onClose={() => { setResidenceModalOpen(false); setEditingResidence(null); setResidencePrefill(undefined); }}
         onSave={editingResidence ? handleResidenceUpdate : handleResidenceSave}
         tripCountry={trip.country}
         tripCity={trip.cities?.[0]}
@@ -856,6 +894,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         tripEndDate={trip.endDate}
         currency={trip.currency}
         initialData={residenceInitialData}
+        prefill={residencePrefill}
       />
 
       <AddFlightModal

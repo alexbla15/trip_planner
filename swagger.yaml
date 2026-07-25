@@ -255,6 +255,31 @@ components:
           type: string
           enum: [minutes, hours]
           nullable: true
+        checkInDate:
+          type: string
+          format: date
+          nullable: true
+          description: >
+            Per-trip check-in date override for a shared residence Attraction document
+            (stored in Trip.schedules, not on Attraction). Set when POST /api/trips/{id}/attractions
+            links an existing residence via existingAttractionId, so reusing the same residence
+            across multiple trips never overwrites another trip's stay dates. Falls back to the
+            Attraction document's own checkInDate when no override exists.
+        checkOutDate:
+          type: string
+          format: date
+          nullable: true
+          description: Per-trip check-out date override — see checkInDate.
+        price:
+          type: number
+          nullable: true
+          description: Per-trip price override — same rationale as checkInDate.
+        currency:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
 
     Attraction:
       type: object
@@ -369,13 +394,18 @@ components:
           type: string
           nullable: true
           format: date
-          description: Check-in date (YYYY-MM-DD). Must fall within the trip's start/end dates.
+          description: >
+            Check-in date (YYYY-MM-DD). Must fall within the trip's start/end dates. When this
+            attraction was linked to a trip via existingAttractionId, this reflects that trip's
+            own schedule-entry override (see AttractionSchedule) rather than necessarily the
+            value stored on the document itself — the same shared residence can show different
+            dates on different trips.
           example: "2026-07-04"
         checkOutDate:
           type: string
           nullable: true
           format: date
-          description: Check-out date (YYYY-MM-DD). Must be ≥ checkInDate and ≤ trip end date.
+          description: Check-out date (YYYY-MM-DD). Must be ≥ checkInDate and ≤ trip end date. Same per-trip override behavior as checkInDate.
           example: "2026-07-08"
         # --- Flight-specific fields (present when subtype = "flight") ---
         flightNumber:
@@ -450,6 +480,15 @@ components:
           example: EUR
         openingHours:
           type: object
+        existingAttractionId:
+          type: string
+          description: >
+            When adding to a trip via POST /api/trips/{id}/attractions, links an existing shared
+            Attraction document instead of creating a new one (the "pick existing" flow — e.g.
+            reusing a residence from an earlier trip). name/country/city/etc. are ignored when
+            set. checkInDate/checkOutDate/price/currency/notes are still read from this same
+            request body, but are stored as a per-trip schedule override rather than written onto
+            the shared document — see AttractionSchedule.
         # Subtype fields — include when creating residence, flight, or custom-slot (custom time-slot) entries
         subtype:
           type: string

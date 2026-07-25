@@ -40,3 +40,6 @@ A user can never end up with the same attraction listed twice in a trip's attrac
 - New design tokens used: none — `.resultRowAdded`/`.addedTag` reuse existing tokens (`--color-success`, `--radius-full`) already used identically in `AttractionPickerModal.module.css`.
 
 Verification: `tsc --noEmit` clean. `eslint` on both touched files shows only pre-existing `set-state-in-effect` errors on lines untouched by this change (confirmed at the same line numbers flagged earlier in this session, before any of today's edits). Full `next build` succeeds, 33 routes build clean. No API route was touched — `swagger.yaml` unaffected.
+
+## Completion Summary
+The database was already protected against duplicate attractions per trip; fixed the remaining UI gap so the trip page merges an already-added result in place instead of appending a visible duplicate row, and AttractionSearchModal now shows already-added attractions as disabled with an "Added" tag (reusing AttractionPickerModal's established pattern). Residences and flights were intentionally left untouched since duplicate names are legitimate for those subtypes. Confirmed by user 2026-07-25.

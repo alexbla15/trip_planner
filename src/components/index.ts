@@ -55,7 +55,7 @@ export type { AttractionFilterProps } from "./AttractionFilter";
 export { AttractionTypePicker } from "./AttractionTypePicker";
 
 export { AddResidenceModal } from "./AddResidenceModal";
-export type { ResidenceFormData, AddResidenceModalProps, ResidenceInitialData } from "./AddResidenceModal";
+export type { ResidenceFormData, AddResidenceModalProps, ResidenceInitialData, ResidencePrefillData } from "./AddResidenceModal";
 export { AddFlightModal } from "./AddFlightModal";
 export type { FlightFormData, AddFlightModalProps, FlightInitialData } from "./AddFlightModal";
 export { AddCustomSlotModal } from "./AddCustomSlotModal";

@@ -1,2 +1,2 @@
 export { AddResidenceModal } from "./AddResidenceModal";
-export type { ResidenceFormData, AddResidenceModalProps, ResidenceType, ResidenceInitialData } from "./AddResidenceModal.types";
+export type { ResidenceFormData, AddResidenceModalProps, ResidenceType, ResidenceInitialData, ResidencePrefillData } from "./AddResidenceModal.types";

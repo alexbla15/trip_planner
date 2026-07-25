@@ -11,7 +11,7 @@ import { ModalShell } from "@/components/Modal";
 import { toDateValue } from "@/lib";
 import { MapPicker } from "@/components/NewAttractionModal";
 import type { Coordinates } from "@/components/NewAttractionModal";
-import type { AddResidenceModalProps, ResidenceFormData, ResidenceType, ResidenceInitialData } from "./AddResidenceModal.types";
+import type { AddResidenceModalProps, ResidenceFormData, ResidenceType } from "./AddResidenceModal.types";
 import styles from "./AddResidenceModal.module.css";
 
 const HEADING_ID = "add-residence-modal-title";
@@ -28,8 +28,11 @@ export function AddResidenceModal({
   isOpen, onClose, onSave,
   tripCountry, tripCity, tripStartDate, tripEndDate, currency,
   initialData,
+  prefill,
 }: AddResidenceModalProps) {
   const isEditMode = !!initialData;
+  // Ignored once initialData (edit mode) is set — editing an already-linked residence takes priority.
+  const activePrefill = !initialData ? prefill : undefined;
   const [name, setName]                   = useState("");
   const [city, setCity]                   = useState(tripCity ?? "");
   const [residenceType, setResidenceType] = useState<ResidenceType>("Hotel");
@@ -63,18 +66,20 @@ export function AddResidenceModal({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!isOpen) return;
-    setName(initialData?.name ?? "");
-    setCity(initialData?.city ?? tripCity ?? "");
-    setResidenceType(initialData?.residenceType ?? "Hotel");
+    // Place fields: edit mode > picked-existing prefill > blank. Stay dates/price/notes are
+    // intentionally left blank for a prefill (this trip's own stay, not the picked document's).
+    setName(initialData?.name ?? activePrefill?.name ?? "");
+    setCity(initialData?.city ?? activePrefill?.city ?? tripCity ?? "");
+    setResidenceType(initialData?.residenceType ?? activePrefill?.residenceType ?? "Hotel");
     setCheckInDate(initialData?.checkInDate ?? "");
     setCheckOutDate(initialData?.checkOutDate ?? "");
-    setCoordinates(initialData?.coordinates ?? null);
+    setCoordinates(initialData?.coordinates ?? activePrefill?.coordinates ?? null);
     setPrice(initialData?.price ?? null);
     setPriceCurrency(initialData?.currency ?? currency ?? "USD");
     setNotes(initialData?.notes ?? "");
     setErrors({});
     setTouched({});
-  }, [isOpen]); // intentionally omits initialData/tripCity — only sync when modal opens
+  }, [isOpen]); // intentionally omits initialData/prefill/tripCity — only sync when modal opens
 
   const tripStart = toDateValue(tripStartDate);
   const tripEnd   = toDateValue(tripEndDate);
@@ -115,6 +120,7 @@ export function AddResidenceModal({
       notes,
       types: residenceType !== "Other" ? [residenceType] : [],
       subtype: "residence",
+      existingAttractionId: activePrefill?.existingAttractionId,
     };
     await Promise.resolve(onSave(data));
     setSaving(false);

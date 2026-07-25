@@ -117,18 +117,24 @@ export function formatAttraction(
     ),
     durationValue: doc.durationValue,
     durationUnit: doc.durationUnit,
-    price: doc.price ?? null,
-    currency: doc.currency ?? "USD",
+    // price/notes prefer a per-trip schedule override for the same reason as
+    // checkInDate/checkOutDate below — see the "pick existing residence" flow.
+    price: schedule?.price ?? doc.price ?? null,
+    currency: schedule?.currency ?? doc.currency ?? "USD",
     openingHours: doc.openingHours as AttractionShape["openingHours"],
-    notes: doc.notes,
+    notes: schedule?.notes ?? doc.notes,
     photoUrl: doc.photoUrl,
     createdAt: doc.createdAt?.toISOString(),
     updatedAt: doc.updatedAt?.toISOString(),
-    // Subtype fields
+    // Subtype fields — checkInDate/checkOutDate prefer a per-trip schedule override (see
+    // the "pick existing residence" flow) over the shared document's own value, so the same
+    // residence document can be reused across trips with different stay dates. Falls back to
+    // the document's value when no override exists (residences created before this feature,
+    // or the "create new" flow, which still writes stay dates directly onto the document).
     subtype: doc.subtype,
     residenceType: doc.residenceType as AttractionShape["residenceType"],
-    checkInDate: doc.checkInDate,
-    checkOutDate: doc.checkOutDate,
+    checkInDate: schedule?.checkInDate ?? doc.checkInDate,
+    checkOutDate: schedule?.checkOutDate ?? doc.checkOutDate,
     flightNumber: doc.flightNumber,
     airline: doc.airline,
     departureAirport: doc.departureAirport,

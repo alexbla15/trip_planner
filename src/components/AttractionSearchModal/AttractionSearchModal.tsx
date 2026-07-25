@@ -23,6 +23,9 @@ export function AttractionSearchModal({
   onCreateNew,
   token,
   existingAttractionIds = [],
+  subtypeFilter,
+  title = "Add Attraction",
+  createLabel = "Create new attraction",
 }: AttractionSearchModalProps) {
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -56,7 +59,8 @@ export function AttractionSearchModal({
     debounceRef.current = setTimeout(async () => {
       try {
         const data = (await searchAttractionsByCountry(country, q, token)) as Attraction[];
-        const list = Array.isArray(data) ? data : [];
+        const list = (Array.isArray(data) ? data : [])
+          .filter((a) => !subtypeFilter || a.subtype === subtypeFilter);
         setResults(list);
         setBodyState(list.length > 0 ? "results" : "empty");
       } catch {
@@ -99,13 +103,13 @@ export function AttractionSearchModal({
       header={
         <div className={styles.headerTitle}>
           <Search size={18} className={styles.headerIcon} aria-hidden="true" />
-          <h2 id={HEADING_ID} className={styles.title}>Add Attraction</h2>
+          <h2 id={HEADING_ID} className={styles.title}>{title}</h2>
         </div>
       }
       footer={
         <button type="button" className={styles.createBtn} onClick={handleCreateNew}>
           <PenLine size={15} aria-hidden="true" />
-          Create new attraction
+          {createLabel}
         </button>
       }
       beforeBody={

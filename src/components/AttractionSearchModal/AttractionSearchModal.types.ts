@@ -11,4 +11,10 @@ export interface AttractionSearchModalProps {
   token?: string | null;
   /** IDs of attractions already in the trip — matching results render disabled with an "Added" indicator instead of being addable again. */
   existingAttractionIds?: string[];
+  /** Restrict results to one attraction subtype (e.g. "residence" for the "pick existing residence" flow). Omit to search all subtypes. */
+  subtypeFilter?: "residence";
+  /** Header title. Defaults to "Add Attraction". */
+  title?: string;
+  /** Footer/empty-state fallback button label. Defaults to "Create new attraction". */
+  createLabel?: string;
 }

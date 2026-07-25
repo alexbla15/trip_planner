@@ -270,6 +270,20 @@ export async function POST(req: Request, { params }: RouteContext) {
       plannedTime: plannedTime ?? null,
       actualDurationValue: actualDurationValue || undefined,
       actualDurationUnit: actualDurationUnit || undefined,
+      // Picking an existing (shared) residence must never overwrite the shared Attraction
+      // document's stay dates/price — a different trip may already depend on those values.
+      // Store this trip's own dates/price/notes on the schedule entry instead; formatAttraction
+      // prefers this override over the document's value. The "create new" branch already wrote
+      // these fields onto the freshly-created document, so no schedule-level override is needed
+      // there (and none is written, to keep the document itself as the single source of truth
+      // for brand-new residences with no other trip depending on them yet).
+      ...(existingAttractionId ? {
+        checkInDate: checkInDate || undefined,
+        checkOutDate: checkOutDate || undefined,
+        price: price ?? undefined,
+        currency: currency || undefined,
+        notes: notes || undefined,
+      } : {}),
     };
     if (!trip.schedules) trip.set("schedules", new Map());
     trip.schedules.set(attractionId, scheduleEntry);
