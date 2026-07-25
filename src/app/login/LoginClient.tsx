@@ -10,12 +10,11 @@ import {
   Eye,
   EyeOff,
   LogIn,
-  Loader2,
-  AlertCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { login as loginRequest } from "@/services";
 import { validateLoginForm } from "@/lib";
+import { FormErrorBanner, FormFieldError, Spinner } from "@/components";
 import styles from "./LoginClient.module.css";
 
 export function LoginClient() {
@@ -84,12 +83,7 @@ export function LoginClient() {
         <p className={styles.subheading}>Sign in to plan your next adventure</p>
 
         {/* API error banner */}
-        {apiError && (
-          <div className={styles.errorBanner} role="alert" aria-live="assertive">
-            <AlertCircle size={16} aria-hidden="true" />
-            {apiError}
-          </div>
-        )}
+        <FormErrorBanner message={apiError} />
 
         <form onSubmit={handleSubmit} noValidate>
           {/* Email */}
@@ -112,12 +106,7 @@ export function LoginClient() {
               className={`${styles.input} ${touched.email && errors.email ? styles.inputError : ""}`}
               placeholder="you@example.com"
             />
-            {touched.email && errors.email && (
-              <p id={`${emailId}-error`} className={styles.fieldError} role="alert">
-                <AlertCircle size={12} aria-hidden="true" />
-                {errors.email}
-              </p>
-            )}
+            <FormFieldError id={`${emailId}-error`} message={touched.email ? errors.email : undefined} />
           </div>
 
           {/* Password */}
@@ -155,12 +144,7 @@ export function LoginClient() {
                 )}
               </button>
             </div>
-            {touched.password && errors.password && (
-              <p id={`${passwordId}-error`} className={styles.fieldError} role="alert">
-                <AlertCircle size={12} aria-hidden="true" />
-                {errors.password}
-              </p>
-            )}
+            <FormFieldError id={`${passwordId}-error`} message={touched.password ? errors.password : undefined} />
           </div>
 
           {/* Submit */}
@@ -172,7 +156,7 @@ export function LoginClient() {
           >
             {loading ? (
               <>
-                <Loader2 size={18} className={styles.spinner} aria-hidden="true" />
+                <Spinner variant="icon" iconSize={18} />
                 Signing in…
               </>
             ) : (

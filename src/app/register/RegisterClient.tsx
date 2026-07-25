@@ -11,12 +11,11 @@ import {
   Eye,
   EyeOff,
   UserPlus,
-  Loader2,
-  AlertCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { register as registerRequest, login as loginRequest, ApiError } from "@/services";
 import { validateRegisterForm } from "@/lib";
+import { FormErrorBanner, FormFieldError, Spinner } from "@/components";
 import styles from "./RegisterClient.module.css";
 
 export function RegisterClient() {
@@ -98,12 +97,7 @@ export function RegisterClient() {
         <p className={styles.subheading}>Start planning your perfect trips</p>
 
         {/* API error banner */}
-        {apiError && (
-          <div className={styles.errorBanner} role="alert" aria-live="assertive">
-            <AlertCircle size={16} aria-hidden="true" />
-            {apiError}
-          </div>
-        )}
+        <FormErrorBanner message={apiError} />
 
         <form onSubmit={handleSubmit} noValidate>
           {/* Name */}
@@ -126,12 +120,7 @@ export function RegisterClient() {
               className={`${styles.input} ${touched.name && errors.name ? styles.inputError : ""}`}
               placeholder="Alex Smith"
             />
-            {touched.name && errors.name && (
-              <p id={`${nameId}-error`} className={styles.fieldError} role="alert">
-                <AlertCircle size={12} aria-hidden="true" />
-                {errors.name}
-              </p>
-            )}
+            <FormFieldError id={`${nameId}-error`} message={touched.name ? errors.name : undefined} />
           </div>
 
           {/* Email */}
@@ -153,12 +142,7 @@ export function RegisterClient() {
               className={`${styles.input} ${touched.email && errors.email ? styles.inputError : ""}`}
               placeholder="you@example.com"
             />
-            {touched.email && errors.email && (
-              <p id={`${emailId}-error`} className={styles.fieldError} role="alert">
-                <AlertCircle size={12} aria-hidden="true" />
-                {errors.email}
-              </p>
-            )}
+            <FormFieldError id={`${emailId}-error`} message={touched.email ? errors.email : undefined} />
           </div>
 
           {/* Password */}
@@ -196,12 +180,7 @@ export function RegisterClient() {
                 )}
               </button>
             </div>
-            {touched.password && errors.password && (
-              <p id={`${passwordId}-error`} className={styles.fieldError} role="alert">
-                <AlertCircle size={12} aria-hidden="true" />
-                {errors.password}
-              </p>
-            )}
+            <FormFieldError id={`${passwordId}-error`} message={touched.password ? errors.password : undefined} />
           </div>
 
           {/* Submit */}
@@ -213,7 +192,7 @@ export function RegisterClient() {
           >
             {loading ? (
               <>
-                <Loader2 size={18} className={styles.spinner} aria-hidden="true" />
+                <Spinner variant="icon" iconSize={18} />
                 Creating account…
               </>
             ) : (

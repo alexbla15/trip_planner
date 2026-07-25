@@ -37,6 +37,7 @@ import {
   TripSharingPanel,
   ExpensesPanel,
   TripTabBar,
+  FormErrorBanner,
 } from "@/components";
 import type {
   ResidenceFormData,
@@ -93,6 +94,9 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
 
   const [attractions, setAttractions] = useState<Attraction[]>([]);
   const [attractionsLoading, setAttractionsLoading] = useState(false);
+  const [attractionsLoadError, setAttractionsLoadError] = useState(false);
+  const [attractionsReloadKey, setAttractionsReloadKey] = useState(0);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const [page, setPage] = useState(1);
 
@@ -142,22 +146,24 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   useEffect(() => {
     if (!trip) return;
     setAttractionsLoading(true);
+    setAttractionsLoadError(false);
     getTripAttractions(trip._id, token)
       .then((data) => setAttractions(Array.isArray(data) ? (data as Attraction[]) : []))
-      .catch(() => setAttractions([]))
+      .catch(() => setAttractionsLoadError(true))
       .finally(() => setAttractionsLoading(false));
-  }, [token, trip]);
+  }, [token, trip, attractionsReloadKey]);
 
   async function handleSearchAdd(existing: Attraction) {
     if (!token || !trip) return;
     setSearchModalOpen(false);
+    setActionError(null);
     try {
       const created = (await addAttractionToTrip(trip._id, token, {
         existingAttractionId: existing._id,
       })) as Attraction;
       setAttractions((prev) => [created, ...prev]);
     } catch {
-      // silent
+      setActionError("Couldn't add that attraction. Please try again.");
     }
   }
 
@@ -168,24 +174,31 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
 
   async function handleResidenceSave(data: ResidenceFormData) {
     if (!token || !trip) return;
+    setActionError(null);
     try {
       const created = (await addAttractionToTrip(trip._id, token, data)) as Attraction;
       setAttractions((prev) => [created, ...prev]);
-    } catch { /* silent */ }
+    } catch {
+      setActionError("Couldn't save the residence. Please try again.");
+    }
   }
 
   async function handleFlightSave(data: FlightFormData) {
     if (!token || !trip) return;
+    setActionError(null);
     try {
       const created = (await addAttractionToTrip(trip._id, token, data)) as Attraction;
       setAttractions((prev) => [created, ...prev]);
-    } catch { /* silent */ }
+    } catch {
+      setActionError("Couldn't save the flight. Please try again.");
+    }
   }
 
   async function handleResidenceUpdate(data: ResidenceFormData) {
     if (!token || !editingResidence) return;
     const id = editingResidence._id;
     setEditingResidence(null);
+    setActionError(null);
     try {
       const updated = (await updateAttraction(id, token, data)) as Attraction;
       setAttractions((prev) => prev.map((a) => a._id !== updated._id ? a : {
@@ -193,13 +206,16 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         plannedDate: a.plannedDate,
         plannedTime: a.plannedTime,
       }));
-    } catch { /* silent */ }
+    } catch {
+      setActionError("Couldn't update the residence. Please try again.");
+    }
   }
 
   async function handleFlightUpdate(data: FlightFormData) {
     if (!token || !editingFlight || !trip) return;
     const id = editingFlight._id;
     setEditingFlight(null);
+    setActionError(null);
     try {
       // Step 1: update attraction-level fields (departureTime, arrivalTime, airline, etc.)
       const attrUpdated = (await updateAttraction(id, token, data)) as Attraction;
@@ -217,12 +233,15 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
       // truth, falling back to the attraction-update result if the schedule PATCH itself failed.
       const updated = schedRes.ok ? ((await schedRes.json()) as Attraction) : attrUpdated;
       setAttractions((prev) => prev.map((a) => a._id !== updated._id ? a : updated));
-    } catch { /* silent */ }
+    } catch {
+      setActionError("Couldn't update the flight. Please try again.");
+    }
   }
 
   async function handleAttractionSave(data: AttractionFormData) {
     if (!token || !trip) return;
     setModalOpen(false);
+    setActionError(null);
 
     try {
       const created = (await addAttractionToTrip(trip._id, token, {
@@ -241,7 +260,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
       })) as Attraction;
       setAttractions((prev) => [created, ...prev]);
     } catch {
-      // Silent failure — attraction list won't update but no crash
+      setActionError("Couldn't save the attraction. Please try again.");
     }
   }
 
@@ -268,6 +287,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     if (!token || !editingAttraction) return;
     const id = editingAttraction._id;
     setEditingAttraction(null);
+    setActionError(null);
 
     try {
       const updated = (await updateAttraction(id, token, data)) as Attraction;
@@ -284,12 +304,13 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         })
       );
     } catch {
-      // Silent — stale data remains until next page load
+      setActionError("Couldn't update the attraction. Please try again.");
     }
   }
 
   async function handleRemoveAttraction(attractionId: string) {
     if (!trip) return;
+    setActionError(null);
     // Optimistic update
     const snapshot = attractions;
     setAttractions((prev) => prev.filter((a) => a._id !== attractionId));
@@ -298,9 +319,13 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     try {
       // Unlinks from this trip — does NOT delete the global attraction from the DB
       const res = await removeAttractionFromTrip(trip._id, attractionId, token);
-      if (!res.ok) setAttractions(snapshot);
+      if (!res.ok) {
+        setAttractions(snapshot);
+        setActionError("Couldn't remove the attraction. Please try again.");
+      }
     } catch {
       setAttractions(snapshot);
+      setActionError("Couldn't remove the attraction. Please try again.");
     }
   }
 
@@ -446,6 +471,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         <TripTabBar tabs={TRIP_TABS} active={activeTab} onChange={switchTab} />
 
         <div className={styles.container}>
+          <FormErrorBanner message={actionError} />
           <div
             role="tabpanel"
             id={`tabpanel-${activeTab}`}
@@ -629,6 +655,19 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                   {attractionsLoading ? (
                     <div className={styles.attractionsLoading}>
                       <Loader2 size={22} className={styles.loadingIcon} aria-hidden="true" />
+                    </div>
+                  ) : attractionsLoadError ? (
+                    <div className={styles.emptyAttractions}>
+                      <SearchX size={36} className={styles.emptyIcon} aria-hidden="true" />
+                      <p className={styles.emptyText}>Couldn&apos;t load attractions</p>
+                      <p className={styles.emptySubtext}>Something went wrong. Please try again.</p>
+                      <button
+                        type="button"
+                        className={styles.clearFiltersBtn}
+                        onClick={() => setAttractionsReloadKey((k) => k + 1)}
+                      >
+                        Try again
+                      </button>
                     </div>
                   ) : regularAttractions.length === 0 ? (
                     <div className={styles.emptyAttractions}>

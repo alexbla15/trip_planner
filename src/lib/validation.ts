@@ -3,6 +3,7 @@ export interface LoginFormErrors {
   password?: string;
 }
 
+/** Validates the login form; returns an empty object when there are no errors. */
 export function validateLoginForm(email: string, password: string): LoginFormErrors {
   const errors: LoginFormErrors = {};
   if (!email.trim()) errors.email = "Email is required";
@@ -17,6 +18,7 @@ export interface RegisterFormErrors {
   password?: string;
 }
 
+/** Validates the register form (name required, email format, password min length 8); returns an empty object when there are no errors. */
 export function validateRegisterForm(name: string, email: string, password: string): RegisterFormErrors {
   const errors: RegisterFormErrors = {};
   if (!name.trim()) errors.name = "Name is required";

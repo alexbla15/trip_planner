@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  PenLine, Check, X, AlertCircle, Loader2,
+  PenLine, Check, X, AlertCircle,
   MapPinned, Landmark, Building2, Globe, DollarSign,
   BarChart2, Lock, Sparkles,
 } from "lucide-react";
@@ -15,6 +15,7 @@ import {
   StatCardsGrid,
   RankedList,
   CountryFilterSelect,
+  Spinner,
 } from "@/components";
 import type { RankedListItem } from "@/components";
 import { useAttractionTypes } from "@/hooks";
@@ -304,7 +305,7 @@ export function ProfileClient() {
                       disabled={saving || !editName.trim()}
                     >
                       {saving ? (
-                        <><Loader2 size={14} className={styles.spinnerIcon} aria-hidden="true" /> Saving…</>
+                        <><Spinner variant="icon" iconSize={14} /> Saving…</>
                       ) : (
                         <><Check size={14} aria-hidden="true" /> Save</>
                       )}
@@ -398,7 +399,7 @@ export function ProfileClient() {
                   disabled={pwSaving || !currentPw || !newPw || !confirmPw}
                 >
                   {pwSaving ? (
-                    <><Loader2 size={14} className={styles.spinnerIcon} aria-hidden="true" /> Saving…</>
+                    <><Spinner variant="icon" iconSize={14} /> Saving…</>
                   ) : (
                     <><Check size={14} aria-hidden="true" /> Update Password</>
                   )}

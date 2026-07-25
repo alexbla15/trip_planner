@@ -6,7 +6,7 @@ import { Globe, Plus, ChevronLeft, SlidersHorizontal, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAttractionTypes } from "@/hooks";
 import { getCities, getAttractionsByCity, createAttraction } from "@/services";
-import { AttractionDetailModal, NewAttractionModal } from "@/components";
+import { AttractionDetailModal, NewAttractionModal, Spinner, FormErrorBanner } from "@/components";
 import type { AttractionFormData } from "@/components";
 import type { Attraction } from "@/types/attraction";
 import styles from "./ExploreClient.module.css";
@@ -15,7 +15,7 @@ const ExploreMapWidget = dynamic(
   () => import("./ExploreMapWidget").then((m) => ({ default: m.ExploreMapWidget })),
   {
     ssr: false,
-    loading: () => <div className={`${styles.spinner} ${styles.spinnerCentered}`} />,
+    loading: () => <Spinner centered />,
   }
 );
 
@@ -49,7 +49,10 @@ export function ExploreClient() {
   const [cities, setCities]                       = useState<CityEntry[]>([]);
   const [cityAttractions, setCityAttractions]     = useState<Attraction[]>([]);
   const [citiesLoading, setCitiesLoading]         = useState(true);
+  const [citiesLoadError, setCitiesLoadError]     = useState(false);
+  const [citiesReloadKey, setCitiesReloadKey]     = useState(0);
   const [attractionsLoading, setAttractionsLoading] = useState(false);
+  const [pageError, setPageError] = useState<string | null>(null);
 
   // View state — 3 levels: world → country → city
   const [selectedCountry, setSelectedCountry]     = useState<string | null>(null);
@@ -67,19 +70,21 @@ export function ExploreClient() {
   // Load cities on mount
   useEffect(() => {
     setCitiesLoading(true);
+    setCitiesLoadError(false);
     getCities()
       .then((data) => setCities((data as { cities: CityEntry[] }).cities ?? []))
-      .catch(() => {})
+      .catch(() => setCitiesLoadError(true))
       .finally(() => setCitiesLoading(false));
-  }, []);
+  }, [citiesReloadKey]);
 
   // Load attractions when city changes
   useEffect(() => {
     if (!selectedCity) { setCityAttractions([]); return; }
     setAttractionsLoading(true);
+    setPageError(null);
     getAttractionsByCity(selectedCity)
       .then((data) => setCityAttractions(Array.isArray(data) ? (data as Attraction[]) : []))
-      .catch(() => {})
+      .catch(() => setPageError("Couldn't load attractions for this city. Please try again."))
       .finally(() => setAttractionsLoading(false));
   }, [selectedCity]);
 
@@ -226,9 +231,11 @@ export function ExploreClient() {
   async function handleAddSave(data: AttractionFormData) {
     if (!token) return;
     let newAttraction: Attraction;
+    setPageError(null);
     try {
       newAttraction = (await createAttraction(token, data)) as Attraction;
     } catch {
+      setPageError("Couldn't save the attraction. Please try again.");
       return;
     }
     setAddModalOpen(false);
@@ -300,10 +307,25 @@ export function ExploreClient() {
 
         {/* ── Scrollable content area ── */}
         <div className={styles.sidebarScrollArea}>
+          <FormErrorBanner message={pageError} />
+
           {/* World view */}
           {view === "world" && (
             <>
-              {!citiesLoading && countries.length === 0 ? (
+              {!citiesLoading && citiesLoadError ? (
+                <>
+                  <p className={styles.worldPrompt}>
+                    Couldn&apos;t load destinations. Please try again.
+                  </p>
+                  <button
+                    type="button"
+                    className={styles.clearBtn}
+                    onClick={() => setCitiesReloadKey((k) => k + 1)}
+                  >
+                    Try again
+                  </button>
+                </>
+              ) : !citiesLoading && countries.length === 0 ? (
                 <p className={styles.worldPrompt}>
                   No attractions have been added yet.
                   <br />
@@ -449,7 +471,7 @@ export function ExploreClient() {
       <div className={styles.mapArea}>
         {attractionsLoading && (
           <div className={styles.mapLoadingOverlay} aria-live="polite" aria-label="Loading attractions">
-            <div className={styles.spinner} />
+            <Spinner />
           </div>
         )}
 

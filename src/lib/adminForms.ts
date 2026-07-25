@@ -2,6 +2,7 @@ import type { AttractionTypeRecord } from "@/types/attractionType";
 import type { AttractionCategoryRecord } from "@/types/attractionCategory";
 import type { MoodTagRecord } from "@/types/moodTag";
 
+/** Editable form state for an attraction type in the admin panel — mirrors {@link AttractionTypeRecord} with numeric fields as strings for controlled inputs. */
 export interface TypeFormState {
   name: string;
   categoryId: string;
@@ -10,6 +11,7 @@ export interface TypeFormState {
   order: string;
 }
 
+/** Converts a saved attraction type into editable form state. */
 export function typeFormFromRecord(r: AttractionTypeRecord): TypeFormState {
   return {
     name:       r.name,
@@ -20,6 +22,7 @@ export function typeFormFromRecord(r: AttractionTypeRecord): TypeFormState {
   };
 }
 
+/** Editable form state for an attraction category in the admin panel — mirrors {@link AttractionCategoryRecord} with numeric fields as strings for controlled inputs. */
 export interface CategoryFormState {
   name: string;
   icon: string;
@@ -27,6 +30,7 @@ export interface CategoryFormState {
   order: string;
 }
 
+/** Converts a saved attraction category into editable form state. */
 export function catFormFromRecord(r: AttractionCategoryRecord): CategoryFormState {
   return {
     name:  r.name,
@@ -36,6 +40,7 @@ export function catFormFromRecord(r: AttractionCategoryRecord): CategoryFormStat
   };
 }
 
+/** Editable form state for a mood tag in the admin panel — mirrors {@link MoodTagRecord} with numeric fields as strings for controlled inputs. */
 export interface MoodTagFormState {
   name: string;
   icon: string;
@@ -46,6 +51,7 @@ export interface MoodTagFormState {
   order: string;
 }
 
+/** Converts a saved mood tag into editable form state. */
 export function moodFormFromRecord(r: MoodTagRecord): MoodTagFormState {
   return {
     name: r.name, icon: r.icon,

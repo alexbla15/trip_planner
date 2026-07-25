@@ -1,6 +1,7 @@
 import type { Trip, TripExpense } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
 
+/** A single expense row as edited in the UI — original currency preserved alongside the display amount string. */
 export interface LocalExpense {
   id: string;
   label: string;
@@ -12,8 +13,14 @@ export interface LocalExpense {
 }
 
 let nextTempId = 0;
+/** Generates a locally-unique id for a not-yet-saved expense row. */
 export function tempId() { return `new-${++nextTempId}`; }
 
+/**
+ * Builds the editable expense-panel row list for a trip: one row per priced
+ * attraction (using the saved override amount if the user already edited it)
+ * plus one row per custom (non-attraction) saved expense.
+ */
 export function buildLocal(trip: Trip, attractions: Attraction[]): LocalExpense[] {
   const tripCurrency = trip.currency ?? "USD";
   const saved = trip.expenses ?? [];
@@ -46,6 +53,11 @@ export function buildLocal(trip: Trip, attractions: Attraction[]): LocalExpense[
   return [...attractionRows, ...customRows];
 }
 
+/**
+ * Re-derives each row's display `amountStr` in `targetCurrency` using the
+ * given FX rates map (keyed by source currency). Rows already in the target
+ * currency, or with no known rate, are left as-is (rounded to 2 decimals).
+ */
 export function applyRates(
   rows: LocalExpense[],
   rates: Map<string, number>,
@@ -64,6 +76,7 @@ export function applyRates(
   });
 }
 
+/** Converts edited rows back into the API expense shape, dropping rows with a blank label. */
 export function toApiExpenses(rows: LocalExpense[]): Omit<TripExpense, "_id">[] {
   return rows
     .filter((r) => r.label.trim())

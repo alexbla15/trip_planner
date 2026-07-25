@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { dbConnect } from "@/lib/mongoose";
 import { User } from "@/models/User";
-import { randomAvatar } from "@/lib/avatarConstants";
+import { randomAvatar } from "@/lib";
 
 export async function POST(req: Request) {
   try {

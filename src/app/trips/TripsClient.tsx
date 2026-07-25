@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { ChevronLeft, MapPinned, Search, X } from "lucide-react";
+import { AlertCircle, ChevronLeft, MapPinned, Search, X } from "lucide-react";
 import { TripCard, TripCardSkeleton, NewTripCard } from "@/components";
 import { useAuth } from "@/contexts/AuthContext";
 import { listTrips } from "@/services";
@@ -15,15 +15,30 @@ export function TripsClient() {
   const { token } = useAuth();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!token) return;
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(false);
     listTrips(token)
-      .then((data) => setTrips(Array.isArray(data) ? (data as Trip[]) : []))
-      .catch(() => setTrips([]))
-      .finally(() => setLoading(false));
-  }, [token]);
+      .then((data) => {
+        if (cancelled) return;
+        setTrips(Array.isArray(data) ? (data as Trip[]) : []);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token, reloadKey]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -86,6 +101,15 @@ export function TripsClient() {
               <TripCardSkeleton key={i} />
             ))}
             <NewTripCard />
+          </div>
+        ) : loadError ? (
+          <div className={styles.emptyState}>
+            <AlertCircle size={40} className={styles.emptyIcon} aria-hidden="true" />
+            <p className={styles.emptyHeading}>Couldn&apos;t load your trips</p>
+            <p className={styles.emptyBody}>Something went wrong while fetching your trips. Please try again.</p>
+            <button className={styles.clearSearchBtn} onClick={() => setReloadKey((k) => k + 1)}>
+              Try again
+            </button>
           </div>
         ) : filtered.length === 0 ? (
           <div className={styles.emptyState}>

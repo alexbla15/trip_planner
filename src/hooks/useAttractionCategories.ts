@@ -23,11 +23,19 @@ async function fetchCategories(): Promise<AttractionCategoryRecord[]> {
   return cachePromise;
 }
 
+/** Clears the module-level attraction-categories cache so the next {@link useAttractionCategories} call refetches. Call after creating/editing/deleting a category in the admin panel. */
 export function invalidateAttractionCategoriesCache() {
   cache = null;
   cachePromise = null;
 }
 
+/**
+ * Attraction categories, fetched once and cached at module scope for the
+ * lifetime of the page (shared across every component that calls this hook).
+ * Prefer `useAttractionTypes()` instead when you only need category *names*
+ * for filter chips — this hook is for when the full category record
+ * (icon, color, order) is required.
+ */
 export function useAttractionCategories() {
   const [categories, setCategories] = useState<AttractionCategoryRecord[]>(cache ?? []);
   const [loading, setLoading] = useState(cache === null);

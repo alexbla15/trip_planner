@@ -1,8 +1,10 @@
+/** Converts a polar coordinate (center + radius + angle) to a cartesian point, for SVG donut-chart slices. */
 export function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
   const rad = ((angleDeg - 90) * Math.PI) / 180;
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
 }
 
+/** Builds an SVG `path` `d` attribute for one donut-chart slice between `startAngle` and `endAngle` (degrees). */
 export function donutSlicePath(
   cx: number, cy: number,
   outerR: number, innerR: number,
@@ -24,6 +26,7 @@ export function donutSlicePath(
   ].join(" ");
 }
 
+/** Lightens a `#rrggbb` hex color toward white by `opacity` (0 = unchanged, 1 = white). */
 export function tintColor(baseHex: string, opacity: number): string {
   const r = parseInt(baseHex.slice(1, 3), 16);
   const g = parseInt(baseHex.slice(3, 5), 16);

@@ -1,3 +1,4 @@
+/** Payload submitted by {@link AddFlightModalProps} on save — an attraction-shaped flight record. */
 export interface FlightFormData {
   name: string;
   country: string;
@@ -21,6 +22,7 @@ export interface FlightFormData {
   actualDurationUnit: "minutes";
 }
 
+/** Values used to prefill the modal when editing an existing flight. */
 export interface FlightInitialData {
   airline: string;
   flightNumber: string;
@@ -34,6 +36,7 @@ export interface FlightInitialData {
   notes: string;
 }
 
+/** Props for the add/edit flight modal. Pass `initialData` to edit an existing flight, omit it to create a new one. */
 export interface AddFlightModalProps {
   isOpen: boolean;
   onClose: () => void;
