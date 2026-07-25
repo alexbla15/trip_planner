@@ -111,6 +111,18 @@ export const Trip =
   (mongoose.models.Trip as mongoose.Model<ITrip>) ||
   mongoose.model<ITrip>("Trip", TripSchema);
 
+/** Resolves the id string for a ref field that may be a raw ObjectId, a populated document,
+ *  or null (populate couldn't resolve the ref, e.g. the referenced user was deleted). Unlike
+ *  `.toString()` on a populated Mongoose document — which returns an `inspect()` debug dump,
+ *  not the id — this always returns the plain id string (or null). */
+export function resolveRefId(ref: unknown): string | null {
+  if (ref == null) return null;
+  if (typeof ref === "object" && "_id" in (ref as object)) {
+    return (ref as { _id: Types.ObjectId })._id.toString();
+  }
+  return (ref as Types.ObjectId).toString();
+}
+
 export function formatTrip(doc: ITrip): import("@/types/trip").Trip {
   // ownerId may be populated (when the route calls .populate("ownerId", "name avatarUrl"))
   const ownerRaw = doc.ownerId as unknown;
@@ -121,10 +133,13 @@ export function formatTrip(doc: ITrip): import("@/types/trip").Trip {
   const ownerDoc = ownerIsPopulated
     ? (ownerRaw as { _id: Types.ObjectId; name: string; avatarUrl?: string })
     : null;
+  // ownerRaw is null when populate() couldn't resolve the ref (owner user was deleted) —
+  // there's no id left to report in that case, so ownerId comes back undefined rather than throwing.
+  const ownerIdRaw = ownerDoc ? ownerDoc._id : (ownerRaw as Types.ObjectId | null);
 
   return {
     _id: doc._id.toString(),
-    ownerId: ownerDoc ? ownerDoc._id.toString() : (doc.ownerId as Types.ObjectId).toString(),
+    ownerId: ownerIdRaw ? ownerIdRaw.toString() : undefined,
     ownerName: ownerDoc?.name,
     ownerAvatarUrl: ownerDoc?.avatarUrl ?? null,
     name: doc.name,
@@ -138,11 +153,18 @@ export function formatTrip(doc: ITrip): import("@/types/trip").Trip {
     moods: doc.moods,
     notes: doc.notes,
     attractionIds: doc.attractionIds?.map((id) => id.toString()) ?? [],
-    collaborators: (doc.collaborators ?? []).map((c) => {
-      // userId is populated via .populate('collaborators.userId', 'name email avatarUrl')
-      const u = c.userId as unknown as { _id: Types.ObjectId; name: string; email: string; avatarUrl?: string };
-      return { userId: u._id.toString(), name: u.name, email: u.email, avatarUrl: u.avatarUrl ?? null };
-    }),
+    // userId is populated via .populate('collaborators.userId', 'name email avatarUrl'); a
+    // collaborator whose user document was deleted populates to null — drop that entry rather
+    // than throwing on .toString().
+    collaborators: (doc.collaborators ?? [])
+      .filter((c) => {
+        const raw = c.userId as unknown;
+        return raw != null && typeof raw === "object" && "name" in (raw as object);
+      })
+      .map((c) => {
+        const u = c.userId as unknown as { _id: Types.ObjectId; name: string; email: string; avatarUrl?: string };
+        return { userId: u._id.toString(), name: u.name, email: u.email, avatarUrl: u.avatarUrl ?? null };
+      }),
     isPrivate: doc.isPrivate ?? false,
     calDayStart: doc.calDayStart,
     calDayEnd:   doc.calDayEnd,

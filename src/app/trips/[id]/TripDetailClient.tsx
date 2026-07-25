@@ -17,6 +17,7 @@ import {
   PenLine,
   Users,
   Lock,
+  AlertCircle,
   LayoutDashboard,
   BedDouble,
   Wallet,
@@ -91,6 +92,8 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [tripLoading, setTripLoading] = useState(true);
   const [forbidden, setForbidden] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [tripReloadKey, setTripReloadKey] = useState(0);
 
   const [attractions, setAttractions] = useState<Attraction[]>([]);
   const [attractionsLoading, setAttractionsLoading] = useState(false);
@@ -131,16 +134,18 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   useEffect(() => {
     if (authLoading) return;
     setTripLoading(true);
+    setLoadError(false);
     getTrip(tripId, token)
       .then((res) => {
         if (res.status === 404) { router.replace("/trips"); return null; }
         if (res.status === 403) { setForbidden(true); return null; }
+        if (!res.ok) { setLoadError(true); return null; }
         return res.json() as Promise<Trip>;
       })
       .then((data) => { if (data) setTrip(data); })
       .catch(() => router.replace("/trips"))
       .finally(() => setTripLoading(false));
-  }, [authLoading, token, tripId, router]);
+  }, [authLoading, token, tripId, router, tripReloadKey]);
 
   // Fetch attractions once trip is loaded (works with or without a token)
   useEffect(() => {
@@ -398,6 +403,27 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         <Lock size={40} className={styles.forbiddenIcon} aria-hidden="true" />
         <h1 className={styles.forbiddenHeading}>This trip is private</h1>
         <p className={styles.forbiddenBody}>You don&apos;t have permission to view this trip.</p>
+        <Link href="/trips" className={styles.forbiddenBack}>
+          <ChevronLeft size={16} aria-hidden="true" />
+          Back to my trips
+        </Link>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className={styles.forbiddenState}>
+        <AlertCircle size={40} className={styles.forbiddenIcon} aria-hidden="true" />
+        <h1 className={styles.forbiddenHeading}>Couldn&apos;t load this trip</h1>
+        <p className={styles.forbiddenBody}>Something went wrong. Please try again.</p>
+        <button
+          type="button"
+          className={styles.clearFiltersBtn}
+          onClick={() => setTripReloadKey((k) => k + 1)}
+        >
+          Try again
+        </button>
         <Link href="/trips" className={styles.forbiddenBack}>
           <ChevronLeft size={16} aria-hidden="true" />
           Back to my trips

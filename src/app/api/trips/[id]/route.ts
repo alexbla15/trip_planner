@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongoose";
 import { getUserFromRequest } from "@/lib/auth";
-import { Trip, formatTrip } from "@/models/Trip";
+import { Trip, formatTrip, resolveRefId } from "@/models/Trip";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -38,8 +38,12 @@ export async function GET(req: Request, { params }: RouteContext) {
     const trip = await Trip.findById(id).populate("collaborators.userId", "name email avatarUrl").populate("ownerId", "name avatarUrl");
     if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
 
-    const isOwner        = userId && trip.ownerId.toString() === userId;
-    const isCollaborator = userId && trip.collaborators.some((c) => c.userId.toString() === userId);
+    // trip.ownerId / collaborators[].userId are populated above (for avatar display), so they're
+    // full documents here, not raw ObjectIds — resolveRefId() unwraps either shape to a plain id
+    // string. A bare .toString() on a populated Mongoose document returns an inspect() debug dump,
+    // not the id, which silently broke ownership checks for private trips.
+    const isOwner        = !!userId && resolveRefId(trip.ownerId) === userId;
+    const isCollaborator = !!userId && trip.collaborators.some((c) => resolveRefId(c.userId) === userId);
     const isPublic       = !trip.isPrivate;
 
     if (!isPublic && !isOwner && !isCollaborator) {
@@ -47,7 +51,8 @@ export async function GET(req: Request, { params }: RouteContext) {
     }
 
     return NextResponse.json(formatTrip(trip));
-  } catch {
+  } catch (err) {
+    console.error("GET /api/trips/[id] failed:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
@@ -96,7 +101,8 @@ export async function PUT(req: Request, { params }: RouteContext) {
       .populate("collaborators.userId", "name email avatarUrl").populate("ownerId", "name avatarUrl");
     if (!updated) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
     return NextResponse.json(formatTrip(updated));
-  } catch {
+  } catch (err) {
+    console.error("PUT /api/trips/[id] failed:", err);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 }
@@ -110,7 +116,8 @@ export async function DELETE(req: Request, { params }: RouteContext) {
 
     await trip.deleteOne();
     return NextResponse.json({ message: "Trip deleted" });
-  } catch {
+  } catch (err) {
+    console.error("DELETE /api/trips/[id] failed:", err);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 }
