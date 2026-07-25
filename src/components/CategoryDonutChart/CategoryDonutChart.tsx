@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { getIconComponent } from "@/components/IconPicker";
+import { CategoryAttractionsModal } from "@/components/CategoryAttractionsModal";
 import { useAttractionTypes } from "@/hooks";
 import { donutSlicePath, tintColor } from "@/lib";
 import styles from "./CategoryDonutChart.module.css";
@@ -15,6 +16,9 @@ interface CategoryDonutChartProps {
   rawTypes: Array<{ _id: string; count: number }>;
   loading?: boolean;
   emptyText?: string;
+  /** Scopes the drill-down dialog to one user's own attractions. Omit to list all attractions site-wide. */
+  ownerId?: string;
+  token?: string | null;
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -23,10 +27,13 @@ export function CategoryDonutChart({
   rawTypes,
   loading = false,
   emptyText = "No category data yet.",
+  ownerId,
+  token,
 }: CategoryDonutChartProps) {
   const { byCategory, colorForCategory } = useAttractionTypes();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<string | null>(null);
 
   const categoryAggregated = useMemo(() => {
     const map: Record<string, number> = {};
@@ -92,6 +99,10 @@ export function CategoryDonutChart({
 
   function handleSliceClick(catName: string) {
     setSelectedCategory((prev) => (prev === catName ? null : catName));
+  }
+
+  function handleSubSliceClick(typeName: string) {
+    setSelectedType(typeName);
   }
 
   if (loading) {
@@ -219,6 +230,7 @@ export function CategoryDonutChart({
                   stroke="white"
                   strokeWidth="2"
                   className={styles.slice}
+                  onClick={() => handleSubSliceClick(_id)}
                   aria-label={`${_id}: ${count}`}
                 />
               ))}
@@ -230,7 +242,18 @@ export function CategoryDonutChart({
                     ? ((count / subChartTotal) * 100).toFixed(1)
                     : "0";
                 return (
-                  <li key={_id} className={styles.subLegendItem}>
+                  <li
+                    key={_id}
+                    className={styles.subLegendItem}
+                    tabIndex={0}
+                    onClick={() => handleSubSliceClick(_id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleSubSliceClick(_id);
+                      }
+                    }}
+                  >
                     <span
                       className={styles.legendDot}
                       style={{ ["--dot-color" as string]: color }}
@@ -244,6 +267,16 @@ export function CategoryDonutChart({
             </ul>
           </div>
         </div>
+      )}
+
+      {selectedType && (
+        <CategoryAttractionsModal
+          isOpen={!!selectedType}
+          onClose={() => setSelectedType(null)}
+          typeName={selectedType}
+          ownerId={ownerId}
+          token={token}
+        />
       )}
     </div>
   );

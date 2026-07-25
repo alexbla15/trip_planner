@@ -481,6 +481,8 @@ export function ProfileClient() {
             rawTypes={rawTypes}
             loading={analyticsLoading}
             emptyText="No attractions yet — start planning!"
+            ownerId={authUser._id}
+            token={token}
           />
         </SectionCard>
 

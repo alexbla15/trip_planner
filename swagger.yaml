@@ -1114,7 +1114,7 @@ paths:
 
   /api/attractions:
     get:
-      summary: Search public attractions by country or city
+      summary: Search public attractions by country, city, or attraction type
       tags: [Attractions]
       security: []
       parameters:
@@ -1123,13 +1123,13 @@ paths:
           required: false
           schema:
             type: string
-          description: Filter by country. Either country or city is required.
+          description: Filter by country. One of country, city, or type is required.
         - name: city
           in: query
           required: false
           schema:
             type: string
-          description: Filter by city. Either country or city is required. Returns up to 100 results.
+          description: Filter by city. One of country, city, or type is required. Returns up to 100 results.
         - name: q
           in: query
           required: false
@@ -1141,7 +1141,13 @@ paths:
           required: false
           schema:
             type: string
-          description: Filter by attraction type name.
+          description: Filter by attraction type name. Satisfies the country/city requirement on its own (e.g. for a category drill-down list). Returns up to 200 results.
+        - name: ownerId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Scope results to attractions created by this user (and exclude flights), matching the personal category-distribution analytics for that user.
       responses:
         '200':
           description: Array of matching attractions
@@ -1152,7 +1158,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/Attraction'
         '400':
-          description: Missing required params (country or city)
+          description: Missing required params (country, city, or type)
         '500':
           description: Internal server error
     post:

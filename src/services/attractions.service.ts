@@ -24,6 +24,16 @@ export async function searchAttractionsByCountry(country: string, query: string,
   return parseOrThrow<unknown[]>(res);
 }
 
+/** Lists attractions of a given attraction type. Pass `ownerId` to scope to one user's own attractions; omit for all. */
+export async function searchAttractionsByType(type: string, ownerId?: string, token?: string | null): Promise<unknown[]> {
+  const params = new URLSearchParams({ type });
+  if (ownerId) params.set("ownerId", ownerId);
+  const res = await fetch(`/api/attractions?${params}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  return parseOrThrow<unknown[]>(res);
+}
+
 export async function createAttraction(token: string, data: unknown): Promise<unknown> {
   const res = await fetch("/api/attractions", {
     method: "POST",

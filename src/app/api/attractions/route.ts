@@ -12,9 +12,10 @@ export async function GET(req: Request) {
     const city    = searchParams.get("city");
     const q = searchParams.get("q");
     const type = searchParams.get("type");
+    const ownerId = searchParams.get("ownerId");
 
-    if (!country?.trim() && !city?.trim()) {
-      return NextResponse.json({ error: "country or city param is required" }, { status: 400 });
+    if (!country?.trim() && !city?.trim() && !type?.trim()) {
+      return NextResponse.json({ error: "country, city, or type param is required" }, { status: 400 });
     }
 
     await dbConnect();
@@ -49,9 +50,13 @@ export async function GET(req: Request) {
       if (!typeDoc) return NextResponse.json([]);
       filter.types = typeDoc._id;
     }
+    if (ownerId?.trim()) {
+      filter.ownerId = ownerId.trim();
+      filter.subtype = { $ne: "flight" };
+    }
     if (hiddenIds.length > 0) filter._id = { $nin: hiddenIds };
 
-    const limit = city?.trim() ? 100 : 20;
+    const limit = city?.trim() ? 100 : type?.trim() ? 200 : 20;
 
     const attractions = await Attraction.find(filter)
       .populate("types")
