@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import L from "leaflet";
-import { getWorldCountriesGeoJson } from "@/services/geo.service";
+import { getWorldCountriesGeoJson } from "@/services";
 import "leaflet/dist/leaflet.css";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

@@ -2,18 +2,18 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { DollarSign, Plus, Trash2, Loader2, AlertCircle, Check } from "lucide-react";
-import { CurrencySelect } from "@/components/CurrencySelect/CurrencySelect";
-import { getFxRate } from "@/services/fx.service";
-import { saveExpenses } from "@/services/expenses.service";
-import { updateTrip } from "@/services/trips.service";
-import { currencySymbol, formatPrice, isPostfixCurrency } from "@/lib/currencies";
+import { CurrencySelect } from "@/components/CurrencySelect";
+import { getFxRate, saveExpenses, updateTrip } from "@/services";
 import {
+  currencySymbol,
+  formatPrice,
+  isPostfixCurrency,
   type LocalExpense,
   tempId,
   buildLocal,
   applyRates,
   toApiExpenses,
-} from "@/lib/expenses";
+} from "@/lib";
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
 import styles from "./ExpensesPanel.module.css";

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import mongoose from "mongoose";
 import { dbConnect } from "@/lib/mongoose";
 import { Trip } from "@/models/Trip";
-import { RouteGuard } from "@/components/RouteGuard/RouteGuard";
+import { RouteGuard } from "@/components";
 import { TripDetailClient } from "./TripDetailClient";
 
 interface TripDetailPageProps {

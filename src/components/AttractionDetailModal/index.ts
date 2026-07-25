@@ -1,0 +1,1 @@
+export { AttractionDetailModal } from "./AttractionDetailModal";

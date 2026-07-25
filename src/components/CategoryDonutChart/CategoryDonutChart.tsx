@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { getIconComponent } from "@/components/IconPicker";
-import { useAttractionTypes } from "@/hooks/useAttractionTypes";
-import { donutSlicePath, tintColor } from "@/lib/geometry";
+import { useAttractionTypes } from "@/hooks";
+import { donutSlicePath, tintColor } from "@/lib";
 import styles from "./CategoryDonutChart.module.css";
 
 const CX = 110; const CY = 110;

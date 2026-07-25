@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import type { CSSProperties } from "react";
 import type { MoodTagRecord } from "@/types/moodTag";
-import { fetchMoodTags } from "@/services/moodTags.service";
+import { fetchMoodTags } from "@/services";
 
 interface UseMoodTagsResult {
   tags: MoodTagRecord[];

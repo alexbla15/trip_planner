@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Globe, Search, ChevronLeft, ChevronRight } from "lucide-react";
-import { useMoodTags } from "@/hooks/useMoodTags";
+import { useMoodTags } from "@/hooks";
 import { getIconComponent } from "@/components/IconPicker";
-import { ExploreCard } from "@/components/ExploreCard/ExploreCard";
+import { ExploreCard } from "@/components/ExploreCard";
 import styles from "./ExploreSection.module.css";
 import type { ExploreSectionProps } from "./ExploreSection.types";
 

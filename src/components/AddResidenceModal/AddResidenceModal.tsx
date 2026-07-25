@@ -6,11 +6,11 @@ import {
   X, BedDouble, Tag, Globe, Building, Calendar, Wallet,
   FileText, ChevronDown, AlertCircle, Loader2, Check,
 } from "lucide-react";
-import { CurrencySelect } from "@/components/CurrencySelect/CurrencySelect";
-import { reverseGeocode } from "@/services/geocoding.service";
-import { toDateValue } from "@/lib/date";
-import { MapPicker } from "@/components/NewAttractionModal/MapPicker";
-import type { Coordinates } from "@/components/NewAttractionModal/attraction.types";
+import { CurrencySelect } from "@/components/CurrencySelect";
+import { reverseGeocode } from "@/services";
+import { toDateValue } from "@/lib";
+import { MapPicker } from "@/components/NewAttractionModal";
+import type { Coordinates } from "@/components/NewAttractionModal";
 import type { AddResidenceModalProps, ResidenceFormData, ResidenceType, ResidenceInitialData } from "./AddResidenceModal.types";
 import styles from "./AddResidenceModal.module.css";
 

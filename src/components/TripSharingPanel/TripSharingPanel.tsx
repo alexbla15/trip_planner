@@ -3,10 +3,7 @@
 import { useState, useRef } from "react";
 import { Lock, Users, X, Loader2, Search } from "lucide-react";
 import type { Trip, TripCollaborator } from "@/types/trip";
-import { updateTrip } from "@/services/trips.service";
-import { searchUsers } from "@/services/users.service";
-import { addCollaborator, removeCollaborator } from "@/services/collaborators.service";
-import { ApiError } from "@/services/http";
+import { updateTrip, searchUsers, addCollaborator, removeCollaborator, ApiError } from "@/services";
 import type { TripSharingPanelProps } from "./TripSharingPanel.types";
 import { getInitials } from "./TripSharingPanel.utils";
 import styles from "./TripSharingPanel.module.css";

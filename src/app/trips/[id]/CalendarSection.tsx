@@ -3,18 +3,20 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, TriangleAlert, Plus, Coffee } from "lucide-react";
-import { renderTypeIcon } from "@/components/IconPicker";
-import { useAttractionTypes } from "@/hooks/useAttractionTypes";
-import { getFxRate } from "@/services/fx.service";
-import { updateTrip } from "@/services/trips.service";
+import { renderTypeIcon, AttractionDetailModal, AddCustomSlotModal } from "@/components";
+import type { CustomSlotFormData } from "@/components";
+import { useAttractionTypes } from "@/hooks";
 import {
+  getFxRate,
+  updateTrip,
   addAttractionToTrip,
   updateTripAttractionSchedule,
   removeAttractionFromTrip,
-} from "@/services/attractions.service";
-import { formatPrice } from "@/lib/currencies";
-import { getTripDays, formatDayLabel } from "@/lib/date";
+} from "@/services";
 import {
+  formatPrice,
+  getTripDays,
+  formatDayLabel,
   makeHourSlots,
   slotTop,
   cardPx,
@@ -24,7 +26,7 @@ import {
   calcDaySpanMinutes,
   calcSpend,
   fmt,
-} from "@/lib/schedule";
+} from "@/lib";
 import {
   DEFAULT_DAY_START,
   DEFAULT_DAY_END,
@@ -32,9 +34,6 @@ import {
 } from "@/config/ui";
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
-import { AttractionDetailModal } from "@/components/AttractionDetailModal/AttractionDetailModal";
-import { AddCustomSlotModal } from "@/components/AddCustomSlotModal/AddCustomSlotModal";
-import type { CustomSlotFormData } from "@/components/AddCustomSlotModal/AddCustomSlotModal.types";
 import { computeAlerts } from "./CalendarSection.utils";
 import type { ScheduleAlert } from "./CalendarSection.utils";
 import styles from "./CalendarSection.module.css";

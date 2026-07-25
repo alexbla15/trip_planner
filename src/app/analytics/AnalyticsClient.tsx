@@ -20,7 +20,7 @@ import {
   CountryFilterSelect,
 } from "@/components";
 import type { CityEntry, RankedListItem } from "@/components";
-import { getGlobalAnalytics } from "@/services/analytics.service";
+import { getGlobalAnalytics } from "@/services";
 import styles from "./AnalyticsClient.module.css";
 
 const DynamicCountriesMap = dynamic(

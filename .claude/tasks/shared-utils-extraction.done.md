@@ -1,6 +1,6 @@
 # Task: Shared Utils Extraction
 
-Status: reviewing
+Status: done
 Track: B
 Track reason: Refactor/cleanup — internal structure only, no user-facing visual change.
 Goal: .claude/tasks/goals/architecture-standards-remediation.md
@@ -44,3 +44,6 @@ No pure, non-React helper function is defined inside a component/page file when 
 - New design tokens used: none (no UI change).
 
 Verification: `npx tsc --noEmit` clean; `npm run build` succeeds (Turbopack, all 33 routes); `npm run lint` reports the identical 70 problems (47 errors / 23 warnings) as the pre-task baseline.
+
+## Completion Summary
+Moved 35+ pure helper functions out of 18 component/page files into 9 new focused modules under `src/lib/`, deduplicating the genuinely-identical copies (`toDateValue`: 4 → 1, `timeToMins`: 3 → 1, `getTripDays`/`formatDayLabel`: 2 → 1). One planned dedup was deliberately skipped: `CalendarSection.utils.ts`'s `attractionEndMins` looked like a duplicate of the shared version but had different edge-case behavior (no minimum-duration floor, tolerant of a missing `plannedTime`); merging it would have changed which schedule-conflict alerts fire, so it was kept local instead. Verified with `tsc`, `next build`, and `lint` (matching the pre-task baseline exactly). Confirmed done by the user on 2026-07-25.

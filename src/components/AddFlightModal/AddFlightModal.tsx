@@ -6,8 +6,8 @@ import {
   X, Plane, Tag, Calendar, MapPin, Clock, Wallet,
   FileText, AlertCircle, Loader2, Check,
 } from "lucide-react";
-import { CurrencySelect } from "@/components/CurrencySelect/CurrencySelect";
-import { toDateValue, buildISODateTime, addOneDay } from "@/lib/date";
+import { CurrencySelect } from "@/components/CurrencySelect";
+import { toDateValue, buildISODateTime, addOneDay } from "@/lib";
 import type { AddFlightModalProps, FlightFormData } from "./AddFlightModal.types";
 import styles from "./AddFlightModal.module.css";
 

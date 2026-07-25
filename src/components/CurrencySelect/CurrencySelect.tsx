@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, X } from "lucide-react";
-import { CURRENCIES } from "@/lib/currencies";
+import { CURRENCIES } from "@/lib";
 import styles from "./CurrencySelect.module.css";
 
 interface CurrencySelectProps {

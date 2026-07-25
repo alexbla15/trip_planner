@@ -8,7 +8,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { getCurrentUser } from "@/services/users.service";
+import { getCurrentUser } from "@/services";
 
 export interface UserProfile {
   _id: string;

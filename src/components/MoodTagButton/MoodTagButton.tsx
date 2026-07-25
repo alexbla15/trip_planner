@@ -1,6 +1,6 @@
 "use client";
 
-import { useMoodTags, getMoodTagStyle } from "@/hooks/useMoodTags";
+import { useMoodTags, getMoodTagStyle } from "@/hooks";
 import { getIconComponent } from "@/components/IconPicker";
 import styles from "./MoodTagButton.module.css";
 import type { MoodTagButtonProps } from "./MoodTagButton.types";

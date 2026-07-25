@@ -7,29 +7,29 @@ import {
   Loader2, ChevronDown, AlertCircle, Tag, Smile, Layers, RefreshCw,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAttractionTypes, invalidateAttractionTypesCache } from "@/hooks/useAttractionTypes";
-import { useAttractionCategories, invalidateAttractionCategoriesCache } from "@/hooks/useAttractionCategories";
-import { useMoodTags, invalidateMoodTagsCache } from "@/hooks/useMoodTags";
+import {
+  useAttractionTypes,
+  invalidateAttractionTypesCache,
+  useAttractionCategories,
+  invalidateAttractionCategoriesCache,
+  useMoodTags,
+  invalidateMoodTagsCache,
+} from "@/hooks";
 import {
   createAttractionType,
   updateAttractionType,
   deleteAttractionType,
-} from "@/services/attractionTypes.service";
-import {
   createAttractionCategory,
   updateAttractionCategory,
   deleteAttractionCategory,
   migrateLegacyTypes,
-} from "@/services/attractionCategories.service";
-import {
   createMoodTag,
   updateMoodTag,
   deleteMoodTag,
   seedMoodTags,
-} from "@/services/moodTags.service";
-import { ApiError } from "@/services/http";
-import { getIconComponent, renderTypeIcon } from "@/components/IconPicker";
-import { IconPicker } from "@/components/IconPicker";
+  ApiError,
+} from "@/services";
+import { getIconComponent, renderTypeIcon, IconPicker } from "@/components";
 import {
   type TypeFormState,
   type CategoryFormState,
@@ -37,7 +37,7 @@ import {
   typeFormFromRecord,
   catFormFromRecord,
   moodFormFromRecord,
-} from "@/lib/adminForms";
+} from "@/lib";
 import type { AttractionCategoryRecord } from "@/types/attractionCategory";
 import styles from "./AdminClient.module.css";
 

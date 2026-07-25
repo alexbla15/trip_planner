@@ -1,5 +1,5 @@
 import type { Attraction } from "@/types/attraction";
-import { timeToMins } from "@/lib/schedule";
+import { timeToMins } from "@/lib";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

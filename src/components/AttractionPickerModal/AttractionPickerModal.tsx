@@ -4,11 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { X, Search, Plus, MapPin, ChevronDown, AlertCircle } from "lucide-react";
 import { useGlobalAttractions } from "@/contexts/AttractionsContext";
-import { NewAttractionModal } from "@/components/NewAttractionModal/NewAttractionModal";
+import { NewAttractionModal, COUNTRIES } from "@/components/NewAttractionModal";
 import { renderTypeIcon } from "@/components/IconPicker";
-import { useAttractionTypes } from "@/hooks/useAttractionTypes";
-import type { AttractionFormData } from "@/components/NewAttractionModal/attraction.types";
-import { COUNTRIES } from "@/components/NewAttractionModal/attraction.constants";
+import { useAttractionTypes } from "@/hooks";
+import type { AttractionFormData } from "@/components/NewAttractionModal";
 import styles from "./AttractionPickerModal.module.css";
 
 const HEADING_ID = "attraction-picker-title";

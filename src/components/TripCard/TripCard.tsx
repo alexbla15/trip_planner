@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { Calendar } from "lucide-react";
-import { MoodTagChip } from "@/components/MoodTagChip/MoodTagChip";
-import { formatDisplayDate } from "@/lib/formatDate";
+import { MoodTagChip } from "@/components/MoodTagChip";
+import { formatDisplayDate } from "@/lib";
 import styles from "./TripCard.module.css";
 import type { TripCardProps } from "./TripCard.types";
 

@@ -1,5 +1,5 @@
 import type { Attraction } from "@/types/attraction";
-import type { TravelMode } from "@/services/routeTransit.service";
+import type { TravelMode } from "@/services";
 import {
   DEFAULT_DAY_START,
   DEFAULT_DAY_END,

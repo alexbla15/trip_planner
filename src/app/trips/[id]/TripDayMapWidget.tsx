@@ -5,21 +5,22 @@ import { MapContainer, TileLayer, Marker, Polyline, Tooltip } from "react-leafle
 import L from "leaflet";
 import { renderToStaticMarkup } from "react-dom/server";
 import { TriangleAlert, MapPinOff, Footprints, Car, Bus, BedDouble, Loader2, Plane } from "lucide-react";
-import { renderTypeIcon } from "@/components/IconPicker";
-import { useAttractionTypes } from "@/hooks/useAttractionTypes";
+import { renderTypeIcon } from "@/components";
+import { useAttractionTypes } from "@/hooks";
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
 import {
   fetchRouteLeg, fetchAirportLeg, formatLegDuration, formatStepDuration,
   type TravelMode, type RouteLeg,
-} from "@/services/routeTransit.service";
-import { getTripDays, formatDayLabel } from "@/lib/date";
+} from "@/services";
 import {
+  getTripDays,
+  formatDayLabel,
   timeToMins,
   legKey,
   detectConflicts,
   findRouteNeighbour,
-} from "@/lib/schedule";
+} from "@/lib";
 import { lookupAirport, getAirportCarCoord, getAirportTransitCoord } from "./airportData";
 import styles from "./TripDayMapWidget.module.css";
 import "leaflet/dist/leaflet.css";

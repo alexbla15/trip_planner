@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { getIconComponent } from "@/components/IconPicker";
-import { AttractionTypeChip } from "@/components/NewAttractionModal/AttractionTypeChip";
-import { useAttractionTypes } from "@/hooks/useAttractionTypes";
+import { AttractionTypeChip } from "@/components/NewAttractionModal";
+import { useAttractionTypes } from "@/hooks";
 import styles from "./AttractionTypePicker.module.css";
 
 interface AttractionTypePickerProps {

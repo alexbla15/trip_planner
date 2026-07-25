@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
-import type { AttractionFormData } from "@/components/NewAttractionModal/attraction.types";
+import type { AttractionFormData } from "@/components/NewAttractionModal";
 
 interface AttractionsContextValue {
   globalAttractions: AttractionFormData[];

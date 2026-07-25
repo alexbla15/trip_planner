@@ -3,11 +3,9 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { ChevronLeft, MapPinned, Search, X } from "lucide-react";
-import { TripCard } from "@/components/TripCard/TripCard";
-import { TripCardSkeleton } from "@/components/TripCard/TripCardSkeleton";
-import { NewTripCard } from "@/components/NewTripCard/NewTripCard";
+import { TripCard, TripCardSkeleton, NewTripCard } from "@/components";
 import { useAuth } from "@/contexts/AuthContext";
-import { listTrips } from "@/services/trips.service";
+import { listTrips } from "@/services";
 import type { Trip } from "@/types/trip";
 import styles from "./TripsClient.module.css";
 

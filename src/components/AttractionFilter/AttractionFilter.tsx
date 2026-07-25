@@ -3,7 +3,7 @@
 import { useId } from "react";
 import { Search } from "lucide-react";
 import { getIconComponent } from "@/components/IconPicker";
-import { useAttractionTypes } from "@/hooks/useAttractionTypes";
+import { useAttractionTypes } from "@/hooks";
 import type { AttractionFilterProps } from "./AttractionFilter.types";
 import styles from "./AttractionFilter.module.css";
 

@@ -20,9 +20,9 @@ import {
   COUNTRIES,
   DAY_KEYS,
 } from "./attraction.constants";
-import { CurrencySelect } from "@/components/CurrencySelect/CurrencySelect";
-import { reverseGeocode } from "@/services/geocoding.service";
-import { AttractionTypePicker } from "@/components/AttractionTypePicker/AttractionTypePicker";
+import { CurrencySelect } from "@/components/CurrencySelect";
+import { reverseGeocode } from "@/services";
+import { AttractionTypePicker } from "@/components/AttractionTypePicker";
 import { CoverImageField } from "@/components";
 import { MapPicker } from "./MapPicker";
 import { OpeningHoursGrid } from "./OpeningHoursGrid";

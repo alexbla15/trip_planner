@@ -1,7 +1,7 @@
 "use client";
 
 import { BedDouble, Plus, PenLine, Trash2 } from "lucide-react";
-import { residenceMeta } from "@/lib/attractionDisplay";
+import { residenceMeta } from "@/lib";
 import type { Attraction } from "@/types/attraction";
 import styles from "./ResidencesList.module.css";
 

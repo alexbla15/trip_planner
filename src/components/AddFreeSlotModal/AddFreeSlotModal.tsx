@@ -5,9 +5,9 @@ import { createPortal } from "react-dom";
 import {
   X, Coffee, Tag, Calendar, Clock, Wallet, FileText, Layers, AlertCircle, Loader2, Check,
 } from "lucide-react";
-import { CurrencySelect } from "@/components/CurrencySelect/CurrencySelect";
-import { AttractionTypePicker } from "@/components/AttractionTypePicker/AttractionTypePicker";
-import { toDateValue } from "@/lib/date";
+import { CurrencySelect } from "@/components/CurrencySelect";
+import { AttractionTypePicker } from "@/components/AttractionTypePicker";
+import { toDateValue } from "@/lib";
 import type { AddFreeSlotModalProps, FreeSlotFormData } from "./AddFreeSlotModal.types";
 import styles from "./AddFreeSlotModal.module.css";
 

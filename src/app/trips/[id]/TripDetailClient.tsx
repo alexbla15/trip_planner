@@ -24,44 +24,47 @@ import {
   MapPin,
   SearchX,
 } from "lucide-react";
-import { MoodTagChip } from "@/components/MoodTagChip/MoodTagChip";
-import { NewAttractionModal } from "@/components/NewAttractionModal/NewAttractionModal";
-import { AddResidenceModal } from "@/components/AddResidenceModal/AddResidenceModal";
-import { AddFlightModal } from "@/components/AddFlightModal/AddFlightModal";
+import {
+  MoodTagChip,
+  NewAttractionModal,
+  AddResidenceModal,
+  AddFlightModal,
+  AttractionDetailModal,
+  AttractionSearchModal,
+  AttractionFilter,
+  DEFAULT_OPENING_HOURS,
+  renderTypeIcon,
+  TripSharingPanel,
+  ExpensesPanel,
+  TripTabBar,
+} from "@/components";
+import type {
+  ResidenceFormData,
+  ResidenceInitialData,
+  FlightFormData,
+  FlightInitialData,
+  AttractionFormData,
+  AttractionType,
+  DurationUnit,
+  OpeningHours,
+} from "@/components";
 import { FlightsList } from "./FlightsList";
 import { ResidencesList } from "./ResidencesList";
 import { CalendarSection } from "./CalendarSection";
-import { AttractionDetailModal } from "@/components/AttractionDetailModal/AttractionDetailModal";
-import { AttractionSearchModal } from "@/components/AttractionSearchModal/AttractionSearchModal";
-import { AttractionFilter } from "@/components/AttractionFilter/AttractionFilter";
-import { DEFAULT_OPENING_HOURS } from "@/components/NewAttractionModal/attraction.constants";
-import { renderTypeIcon } from "@/components/IconPicker";
-import { useAttractionTypes } from "@/hooks/useAttractionTypes";
+import { useAttractionTypes } from "@/hooks";
 import { useAuth } from "@/contexts/AuthContext";
-import { getTrip } from "@/services/trips.service";
 import {
+  getTrip,
   getTripAttractions,
   addAttractionToTrip,
   updateAttraction,
   updateTripAttractionSchedule,
   removeAttractionFromTrip,
-} from "@/services/attractions.service";
-import { TripSharingPanel } from "@/components/TripSharingPanel/TripSharingPanel";
-import { ExpensesPanel } from "@/components/ExpensesPanel/ExpensesPanel";
-import { TripTabBar } from "@/components/TripTabBar";
-import { formatDisplayDate } from "@/lib/formatDate";
-import { currencySymbol, formatPrice } from "@/lib/currencies";
-import type { ResidenceFormData, ResidenceInitialData } from "@/components/AddResidenceModal/AddResidenceModal.types";
-import type { FlightFormData, FlightInitialData } from "@/components/AddFlightModal/AddFlightModal.types";
+} from "@/services";
+import { formatDisplayDate, currencySymbol, formatPrice } from "@/lib";
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
-import type {
-  AttractionFormData,
-  AttractionType,
-  DurationUnit,
-  OpeningHours,
-} from "@/components/NewAttractionModal/attraction.types";
 import styles from "./TripDetailClient.module.css";
 
 const TRIP_TABS = [

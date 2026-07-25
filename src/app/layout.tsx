@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
-import { Navbar } from "@/components/Navbar/Navbar";
-import { Footer } from "@/components/Footer/Footer";
+import { Navbar, Footer } from "@/components";
 import { Providers } from "./Providers";
 import "./globals.css";
 import styles from "./layout.module.css";

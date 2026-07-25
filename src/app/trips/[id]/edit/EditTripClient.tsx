@@ -19,16 +19,19 @@ import {
   Loader2,
   ChevronDown,
 } from "lucide-react";
-import { MoodTagButton } from "@/components/MoodTagButton/MoodTagButton";
-import { MoodTagChip } from "@/components/MoodTagChip/MoodTagChip";
-import { CoverImageField } from "@/components";
+import { MoodTagButton, MoodTagChip, CoverImageField, COUNTRIES } from "@/components";
 import { useAuth } from "@/contexts/AuthContext";
-import { getTrip, updateTrip, deleteTrip } from "@/services/trips.service";
-import { formatDisplayDate } from "@/lib/formatDate";
-import { COUNTRIES } from "@/components/NewAttractionModal/attraction.constants";
-import { useMoodTags } from "@/hooks/useMoodTags";
-import { CURRENCIES, NOTES_MAX, getDurationDays, getDateError, getNotesCountLevel } from "@/lib/tripForm";
-import { toDateValue } from "@/lib/date";
+import { getTrip, updateTrip, deleteTrip } from "@/services";
+import { useMoodTags } from "@/hooks";
+import {
+  formatDisplayDate,
+  CURRENCIES,
+  NOTES_MAX,
+  getDurationDays,
+  getDateError,
+  getNotesCountLevel,
+  toDateValue,
+} from "@/lib";
 import type { Trip } from "@/types/trip";
 import styles from "./EditTripClient.module.css";
 

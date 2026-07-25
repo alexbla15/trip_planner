@@ -11,7 +11,7 @@ import {
 } from "react-leaflet";
 import type { GeoJsonObject } from "geojson";
 import L from "leaflet";
-import { getCityBoundary, getCountryBoundary } from "@/services/geo.service";
+import { getCityBoundary, getCountryBoundary } from "@/services";
 import "leaflet/dist/leaflet.css";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

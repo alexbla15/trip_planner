@@ -3,15 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { TripCard } from "@/components/TripCard/TripCard";
-import { TripCardSkeleton } from "@/components/TripCard/TripCardSkeleton";
-import { NewTripCard } from "@/components/NewTripCard/NewTripCard";
-import { ExploreSection } from "@/components/ExploreSection/ExploreSection";
-import { RouteGuard } from "@/components/RouteGuard/RouteGuard";
+import { TripCard, TripCardSkeleton, NewTripCard, ExploreSection, RouteGuard } from "@/components";
 import { useAuth } from "@/contexts/AuthContext";
-import { listTrips } from "@/services/trips.service";
-import { getExploreItems } from "@/services/attractions.service";
-import { getGreeting } from "@/lib/date";
+import { listTrips, getExploreItems } from "@/services";
+import { getGreeting } from "@/lib";
 import type { Trip, ExploreItem } from "@/types/trip";
 import styles from "./page.module.css";
 

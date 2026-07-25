@@ -10,9 +10,9 @@ import {
 import { createPortal } from "react-dom";
 import { X, Search, MapPin, Plus, PenLine, SearchX } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
-import { useAttractionTypes } from "@/hooks/useAttractionTypes";
-import { searchAttractionsByCountry } from "@/services/attractions.service";
-import { AttractionFilter } from "@/components/AttractionFilter/AttractionFilter";
+import { useAttractionTypes } from "@/hooks";
+import { searchAttractionsByCountry } from "@/services";
+import { AttractionFilter } from "@/components/AttractionFilter";
 import type { Attraction } from "@/types/attraction";
 import type { AttractionSearchModalProps } from "./AttractionSearchModal.types";
 import styles from "./AttractionSearchModal.module.css";

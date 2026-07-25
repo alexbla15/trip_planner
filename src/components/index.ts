@@ -1,40 +1,79 @@
-export { Navbar } from "./Navbar/Navbar";
-export { TripCard } from "./TripCard/TripCard";
-export { NewTripCard } from "./NewTripCard/NewTripCard";
-export { ExploreCard } from "./ExploreCard/ExploreCard";
-export { ExploreSection } from "./ExploreSection/ExploreSection";
-export { MoodTagChip } from "./MoodTagChip/MoodTagChip";
-export { NewAttractionModal } from "./NewAttractionModal/NewAttractionModal";
-export type { AttractionFormData, NewAttractionModalProps } from "./NewAttractionModal/attraction.types";
-export { MoodTagButton } from "./MoodTagButton/MoodTagButton";
-export { AttractionPickerModal } from "./AttractionPickerModal/AttractionPickerModal";
-export { Footer } from "./Footer/Footer";
-export { RouteGuard } from "./RouteGuard/RouteGuard";
-export { TripCardSkeleton } from "./TripCard/TripCardSkeleton";
-export { AttractionDetailModal } from "./AttractionDetailModal/AttractionDetailModal";
-export { AttractionSearchModal } from "./AttractionSearchModal/AttractionSearchModal";
-export { AddResidenceModal } from "./AddResidenceModal/AddResidenceModal";
-export type { ResidenceFormData, AddResidenceModalProps } from "./AddResidenceModal/AddResidenceModal.types";
-export { AddFlightModal } from "./AddFlightModal/AddFlightModal";
-export type { FlightFormData, AddFlightModalProps } from "./AddFlightModal/AddFlightModal.types";
-export { TripSharingPanel } from "./TripSharingPanel/TripSharingPanel";
-export type { TripSharingPanelProps } from "./TripSharingPanel/TripSharingPanel.types";
-export { ExpensesPanel } from "./ExpensesPanel/ExpensesPanel";
-export { CurrencySelect } from "./CurrencySelect/CurrencySelect";
+export { Navbar } from "./Navbar";
+export { Footer } from "./Footer";
+export { ThemeToggle } from "./ThemeToggle";
+export { RouteGuard } from "./RouteGuard";
+
+export { TripCard, TripCardSkeleton } from "./TripCard";
+export type { TripCardProps } from "./TripCard";
+export { NewTripCard } from "./NewTripCard";
+export { ExploreCard } from "./ExploreCard";
+export type { ExploreCardProps } from "./ExploreCard";
+export { ExploreSection } from "./ExploreSection";
+export type { ExploreSectionProps } from "./ExploreSection";
+
+export { MoodTagChip } from "./MoodTagChip";
+export type { MoodTagChipProps } from "./MoodTagChip";
+export { MoodTagButton } from "./MoodTagButton";
+export type { MoodTagButtonProps } from "./MoodTagButton";
+
+export {
+  NewAttractionModal,
+  MapPicker,
+  OpeningHoursGrid,
+  AttractionTypeChip,
+} from "./NewAttractionModal";
+export type {
+  AttractionFormData,
+  NewAttractionModalProps,
+  AttractionType,
+  DurationUnit,
+  OpeningHours,
+  Coordinates,
+} from "./NewAttractionModal";
+export { COUNTRIES, DEFAULT_OPENING_HOURS, DAY_KEYS } from "./NewAttractionModal";
+
+export { AttractionPickerModal } from "./AttractionPickerModal";
+export { AttractionDetailModal } from "./AttractionDetailModal";
+export { AttractionSearchModal } from "./AttractionSearchModal";
+export type { AttractionSearchModalProps } from "./AttractionSearchModal";
+export { AttractionFilter } from "./AttractionFilter";
+export type { AttractionFilterProps } from "./AttractionFilter";
+export { AttractionTypePicker } from "./AttractionTypePicker";
+
+export { AddResidenceModal } from "./AddResidenceModal";
+export type { ResidenceFormData, AddResidenceModalProps, ResidenceInitialData } from "./AddResidenceModal";
+export { AddFlightModal } from "./AddFlightModal";
+export type { FlightFormData, AddFlightModalProps, FlightInitialData } from "./AddFlightModal";
+export { AddCustomSlotModal } from "./AddCustomSlotModal";
+export type { CustomSlotFormData, AddCustomSlotModalProps } from "./AddCustomSlotModal";
+export { AddFreeSlotModal } from "./AddFreeSlotModal";
+export type { FreeSlotFormData, AddFreeSlotModalProps } from "./AddFreeSlotModal";
+
+export { TripSharingPanel } from "./TripSharingPanel";
+export type { TripSharingPanelProps } from "./TripSharingPanel";
+export { ExpensesPanel } from "./ExpensesPanel";
+
+export { CurrencySelect } from "./CurrencySelect";
 export { IconPicker, ICON_REGISTRY, ICON_NAMES, getIconComponent, renderTypeIcon } from "./IconPicker";
 export { TripTabBar } from "./TripTabBar";
-export { AttractionFilter } from "./AttractionFilter/AttractionFilter";
-export type { AttractionFilterProps } from "./AttractionFilter/AttractionFilter.types";
-export { AddCustomSlotModal } from "./AddCustomSlotModal/AddCustomSlotModal";
-export type { CustomSlotFormData, AddCustomSlotModalProps } from "./AddCustomSlotModal/AddCustomSlotModal.types";
-export { AttractionTypePicker } from "./AttractionTypePicker/AttractionTypePicker";
-export { CoverImageField } from "./CoverImageField/CoverImageField";
-export { isValidCoverUrl } from "./CoverImageField/CoverImageField.utils";
-export { CategoryDonutChart } from "./CategoryDonutChart/CategoryDonutChart";
-export type { CityEntry } from "./CitiesMap/CitiesMap";
-export { SectionCard } from "./SectionCard/SectionCard";
-export { StatCardsGrid } from "./StatCardsGrid/StatCardsGrid";
-export type { StatCardItem } from "./StatCardsGrid/StatCardsGrid";
-export { RankedList } from "./RankedList/RankedList";
-export type { RankedListItem } from "./RankedList/RankedList";
-export { CountryFilterSelect } from "./CountryFilterSelect/CountryFilterSelect";
+
+export { CoverImageField, isValidCoverUrl } from "./CoverImageField";
+export { CategoryDonutChart } from "./CategoryDonutChart";
+
+// CitiesMap and CountriesMap are deliberately NOT re-exported as values here:
+// both load Leaflet and run module-scope DOM/`window`-touching setup
+// (L.Icon.Default.mergeOptions, etc.). Every consumer already loads them via
+// next/dynamic({ ssr: false }) pointed at their own file directly, bypassing
+// this barrel. Re-exporting them as values here pulled that module-scope code
+// into the SSR graph of any page that imports anything else from @/components
+// (e.g. AdminClient importing IconPicker), breaking prerendering with
+// "window is not defined". The CityEntry type is safe to re-export — type-only
+// imports are erased and never force module evaluation.
+export type { CityEntry } from "./CitiesMap";
+
+export { SectionCard } from "./SectionCard";
+export { StatCardsGrid } from "./StatCardsGrid";
+export type { StatCardItem } from "./StatCardsGrid";
+export { RankedList } from "./RankedList";
+export type { RankedListItem } from "./RankedList";
+export { CountryFilterSelect } from "./CountryFilterSelect";

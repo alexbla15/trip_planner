@@ -16,7 +16,7 @@ import {
   CountryFilterSelect,
 } from "@/components";
 import type { RankedListItem } from "@/components";
-import { useAttractionTypes } from "@/hooks/useAttractionTypes";
+import { useAttractionTypes } from "@/hooks";
 
 const DynamicCitiesMap = dynamic(
   () => import("@/components/CitiesMap/CitiesMap").then((m) => ({ default: m.CitiesMap })),
@@ -28,12 +28,8 @@ const DynamicCountriesMap = dynamic(
   { ssr: false, loading: () => <div className={styles.mapLoading}>Loading map…</div> },
 );
 import { useAuth } from "@/contexts/AuthContext";
-import { getPersonalAnalytics } from "@/services/analytics.service";
-import { changePassword, updateCurrentUser } from "@/services/users.service";
-import { ApiError } from "@/services/http";
-import { formatDisplayDate } from "@/lib/formatDate";
-import { formatPrice } from "@/lib/currencies";
-import { AVATARS } from "@/lib/avatarConstants";
+import { getPersonalAnalytics, changePassword, updateCurrentUser, ApiError } from "@/services";
+import { formatDisplayDate, formatPrice, AVATARS } from "@/lib";
 import styles from "./ProfileClient.module.css";
 
 // ── Types ───────────────────────────────────────────────────────────────────

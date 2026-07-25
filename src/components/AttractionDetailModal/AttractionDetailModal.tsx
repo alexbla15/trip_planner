@@ -20,16 +20,15 @@ import {
   Tag,
 } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
-import { useAttractionTypes } from "@/hooks/useAttractionTypes";
+import { useAttractionTypes } from "@/hooks";
 
 const LocationViewMap = dynamic(
   () => import("./LocationViewMap").then((m) => ({ default: m.LocationViewMap })),
   { ssr: false, loading: () => <div className={styles.locationMapLoading} /> }
 );
-import type { AttractionType } from "@/components/NewAttractionModal/attraction.types";
+import type { AttractionType } from "@/components/NewAttractionModal";
 import type { Attraction } from "@/types/attraction";
-import { formatDisplayDate } from "@/lib/formatDate";
-import { formatPrice } from "@/lib/currencies";
+import { formatDisplayDate, formatPrice } from "@/lib";
 import styles from "./AttractionDetailModal.module.css";
 
 const DAY_KEYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;

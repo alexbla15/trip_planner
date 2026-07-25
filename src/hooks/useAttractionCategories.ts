@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { AttractionCategoryRecord } from "@/types/attractionCategory";
-import { fetchAttractionCategories } from "@/services/attractionCategories.service";
+import { fetchAttractionCategories } from "@/services";
 
 let cache: AttractionCategoryRecord[] | null = null;
 let cachePromise: Promise<AttractionCategoryRecord[]> | null = null;

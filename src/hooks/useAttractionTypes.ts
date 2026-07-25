@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import type { AttractionTypeRecord } from "@/types/attractionType";
-import { fetchAttractionTypes } from "@/services/attractionTypes.service";
+import { fetchAttractionTypes } from "@/services";
 
 interface UseAttractionTypesResult {
   types: AttractionTypeRecord[];

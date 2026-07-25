@@ -21,18 +21,19 @@ import {
   X,
   ChevronDown,
 } from "lucide-react";
-import { AttractionPickerModal } from "@/components/AttractionPickerModal/AttractionPickerModal";
-import { MoodTagButton } from "@/components/MoodTagButton/MoodTagButton";
-import { renderTypeIcon } from "@/components/IconPicker";
-import { useAttractionTypes } from "@/hooks/useAttractionTypes";
-import type { AttractionFormData } from "@/components/NewAttractionModal/attraction.types";
-import { COUNTRIES } from "@/components/NewAttractionModal/attraction.constants";
+import {
+  AttractionPickerModal,
+  MoodTagButton,
+  renderTypeIcon,
+  COUNTRIES,
+  CoverImageField,
+  isValidCoverUrl,
+} from "@/components";
+import type { AttractionFormData } from "@/components";
+import { useAttractionTypes, useMoodTags } from "@/hooks";
 import { useAuth } from "@/contexts/AuthContext";
-import { createTrip } from "@/services/trips.service";
-import { ApiError } from "@/services/http";
-import { useMoodTags } from "@/hooks/useMoodTags";
-import { CURRENCIES, NOTES_MAX, getDurationDays, getDateError, getNotesCountLevel } from "@/lib/tripForm";
-import { CoverImageField, isValidCoverUrl } from "@/components";
+import { createTrip, ApiError } from "@/services";
+import { CURRENCIES, NOTES_MAX, getDurationDays, getDateError, getNotesCountLevel } from "@/lib";
 import styles from "./NewTripClient.module.css";
 
 

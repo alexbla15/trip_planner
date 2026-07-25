@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import { Search } from "lucide-react";
-import { reverseGeocode, searchLocation } from "@/services/geocoding.service";
+import { reverseGeocode, searchLocation } from "@/services";
 import type { Coordinates } from "./attraction.types";
 import styles from "./MapPicker.module.css";
 import "leaflet/dist/leaflet.css";

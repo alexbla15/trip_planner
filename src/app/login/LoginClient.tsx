@@ -14,8 +14,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { login as loginRequest } from "@/services/auth.service";
-import { validateLoginForm } from "@/lib/validation";
+import { login as loginRequest } from "@/services";
+import { validateLoginForm } from "@/lib";
 import styles from "./LoginClient.module.css";
 
 export function LoginClient() {

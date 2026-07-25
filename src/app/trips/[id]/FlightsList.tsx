@@ -1,7 +1,7 @@
 "use client";
 
 import { Plane, Plus, PenLine, Trash2 } from "lucide-react";
-import { flightMeta } from "@/lib/attractionDisplay";
+import { flightMeta } from "@/lib";
 import type { Attraction } from "@/types/attraction";
 import styles from "./FlightsList.module.css";
 

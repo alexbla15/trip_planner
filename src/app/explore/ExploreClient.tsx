@@ -4,12 +4,11 @@ import dynamic from "next/dynamic";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Globe, Plus, ChevronLeft, SlidersHorizontal, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAttractionTypes } from "@/hooks/useAttractionTypes";
-import { getCities, getAttractionsByCity, createAttraction } from "@/services/attractions.service";
-import { AttractionDetailModal } from "@/components/AttractionDetailModal/AttractionDetailModal";
-import { NewAttractionModal } from "@/components/NewAttractionModal/NewAttractionModal";
+import { useAttractionTypes } from "@/hooks";
+import { getCities, getAttractionsByCity, createAttraction } from "@/services";
+import { AttractionDetailModal, NewAttractionModal } from "@/components";
+import type { AttractionFormData } from "@/components";
 import type { Attraction } from "@/types/attraction";
-import type { AttractionFormData } from "@/components/NewAttractionModal/attraction.types";
 import styles from "./ExploreClient.module.css";
 
 const ExploreMapWidget = dynamic(

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { MapPin, Heart } from "lucide-react";
-import { MoodTagChip } from "@/components/MoodTagChip/MoodTagChip";
+import { MoodTagChip } from "@/components/MoodTagChip";
 import styles from "./ExploreCard.module.css";
 import type { ExploreCardProps } from "./ExploreCard.types";
 

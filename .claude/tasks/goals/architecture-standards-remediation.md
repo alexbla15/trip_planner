@@ -6,7 +6,7 @@ Bring the codebase into compliance with the project's architectural rules (servi
 
 ## Tasks
 - [x] .claude/tasks/data-fetching-service-layer.done.md
-- [ ] .claude/tasks/shared-utils-extraction.md
+- [x] .claude/tasks/shared-utils-extraction.done.md
 - [ ] .claude/tasks/component-barrel-files.md
 - [ ] .claude/tasks/nextjs-practice-fixes.md
 

@@ -15,9 +15,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { register as registerRequest, login as loginRequest } from "@/services/auth.service";
-import { ApiError } from "@/services/http";
-import { validateRegisterForm } from "@/lib/validation";
+import { register as registerRequest, login as loginRequest, ApiError } from "@/services";
+import { validateRegisterForm } from "@/lib";
 import styles from "./RegisterClient.module.css";
 
 export function RegisterClient() {

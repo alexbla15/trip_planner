@@ -1,5 +1,5 @@
-import { formatDisplayDate } from "@/lib/formatDate";
-import { formatPrice } from "@/lib/currencies";
+import { formatDisplayDate } from "./formatDate";
+import { formatPrice } from "./currencies";
 import type { Attraction } from "@/types/attraction";
 
 export function residenceMeta(a: Attraction): string {

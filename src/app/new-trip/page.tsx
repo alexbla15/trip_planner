@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { RouteGuard } from "@/components/RouteGuard/RouteGuard";
+import { RouteGuard } from "@/components";
 import { NewTripClient } from "./NewTripClient";
 
 export const metadata: Metadata = {
