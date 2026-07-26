@@ -107,6 +107,7 @@
   flex: 1;
   overflow-y: auto;
   min-height: 180px;
+  padding-bottom: 8px;
 }
 
 /* ── Placeholder (initial + empty) ── */
@@ -292,6 +293,29 @@
   background: transparent;
 }
 
+.resultRowSelected {
+  background: var(--color-primary-light);
+}
+
+.resultCheck {
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--color-surface);
+  color: var(--color-text-inverse);
+  transition: all var(--duration-fast) var(--easing-out);
+}
+
+.resultRowSelected .resultCheck {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
 .addedTag {
   font-size: 11px;
   font-weight: 600;
@@ -338,6 +362,46 @@
 }
 
 .createBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.footerMultiSelect {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.addSelectedBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background var(--duration-fast) var(--easing-out),
+    opacity var(--duration-fast) var(--easing-out);
+}
+
+.addSelectedBtn:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.addSelectedBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.addSelectedBtn:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }

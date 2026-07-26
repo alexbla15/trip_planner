@@ -36,6 +36,7 @@ import {
   renderTypeIcon,
   TripTabBar,
   FormErrorBanner,
+  ImageWithSkeleton,
 } from "@/components";
 import type {
   ResidenceFormData,
@@ -172,15 +173,17 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     });
   }
 
-  async function handleSearchAdd(existing: Attraction) {
+  async function handleSearchAdd(existing: Attraction[]) {
     if (!token || !trip) return;
     setSearchModalOpen(false);
     setActionError(null);
     try {
-      const created = (await addAttractionToTrip(trip._id, token, {
-        existingAttractionId: existing._id,
-      })) as Attraction;
-      upsertAttraction(created);
+      for (const attraction of existing) {
+        const created = (await addAttractionToTrip(trip._id, token, {
+          existingAttractionId: attraction._id,
+        })) as Attraction;
+        upsertAttraction(created);
+      }
     } catch {
       setActionError("Couldn't add that attraction. Please try again.");
     }
@@ -191,7 +194,9 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     setModalOpen(true);
   }
 
-  function handleResidenceSearchPick(existing: Attraction) {
+  function handleResidenceSearchPick(picked: Attraction[]) {
+    const existing = picked[0];
+    if (!existing) return;
     setResidenceSearchOpen(false);
     setResidencePrefill({
       existingAttractionId: existing._id,
@@ -602,7 +607,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                           <div className={styles.personChip}>
                             <div className={styles.personAvatar} aria-hidden="true">
                               {ownerAvatarUrl ? (
-                                <Image src={ownerAvatarUrl} alt="" width={28} height={28} className={styles.personAvatarImg} />
+                                <ImageWithSkeleton src={ownerAvatarUrl} alt="" width={28} height={28} className={styles.personAvatarImg} />
                               ) : (
                                 ownerName.charAt(0).toUpperCase()
                               )}
@@ -615,7 +620,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                           <div key={c.userId} className={styles.personChip}>
                             <div className={styles.personAvatar} aria-hidden="true">
                               {c.avatarUrl ? (
-                                <Image src={c.avatarUrl} alt="" width={28} height={28} className={styles.personAvatarImg} />
+                                <ImageWithSkeleton src={c.avatarUrl} alt="" width={28} height={28} className={styles.personAvatarImg} />
                               ) : (
                                 c.name.charAt(0).toUpperCase()
                               )}
@@ -766,7 +771,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                               </div>
                               {attraction.photoUrl?.startsWith("http") && (
                                 <div className={styles.attractionThumb} aria-hidden="true">
-                                  <Image src={attraction.photoUrl} alt="" width={52} height={52} className={styles.attractionThumbImg} />
+                                  <ImageWithSkeleton src={attraction.photoUrl} alt="" width={52} height={52} className={styles.attractionThumbImg} />
                                 </div>
                               )}
                               {canEdit && (
@@ -842,6 +847,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         onCreateNew={handleSearchCreateNew}
         token={token}
         existingAttractionIds={attractions.map((a) => a._id)}
+        multiSelect
       />
 
       <NewAttractionModal

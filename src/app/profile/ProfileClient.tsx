@@ -16,6 +16,7 @@ import {
   RankedList,
   CountryFilterSelect,
   Spinner,
+  ImageWithSkeleton,
 } from "@/components";
 import type { RankedListItem } from "@/components";
 import { useAttractionTypes } from "@/hooks";
@@ -292,7 +293,7 @@ export function ProfileClient() {
                           aria-pressed={editAvatarUrl === src}
                           aria-label={src.split("/").pop()?.replace(/\.\w+$/, "")}
                         >
-                          <Image src={src} alt="" width={56} height={56} className={styles.avatarOptionImg} />
+                          <ImageWithSkeleton src={src} alt="" width={56} height={56} className={styles.avatarOptionImg} />
                         </button>
                       ))}
                     </div>
@@ -476,7 +477,7 @@ export function ProfileClient() {
         )}
 
         {/* ── Attractions by Category ── */}
-        <SectionCard icon={BarChart2} title="Attractions by Category">
+        <SectionCard icon={BarChart2} title="Attractions by Category" collapsible defaultOpen>
           <CategoryDonutChart
             rawTypes={rawTypes}
             loading={analyticsLoading}

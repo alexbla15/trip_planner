@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
-import Image from "next/image";
+import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
 import {
   X,
   MapPin,
@@ -114,7 +114,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime }: Attra
           {/* Photo */}
           {attraction.photoUrl?.startsWith("http") && (
             <div className={styles.photo}>
-              <Image
+              <ImageWithSkeleton
                 src={attraction.photoUrl}
                 alt={`${attraction.name} photo`}
                 fill

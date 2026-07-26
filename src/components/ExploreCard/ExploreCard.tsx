@@ -1,7 +1,7 @@
 import Link from "next/link";
-import Image from "next/image";
 import { MapPin, Heart } from "lucide-react";
 import { MoodTagChip } from "@/components/MoodTagChip";
+import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
 import styles from "./ExploreCard.module.css";
 import type { ExploreCardProps } from "./ExploreCard.types";
 
@@ -15,7 +15,7 @@ export function ExploreCard({ item }: ExploreCardProps) {
   return (
     <Link href={`/trips/${id}`} className={styles.card}>
       <div className={styles.imageContainer}>
-        <Image
+        <ImageWithSkeleton
           src={coverImage}
           alt={`${destination} community trip`}
           fill
@@ -30,7 +30,7 @@ export function ExploreCard({ item }: ExploreCardProps) {
         <div className={styles.attribution}>
           <div className={styles.avatarCircle} aria-hidden="true">
             {userAvatarUrl ? (
-              <Image src={userAvatarUrl} alt="" width={28} height={28} className={styles.avatarImg} />
+              <ImageWithSkeleton src={userAvatarUrl} alt="" width={28} height={28} className={styles.avatarImg} />
             ) : (
               user.charAt(0).toUpperCase()
             )}

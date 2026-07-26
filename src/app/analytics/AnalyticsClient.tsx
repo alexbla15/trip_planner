@@ -218,7 +218,7 @@ export function AnalyticsClient() {
         )}
 
         {/* ── Attraction Types Pie Chart ── */}
-        <SectionCard icon={BarChart2} title="Attractions by Category">
+        <SectionCard icon={BarChart2} title="Attractions by Category" collapsible defaultOpen>
           <CategoryDonutChart rawTypes={rawTypes} loading={loading} />
         </SectionCard>
 

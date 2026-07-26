@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useRef } from "react";
-import Image from "next/image";
 import { Lock, Users, X, Loader2, Search } from "lucide-react";
 import type { Trip, TripCollaborator } from "@/types/trip";
 import { updateTrip, searchUsers, addCollaborator, removeCollaborator, ApiError } from "@/services";
+import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
 import type { TripSharingPanelProps } from "./TripSharingPanel.types";
 import { getInitials } from "./TripSharingPanel.utils";
 import styles from "./TripSharingPanel.module.css";
@@ -201,7 +201,7 @@ export function TripSharingPanel({ trip, token, onTripUpdate, mode = "live" }: T
             <li key={c.userId} className={styles.collaboratorRow}>
               <div className={styles.avatar} aria-hidden="true">
                 {c.avatarUrl ? (
-                  <Image src={c.avatarUrl} alt="" width={36} height={36} className={styles.avatarImg} />
+                  <ImageWithSkeleton src={c.avatarUrl} alt="" width={36} height={36} className={styles.avatarImg} />
                 ) : (
                   getInitials(c.name)
                 )}
@@ -270,7 +270,7 @@ export function TripSharingPanel({ trip, token, onTripUpdate, mode = "live" }: T
               >
                 <div className={styles.dropdownAvatar} aria-hidden="true">
                   {u.avatarUrl ? (
-                    <Image src={u.avatarUrl} alt="" width={32} height={32} className={styles.avatarImg} />
+                    <ImageWithSkeleton src={u.avatarUrl} alt="" width={32} height={32} className={styles.avatarImg} />
                   ) : (
                     getInitials(u.name)
                   )}

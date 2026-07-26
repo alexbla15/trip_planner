@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import {
   Shield, Plus, Pencil, Trash2, Check, X as XIcon,
@@ -14,6 +15,7 @@ import {
   invalidateAttractionCategoriesCache,
   useMoodTags,
   invalidateMoodTagsCache,
+  getMoodTagStyle,
 } from "@/hooks";
 import {
   createAttractionType,
@@ -409,6 +411,16 @@ export function AdminClient() {
   const { types, loading: typesLoading, categories, byCategory } = useAttractionTypes();
   const { categories: catRecords, loading: catsLoading } = useAttractionCategories();
   const { tags: moodTags, loading: tagsLoading } = useMoodTags();
+  const [collapsedTypeCategories, setCollapsedTypeCategories] = useState<Set<string>>(new Set());
+
+  function toggleTypeCategory(cat: string) {
+    setCollapsedTypeCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
+  }
 
   // Category CRUD state
   const [catEditingId, setCatEditingId] = useState<string | null>(null);
@@ -593,9 +605,13 @@ export function AdminClient() {
                     />
                   ) : (
                     <div className={styles.typeItem}>
-                      <span className={styles.categoryDot} style={{ background: cat.color }} />
                       <span className={styles.typeIcon}>{renderTypeIcon(cat.icon, 15)}</span>
-                      <span className={styles.typeName}>{cat.name}</span>
+                      <span
+                        className={styles.typeNameColored}
+                        style={{ "--type-color": cat.color } as CSSProperties}
+                      >
+                        {cat.name}
+                      </span>
                       <div className={styles.typeActions}>
                         <button
                           className={styles.iconBtn}
@@ -665,82 +681,99 @@ export function AdminClient() {
             <div className={styles.center}><Loader2 size={24} className={styles.spin} /></div>
           ) : (
             <div className={styles.categoriesList}>
-              {categories.map((cat) => (
-                <section key={cat} className={styles.categorySection}>
-                  <div className={styles.categoryHeader}>
-                    {(() => {
-                      const first = byCategory[cat]?.[0];
-                      const CatIcon = getIconComponent(first?.categoryIcon ?? "Globe");
-                      return (
-                        <>
-                          <span className={styles.categoryDot} style={{ background: first?.color }} />
-                          <CatIcon size={16} aria-hidden="true" />
-                          <h3 className={styles.categoryName}>{cat}</h3>
-                          <span className={styles.categoryCount}>{byCategory[cat]?.length}</span>
-                        </>
-                      );
-                    })()}
-                  </div>
+              {categories.map((cat) => {
+                const isOpen = !collapsedTypeCategories.has(cat);
+                const bodyId = `type-category-body-${cat.replace(/\s+/g, "-")}`;
+                const first = byCategory[cat]?.[0];
+                const CatIcon = getIconComponent(first?.categoryIcon ?? "Globe");
+                return (
+                  <section key={cat} className={styles.categorySection}>
+                    <button
+                      type="button"
+                      className={styles.categoryHeader}
+                      onClick={() => toggleTypeCategory(cat)}
+                      aria-expanded={isOpen}
+                      aria-controls={bodyId}
+                    >
+                      <CatIcon size={16} aria-hidden="true" />
+                      <h3
+                        className={styles.categoryNameColored}
+                        style={{ "--type-color": first?.color } as CSSProperties}
+                      >
+                        {cat}
+                      </h3>
+                      <span className={styles.categoryCount}>{byCategory[cat]?.length}</span>
+                      <ChevronDown
+                        size={16}
+                        aria-hidden="true"
+                        className={`${styles.categoryChevron}${isOpen ? "" : ` ${styles.categoryChevronCollapsed}`}`}
+                      />
+                    </button>
 
-                  <div className={styles.typesList}>
-                    {(byCategory[cat] ?? []).map((typeRecord) => (
-                      <div key={typeRecord._id} className={styles.typeRow}>
-                        {editingId === typeRecord._id && token ? (
-                          <TypeForm
-                            key={typeRecord._id}
-                            initial={typeFormFromRecord(typeRecord)}
-                            token={token}
-                            typeId={typeRecord._id}
-                            availableCategories={catRecords}
-                            onDone={handleFormDone}
-                            onCancel={() => setEditingId(null)}
-                          />
-                        ) : (
-                          <div className={styles.typeItem}>
-                            <span className={styles.typeIcon}>{renderTypeIcon(typeRecord.icon, 15)}</span>
-                            <span className={styles.typeName}>{typeRecord.name}</span>
-                            {typeRecord.subtype && (
-                              <span className={styles.subtypeBadge}>{typeRecord.subtype}</span>
-                            )}
-                            <div className={styles.typeActions}>
-                              <button
-                                className={styles.iconBtn}
-                                onClick={() => { setEditingId(typeRecord._id); setAdding(false); }}
-                                aria-label={`Edit ${typeRecord.name}`}
-                              >
-                                <Pencil size={13} />
-                              </button>
-                              {deleteId === typeRecord._id ? (
-                                <div className={styles.confirmDelete}>
-                                  <span>Delete?</span>
-                                  <button
-                                    className={styles.confirmYes}
-                                    onClick={() => handleDelete(typeRecord._id)}
-                                    disabled={deleting}
-                                  >
-                                    Yes
-                                  </button>
-                                  <button className={styles.confirmNo} onClick={() => setDeleteId(null)}>
-                                    No
-                                  </button>
-                                </div>
+                    <div className={`${styles.categoryCollapse}${isOpen ? "" : ` ${styles.categoryCollapseClosed}`}`}>
+                      <div className={styles.categoryCollapseInner} id={bodyId}>
+                        <div className={styles.typesList}>
+                          {(byCategory[cat] ?? []).map((typeRecord) => (
+                            <div key={typeRecord._id} className={styles.typeRow}>
+                              {editingId === typeRecord._id && token ? (
+                                <TypeForm
+                                  key={typeRecord._id}
+                                  initial={typeFormFromRecord(typeRecord)}
+                                  token={token}
+                                  typeId={typeRecord._id}
+                                  availableCategories={catRecords}
+                                  onDone={handleFormDone}
+                                  onCancel={() => setEditingId(null)}
+                                />
                               ) : (
-                                <button
-                                  className={`${styles.iconBtn} ${styles.deleteBtn}`}
-                                  onClick={() => setDeleteId(typeRecord._id)}
-                                  aria-label={`Delete ${typeRecord.name}`}
-                                >
-                                  <Trash2 size={13} />
-                                </button>
+                                <div className={styles.typeItem}>
+                                  <span className={styles.typeIcon}>{renderTypeIcon(typeRecord.icon, 15)}</span>
+                                  <span className={styles.typeName}>{typeRecord.name}</span>
+                                  {typeRecord.subtype && (
+                                    <span className={styles.subtypeBadge}>{typeRecord.subtype}</span>
+                                  )}
+                                  <div className={styles.typeActions}>
+                                    <button
+                                      className={styles.iconBtn}
+                                      onClick={() => { setEditingId(typeRecord._id); setAdding(false); }}
+                                      aria-label={`Edit ${typeRecord.name}`}
+                                    >
+                                      <Pencil size={13} />
+                                    </button>
+                                    {deleteId === typeRecord._id ? (
+                                      <div className={styles.confirmDelete}>
+                                        <span>Delete?</span>
+                                        <button
+                                          className={styles.confirmYes}
+                                          onClick={() => handleDelete(typeRecord._id)}
+                                          disabled={deleting}
+                                        >
+                                          Yes
+                                        </button>
+                                        <button className={styles.confirmNo} onClick={() => setDeleteId(null)}>
+                                          No
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        className={`${styles.iconBtn} ${styles.deleteBtn}`}
+                                        onClick={() => setDeleteId(typeRecord._id)}
+                                        aria-label={`Delete ${typeRecord.name}`}
+                                      >
+                                        <Trash2 size={13} />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
                               )}
                             </div>
-                          </div>
-                        )}
+                          ))}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </section>
-              ))}
+                    </div>
+                  </section>
+                );
+              })}
             </div>
           )}
         </SectionCard>
@@ -794,8 +827,10 @@ export function AdminClient() {
                     />
                   ) : (
                     <div className={styles.typeItem}>
-                      <span className={styles.typeIcon}>{renderTypeIcon(tagRecord.icon, 15)}</span>
-                      <span className={styles.typeName}>{tagRecord.name}</span>
+                      <span className={styles.moodIcon} style={getMoodTagStyle(tagRecord)}>
+                        {renderTypeIcon(tagRecord.icon, 15)}
+                      </span>
+                      <span className={styles.moodName} style={getMoodTagStyle(tagRecord)}>{tagRecord.name}</span>
                       <div className={styles.typeActions}>
                         <button
                           className={styles.iconBtn}

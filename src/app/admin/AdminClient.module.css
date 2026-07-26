@@ -77,22 +77,26 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
   padding: 12px 20px;
   background: var(--color-bg-subtle);
+  border: none;
   border-bottom: 1px solid var(--color-border-subtle);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
 }
 
-.categoryDot {
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-full);
-  flex-shrink: 0;
+.categoryHeader:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
 }
 
-.categoryName {
+.categoryNameColored {
   font-size: 14px;
   font-weight: 700;
-  color: var(--color-text-primary);
+  color: var(--type-color, var(--color-text-primary));
   margin: 0;
   flex: 1;
 }
@@ -105,6 +109,31 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
   padding: 1px 8px;
+}
+
+.categoryChevron {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+  transition: transform var(--duration-base) var(--easing-out);
+}
+
+.categoryChevronCollapsed {
+  transform: rotate(-90deg);
+}
+
+.categoryCollapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--duration-base) var(--easing-out);
+}
+
+.categoryCollapseClosed {
+  grid-template-rows: 0fr;
+}
+
+.categoryCollapseInner {
+  overflow: hidden;
+  min-height: 0;
 }
 
 /* ── Type rows ── */
@@ -136,6 +165,38 @@
   font-size: 14px;
   color: var(--color-text-primary);
   font-weight: 500;
+}
+
+.typeNameColored {
+  flex: 1;
+  font-size: 14px;
+  color: var(--type-color, var(--color-text-primary));
+  font-weight: 500;
+}
+
+.moodIcon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--tag-color, var(--color-text-secondary));
+  flex-shrink: 0;
+}
+
+.moodName {
+  flex: 1;
+  font-size: 14px;
+  color: var(--tag-color, var(--color-text-primary));
+  font-weight: 500;
+}
+
+:global([data-theme="dark"]) .moodIcon {
+  color: var(--tag-dark-color, var(--tag-color, var(--color-text-secondary)));
+}
+
+:global([data-theme="dark"]) .moodName {
+  color: var(--tag-dark-color, var(--tag-color, var(--color-text-primary)));
 }
 
 .subtypeBadge {
@@ -194,6 +255,7 @@
 /* ── Inline form (add / edit) ── */
 .formCard {
   padding: 20px;
+  margin-bottom: 16px;
   background: var(--color-bg-subtle);
   border-top: 1px solid var(--color-border-subtle);
   display: flex;

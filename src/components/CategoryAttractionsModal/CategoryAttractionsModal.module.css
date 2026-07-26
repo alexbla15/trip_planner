@@ -101,6 +101,7 @@
   flex: 1;
   overflow-y: auto;
   min-height: 180px;
+  padding-bottom: 8px;
 }
 
 /* ── Placeholder (empty) ── */

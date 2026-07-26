@@ -71,6 +71,8 @@ export { IconPicker, ICON_REGISTRY, ICON_NAMES, getIconComponent, renderTypeIcon
 export { TripTabBar } from "./TripTabBar";
 
 export { CoverImageField, isValidCoverUrl } from "./CoverImageField";
+export { ImageWithSkeleton } from "./ImageWithSkeleton";
+export type { ImageWithSkeletonProps } from "./ImageWithSkeleton";
 export { CategoryDonutChart } from "./CategoryDonutChart";
 export { Carousel } from "./Carousel";
 export type { CarouselProps } from "./Carousel";

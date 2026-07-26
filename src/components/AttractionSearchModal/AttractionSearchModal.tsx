@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Search, MapPin, Plus, PenLine, SearchX } from "lucide-react";
+import { Search, MapPin, Plus, PenLine, SearchX, Check } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { useAttractionTypes } from "@/hooks";
 import { searchAttractionsByCountry } from "@/services";
@@ -26,6 +26,7 @@ export function AttractionSearchModal({
   subtypeFilter,
   title = "Add Attraction",
   createLabel = "Create new attraction",
+  multiSelect = false,
 }: AttractionSearchModalProps) {
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -33,6 +34,7 @@ export function AttractionSearchModal({
   const { categories, findType } = useAttractionTypes();
   const [results, setResults] = useState<Attraction[]>([]);
   const [bodyState, setBodyState] = useState<BodyState>("initial");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -43,6 +45,7 @@ export function AttractionSearchModal({
       setSelectedCategory(null);
       setResults([]);
       setBodyState("initial");
+      setSelectedIds(new Set());
     }
   }, [isOpen]);
 
@@ -82,9 +85,24 @@ export function AttractionSearchModal({
     );
   }, [results, selectedCategory, findType]);
 
-  function handleAdd(attraction: Attraction) {
+  function handleRowClick(attraction: Attraction) {
     if (existingIdSet.has(attraction._id)) return;
-    onAdd(attraction);
+    if (multiSelect) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(attraction._id)) next.delete(attraction._id);
+        else next.add(attraction._id);
+        return next;
+      });
+      return;
+    }
+    onAdd([attraction]);
+    onClose();
+  }
+
+  function handleAddSelected() {
+    const toAdd = filteredResults.filter((a) => selectedIds.has(a._id));
+    onAdd(toAdd);
     onClose();
   }
 
@@ -107,10 +125,28 @@ export function AttractionSearchModal({
         </div>
       }
       footer={
-        <button type="button" className={styles.createBtn} onClick={handleCreateNew}>
-          <PenLine size={15} aria-hidden="true" />
-          {createLabel}
-        </button>
+        multiSelect ? (
+          <div className={styles.footerMultiSelect}>
+            <button type="button" className={styles.createBtn} onClick={handleCreateNew}>
+              <PenLine size={15} aria-hidden="true" />
+              {createLabel}
+            </button>
+            <button
+              type="button"
+              className={styles.addSelectedBtn}
+              onClick={handleAddSelected}
+              disabled={selectedIds.size === 0}
+              aria-disabled={selectedIds.size === 0}
+            >
+              {selectedIds.size > 0 ? `Add ${selectedIds.size} Selected` : "Add Selected"}
+            </button>
+          </div>
+        ) : (
+          <button type="button" className={styles.createBtn} onClick={handleCreateNew}>
+            <PenLine size={15} aria-hidden="true" />
+            {createLabel}
+          </button>
+        )
       }
       beforeBody={
         <div className={styles.searchBar}>
@@ -152,20 +188,32 @@ export function AttractionSearchModal({
         )}
 
         {bodyState === "results" && filteredResults.length > 0 && (
-          <ul className={styles.resultsList} aria-label="Search results">
+          <ul
+            className={styles.resultsList}
+            aria-label="Search results"
+            role={multiSelect ? "listbox" : undefined}
+            aria-multiselectable={multiSelect ? "true" : undefined}
+          >
             {filteredResults.map((attraction) => {
               const firstType = attraction.types?.[0];
               const icon = firstType ? renderTypeIcon(findType(firstType)?.icon ?? "Globe") : null;
               const isAdded = existingIdSet.has(attraction._id);
+              const isSelected = multiSelect && selectedIds.has(attraction._id);
               return (
-                <li key={attraction._id}>
+                <li key={attraction._id} role={multiSelect ? "option" : undefined} aria-selected={multiSelect ? isSelected : undefined}>
                   <button
                     type="button"
-                    className={`${styles.resultRow} ${isAdded ? styles.resultRowAdded : ""}`}
-                    onClick={() => handleAdd(attraction)}
+                    className={`${styles.resultRow} ${isAdded ? styles.resultRowAdded : ""} ${isSelected ? styles.resultRowSelected : ""}`}
+                    onClick={() => handleRowClick(attraction)}
                     disabled={isAdded}
-                    aria-label={`${isAdded ? "Already added: " : "Add "}${attraction.name}${isAdded ? "" : " to trip"}`}
+                    aria-pressed={multiSelect ? isSelected : undefined}
+                    aria-label={`${isAdded ? "Already added: " : multiSelect ? "" : "Add "}${attraction.name}${isAdded || multiSelect ? "" : " to trip"}`}
                   >
+                    {multiSelect && (
+                      <div className={styles.resultCheck} aria-hidden="true">
+                        {isSelected && <Check size={13} strokeWidth={3} />}
+                      </div>
+                    )}
                     <div className={styles.resultIcon} aria-hidden="true">
                       {icon ?? <MapPin size={15} />}
                     </div>
@@ -179,7 +227,7 @@ export function AttractionSearchModal({
                     {isAdded ? (
                       <span className={styles.addedTag}>Added</span>
                     ) : (
-                      <Plus size={16} className={styles.resultAdd} aria-hidden="true" />
+                      !multiSelect && <Plus size={16} className={styles.resultAdd} aria-hidden="true" />
                     )}
                   </button>
                 </li>
