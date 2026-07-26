@@ -69,7 +69,7 @@ export async function GET(req: Request, { params }: RouteContext) {
       return formatAttraction(doc, schedule ?? null);
     });
 
-    // Append custom time-slots (schedule-only entries — no Attraction document).
+    // Append custom time-slots and flights (schedule-only entries — no Attraction document).
     // toObject({ flattenMaps: true }) bypasses Mongoose strict mode and returns raw
     // MongoDB data including fields not declared in the sub-schema (isCustomSlot, name, etc.).
     type RawEntry = {
@@ -77,14 +77,17 @@ export async function GET(req: Request, { params }: RouteContext) {
       price?: number | null; currency?: string; notes?: string;
       plannedDate?: string | null; plannedTime?: string | null;
       actualDurationValue?: string; actualDurationUnit?: "minutes" | "hours";
+      isFlight?: boolean; flightNumber?: string; airline?: string;
+      departureAirport?: string; arrivalAirport?: string;
+      departureTime?: string; arrivalTime?: string; gate?: string; seat?: string;
     };
     const rawTrip = trip.toObject({ flattenMaps: true }) as unknown as {
       schedules?: Record<string, RawEntry>;
     };
-    const customSlots: AttractionShape[] = [];
+    const scheduleOnlyEntries: AttractionShape[] = [];
     for (const [key, entry] of Object.entries(rawTrip.schedules ?? {})) {
       if (entry?.isCustomSlot) {
-        customSlots.push({
+        scheduleOnlyEntries.push({
           _id: key,
           ownerId: userId ?? "",
           name: entry.name ?? "",
@@ -101,10 +104,36 @@ export async function GET(req: Request, { params }: RouteContext) {
           actualDurationValue: entry.actualDurationValue,
           actualDurationUnit: entry.actualDurationUnit,
         });
+      } else if (entry?.isFlight) {
+        scheduleOnlyEntries.push({
+          _id: key,
+          ownerId: userId ?? "",
+          name: entry.name ?? "",
+          country: "",
+          city: "",
+          coordinates: null,
+          types: ["Flight"],
+          price: entry.price ?? null,
+          currency: entry.currency ?? "USD",
+          notes: entry.notes,
+          subtype: "flight",
+          flightNumber: entry.flightNumber,
+          airline: entry.airline,
+          departureAirport: entry.departureAirport,
+          arrivalAirport: entry.arrivalAirport,
+          departureTime: entry.departureTime,
+          arrivalTime: entry.arrivalTime,
+          gate: entry.gate,
+          seat: entry.seat,
+          plannedDate: entry.plannedDate ?? null,
+          plannedTime: entry.plannedTime ?? null,
+          actualDurationValue: entry.actualDurationValue,
+          actualDurationUnit: entry.actualDurationUnit,
+        });
       }
     }
 
-    return NextResponse.json([...result, ...customSlots]);
+    return NextResponse.json([...result, ...scheduleOnlyEntries]);
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -198,6 +227,63 @@ export async function POST(req: Request, { params }: RouteContext) {
         actualDurationValue: actualDurationValue || undefined,
         actualDurationUnit:  actualDurationUnit  || undefined,
       } satisfies AttractionShape, { status: 201 });
+    } else if (subtype === "flight") {
+      if (!name?.trim()) {
+        return NextResponse.json({ error: "name is required" }, { status: 400 });
+      }
+      const flightId = `fl-${new Types.ObjectId().toString()}`;
+      // Flights are trip-scoped only — never create a global Attraction document, so
+      // flights can never collide (by name) across trips or be picked from another
+      // trip's existing-attractions list. Mirrors the custom-slot pattern above.
+      await Trip.findByIdAndUpdate(tripId, {
+        $set: {
+          [`schedules.${flightId}`]: {
+            plannedDate:         plannedDate  ?? null,
+            plannedTime:         plannedTime  ?? null,
+            actualDurationValue: actualDurationValue || undefined,
+            actualDurationUnit:  actualDurationUnit  || undefined,
+            isFlight: true,
+            name:             name.trim(),
+            price:            price ?? null,
+            currency:         currency || "USD",
+            notes:            notes   || undefined,
+            flightNumber:     flightNumber     || undefined,
+            airline:          airline          || undefined,
+            departureAirport: departureAirport || undefined,
+            arrivalAirport:   arrivalAirport   || undefined,
+            departureTime:    departureTime    || undefined,
+            arrivalTime:      arrivalTime      || undefined,
+            gate:             gate             || undefined,
+            seat:             seat             || undefined,
+          },
+        },
+      });
+
+      return NextResponse.json({
+        _id: flightId,
+        ownerId: payload.userId,
+        name: name.trim(),
+        country: "",
+        city: "",
+        coordinates: null,
+        types: ["Flight"],
+        price: price ?? null,
+        currency: currency || "USD",
+        notes: notes || undefined,
+        subtype: "flight",
+        flightNumber,
+        airline,
+        departureAirport,
+        arrivalAirport,
+        departureTime,
+        arrivalTime,
+        gate,
+        seat,
+        plannedDate: plannedDate ?? null,
+        plannedTime: plannedTime ?? null,
+        actualDurationValue: actualDurationValue || undefined,
+        actualDurationUnit:  actualDurationUnit  || undefined,
+      } satisfies AttractionShape, { status: 201 });
     } else if (existingAttractionId) {
       attraction = await Attraction.findById(existingAttractionId);
       if (!attraction) {
@@ -222,6 +308,10 @@ export async function POST(req: Request, { params }: RouteContext) {
           ? (await AttractionType.find({ name: { $in: types } }).select("_id")).map((d) => d._id)
           : [];
 
+        // Residences only carry reusable, place-level data on the shared document (name,
+        // location, residenceType) — a stay's dates/price/notes are specific to THIS trip's
+        // booking, so they're written only to this trip's schedule entry below, never here.
+        const isResidence = subtype === "residence";
         attraction = await Attraction.create({
           ownerId: payload.userId,
           name: name.trim(),
@@ -231,23 +321,13 @@ export async function POST(req: Request, { params }: RouteContext) {
           types: typeIds,
           durationValue: durationValue || undefined,
           durationUnit: durationUnit || undefined,
-          price: price ?? null,
+          price: isResidence ? null : (price ?? null),
           currency: currency || "USD",
           openingHours: openingHours ?? undefined,
-          notes: notes || undefined,
+          notes: isResidence ? undefined : (notes || undefined),
           photoUrl: photoUrl || undefined,
           subtype: subtype || undefined,
           residenceType: residenceType || undefined,
-          checkInDate: checkInDate || undefined,
-          checkOutDate: checkOutDate || undefined,
-          flightNumber: flightNumber || undefined,
-          airline: airline || undefined,
-          departureAirport: departureAirport || undefined,
-          arrivalAirport: arrivalAirport || undefined,
-          departureTime: departureTime || undefined,
-          arrivalTime: arrivalTime || undefined,
-          gate: gate || undefined,
-          seat: seat || undefined,
         });
       }
     }
@@ -270,14 +350,12 @@ export async function POST(req: Request, { params }: RouteContext) {
       plannedTime: plannedTime ?? null,
       actualDurationValue: actualDurationValue || undefined,
       actualDurationUnit: actualDurationUnit || undefined,
-      // Picking an existing (shared) residence must never overwrite the shared Attraction
-      // document's stay dates/price — a different trip may already depend on those values.
-      // Store this trip's own dates/price/notes on the schedule entry instead; formatAttraction
-      // prefers this override over the document's value. The "create new" branch already wrote
-      // these fields onto the freshly-created document, so no schedule-level override is needed
-      // there (and none is written, to keep the document itself as the single source of truth
-      // for brand-new residences with no other trip depending on them yet).
-      ...(existingAttractionId ? {
+      // A residence's stay dates/price/notes are specific to THIS trip's booking — they
+      // must never be written onto the shared Attraction document, which other trips may
+      // also reference (or come to reference later). Store them on the schedule entry
+      // instead; formatAttraction prefers this override over the document's value. Applies
+      // whether this is a brand-new residence or an existing one picked from another trip.
+      ...(subtype === "residence" ? {
         checkInDate: checkInDate || undefined,
         checkOutDate: checkOutDate || undefined,
         price: price ?? undefined,

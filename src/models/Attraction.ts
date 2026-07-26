@@ -13,7 +13,8 @@ export interface IAttraction extends Document {
   ownerId: Types.ObjectId;
   name: string;
   country: string;
-  city: string;
+  /** Required for all subtypes except "flight" (see schema `required` function). */
+  city?: string;
   coordinates?: { lat: number; lng: number } | null;
   types: Types.ObjectId[];
   durationValue?: string;
@@ -52,7 +53,13 @@ const AttractionSchema = new Schema<IAttraction>(
     ownerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     name: { type: String, required: true, trim: true },
     country: { type: String, required: true, trim: true },
-    city: { type: String, required: true, trim: true },
+    // Flights don't have a single city (they span a departure/arrival airport pair),
+    // so city is only required for other subtypes.
+    city: {
+      type: String,
+      required: function (this: IAttraction) { return this.subtype !== "flight"; },
+      trim: true,
+    },
     coordinates: {
       type: new Schema({ lat: Number, lng: Number }, { _id: false }),
       default: null,

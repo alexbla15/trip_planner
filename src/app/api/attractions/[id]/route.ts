@@ -44,6 +44,17 @@ export async function PUT(req: Request, { params }: RouteContext) {
 
     const body = await req.json() as Record<string, unknown>;
 
+    if (body.name && (body.name as string).trim().toLowerCase() !== attraction.name.toLowerCase()) {
+      const duplicate = await Attraction.findOne(
+        { name: (body.name as string).trim(), _id: { $ne: attraction._id } },
+        undefined,
+        { collation: { locale: "en", strength: 2 } }
+      );
+      if (duplicate) {
+        return NextResponse.json({ error: "An attraction with this name already exists" }, { status: 409 });
+      }
+    }
+
     // Core fields
     if (body.name)                    attraction.name          = body.name as string;
     if (body.country)                 attraction.country       = body.country as string;

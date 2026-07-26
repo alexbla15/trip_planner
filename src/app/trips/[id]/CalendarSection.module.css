@@ -884,6 +884,16 @@
 
 .blockPending { outline: 2px dashed rgba(255,255,255,0.6); }
 
+/* Continuation of a previous day's card that spills past midnight — no top border
+   (visually "open" at the start, since it isn't its own scheduled moment) and reduced
+   opacity to distinguish it from the day it actually starts on. */
+.blockContinuation {
+  border-top: none;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  opacity: 0.75;
+}
+
 .blockTime {
   font-size: 9px;
   font-weight: 700;

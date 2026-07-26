@@ -17,6 +17,18 @@ export interface IScheduleEntry {
    *  a residence can be reused across trips with different stay dates each time. */
   checkInDate?: string;
   checkOutDate?: string;
+  /** True for flight entries — no corresponding Attraction document exists (flights are
+   *  trip-scoped only, unlike residences/regular attractions, so they can never collide
+   *  across trips or be picked from another trip's existing-attractions list). */
+  isFlight?: boolean;
+  flightNumber?: string;
+  airline?: string;
+  departureAirport?: string;
+  arrivalAirport?: string;
+  departureTime?: string;
+  arrivalTime?: string;
+  gate?: string;
+  seat?: string;
 }
 
 export interface ICollaborator {
@@ -80,6 +92,15 @@ const TripSchema = new Schema<ITrip>(
           notes:               { type: String },
           checkInDate:         { type: String },
           checkOutDate:        { type: String },
+          isFlight:            { type: Boolean },
+          flightNumber:        { type: String },
+          airline:             { type: String },
+          departureAirport:    { type: String },
+          arrivalAirport:      { type: String },
+          departureTime:       { type: String },
+          arrivalTime:         { type: String },
+          gate:                { type: String },
+          seat:                { type: String },
         },
         { _id: false }
       ),

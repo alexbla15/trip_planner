@@ -125,6 +125,32 @@ function getOverflowAlerts(
   return alerts;
 }
 
+// ── Initial day-window bounds (fit to schedule) ────────────────────────────────
+
+/** Earliest start / latest end across all timed attractions, rounded out to whole
+ *  hours (floor start, ceil end, clamped to 0..24). Returns null when nothing is
+ *  scheduled yet, so callers can fall back to a fixed default. */
+export function computeScheduleHourBounds(
+  attractions: Attraction[]
+): { start: number; end: number } | null {
+  const timed = attractions.filter((a) => !!a.plannedTime);
+  if (timed.length === 0) return null;
+
+  let minStart = Infinity;
+  let maxEnd = -Infinity;
+  for (const a of timed) {
+    const start = timeToMins(a.plannedTime!);
+    const end = attractionEndMins(a);
+    if (start < minStart) minStart = start;
+    if (end > maxEnd) maxEnd = end;
+  }
+
+  return {
+    start: Math.max(0, Math.floor(minStart / 60)),
+    end: Math.min(24, Math.ceil(maxEnd / 60)),
+  };
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function computeAlerts(

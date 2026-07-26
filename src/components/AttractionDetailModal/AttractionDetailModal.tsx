@@ -224,15 +224,19 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime }: Attra
               </div>
             )}
 
-            {/* ── Generic fields (city/country/duration/coords shown for non-subtype; city/country always shown) ── */}
-            <div className={styles.infoItem}>
-              <span className={styles.infoLabel}><Building2 size={13} aria-hidden="true" />City</span>
-              <span className={styles.infoValue}>{attraction.city}</span>
-            </div>
-            <div className={styles.infoItem}>
-              <span className={styles.infoLabel}><Globe size={13} aria-hidden="true" />Country</span>
-              <span className={styles.infoValue}>{attraction.country}</span>
-            </div>
+            {/* ── Generic fields (city/country shown for everything except flights — flights don't have a single city/country) ── */}
+            {!isFlight && (
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}><Building2 size={13} aria-hidden="true" />City</span>
+                <span className={styles.infoValue}>{attraction.city}</span>
+              </div>
+            )}
+            {!isFlight && (
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}><Globe size={13} aria-hidden="true" />Country</span>
+                <span className={styles.infoValue}>{attraction.country}</span>
+              </div>
+            )}
             {!isResidence && !isFlight && durationLabel && (
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}><Clock size={13} aria-hidden="true" />Duration</span>

@@ -26,6 +26,7 @@ import {
   calcDaySpanMinutes,
   calcSpend,
   fmt,
+  attractionEndMins,
 } from "@/lib";
 import {
   DEFAULT_DAY_START,
@@ -34,7 +35,7 @@ import {
 } from "@/config/ui";
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
-import { computeAlerts } from "./CalendarSection.utils";
+import { computeAlerts, computeScheduleHourBounds } from "./CalendarSection.utils";
 import type { ScheduleAlert } from "./CalendarSection.utils";
 import styles from "./CalendarSection.module.css";
 
@@ -93,9 +94,22 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   const [customSlotModalOpen, setCustomSlotModalOpen] = useState(false);
   const [editingCustomSlot, setEditingCustomSlot]     = useState<Attraction | null>(null);
 
-  // Day-range controls — initialized from DB and saved back on change
-  const [dayStart, setDayStart]   = useState(trip.calDayStart ?? DEFAULT_DAY_START);
-  const [dayEnd, setDayEnd]       = useState(trip.calDayEnd   ?? DEFAULT_DAY_END);
+  // Day-range controls — initialized from DB (calDayStart/calDayEnd) if the user has
+  // already customized it; otherwise fit the window to the earliest start / latest end
+  // across the whole schedule (rounded out to whole hours), falling back to the fixed
+  // defaults only when nothing is scheduled yet. Computed once via the lazy useState
+  // initializer — later changes to `attractions` must not retroactively resize a window
+  // the user (or a prior save) may have already set.
+  const [dayStart, setDayStart] = useState(() => {
+    if (trip.calDayStart != null) return trip.calDayStart;
+    const bounds = computeScheduleHourBounds(attractions);
+    return bounds?.start ?? DEFAULT_DAY_START;
+  });
+  const [dayEnd, setDayEnd] = useState(() => {
+    if (trip.calDayEnd != null) return trip.calDayEnd;
+    const bounds = computeScheduleHourBounds(attractions);
+    return bounds?.end ?? DEFAULT_DAY_END;
+  });
 
   // Sidebar
   const [filter, setFilter]       = useState<SidebarFilter>("unscheduled");
@@ -547,8 +561,25 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                 const isOverloaded = dayMins > 480;
                 const dayLabel = formatDayLabel(dayIso);
 
+                // Cards whose duration crosses midnight (e.g. an overnight flight or custom
+                // time-slot) also get a "continuation" block on the following day, running
+                // from 00:00 for however many minutes spill past midnight. The continuation
+                // is a display-only clone for positioning — click handling always resolves
+                // back to the real (previous-day) attraction via spilloverOriginalsById.
+                const prevDayIso = dayIndex > 0 ? days[dayIndex - 1] : null;
+                const spillovers = prevDayIso
+                  ? local.filter((a) => a.plannedDate === prevDayIso && !!a.plannedTime && attractionEndMins(a) > 1440)
+                  : [];
+                const spilloverOriginalsById = new Map(spillovers.map((a) => [a._id, a]));
+                const continuationItems = spillovers.map((a) => ({
+                  ...a,
+                  plannedTime: "00:00",
+                  actualDurationValue: String(attractionEndMins(a) - 1440),
+                  actualDurationUnit: "minutes" as const,
+                }));
+
                 // Overlap-aware layout
-                const layout     = layoutTimed(dayAttractions);
+                const layout     = layoutTimed([...dayAttractions, ...continuationItems]);
                 const maxOverlap = layout.length > 0 ? Math.max(...layout.map((l) => l.numCols)) : 1;
                 const colWidth   = dayColumnWidth(maxOverlap);
                 const LABEL_W    = 46;
@@ -597,21 +628,33 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                           ? `${a.departureAirport} → ${a.arrivalAirport}`
                           : a.name;
 
+                        // This block is the portion of a previous-day card spilling past
+                        // midnight into today — `a` is a display-only clone (plannedTime
+                        // reset to 00:00 for positioning), so clicks resolve back to the
+                        // real attraction (its true plannedDate/plannedTime) via this map.
+                        const isContinuation = a.plannedDate !== dayIso;
+                        const clickTarget = isContinuation ? (spilloverOriginalsById.get(a._id) ?? a) : a;
+
                         function handleBlockClick(e: React.MouseEvent) {
                           if (isCustomSlot) {
-                            if (canEdit) setEditingCustomSlot(a);
-                            else setViewingAttraction(a);
+                            if (canEdit && !isContinuation) setEditingCustomSlot(clickTarget);
+                            else setViewingAttraction(clickTarget);
                             return;
                           }
-                          if (a.subtype || isFlight) { setViewingAttraction(a); return; }
-                          if (canEdit) openPopup(e, a);
-                          else setViewingAttraction(a);
+                          if (a.subtype || isFlight) { setViewingAttraction(clickTarget); return; }
+                          if (canEdit && !isContinuation) openPopup(e, clickTarget);
+                          else setViewingAttraction(clickTarget);
                         }
+
+                        const continuationEndMins = isContinuation ? attractionEndMins(clickTarget) - 1440 : null;
+                        const continuationEndLabel = continuationEndMins != null
+                          ? `${String(Math.floor(continuationEndMins / 60)).padStart(2, "0")}:${String(continuationEndMins % 60).padStart(2, "0")}`
+                          : null;
 
                         return (
                           <div
                             key={a._id}
-                            className={`${styles.attractionBlock} ${isPending ? styles.blockPending : ""} ${isCompact ? styles.blockCompact : ""} ${isCustomSlot ? styles.blockFreeSlot : ""}`}
+                            className={`${styles.attractionBlock} ${isPending ? styles.blockPending : ""} ${isCompact ? styles.blockCompact : ""} ${isCustomSlot ? styles.blockFreeSlot : ""} ${isContinuation ? styles.blockContinuation : ""}`}
                             style={{
                               ["--block-top"    as string]: `${top}px`,
                               ["--block-height" as string]: `${height}px`,
@@ -628,7 +671,8 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                                 handleBlockClick(e as unknown as React.MouseEvent);
                               }
                             }}
-                            aria-label={`${a.name} at ${a.plannedTime}${
+                            aria-label={`${a.name}${isContinuation ? ` — continued from ${formatDayLabel(prevDayIso!)}, until ${continuationEndLabel}` : ` at ${a.plannedTime}`}${
+                              isContinuation ? " — click to view details" :
                               isCustomSlot && canEdit ? " — click to edit" :
                               !a.subtype && !isFlight && canEdit ? " — click to edit time" :
                               " — click to view details"
@@ -636,10 +680,12 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                           >
                             <div className={styles.blockTopRow}>
                               {icon && <span className={styles.blockIcon} aria-hidden="true">{icon}</span>}
-                              <span className={styles.blockTime}>{a.plannedTime}</span>
+                              <span className={styles.blockTime}>
+                                {isContinuation ? `↷ until ${continuationEndLabel}` : a.plannedTime}
+                              </span>
                             </div>
                             <span className={styles.blockName}>{blockLabel}</span>
-                            {canEdit && (
+                            {canEdit && !isContinuation && (
                               <button type="button" className={styles.unassignBtnBlock}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -688,7 +734,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                       </div>
                     )}
 
-                    {dayAttractions.length === 0 && (
+                    {dayAttractions.length === 0 && continuationItems.length === 0 && (
                       <div className={styles.dayEmpty}>No attractions</div>
                     )}
                   </div>

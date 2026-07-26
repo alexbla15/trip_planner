@@ -4,7 +4,8 @@ export interface Attraction {
   ownerId?: string;
   name: string;
   country: string;
-  city: string;
+  /** Required for all subtypes except "flight" — flights don't have a single city. */
+  city?: string;
   coordinates?: { lat: number; lng: number } | null;
   types: string[];
   durationValue?: string;

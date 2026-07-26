@@ -201,7 +201,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     setResidencePrefill({
       existingAttractionId: existing._id,
       name: existing.name,
-      city: existing.city,
+      city: existing.city ?? "",
       coordinates: existing.coordinates ?? null,
       residenceType: (existing.residenceType as ResidencePrefillData["residenceType"]) ?? "Hotel",
     });
@@ -238,17 +238,35 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   }
 
   async function handleResidenceUpdate(data: ResidenceFormData) {
-    if (!token || !editingResidence) return;
+    if (!token || !editingResidence || !trip) return;
     const id = editingResidence._id;
     setEditingResidence(null);
     setActionError(null);
     try {
-      const updated = (await updateAttraction(id, token, data)) as Attraction;
-      setAttractions((prev) => prev.map((a) => a._id !== updated._id ? a : {
-        ...updated,
-        plannedDate: a.plannedDate,
-        plannedTime: a.plannedTime,
-      }));
+      // Reusable place data (name/location/residenceType) goes on the shared Attraction
+      // document; this trip's stay dates/price/notes are specific to THIS booking and
+      // live only in this trip's schedule entry — never on the shared document, which
+      // other trips may also reference.
+      const attrUpdated = (await updateAttraction(id, token, {
+        name: data.name,
+        country: data.country,
+        city: data.city,
+        coordinates: data.coordinates,
+        residenceType: data.residenceType,
+        types: data.types,
+        subtype: data.subtype,
+      })) as Attraction;
+
+      const schedRes = await updateTripAttractionSchedule(trip._id, id, token, {
+        checkInDate: data.checkInDate,
+        checkOutDate: data.checkOutDate,
+        price: data.price,
+        currency: data.currency,
+        notes: data.notes,
+      });
+
+      const updated = schedRes.ok ? ((await schedRes.json()) as Attraction) : attrUpdated;
+      setAttractions((prev) => prev.map((a) => a._id !== updated._id ? a : updated));
     } catch {
       setActionError("Couldn't update the residence. Please try again.");
     }
@@ -260,21 +278,12 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     setEditingFlight(null);
     setActionError(null);
     try {
-      // Step 1: update attraction-level fields (departureTime, arrivalTime, airline, etc.)
-      const attrUpdated = (await updateAttraction(id, token, data)) as Attraction;
-
-      // Step 2: update trip schedule (plannedDate/Time/duration) so calendar position updates.
-      // Must run after the PUT so the PATCH reads the already-updated attraction from DB.
-      const schedRes = await updateTripAttractionSchedule(trip._id, id, token, {
-        plannedDate:         data.plannedDate,
-        plannedTime:         data.plannedTime,
-        actualDurationValue: data.actualDurationValue,
-        actualDurationUnit:  data.actualDurationUnit,
-      });
-
-      // PATCH response merges updated attraction + updated schedule — use it as the source of
-      // truth, falling back to the attraction-update result if the schedule PATCH itself failed.
-      const updated = schedRes.ok ? ((await schedRes.json()) as Attraction) : attrUpdated;
+      // Flights are trip-scoped only (schedules.<fl-id>, no Attraction document) — a
+      // single PATCH against the schedule entry covers every field, unlike residences/
+      // regular attractions which still need the separate PUT + PATCH two-step.
+      const schedRes = await updateTripAttractionSchedule(trip._id, id, token, data);
+      if (!schedRes.ok) throw new Error("Failed to update flight");
+      const updated = (await schedRes.json()) as Attraction;
       setAttractions((prev) => prev.map((a) => a._id !== updated._id ? a : updated));
     } catch {
       setActionError("Couldn't update the flight. Please try again.");
@@ -311,7 +320,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     return {
       name: a.name,
       country: a.country,
-      city: a.city,
+      city: a.city ?? "",
       coordinates: a.coordinates ?? null,
       types: (a.types ?? []) as AttractionType[],
       durationValue: a.durationValue ?? "",
@@ -378,7 +387,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     return {
       name:          editingResidence.name,
       residenceType: (editingResidence.residenceType as ResidenceInitialData["residenceType"]) ?? "Other",
-      city:          editingResidence.city,
+      city:          editingResidence.city ?? "",
       coordinates:   editingResidence.coordinates ?? null,
       checkInDate:   editingResidence.checkInDate  ?? "",
       checkOutDate:  editingResidence.checkOutDate ?? "",
