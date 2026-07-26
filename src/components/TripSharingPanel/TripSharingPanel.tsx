@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { Lock, Users, X, Loader2, Search } from "lucide-react";
 import type { Trip, TripCollaborator } from "@/types/trip";
 import { updateTrip, searchUsers, addCollaborator, removeCollaborator, ApiError } from "@/services";
-import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
+import { ImageWithSkeleton } from "@/components";
 import type { TripSharingPanelProps } from "./TripSharingPanel.types";
 import { getInitials } from "./TripSharingPanel.utils";
 import styles from "./TripSharingPanel.module.css";

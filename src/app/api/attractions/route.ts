@@ -37,8 +37,8 @@ export async function GET(req: Request) {
       Trip.find(accessibleFilter).select("attractionIds").lean(),
     ]);
 
-    const privateIds    = new Set(privateTrips.flatMap((t) => (t.attractionIds ?? []).map((id) => id.toString())));
-    const accessibleIds = new Set(accessibleTrips.flatMap((t) => (t.attractionIds ?? []).map((id) => id.toString())));
+    const privateIds    = new Set(privateTrips.flatMap((t) => (t.attractionIds ?? []).filter(Boolean).map((id) => id.toString())));
+    const accessibleIds = new Set(accessibleTrips.flatMap((t) => (t.attractionIds ?? []).filter(Boolean).map((id) => id.toString())));
     const hiddenIds = [...privateIds].filter((id) => !accessibleIds.has(id));
 
     const filter: Record<string, unknown> = {};

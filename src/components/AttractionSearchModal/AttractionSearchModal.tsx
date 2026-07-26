@@ -111,6 +111,13 @@ export function AttractionSearchModal({
     onClose();
   }
 
+  const createNewBtn = (
+    <button type="button" className={styles.createBtn} onClick={handleCreateNew}>
+      <PenLine size={15} aria-hidden="true" />
+      {createLabel}
+    </button>
+  );
+
   return (
     <ModalShell
       isOpen={isOpen}
@@ -127,10 +134,7 @@ export function AttractionSearchModal({
       footer={
         multiSelect ? (
           <div className={styles.footerMultiSelect}>
-            <button type="button" className={styles.createBtn} onClick={handleCreateNew}>
-              <PenLine size={15} aria-hidden="true" />
-              {createLabel}
-            </button>
+            {createNewBtn}
             <button
               type="button"
               className={styles.addSelectedBtn}
@@ -142,10 +146,7 @@ export function AttractionSearchModal({
             </button>
           </div>
         ) : (
-          <button type="button" className={styles.createBtn} onClick={handleCreateNew}>
-            <PenLine size={15} aria-hidden="true" />
-            {createLabel}
-          </button>
+          createNewBtn
         )
       }
       beforeBody={

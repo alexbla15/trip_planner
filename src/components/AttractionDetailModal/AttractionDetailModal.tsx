@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
-import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
+import { ImageWithSkeleton } from "@/components";
 import {
   X,
   MapPin,

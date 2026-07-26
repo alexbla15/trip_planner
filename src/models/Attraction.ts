@@ -105,7 +105,7 @@ export function formatAttraction(
 ): AttractionShape {
   return {
     _id: doc._id.toString(),
-    ownerId: doc.ownerId.toString(),
+    ownerId: doc.ownerId?.toString(),
     name: doc.name,
     country: doc.country,
     city: doc.city,
