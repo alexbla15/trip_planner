@@ -1,5 +1,10 @@
 .wrapper {
   position: relative;
+  /* Cancels the track's shadow-clearance padding below so the extra space
+     doesn't push surrounding layout — net footprint stays unchanged. html/body
+     has overflow-x: clip (globals.css) so the horizontal bleed is safe, same
+     as the arrow buttons already bleeding outside the wrapper. */
+  margin: -32px -40px -56px;
 }
 
 .track {
@@ -9,7 +14,12 @@
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding-bottom: 4px;
+  /* overflow-x: auto forces overflow-y to compute to auto too (CSS Overflow
+     spec), which clips card hover shadows into a flat line at the track's
+     edges. Padding on all sides gives the shadow room to render before the
+     clip — including the first/last card at full scroll, whose shadow would
+     otherwise be cut by the track's own left/right edge. */
+  padding: 32px 40px 56px;
 }
 
 .track::-webkit-scrollbar {
@@ -19,6 +29,15 @@
 .track > * {
   scroll-snap-align: start;
   flex: 0 0 280px;
+  /* Matches .track's padding above. Without this, mandatory scroll-snap
+     treats that padding as skippable scrollable space and snaps each card's
+     own edge flush against the viewport, so the true scroll boundary
+     (scrollLeft: 0) is never a valid resting position — the carousel can
+     never actually scroll far enough left for the padding (and the shadow
+     clearance it exists for) to become visible. scroll-margin folds the
+     padding into each card's snap area so resting at the true edge, with
+     the padding visible, becomes a valid — and preferred — snap position. */
+  scroll-margin: 32px 40px 56px;
 }
 
 .arrow {
@@ -57,12 +76,18 @@
   cursor: not-allowed;
 }
 
+/* Offset relative to .wrapper's edge, which moved outward by the 40px
+   horizontal shadow-clearance margin above. Previously these overlapped the
+   card by 20px (an opaque button sitting on the card edge) — harmless when
+   the card had no visible glow, but once the glow is visible the opaque
+   button occludes it and reads as a hard clipped line. Leaving a small gap
+   instead of overlapping lets the glow render fully before the button starts. */
 .arrowPrev {
-  left: -20px;
+  left: -16px;
 }
 
 .arrowNext {
-  right: -20px;
+  right: -16px;
 }
 
 @media (max-width: 639px) {

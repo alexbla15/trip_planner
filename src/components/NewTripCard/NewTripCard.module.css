@@ -1,4 +1,5 @@
 .card {
+  position: relative;
   background: var(--color-bg-subtle);
   border-radius: var(--radius-lg);
   border: 2px dashed var(--color-border);
@@ -11,17 +12,36 @@
   cursor: pointer;
   text-decoration: none;
   transition: border-color var(--duration-base) var(--easing-out),
-    background var(--duration-base) var(--easing-out),
-    box-shadow var(--duration-base) var(--easing-out);
+    background var(--duration-base) var(--easing-out);
   min-height: 200px;
   outline: none;
+}
+
+/* This card is the only carousel item shorter than its siblings, so flexbox's
+   default align-items: stretch resizes it to match them — and Chromium fails
+   to paint box-shadow on a flex item whose height comes from stretch rather
+   than its own content. Putting the glow on an absolutely-positioned ::before
+   instead sidesteps that: its box comes from inset: 0, not flex stretch. */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity var(--duration-base) var(--easing-out);
+  box-shadow: var(--shadow-card-hover);
+  pointer-events: none;
 }
 
 .card:hover,
 .card:focus-visible {
   border-color: var(--color-primary);
   background: var(--color-primary-light);
-  box-shadow: var(--shadow-lg);
+}
+
+.card:hover::before,
+.card:focus-visible::before {
+  opacity: 1;
 }
 
 .card:focus-visible {
