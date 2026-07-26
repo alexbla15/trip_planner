@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import type { Types } from "mongoose";
 import { dbConnect } from "@/lib/mongoose";
 import { getUserFromRequest } from "@/lib/auth";
 import { Trip, formatTrip } from "@/models/Trip";
+import { User } from "@/models/User";
 
 export async function GET(req: Request) {
   try {
@@ -46,7 +48,7 @@ export async function POST(req: Request) {
   try {
     const payload = getUserFromRequest(req);
     const body = await req.json();
-    const { name, cities, country, coverImage, startDate, endDate, budget, currency, moods, notes } =
+    const { name, cities, country, coverImage, startDate, endDate, budget, currency, moods, notes, isPrivate, collaboratorEmails } =
       body as {
         name?: string;
         cities?: string[];
@@ -58,6 +60,8 @@ export async function POST(req: Request) {
         currency?: string;
         moods?: string[];
         notes?: string;
+        isPrivate?: boolean;
+        collaboratorEmails?: string[];
       };
 
     if (!name?.trim() || !country?.trim() || !startDate || !endDate) {
@@ -78,6 +82,15 @@ export async function POST(req: Request) {
 
     await dbConnect();
 
+    let collaborators: { userId: Types.ObjectId }[] = [];
+    if (collaboratorEmails?.length) {
+      const emails = collaboratorEmails
+        .map((e) => e.toLowerCase().trim())
+        .filter((e) => e && e !== payload.email);
+      const users = await User.find({ email: { $in: emails } });
+      collaborators = users.map((u) => ({ userId: u._id }));
+    }
+
     const trip = await Trip.create({
       ownerId: payload.userId,
       name: name.trim(),
@@ -91,11 +104,12 @@ export async function POST(req: Request) {
       moods: moods ?? [],
       notes,
       attractionIds: [],
-      collaborators: [],
-      isPrivate: false,
+      collaborators,
+      isPrivate: isPrivate ?? false,
     });
 
     await trip.populate("ownerId", "name avatarUrl");
+    await trip.populate("collaborators.userId", "name email avatarUrl");
     return NextResponse.json(formatTrip(trip), { status: 201 });
   } catch {
     return NextResponse.json({ error: "Failed to create trip" }, { status: 500 });

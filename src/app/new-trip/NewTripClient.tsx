@@ -29,12 +29,14 @@ import {
   CoverImageField,
   isValidCoverUrl,
   CurrencySelect,
+  TripSharingPanel,
 } from "@/components";
 import type { AttractionFormData } from "@/components";
 import { useAttractionTypes, useMoodTags } from "@/hooks";
 import { useAuth } from "@/contexts/AuthContext";
 import { createTrip, ApiError } from "@/services";
 import { NOTES_MAX, getDurationDays, getDateError, getNotesCountLevel } from "@/lib";
+import type { Trip, TripCollaborator } from "@/types/trip";
 import styles from "./NewTripClient.module.css";
 
 
@@ -55,6 +57,8 @@ export function NewTripClient() {
   const [attractions, setAttractions] = useState<AttractionFormData[]>([]);
   const [attractionPickerOpen, setAttractionPickerOpen] = useState(false);
   const [coverPhotoUrl, setCoverPhotoUrl] = useState("");
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [collaborators, setCollaborators] = useState<TripCollaborator[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
@@ -94,6 +98,11 @@ export function NewTripClient() {
     setAttractions((prev) => prev.filter((_, i) => i !== index));
   }
 
+  function handleSharingDraftUpdate(updated: Trip) {
+    setIsPrivate(updated.isPrivate);
+    setCollaborators(updated.collaborators);
+  }
+
   async function handleContinue() {
     setTouched({ tripName: true, country: true, startDate: true, endDate: true, moods: true, coverPhotoUrl: true });
     if (!isValid) return;
@@ -112,6 +121,8 @@ export function NewTripClient() {
         moods,
         notes: notes || undefined,
         coverImage: coverPhotoUrl || undefined,
+        isPrivate,
+        collaboratorEmails: collaborators.map((c) => c.email),
       })) as { _id: string };
 
       router.push(`/trips/${data._id}`);
@@ -351,6 +362,27 @@ export function NewTripClient() {
                 onBlur={() => handleBlur("coverPhotoUrl")}
                 error={touched.coverPhotoUrl && !coverPhotoUrlValid ? "Please enter a valid URL" : undefined}
               />
+
+              {/* Sharing & Privacy (draft — applied when the trip is created) */}
+              {token && (
+                <div className={styles.sharingSection}>
+                  <TripSharingPanel
+                    mode="draft"
+                    token={token}
+                    trip={{
+                      _id: "",
+                      name: tripName,
+                      country,
+                      startDate,
+                      endDate,
+                      moods,
+                      collaborators,
+                      isPrivate,
+                    }}
+                    onTripUpdate={handleSharingDraftUpdate}
+                  />
+                </div>
+              )}
 
               {/* Submit error */}
               {submitError && (

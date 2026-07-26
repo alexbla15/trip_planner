@@ -211,6 +211,17 @@ components:
         isPrivate:
           type: boolean
           description: Set to true to restrict visibility to owner and collaborators only.
+        collaboratorEmails:
+          type: array
+          items:
+            type: string
+          description: |
+            Registered users' emails to set as collaborators. On POST /api/trips, resolves each
+            email to a user and seeds the trip's collaborators at creation (unknown emails are
+            skipped silently). On PUT /api/trips/{id}, replaces the entire collaborators list —
+            owner-only, silently ignored if sent by a non-owner collaborator. Prefer the dedicated
+            /api/trips/{id}/collaborators endpoints for single add/remove operations; this field
+            is meant for the create/edit forms which batch all pending changes into one request.
         calDayStart:
           type: integer
           minimum: 0

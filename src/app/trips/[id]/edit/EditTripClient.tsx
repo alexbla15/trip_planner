@@ -19,7 +19,7 @@ import {
   Loader2,
   ChevronDown,
 } from "lucide-react";
-import { MoodTagButton, MoodTagChip, CoverImageField, COUNTRIES, CurrencySelect } from "@/components";
+import { MoodTagButton, MoodTagChip, CoverImageField, COUNTRIES, CurrencySelect, TripSharingPanel } from "@/components";
 import { useAuth } from "@/contexts/AuthContext";
 import { getTrip, updateTrip, deleteTrip } from "@/services";
 import { useMoodTags } from "@/hooks";
@@ -47,6 +47,7 @@ export function EditTripClient({ tripId }: EditTripClientProps) {
   // Page loading (fetching existing trip data)
   const [pageLoading, setPageLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
+  const [trip, setTrip] = useState<Trip | null>(null);
 
   // Form state
   const [tripName, setTripName] = useState("");
@@ -87,6 +88,7 @@ export function EditTripClient({ tripId }: EditTripClientProps) {
       })
       .then((data) => {
         if (!data) return;
+        setTrip(data);
         setTripName(data.name);
         setCountry(data.country);
         setStartDate(toDateValue(data.startDate));
@@ -134,6 +136,8 @@ export function EditTripClient({ tripId }: EditTripClientProps) {
         moods,
         notes: notes || undefined,
         coverImage: coverImage || undefined,
+        isPrivate: trip?.isPrivate,
+        collaboratorEmails: (trip?.collaborators ?? []).map((c) => c.email),
       });
 
       const data = await res.json();
@@ -394,6 +398,13 @@ export function EditTripClient({ tripId }: EditTripClientProps) {
               value={coverImage}
               onChange={setCoverImage}
             />
+
+            {/* Sharing & Privacy — owner only */}
+            {isOwner && token && trip && (
+              <div className={styles.sharingSection}>
+                <TripSharingPanel trip={trip} token={token} onTripUpdate={setTrip} mode="draft" />
+              </div>
+            )}
 
             {/* Submit error */}
             {submitError && (

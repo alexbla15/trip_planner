@@ -34,7 +34,6 @@ import {
   AttractionFilter,
   DEFAULT_OPENING_HOURS,
   renderTypeIcon,
-  TripSharingPanel,
   TripTabBar,
   FormErrorBanner,
 } from "@/components";
@@ -629,16 +628,6 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                     </div>
                   )}
                 </div>
-
-                {isOwner && token && (
-                  <div className={styles.sharingSection}>
-                    <TripSharingPanel
-                      trip={trip}
-                      token={token}
-                      onTripUpdate={(updated) => setTrip(updated)}
-                    />
-                  </div>
-                )}
 
                 <CalendarSection
                   trip={trip}

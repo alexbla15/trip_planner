@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongoose";
 import { getUserFromRequest } from "@/lib/auth";
 import { Trip, formatTrip, resolveRefId } from "@/models/Trip";
+import { User } from "@/models/User";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -66,9 +67,9 @@ export async function PUT(req: Request, { params }: RouteContext) {
     const body = await req.json();
     const {
       name, cities, country, coverImage, startDate, endDate,
-      budget, currency, moods, notes, isPrivate,
+      budget, currency, moods, notes, isPrivate, collaboratorEmails,
       calDayStart, calDayEnd,
-    } = body as Record<string, unknown>;
+    } = body as Record<string, unknown> & { collaboratorEmails?: string[] };
 
     // Build the $set object explicitly — avoids Mongoose Map-field change-detection bugs
     const $set: Record<string, unknown> = {};
@@ -85,6 +86,19 @@ export async function PUT(req: Request, { params }: RouteContext) {
     if (isPrivate !== undefined)   $set.isPrivate   = isPrivate;
     if (calDayStart !== undefined) $set.calDayStart = calDayStart;
     if (calDayEnd   !== undefined) $set.calDayEnd   = calDayEnd;
+
+    // Collaborator list is a full replace, and owner-only (matches the dedicated
+    // /collaborators endpoints) — silently ignored if a non-owner collaborator sends it.
+    if (collaboratorEmails !== undefined) {
+      const isOwner = await Trip.exists({ _id: id, ownerId: payload.userId });
+      if (isOwner) {
+        const emails = collaboratorEmails
+          .map((e) => e.toLowerCase().trim())
+          .filter((e) => e && e !== payload.email);
+        const users = await User.find({ email: { $in: emails } });
+        $set.collaborators = users.map((u) => ({ userId: u._id }));
+      }
+    }
 
     const filter = {
       _id: id,

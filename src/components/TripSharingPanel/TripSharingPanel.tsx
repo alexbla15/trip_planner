@@ -16,7 +16,7 @@ interface UserResult {
   avatarUrl?: string | null;
 }
 
-export function TripSharingPanel({ trip, token, onTripUpdate }: TripSharingPanelProps) {
+export function TripSharingPanel({ trip, token, onTripUpdate, mode = "live" }: TripSharingPanelProps) {
   const [togglingPrivacy, setTogglingPrivacy] = useState(false);
   const [privacyError, setPrivacyError]       = useState<string | null>(null);
 
@@ -31,6 +31,12 @@ export function TripSharingPanel({ trip, token, onTripUpdate }: TripSharingPanel
 
   async function handlePrivacyToggle() {
     const next = !trip.isPrivate;
+
+    if (mode === "draft") {
+      onTripUpdate({ ...trip, isPrivate: next });
+      return;
+    }
+
     onTripUpdate({ ...trip, isPrivate: next });
     setTogglingPrivacy(true);
     setPrivacyError(null);
@@ -92,6 +98,18 @@ export function TripSharingPanel({ trip, token, onTripUpdate }: TripSharingPanel
     setDropdownOpen(false);
     setSearchQuery("");
     setSearchResults([]);
+
+    if (mode === "draft") {
+      const newCollaborator: TripCollaborator = {
+        userId: user._id,
+        name: user.name,
+        email: user.email,
+        avatarUrl: user.avatarUrl,
+      };
+      onTripUpdate({ ...trip, collaborators: [...trip.collaborators, newCollaborator] });
+      return;
+    }
+
     setInviting(true);
     setInviteError(null);
 
@@ -110,6 +128,11 @@ export function TripSharingPanel({ trip, token, onTripUpdate }: TripSharingPanel
   }
 
   async function handleRemove(collaborator: TripCollaborator) {
+    if (mode === "draft") {
+      onTripUpdate({ ...trip, collaborators: trip.collaborators.filter((c) => c.userId !== collaborator.userId) });
+      return;
+    }
+
     const snapshot = trip.collaborators;
     onTripUpdate({ ...trip, collaborators: trip.collaborators.filter((c) => c.userId !== collaborator.userId) });
 

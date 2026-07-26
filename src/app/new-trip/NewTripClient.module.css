@@ -306,6 +306,13 @@
   color: var(--color-error);
 }
 
+/* ── Sharing & Privacy ── */
+.sharingSection {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
 /* ── CTA row ── */
 .ctaRow {
   display: flex;
