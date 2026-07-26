@@ -14,8 +14,12 @@ export const GET = withApiHandler("GET /api/route/transit", async (req: Request)
 
   let upstream: Response;
   try {
+    // Transitous's nginx front-end rejects requests with an empty or generic
+    // User-Agent (undici, Node's built-in fetch, sends none by default) with a 403 —
+    // see https://transitous.org/api/. A descriptive UA is required per their usage policy.
     upstream = await fetch(`${TRANSITOUS_URL}?${params}`, {
       signal: ctrl.signal,
+      headers: { "User-Agent": "TripPlanner/1.0 (+https://trip-planner-beta-dusky.vercel.app)" },
     });
   } catch {
     throw new ApiError(503, "Transit service unavailable", "SERVICE_UNAVAILABLE");
