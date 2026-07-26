@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongoose";
 import { Trip } from "@/models/Trip";
+// Registers the "User" and "Attraction" schemas so populate() below can resolve
+// them — Trip only references these models by ref string, and each API route is
+// bundled as its own isolated serverless function on Vercel, so without these
+// imports the schemas are never registered in this route's process.
+import "@/models/User";
+import "@/models/Attraction";
 import type { ExploreItem } from "@/types/trip";
 import { withApiHandler } from "@/lib/withApiHandler";
 import { corsPreflight } from "@/lib/cors";
