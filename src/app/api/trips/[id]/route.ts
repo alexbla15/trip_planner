@@ -1,137 +1,40 @@
 import { NextResponse } from "next/server";
-import { dbConnect } from "@/lib/mongoose";
 import { getUserFromRequest } from "@/lib/auth";
-import { Trip, formatTrip, resolveRefId } from "@/models/Trip";
-import { User } from "@/models/User";
+import { withApiHandler } from "@/lib/withApiHandler";
+import { corsPreflight } from "@/lib/cors";
+import { formatTrip } from "@/models/Trip";
+import { getTripForViewer, updateTrip, deleteTrip } from "@/lib/services/trips.service";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-/** Resolves a trip document by ID with access-control.
- *  ownerOnly=true  → only the trip owner passes (used for DELETE).
- *  ownerOnly=false → owner or any listed collaborator passes (used for PUT).
- */
-async function resolveTrip(req: Request, id: string, ownerOnly = false) {
+export const OPTIONS = corsPreflight;
+
+export const GET = withApiHandler<RouteContext>("GET /api/trips/[id]", async (req, { params }) => {
+  const { id } = await params;
+
+  // Auth is optional — non-private trips are readable without a token
+  let userId: string | null = null;
+  try { userId = getUserFromRequest(req).userId; } catch { /* unauthenticated */ }
+
+  const trip = await getTripForViewer(id, userId);
+  return NextResponse.json(formatTrip(trip));
+});
+
+export const PUT = withApiHandler<RouteContext>("PUT /api/trips/[id]", async (req, { params }) => {
+  const { id } = await params;
   const payload = getUserFromRequest(req);
-  await dbConnect();
-  const query = ownerOnly
-    ? { _id: id, ownerId: payload.userId }
-    : {
-        _id: id,
-        $or: [
-          { ownerId: payload.userId },
-          { "collaborators.userId": payload.userId },
-        ],
-      };
-  const trip = await Trip.findOne(query).populate("collaborators.userId", "name email avatarUrl").populate("ownerId", "name avatarUrl");
-  return { trip, payload };
-}
+  const body = await req.json();
 
-export async function GET(req: Request, { params }: RouteContext) {
-  try {
-    const { id } = await params;
-    await dbConnect();
+  const trip = await updateTrip(payload, id, body);
+  return NextResponse.json(formatTrip(trip));
+});
 
-    let userId: string | null = null;
-    try { userId = getUserFromRequest(req).userId; } catch { /* unauthenticated */ }
+export const DELETE = withApiHandler<RouteContext>("DELETE /api/trips/[id]", async (req, { params }) => {
+  const { id } = await params;
+  const payload = getUserFromRequest(req);
 
-    const trip = await Trip.findById(id).populate("collaborators.userId", "name email avatarUrl").populate("ownerId", "name avatarUrl");
-    if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
-
-    // trip.ownerId / collaborators[].userId are populated above (for avatar display), so they're
-    // full documents here, not raw ObjectIds — resolveRefId() unwraps either shape to a plain id
-    // string. A bare .toString() on a populated Mongoose document returns an inspect() debug dump,
-    // not the id, which silently broke ownership checks for private trips.
-    const isOwner        = !!userId && resolveRefId(trip.ownerId) === userId;
-    const isCollaborator = !!userId && trip.collaborators.some((c) => resolveRefId(c.userId) === userId);
-    const isPublic       = !trip.isPrivate;
-
-    if (!isPublic && !isOwner && !isCollaborator) {
-      return NextResponse.json({ error: "This trip is private" }, { status: 403 });
-    }
-
-    return NextResponse.json(formatTrip(trip));
-  } catch (err) {
-    console.error("GET /api/trips/[id] failed:", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
-  }
-}
-
-export async function PUT(req: Request, { params }: RouteContext) {
-  try {
-    const { id } = await params;
-    const payload = getUserFromRequest(req);
-    await dbConnect();
-
-    const body = await req.json();
-    const {
-      name, cities, country, coverImage, startDate, endDate,
-      budget, currency, moods, notes, isPrivate, collaboratorEmails,
-      calDayStart, calDayEnd,
-    } = body as Record<string, unknown> & { collaboratorEmails?: string[] };
-
-    // Build the $set object explicitly — avoids Mongoose Map-field change-detection bugs
-    const $set: Record<string, unknown> = {};
-    if (name)                     $set.name        = (name as string).trim();
-    if (cities !== undefined)     $set.cities      = cities;
-    if (country)                  $set.country     = (country as string).trim();
-    if (coverImage !== undefined) $set.coverImage  = coverImage;
-    if (startDate)                $set.startDate   = new Date(startDate as string);
-    if (endDate)                  $set.endDate     = new Date(endDate as string);
-    if (budget !== undefined)     $set.budget      = budget;
-    if (currency !== undefined)   $set.currency    = currency;
-    if (moods)                    $set.moods       = moods;
-    if (notes !== undefined)      $set.notes       = notes;
-    if (isPrivate !== undefined)   $set.isPrivate   = isPrivate;
-    if (calDayStart !== undefined) $set.calDayStart = calDayStart;
-    if (calDayEnd   !== undefined) $set.calDayEnd   = calDayEnd;
-
-    // Collaborator list is a full replace, and owner-only (matches the dedicated
-    // /collaborators endpoints) — silently ignored if a non-owner collaborator sends it.
-    if (collaboratorEmails !== undefined) {
-      const isOwner = await Trip.exists({ _id: id, ownerId: payload.userId });
-      if (isOwner) {
-        const emails = collaboratorEmails
-          .map((e) => e.toLowerCase().trim())
-          .filter((e) => e && e !== payload.email);
-        const users = await User.find({ email: { $in: emails } });
-        $set.collaborators = users.map((u) => ({ userId: u._id }));
-      }
-    }
-
-    const filter = {
-      _id: id,
-      $or: [{ ownerId: payload.userId }, { "collaborators.userId": payload.userId }],
-    };
-
-    if (Object.keys($set).length === 0) {
-      const trip = await Trip.findOne(filter).populate("collaborators.userId", "name email avatarUrl").populate("ownerId", "name avatarUrl");
-      if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
-      return NextResponse.json(formatTrip(trip));
-    }
-
-    const updated = await Trip.findOneAndUpdate(filter, { $set }, { new: true, runValidators: true })
-      .populate("collaborators.userId", "name email avatarUrl").populate("ownerId", "name avatarUrl");
-    if (!updated) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
-    return NextResponse.json(formatTrip(updated));
-  } catch (err) {
-    console.error("PUT /api/trips/[id] failed:", err);
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-}
-
-export async function DELETE(req: Request, { params }: RouteContext) {
-  try {
-    const { id } = await params;
-    // Only the trip owner may delete; collaborators cannot.
-    const { trip } = await resolveTrip(req, id, true);
-    if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
-
-    await trip.deleteOne();
-    return NextResponse.json({ message: "Trip deleted" });
-  } catch (err) {
-    console.error("DELETE /api/trips/[id] failed:", err);
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-}
+  await deleteTrip(payload, id);
+  return NextResponse.json({ message: "Trip deleted" });
+});

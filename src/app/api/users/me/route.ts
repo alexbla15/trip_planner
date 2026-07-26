@@ -2,60 +2,57 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongoose";
 import { User } from "@/models/User";
 import { getUserFromRequest } from "@/lib/auth";
+import { withApiHandler } from "@/lib/withApiHandler";
+import { corsPreflight } from "@/lib/cors";
+import { notFound } from "@/lib/apiError";
 
-export async function GET(req: Request) {
-  try {
-    const payload = getUserFromRequest(req);
-    await dbConnect();
+export const OPTIONS = corsPreflight;
 
-    const user = await User.findById(payload.userId).select("-password");
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+export const GET = withApiHandler("GET /api/users/me", async (req: Request) => {
+  const payload = getUserFromRequest(req);
+  await dbConnect();
 
-    return NextResponse.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      avatarUrl: user.avatarUrl ?? null,
-      role: user.role ?? "user",
-      createdAt: user.createdAt,
-    });
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await User.findById(payload.userId).select("-password");
+  if (!user) {
+    throw notFound("User not found");
   }
-}
 
-export async function PUT(req: Request) {
-  try {
-    const payload = getUserFromRequest(req);
-    const body = await req.json();
-    const { name, avatarUrl } = body as { name?: string; avatarUrl?: string };
+  return NextResponse.json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    avatarUrl: user.avatarUrl ?? null,
+    role: user.role ?? "user",
+    createdAt: user.createdAt,
+  });
+});
 
-    await dbConnect();
+export const PUT = withApiHandler("PUT /api/users/me", async (req: Request) => {
+  const payload = getUserFromRequest(req);
+  const body = await req.json();
+  const { name, avatarUrl } = body as { name?: string; avatarUrl?: string };
 
-    const update: Record<string, string> = {};
-    if (name?.trim()) update.name = name.trim();
-    if (avatarUrl?.trim()) update.avatarUrl = avatarUrl.trim();
+  await dbConnect();
 
-    const user = await User.findByIdAndUpdate(payload.userId, update, {
-      new: true,
-      select: "-password",
-    });
+  const update: Record<string, string> = {};
+  if (name?.trim()) update.name = name.trim();
+  if (avatarUrl?.trim()) update.avatarUrl = avatarUrl.trim();
 
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+  const user = await User.findByIdAndUpdate(payload.userId, update, {
+    new: true,
+    select: "-password",
+  });
 
-    return NextResponse.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      avatarUrl: user.avatarUrl ?? null,
-      role: user.role ?? "user",
-      createdAt: user.createdAt,
-    });
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) {
+    throw notFound("User not found");
   }
-}
+
+  return NextResponse.json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    avatarUrl: user.avatarUrl ?? null,
+    role: user.role ?? "user",
+    createdAt: user.createdAt,
+  });
+});

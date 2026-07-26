@@ -3,36 +3,39 @@ import { dbConnect } from "@/lib/mongoose";
 import { MoodTag, formatMoodTag } from "@/models/MoodTag";
 import { User } from "@/models/User";
 import { getUserFromRequest } from "@/lib/auth";
+import { withApiHandler } from "@/lib/withApiHandler";
+import { corsPreflight } from "@/lib/cors";
+import { badRequest, forbidden, notFound, serverError } from "@/lib/apiError";
+
+export const OPTIONS = corsPreflight;
 
 type Params = { params: Promise<{ id: string }> };
 
 /** Admin only — updates a mood tag. */
-export async function PUT(req: Request, { params }: Params) {
+export const PUT = withApiHandler("PUT /api/mood-tags/[id]", async (req: Request, { params }: Params) => {
+  const { id } = await params;
+  const payload = getUserFromRequest(req);
+  await dbConnect();
+
+  const caller = await User.findById(payload.userId).select("role");
+  if (caller?.role !== "admin") {
+    throw forbidden("Forbidden");
+  }
+
+  const body = await req.json() as {
+    name?: string; icon?: string;
+    color?: string; bgColor?: string;
+    darkColor?: string; darkBgColor?: string;
+  };
+
+  const { name, icon, color, bgColor, darkColor, darkBgColor } = body;
+  if (!name?.trim() || !icon?.trim() || !color?.trim() || !bgColor?.trim() || !darkColor?.trim() || !darkBgColor?.trim()) {
+    throw badRequest("name, icon, color, bgColor, darkColor, and darkBgColor are required");
+  }
+
+  let updated;
   try {
-    const { id } = await params;
-    const payload = getUserFromRequest(req);
-    await dbConnect();
-
-    const caller = await User.findById(payload.userId).select("role");
-    if (caller?.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const body = await req.json() as {
-      name?: string; icon?: string;
-      color?: string; bgColor?: string;
-      darkColor?: string; darkBgColor?: string;
-    };
-
-    const { name, icon, color, bgColor, darkColor, darkBgColor } = body;
-    if (!name?.trim() || !icon?.trim() || !color?.trim() || !bgColor?.trim() || !darkColor?.trim() || !darkBgColor?.trim()) {
-      return NextResponse.json(
-        { error: "name, icon, color, bgColor, darkColor, and darkBgColor are required" },
-        { status: 400 }
-      );
-    }
-
-    const updated = await MoodTag.findByIdAndUpdate(
+    updated = await MoodTag.findByIdAndUpdate(
       id,
       {
         name: name.trim(), icon: icon.trim(),
@@ -41,34 +44,30 @@ export async function PUT(req: Request, { params }: Params) {
       },
       { new: true }
     );
-
-    if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    return NextResponse.json(formatMoodTag(updated));
   } catch (err) {
     const mongoErr = err as { code?: number };
     if (mongoErr?.code === 11000) {
-      return NextResponse.json({ error: "A mood tag with that name already exists" }, { status: 400 });
+      throw badRequest("A mood tag with that name already exists");
     }
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    throw serverError("Server error");
   }
-}
+
+  if (!updated) throw notFound("Not found");
+  return NextResponse.json(formatMoodTag(updated));
+});
 
 /** Admin only — deletes a mood tag. */
-export async function DELETE(req: Request, { params }: Params) {
-  try {
-    const { id } = await params;
-    const payload = getUserFromRequest(req);
-    await dbConnect();
+export const DELETE = withApiHandler("DELETE /api/mood-tags/[id]", async (req: Request, { params }: Params) => {
+  const { id } = await params;
+  const payload = getUserFromRequest(req);
+  await dbConnect();
 
-    const caller = await User.findById(payload.userId).select("role");
-    if (caller?.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const deleted = await MoodTag.findByIdAndDelete(id);
-    if (!deleted) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  const caller = await User.findById(payload.userId).select("role");
+  if (caller?.role !== "admin") {
+    throw forbidden("Forbidden");
   }
-}
+
+  const deleted = await MoodTag.findByIdAndDelete(id);
+  if (!deleted) throw notFound("Not found");
+  return NextResponse.json({ success: true });
+});

@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import { withApiHandler } from "@/lib/withApiHandler";
+import { corsPreflight } from "@/lib/cors";
+
+export const OPTIONS = corsPreflight;
 
 type GeoFeature = {
   type: string;
@@ -10,7 +14,7 @@ type FeatureCollection = { type: string; features: GeoFeature[] };
 
 const cache = new Map<string, GeoFeature | null>();
 
-export async function GET(req: Request) {
+export const GET = withApiHandler("GET /api/geo/country", async (req: Request) => {
   const { searchParams } = new URL(req.url);
   const country = searchParams.get("name")?.trim();
   if (!country) return NextResponse.json(null);
@@ -41,4 +45,4 @@ export async function GET(req: Request) {
     cache.set(country, null);
     return NextResponse.json(null);
   }
-}
+});

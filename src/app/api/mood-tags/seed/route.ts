@@ -3,6 +3,11 @@ import { dbConnect } from "@/lib/mongoose";
 import { MoodTag, formatMoodTag } from "@/models/MoodTag";
 import { User } from "@/models/User";
 import { getUserFromRequest } from "@/lib/auth";
+import { withApiHandler } from "@/lib/withApiHandler";
+import { corsPreflight } from "@/lib/cors";
+import { forbidden } from "@/lib/apiError";
+
+export const OPTIONS = corsPreflight;
 
 const DEFAULT_MOOD_TAGS = [
   { name: "Vibrant Nightlife",    icon: "Moon",           color: "#7c3aed", bgColor: "#f5f3ff", darkColor: "#c4b5fd", darkBgColor: "#2e1065" },
@@ -19,31 +24,27 @@ const DEFAULT_MOOD_TAGS = [
 ];
 
 /** Admin only — seeds the default mood tags (only inserts missing ones). */
-export async function POST(req: Request) {
-  try {
-    const payload = getUserFromRequest(req);
-    await dbConnect();
+export const POST = withApiHandler("POST /api/mood-tags/seed", async (req: Request) => {
+  const payload = getUserFromRequest(req);
+  await dbConnect();
 
-    const caller = await User.findById(payload.userId).select("role");
-    if (caller?.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const existing = await MoodTag.find().select("name");
-    const existingNames = new Set(existing.map((t) => t.name));
-    const toInsert = DEFAULT_MOOD_TAGS.filter((t) => !existingNames.has(t.name));
-
-    if (toInsert.length === 0) {
-      return NextResponse.json({ message: "All default mood tags already exist", inserted: 0 });
-    }
-
-    const inserted = await MoodTag.insertMany(toInsert);
-    return NextResponse.json({
-      message: `Seeded ${inserted.length} mood tag(s)`,
-      inserted: inserted.length,
-      tags: inserted.map(formatMoodTag),
-    }, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const caller = await User.findById(payload.userId).select("role");
+  if (caller?.role !== "admin") {
+    throw forbidden("Forbidden");
   }
-}
+
+  const existing = await MoodTag.find().select("name");
+  const existingNames = new Set(existing.map((t) => t.name));
+  const toInsert = DEFAULT_MOOD_TAGS.filter((t) => !existingNames.has(t.name));
+
+  if (toInsert.length === 0) {
+    return NextResponse.json({ message: "All default mood tags already exist", inserted: 0 });
+  }
+
+  const inserted = await MoodTag.insertMany(toInsert);
+  return NextResponse.json({
+    message: `Seeded ${inserted.length} mood tag(s)`,
+    inserted: inserted.length,
+    tags: inserted.map(formatMoodTag),
+  }, { status: 201 });
+});

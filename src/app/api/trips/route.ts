@@ -1,117 +1,30 @@
 import { NextResponse } from "next/server";
-import type { Types } from "mongoose";
-import { dbConnect } from "@/lib/mongoose";
 import { getUserFromRequest } from "@/lib/auth";
-import { Trip, formatTrip } from "@/models/Trip";
-import { User } from "@/models/User";
+import { withApiHandler } from "@/lib/withApiHandler";
+import { corsPreflight } from "@/lib/cors";
+import { formatTrip } from "@/models/Trip";
+import { listTripsForUser, createTrip, type TripListFilter } from "@/lib/services/trips.service";
 
-export async function GET(req: Request) {
-  try {
-    const payload = getUserFromRequest(req);
-    await dbConnect();
+export const OPTIONS = corsPreflight;
 
-    const { searchParams } = new URL(req.url);
-    const upcoming = searchParams.get("upcoming");
-    const country = searchParams.get("country");
-    const mood = searchParams.get("mood");
+export const GET = withApiHandler("GET /api/trips", async (req: Request) => {
+  const payload = getUserFromRequest(req);
 
-    // Return trips where the user is the owner or a listed collaborator
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const filter: Record<string, any> = {
-      $or: [
-        { ownerId: payload.userId },
-        { "collaborators.userId": payload.userId },
-      ],
-    };
+  const { searchParams } = new URL(req.url);
+  const filter: TripListFilter = {
+    upcoming: searchParams.get("upcoming") === "true",
+    country: searchParams.get("country"),
+    mood: searchParams.get("mood"),
+  };
 
-    if (upcoming === "true") {
-      filter.startDate = { $gt: new Date() };
-    }
-    if (country) {
-      filter.country = { $regex: country, $options: "i" };
-    }
-    if (mood) {
-      filter.moods = mood;
-    }
+  const trips = await listTripsForUser(payload.userId, filter);
+  return NextResponse.json(trips.map(formatTrip));
+});
 
-    const trips = await Trip.find(filter)
-      .sort({ startDate: -1 })
-      .populate("ownerId", "name avatarUrl")
-      .populate("collaborators.userId", "name email avatarUrl");
-    return NextResponse.json(trips.map(formatTrip));
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-}
+export const POST = withApiHandler("POST /api/trips", async (req: Request) => {
+  const payload = getUserFromRequest(req);
+  const body = await req.json();
 
-export async function POST(req: Request) {
-  try {
-    const payload = getUserFromRequest(req);
-    const body = await req.json();
-    const { name, cities, country, coverImage, startDate, endDate, budget, currency, moods, notes, isPrivate, collaboratorEmails } =
-      body as {
-        name?: string;
-        cities?: string[];
-        country?: string;
-        coverImage?: string;
-        startDate?: string;
-        endDate?: string;
-        budget?: number;
-        currency?: string;
-        moods?: string[];
-        notes?: string;
-        isPrivate?: boolean;
-        collaboratorEmails?: string[];
-      };
-
-    if (!name?.trim() || !country?.trim() || !startDate || !endDate) {
-      return NextResponse.json(
-        { error: "name, country, startDate and endDate are required" },
-        { status: 400 }
-      );
-    }
-
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) {
-      return NextResponse.json(
-        { error: "Invalid date range" },
-        { status: 400 }
-      );
-    }
-
-    await dbConnect();
-
-    let collaborators: { userId: Types.ObjectId }[] = [];
-    if (collaboratorEmails?.length) {
-      const emails = collaboratorEmails
-        .map((e) => e.toLowerCase().trim())
-        .filter((e) => e && e !== payload.email);
-      const users = await User.find({ email: { $in: emails } });
-      collaborators = users.map((u) => ({ userId: u._id }));
-    }
-
-    const trip = await Trip.create({
-      ownerId: payload.userId,
-      name: name.trim(),
-      cities: cities ?? [],
-      country: country.trim(),
-      coverImage,
-      startDate: start,
-      endDate: end,
-      budget,
-      currency,
-      moods: moods ?? [],
-      notes,
-      attractionIds: [],
-      collaborators,
-      isPrivate: isPrivate ?? false,
-    });
-
-    await trip.populate("ownerId", "name avatarUrl");
-    await trip.populate("collaborators.userId", "name email avatarUrl");
-    return NextResponse.json(formatTrip(trip), { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "Failed to create trip" }, { status: 500 });
-  }
-}
+  const trip = await createTrip(payload, body);
+  return NextResponse.json(formatTrip(trip), { status: 201 });
+});

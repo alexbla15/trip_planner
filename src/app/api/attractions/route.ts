@@ -1,138 +1,48 @@
 import { NextResponse } from "next/server";
-import { dbConnect } from "@/lib/mongoose";
 import { getUserFromRequest } from "@/lib/auth";
-import { Attraction, formatAttraction } from "@/models/Attraction";
-import { AttractionType } from "@/models/AttractionType";
-import { Trip } from "@/models/Trip";
+import { withApiHandler } from "@/lib/withApiHandler";
+import { corsPreflight } from "@/lib/cors";
+import { formatAttraction } from "@/models/Attraction";
+import { searchAttractions, createAttraction } from "@/lib/services/attractions.service";
 
-export async function GET(req: Request) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const country = searchParams.get("country");
-    const city    = searchParams.get("city");
-    const q = searchParams.get("q");
-    const type = searchParams.get("type");
-    const ownerId = searchParams.get("ownerId");
+export const OPTIONS = corsPreflight;
 
-    if (!country?.trim() && !city?.trim() && !type?.trim()) {
-      return NextResponse.json({ error: "country, city, or type param is required" }, { status: 400 });
-    }
+export const GET = withApiHandler("GET /api/attractions", async (req: Request) => {
+  const { searchParams } = new URL(req.url);
 
-    await dbConnect();
+  // Optional auth — used to determine which private-trip attractions are visible
+  let userId: string | null = null;
+  try { userId = getUserFromRequest(req).userId; } catch { /* unauthenticated */ }
 
-    // Optional auth — used to determine which private-trip attractions are visible
-    let userId: string | null = null;
-    try { userId = getUserFromRequest(req).userId; } catch { /* unauthenticated */ }
+  const skipParam = searchParams.get("skip");
+  const limitParam = searchParams.get("limit");
 
-    const privateFilter = userId
-      ? { isPrivate: true, ownerId: { $ne: userId }, "collaborators.userId": { $ne: userId } }
-      : { isPrivate: true };
+  const { items, total, skip, limit } = await searchAttractions(userId, {
+    country: searchParams.get("country"),
+    city: searchParams.get("city"),
+    q: searchParams.get("q"),
+    type: searchParams.get("type"),
+    ownerId: searchParams.get("ownerId"),
+    skip: skipParam ? Number(skipParam) : null,
+    limit: limitParam ? Number(limitParam) : null,
+  });
 
-    const accessibleFilter = userId
-      ? { $or: [{ ownerId: userId }, { "collaborators.userId": userId }, { isPrivate: { $ne: true } }] }
-      : { isPrivate: { $ne: true } };
+  // Response body stays a plain array for backward compatibility with existing callers
+  // (src/services/attractions.service.ts) — pagination metadata rides on headers so
+  // clients can adopt "load more" incrementally without a breaking body-shape change.
+  return NextResponse.json(items.map((doc) => formatAttraction(doc, null)), {
+    headers: {
+      "X-Total-Count": String(total),
+      "X-Skip": String(skip),
+      "X-Limit": String(limit),
+    },
+  });
+});
 
-    const [privateTrips, accessibleTrips] = await Promise.all([
-      Trip.find(privateFilter).select("attractionIds").lean(),
-      Trip.find(accessibleFilter).select("attractionIds").lean(),
-    ]);
+export const POST = withApiHandler("POST /api/attractions", async (req: Request) => {
+  const payload = getUserFromRequest(req);
+  const body = await req.json();
 
-    const privateIds    = new Set(privateTrips.flatMap((t) => (t.attractionIds ?? []).filter(Boolean).map((id) => id.toString())));
-    const accessibleIds = new Set(accessibleTrips.flatMap((t) => (t.attractionIds ?? []).filter(Boolean).map((id) => id.toString())));
-    const hiddenIds = [...privateIds].filter((id) => !accessibleIds.has(id));
-
-    const filter: Record<string, unknown> = {};
-    if (country?.trim()) filter.country = country.trim();
-    if (city?.trim())    filter.city    = city.trim();
-    if (q?.trim()) filter.name = { $regex: q.trim(), $options: "i" };
-    if (type?.trim()) {
-      const typeDoc = await AttractionType.findOne({ name: type.trim() }).select("_id");
-      if (!typeDoc) return NextResponse.json([]);
-      filter.types = typeDoc._id;
-    }
-    if (ownerId?.trim()) {
-      filter.ownerId = ownerId.trim();
-      filter.subtype = { $ne: "flight" };
-    }
-    if (hiddenIds.length > 0) filter._id = { $nin: hiddenIds };
-
-    const limit = city?.trim() ? 100 : type?.trim() ? 200 : 20;
-
-    const attractions = await Attraction.find(filter)
-      .populate("types")
-      .sort({ name: 1 })
-      .limit(limit);
-
-    return NextResponse.json(attractions.map((doc) => formatAttraction(doc, null)));
-  } catch {
-    return NextResponse.json({ error: "Failed to search attractions" }, { status: 500 });
-  }
-}
-
-export async function POST(req: Request) {
-  try {
-    const payload = getUserFromRequest(req);
-    await dbConnect();
-
-    const body = await req.json() as {
-      name?: string;
-      country?: string;
-      city?: string;
-      coordinates?: { lat: number; lng: number } | null;
-      types?: string[];
-      durationValue?: string;
-      durationUnit?: "minutes" | "hours";
-      price?: number | null;
-      currency?: string;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      openingHours?: any;
-      notes?: string;
-      photoUrl?: string;
-    };
-
-    const { name, country, city, coordinates, types, durationValue, durationUnit,
-      price, currency, openingHours, notes, photoUrl } = body;
-
-    if (!name?.trim() || !country?.trim() || !city?.trim()) {
-      return NextResponse.json({ error: "name, country, and city are required" }, { status: 400 });
-    }
-
-    const existing = await Attraction.findOne(
-      { name: name.trim() },
-      undefined,
-      { collation: { locale: "en", strength: 2 } }
-    );
-    if (existing) {
-      return NextResponse.json({ error: "An attraction with this name already exists" }, { status: 409 });
-    }
-
-    const typeIds = types?.length
-      ? (await AttractionType.find({ name: { $in: types } }).select("_id")).map((d) => d._id)
-      : [];
-
-    const attraction = await Attraction.create({
-      ownerId: payload.userId,
-      name: name.trim(),
-      country: country.trim(),
-      city: city.trim(),
-      coordinates: coordinates ?? null,
-      types: typeIds,
-      durationValue: durationValue || undefined,
-      durationUnit: durationUnit || undefined,
-      price: price ?? null,
-      currency: currency || "USD",
-      openingHours: openingHours ?? undefined,
-      notes: notes || undefined,
-      photoUrl: photoUrl || undefined,
-    });
-
-    await attraction.populate("types");
-    return NextResponse.json(formatAttraction(attraction, null), { status: 201 });
-  } catch (err) {
-    const msg = (err as Error).message ?? "";
-    if (msg.includes("E11000")) {
-      return NextResponse.json({ error: "An attraction with this name already exists" }, { status: 409 });
-    }
-    return NextResponse.json({ error: "Failed to create attraction" }, { status: 500 });
-  }
-}
+  const attraction = await createAttraction(payload, body);
+  return NextResponse.json(formatAttraction(attraction, null), { status: 201 });
+});

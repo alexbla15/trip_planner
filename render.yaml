@@ -1,0 +1,18 @@
+# Render Blueprint — deploys this app as a Docker web service.
+# Import at https://dashboard.render.com/blueprints, or use as a reference for a
+# manually-created Web Service. The app is already live on Vercel (zero-config, no file
+# needed there); this is an alternative host for Render/Railway/Fly-style deployment.
+services:
+  - type: web
+    name: trip-planner
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+    healthCheckPath: /

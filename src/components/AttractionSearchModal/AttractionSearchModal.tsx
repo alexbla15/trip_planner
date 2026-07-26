@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Search, MapPin, Plus, PenLine, SearchX, Check } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
-import { useAttractionTypes } from "@/hooks";
+import { useAttractionTypes, useDebounce } from "@/hooks";
 import { searchAttractionsByCountry } from "@/services";
 import { AttractionFilter } from "@/components/AttractionFilter";
 import { ModalShell } from "@/components/Modal";
@@ -29,13 +29,13 @@ export function AttractionSearchModal({
   multiSelect = false,
 }: AttractionSearchModalProps) {
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query, 300);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const existingIdSet = useMemo(() => new Set(existingAttractionIds), [existingAttractionIds]);
   const { categories, findType } = useAttractionTypes();
   const [results, setResults] = useState<Attraction[]>([]);
   const [bodyState, setBodyState] = useState<BodyState>("initial");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
   // Reset on open
@@ -49,33 +49,37 @@ export function AttractionSearchModal({
     }
   }, [isOpen]);
 
-  function runSearch(q: string) {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-
-    if (!q.trim()) {
-      setBodyState("initial");
-      setResults([]);
-      return;
-    }
-
-    setBodyState("loading");
-    debounceRef.current = setTimeout(async () => {
+  // Fires only once typing pauses for 300ms, avoiding a fetch per keystroke.
+  useEffect(() => {
+    if (!debouncedQuery.trim()) return;
+    let cancelled = false;
+    (async () => {
       try {
-        const data = (await searchAttractionsByCountry(country, q, token)) as Attraction[];
+        const data = (await searchAttractionsByCountry(country, debouncedQuery, token)) as Attraction[];
+        if (cancelled) return;
         const list = (Array.isArray(data) ? data : [])
           .filter((a) => !subtypeFilter || a.subtype === subtypeFilter);
         setResults(list);
         setBodyState(list.length > 0 ? "results" : "empty");
       } catch {
+        if (cancelled) return;
         setBodyState("empty");
         setResults([]);
       }
-    }, 300);
-  }
+    })();
+    return () => { cancelled = true; };
+  }, [debouncedQuery, country, token, subtypeFilter]);
 
+  // Reflects typing immediately (so the UI doesn't feel stuck) while the actual
+  // network request waits for the debounced value in the effect above.
   function handleQueryChange(value: string) {
     setQuery(value);
-    runSearch(value);
+    if (!value.trim()) {
+      setBodyState("initial");
+      setResults([]);
+    } else {
+      setBodyState("loading");
+    }
   }
 
   const filteredResults = useMemo(() => {

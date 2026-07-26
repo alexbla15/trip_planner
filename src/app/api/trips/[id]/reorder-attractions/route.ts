@@ -1,40 +1,21 @@
 import { NextResponse } from "next/server";
-import { dbConnect } from "@/lib/mongoose";
 import { getUserFromRequest } from "@/lib/auth";
-import { Trip } from "@/models/Trip";
+import { withApiHandler } from "@/lib/withApiHandler";
+import { corsPreflight } from "@/lib/cors";
+import { reorderTripAttractions } from "@/lib/services/trips.service";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-export async function PUT(req: Request, { params }: RouteContext) {
-  try {
-    const { id: tripId } = await params;
-    const payload = getUserFromRequest(req);
-    await dbConnect();
+export const OPTIONS = corsPreflight;
 
-    const trip = await Trip.findOne({
-      _id: tripId,
-      $or: [
-        { ownerId: payload.userId },
-        { "collaborators.userId": payload.userId },
-      ],
-    });
-    if (!trip) {
-      return NextResponse.json({ error: "Trip not found" }, { status: 404 });
-    }
+export const PUT = withApiHandler<RouteContext>("PUT /api/trips/[id]/reorder-attractions", async (req, { params }) => {
+  const { id: tripId } = await params;
+  const payload = getUserFromRequest(req);
+  const body = await req.json();
+  const { attractionIds } = body as { attractionIds?: unknown };
 
-    const body = await req.json();
-    const { attractionIds } = body as { attractionIds?: string[] };
-
-    if (!Array.isArray(attractionIds)) {
-      return NextResponse.json({ error: "attractionIds must be an array" }, { status: 400 });
-    }
-
-    await Trip.findByIdAndUpdate(tripId, { attractionIds });
-
-    return NextResponse.json({ message: "Order updated" });
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-}
+  await reorderTripAttractions(payload, tripId, attractionIds);
+  return NextResponse.json({ message: "Order updated" });
+});

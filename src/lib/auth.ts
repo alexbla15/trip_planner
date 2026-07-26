@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { unauthorized } from "@/lib/apiError";
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 
@@ -17,14 +18,19 @@ export function signToken(payload: JwtPayload): string {
 
 /**
  * Extracts and verifies the caller's JWT from a request's `Authorization: Bearer <token>`
- * header. Throws if the header is missing/malformed or the token is invalid/expired —
- * callers (API routes) should let this throw and respond 401.
+ * header. Throws ApiError(401) if the header is missing/malformed or the token is
+ * invalid/expired — withApiHandler (src/lib/withApiHandler.ts) turns this into a 401
+ * response, so callers can let it propagate instead of catching it themselves.
  */
 export function getUserFromRequest(req: Request): JwtPayload {
   const auth = req.headers.get("Authorization");
   if (!auth?.startsWith("Bearer ")) {
-    throw new Error("Missing or invalid Authorization header");
+    throw unauthorized("Missing or invalid Authorization header");
   }
   const token = auth.slice(7);
-  return jwt.verify(token, JWT_SECRET) as JwtPayload;
+  try {
+    return jwt.verify(token, JWT_SECRET) as JwtPayload;
+  } catch {
+    throw unauthorized("Invalid or expired token");
+  }
 }

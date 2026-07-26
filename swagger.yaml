@@ -4,7 +4,9 @@ info:
   version: 1.0.0
   description: API documentation for the Trip Management and Attraction Tracking Platform.
 servers:
-  - url: http://localhost:5000
+  - url: https://trip-planner-beta-dusky.vercel.app
+    description: Production (Vercel)
+  - url: http://localhost:3000
     description: Local development server
 
 components:
@@ -1115,9 +1117,9 @@ paths:
   # ==========================================
   # 🏛️ Attraction Management (Nested Routes)
   # ==========================================
-  /api/trips/{tripId}/attractions:
+  /api/trips/{id}/attractions:
     parameters:
-      - name: tripId
+      - name: id
         in: path
         required: true
         schema:
@@ -1198,9 +1200,25 @@ paths:
           schema:
             type: string
           description: Scope results to attractions created by this user (and exclude flights), matching the personal category-distribution analytics for that user.
+        - name: skip
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+          description: Pagination offset.
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Page size — capped at the default per-query-shape limit (20 for a bare country search, 100 for a city search, 200 for a type search); cannot request more than that cap.
       responses:
         '200':
-          description: Array of matching attractions
+          description: |
+            Array of matching attractions for this page. Total result count, offset, and page
+            size are returned as the `X-Total-Count`, `X-Skip`, and `X-Limit` response headers
+            (the body stays a plain array for backward compatibility).
           content:
             application/json:
               schema:
@@ -1299,9 +1317,9 @@ paths:
         200:
           description: Attraction deleted
 
-  /api/trips/{tripId}/attractions/{attractionId}:
+  /api/trips/{id}/attractions/{attractionId}:
     parameters:
-      - name: tripId
+      - name: id
         in: path
         required: true
         schema:
@@ -1332,9 +1350,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Attraction'
 
-  /api/trips/{tripId}/reorder-attractions:
+  /api/trips/{id}/reorder-attractions:
     parameters:
-      - name: tripId
+      - name: id
         in: path
         required: true
         schema:
@@ -1359,13 +1377,31 @@ paths:
     get:
       summary: Discover public trips for the Explore page
       description: |
-        Returns up to 24 public trips that have a cover image, sorted by most recent.
-        Private trips are never included — no authentication is required or accepted.
+        Returns public trips that have a cover image, sorted by most recent (24 per page
+        by default). Private trips are never included — no authentication is required or accepted.
       tags: [Explore]
       security: []
+      parameters:
+        - name: skip
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+          description: Pagination offset.
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 24
+            maximum: 100
+          description: Page size (max 100).
       responses:
         200:
-          description: List of explore items
+          description: |
+            Page of explore items. Total result count, offset, and page size are returned as
+            the `X-Total-Count`, `X-Skip`, and `X-Limit` response headers.
           content:
             application/json:
               schema:
@@ -1814,3 +1850,124 @@ paths:
           description: Unauthorized
         403:
           description: Forbidden — admin only
+
+  # ==========================================
+  # 🗺️ Geo
+  # ==========================================
+  /api/geo/city:
+    get:
+      summary: Look up a city's boundary polygon (for map display)
+      description: |
+        Proxies OpenStreetMap Nominatim and caches results in-memory per server instance.
+        Returns `null` (not a 404) when no boundary is found or the name is missing.
+      tags: [Geo]
+      security: []
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+          example: Budapest
+        - name: country
+          in: query
+          required: false
+          schema:
+            type: string
+          example: Hungary
+      responses:
+        '200':
+          description: A GeoJSON Polygon/MultiPolygon feature, or null if not found
+          content:
+            application/json:
+              schema:
+                type: object
+                nullable: true
+
+  /api/geo/country:
+    get:
+      summary: Look up a country's boundary polygon (for map display)
+      description: Same caching/proxy behavior as /api/geo/city, keyed by country name only.
+      tags: [Geo]
+      security: []
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+          example: Hungary
+      responses:
+        '200':
+          description: A GeoJSON Polygon/MultiPolygon feature, or null if not found
+          content:
+            application/json:
+              schema:
+                type: object
+                nullable: true
+
+  # ==========================================
+  # 🚗 Routing
+  # ==========================================
+  /api/route/transit:
+    get:
+      summary: Public-transit routing between two points
+      description: Proxies the Transitous public-transit journey planner. Query params are forwarded as-is.
+      tags: [Routing]
+      security: []
+      responses:
+        '200':
+          description: Transitous journey plan response (passed through)
+          content:
+            application/json:
+              schema:
+                type: object
+        '503':
+          description: Transit service unavailable or timed out
+
+  /api/route/valhalla:
+    get:
+      summary: Walking or driving route between two points
+      description: |
+        Despite the route name, this proxies OSRM (routing.openstreetmap.de), not Valhalla —
+        the public Valhalla demo instance was unreliable. Returns a GeoJSON route geometry.
+      tags: [Routing]
+      security: []
+      parameters:
+        - name: fromLat
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: fromLng
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: toLat
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: toLng
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: mode
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [walk, car]
+      responses:
+        '200':
+          description: OSRM route response (passed through)
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Missing required query params
+        '503':
+          description: Routing service unavailable or timed out

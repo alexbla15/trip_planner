@@ -3,53 +3,52 @@ import { dbConnect } from "@/lib/mongoose";
 import { AttractionCategory, formatAttractionCategory } from "@/models/AttractionCategory";
 import { User } from "@/models/User";
 import { getUserFromRequest } from "@/lib/auth";
+import { withApiHandler } from "@/lib/withApiHandler";
+import { corsPreflight } from "@/lib/cors";
+import { badRequest, forbidden, serverError } from "@/lib/apiError";
+
+export const OPTIONS = corsPreflight;
 
 /** Public — returns all attraction categories sorted alphabetically by name. */
-export async function GET() {
-  try {
-    await dbConnect();
-    const cats = await AttractionCategory.find().sort({ name: 1 });
-    return NextResponse.json(cats.map(formatAttractionCategory));
-  } catch {
-    return NextResponse.json({ error: "Failed to fetch categories" }, { status: 500 });
-  }
-}
+export const GET = withApiHandler("GET /api/attraction-categories", async () => {
+  await dbConnect();
+  const cats = await AttractionCategory.find().sort({ name: 1 });
+  return NextResponse.json(cats.map(formatAttractionCategory));
+});
 
 /** Admin only — creates a new attraction category. */
-export async function POST(req: Request) {
+export const POST = withApiHandler("POST /api/attraction-categories", async (req: Request) => {
+  const payload = getUserFromRequest(req);
+  await dbConnect();
+
+  const caller = await User.findById(payload.userId).select("role");
+  if (caller?.role !== "admin") {
+    throw forbidden("Forbidden");
+  }
+
+  const body = await req.json() as {
+    name?: string; icon?: string; color?: string;
+  };
+
+  const { name, icon, color } = body;
+  if (!name?.trim() || !icon?.trim() || !color?.trim()) {
+    throw badRequest("name, icon, and color are required");
+  }
+
+  let created;
   try {
-    const payload = getUserFromRequest(req);
-    await dbConnect();
-
-    const caller = await User.findById(payload.userId).select("role");
-    if (caller?.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const body = await req.json() as {
-      name?: string; icon?: string; color?: string;
-    };
-
-    const { name, icon, color } = body;
-    if (!name?.trim() || !icon?.trim() || !color?.trim()) {
-      return NextResponse.json(
-        { error: "name, icon, and color are required" },
-        { status: 400 },
-      );
-    }
-
-    const created = await AttractionCategory.create({
+    created = await AttractionCategory.create({
       name:  name.trim(),
       icon:  icon.trim(),
       color: color.trim(),
     });
-
-    return NextResponse.json(formatAttractionCategory(created), { status: 201 });
   } catch (err) {
     const mongoErr = err as { code?: number };
     if (mongoErr?.code === 11000) {
-      return NextResponse.json({ error: "A category with that name already exists" }, { status: 400 });
+      throw badRequest("A category with that name already exists");
     }
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    throw serverError("Server error");
   }
-}
+
+  return NextResponse.json(formatAttractionCategory(created), { status: 201 });
+});

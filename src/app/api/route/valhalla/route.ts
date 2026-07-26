@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
+import { withApiHandler } from "@/lib/withApiHandler";
+import { corsPreflight } from "@/lib/cors";
+import { ApiError, badRequest } from "@/lib/apiError";
+
+export const OPTIONS = corsPreflight;
 
 // Proxies walk/car routing to OSRM public demo — server-to-server avoids CORS.
 // Valhalla's public instance (valhalla1.openstreetmap.de) is unreliable; OSRM is stable.
-export async function GET(req: Request) {
+export const GET = withApiHandler("GET /api/route/valhalla", async (req: Request) => {
   const { searchParams } = new URL(req.url);
   const fromLat = searchParams.get("fromLat");
   const fromLng = searchParams.get("fromLng");
@@ -11,7 +16,7 @@ export async function GET(req: Request) {
   const mode    = searchParams.get("mode"); // "walk" | "car"
 
   if (!fromLat || !fromLng || !toLat || !toLng || !mode) {
-    return NextResponse.json({ error: "Missing params" }, { status: 400 });
+    throw badRequest("Missing params");
   }
 
   // router.project-osrm.org only hosts the driving profile.
@@ -21,14 +26,22 @@ export async function GET(req: Request) {
     ? `https://routing.openstreetmap.de/routed-car/route/v1/driving/${coords}?overview=full&geometries=geojson`
     : `https://routing.openstreetmap.de/routed-foot/route/v1/foot/${coords}?overview=full&geometries=geojson`;
 
-  try {
-    const ctrl  = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 10000);
+  const ctrl  = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10000);
 
-    const upstream = await fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(timer));
-    const data     = await upstream.json();
-    return NextResponse.json(data, { status: upstream.status });
+  let upstream: Response;
+  try {
+    upstream = await fetch(url, { signal: ctrl.signal });
   } catch {
-    return NextResponse.json({ error: "Routing service unavailable" }, { status: 503 });
+    throw new ApiError(503, "Routing service unavailable", "SERVICE_UNAVAILABLE");
+  } finally {
+    clearTimeout(timer);
   }
-}
+
+  if (!upstream.ok) {
+    throw new ApiError(upstream.status, "Routing service returned an error", "UPSTREAM_ERROR");
+  }
+
+  const data = await upstream.json();
+  return NextResponse.json(data, { status: upstream.status });
+});

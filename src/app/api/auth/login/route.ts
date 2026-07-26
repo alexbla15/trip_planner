@@ -3,40 +3,37 @@ import bcrypt from "bcryptjs";
 import { dbConnect } from "@/lib/mongoose";
 import { User } from "@/models/User";
 import { signToken } from "@/lib/auth";
+import { withApiHandler } from "@/lib/withApiHandler";
+import { corsPreflight } from "@/lib/cors";
+import { badRequest, unauthorized } from "@/lib/apiError";
 
-export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    const { email, password } = body as { email?: string; password?: string };
+export const OPTIONS = corsPreflight;
 
-    if (!email?.trim() || !password) {
-      return NextResponse.json(
-        { error: "Email and password are required" },
-        { status: 400 }
-      );
-    }
+export const POST = withApiHandler("POST /api/auth/login", async (req: Request) => {
+  const body = await req.json();
+  const { email, password } = body as { email?: string; password?: string };
 
-    await dbConnect();
-
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
-    if (!user) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
-    }
-
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
-    }
-
-    const token = signToken({
-      userId: user._id.toString(),
-      email: user.email,
-      name: user.name,
-    });
-
-    return NextResponse.json({ token });
-  } catch (err) {
-    console.error("[POST /api/auth/login]", err);
-    return NextResponse.json({ error: "Login failed" }, { status: 500 });
+  if (!email?.trim() || !password) {
+    throw badRequest("Email and password are required");
   }
-}
+
+  await dbConnect();
+
+  const user = await User.findOne({ email: email.toLowerCase().trim() });
+  if (!user) {
+    throw unauthorized("Invalid credentials");
+  }
+
+  const match = await bcrypt.compare(password, user.password);
+  if (!match) {
+    throw unauthorized("Invalid credentials");
+  }
+
+  const token = signToken({
+    userId: user._id.toString(),
+    email: user.email,
+    name: user.name,
+  });
+
+  return NextResponse.json({ token });
+});

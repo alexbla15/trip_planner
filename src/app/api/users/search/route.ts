@@ -2,39 +2,39 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongoose";
 import { getUserFromRequest } from "@/lib/auth";
 import { User } from "@/models/User";
+import { withApiHandler } from "@/lib/withApiHandler";
+import { corsPreflight } from "@/lib/cors";
 
-export async function GET(req: Request) {
-  try {
-    const payload = getUserFromRequest(req);
-    await dbConnect();
+export const OPTIONS = corsPreflight;
 
-    const url = new URL(req.url);
-    const q = url.searchParams.get("q")?.trim() ?? "";
+export const GET = withApiHandler("GET /api/users/search", async (req: Request) => {
+  const payload = getUserFromRequest(req);
+  await dbConnect();
 
-    if (q.length < 2) {
-      return NextResponse.json([]);
-    }
+  const url = new URL(req.url);
+  const q = url.searchParams.get("q")?.trim() ?? "";
 
-    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const regex = new RegExp(escaped, "i");
-
-    const users = await User.find({
-      _id: { $ne: payload.userId },
-      $or: [{ name: regex }, { email: regex }],
-    })
-      .select("_id name email avatarUrl")
-      .limit(10)
-      .lean();
-
-    return NextResponse.json(
-      users.map((u) => ({
-        _id: (u._id as { toString(): string }).toString(),
-        name: u.name,
-        email: u.email,
-        avatarUrl: u.avatarUrl ?? null,
-      }))
-    );
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (q.length < 2) {
+    return NextResponse.json([]);
   }
-}
+
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(escaped, "i");
+
+  const users = await User.find({
+    _id: { $ne: payload.userId },
+    $or: [{ name: regex }, { email: regex }],
+  })
+    .select("_id name email avatarUrl")
+    .limit(10)
+    .lean();
+
+  return NextResponse.json(
+    users.map((u) => ({
+      _id: (u._id as { toString(): string }).toString(),
+      name: u.name,
+      email: u.email,
+      avatarUrl: u.avatarUrl ?? null,
+    }))
+  );
+});
