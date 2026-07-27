@@ -64,6 +64,31 @@ Node server. Pages under `src/app/**` are the frontend; route handlers under
 - **Auth:** JWT (`jsonwebtoken`) + bcrypt-hashed passwords (`bcryptjs`). Sessions are a
   7-day JWT in `Authorization: Bearer <token>`; there is no server-side session store.
 
+## Maps & routing
+
+Map features are built from four external services, proxied through Next.js API routes
+(`api/geo/*`, `api/route/*`) to avoid CORS and to attach required headers (e.g. a custom
+`User-Agent`, which these free public instances require):
+
+- **Leaflet** — client-side map rendering only. It doesn't fetch data itself; it draws
+  whatever the services below hand it (polylines, boundary polygons).
+- **OpenStreetMap / Nominatim** — geocoding and place boundaries. Given a place name,
+  returns its shape as GeoJSON (Polygon/MultiPolygon), used to draw city/country outlines.
+  Proxied via `GET /api/geo/city` and `GET /api/geo/country`
+  (`src/app/api/geo/{city,country}/route.ts`).
+- **Valhalla** — walking/driving routing between two points. Proxied via
+  `GET /api/route/valhalla` (`src/app/api/route/valhalla/route.ts`), which actually calls
+  OSRM instances at `routing.openstreetmap.de` (the public Valhalla demo is unreliable).
+  Returns turn-by-turn geometry and duration.
+- **Transitous** — public transit routing (bus/rail/tram/etc.), an OTP2/MOTIS instance.
+  Proxied via `GET /api/route/transit` (`src/app/api/route/transit/route.ts`). Returns
+  itineraries with per-leg transit lines and encoded polylines; falls back to Valhalla
+  walk, then car, when no transit route is available.
+
+Client-side consumers: `src/services/geo.service.ts` (boundaries) and
+`src/services/routeTransit.service.ts` (point-to-point routing, exposing `fetchRouteLeg`
+and `fetchAirportLeg`).
+
 ## Data model (short version)
 
 ```
