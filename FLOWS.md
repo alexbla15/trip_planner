@@ -40,8 +40,8 @@ flowchart TD
     F --> G{Found existing?}
     G -- Yes --> H[Select it]
     G -- No --> I["PenLine 'Create new' → NewAttractionModal"]
-    I --> J["POST /api/trips/:id/attractions (new attraction)"]
-    H --> K["POST /api/trips/:id/attractions (existingAttractionId)"]
+    I --> J["POST /api/trips/:id/attractions\n(new attraction)"]
+    H --> K["POST /api/trips/:id/attractions\n(existingAttractionId)"]
     J --> L[Attraction now linked + scheduled]
     K --> L
     L --> M[Overview tab → CalendarSection]
@@ -57,18 +57,18 @@ flowchart TD
 ```mermaid
 flowchart TD
     A[Flights tab] --> B[+ Add flight]
-    B --> C[AddFlightModal: flight #, airline, times, gate/seat]
+    B --> C["AddFlightModal: flight #, airline,\ntimes, gate/seat"]
     C --> D["POST /api/trips/:id/attractions (subtype: flight)"]
     D --> E[Schedule-only entry created — no Attraction document,\nsynthetic id fl-*]
     E --> A
 
     F[Residences tab] --> G[+ Add residence]
     G --> H{"Pick existing residence\nfrom another trip, or create new?"}
-    H -- Existing --> I[AttractionPickerModal — filtered to subtype=residence]
+    H -- Existing --> I["AttractionPickerModal —\nfiltered to subtype=residence"]
     H -- New --> J[AddResidenceModal: name, location, type]
     I --> K["POST /api/trips/:id/attractions\n(existingAttractionId + this trip's checkInDate/checkOutDate/price)"]
     J --> K
-    K --> L["Shared Attraction doc keeps only reusable place data;\nstay dates/price/notes saved to THIS trip's schedule entry"]
+    K --> L["Shared Attraction doc keeps only\nreusable place data; stay dates/price/notes\nsaved to THIS trip's schedule entry"]
     L --> F
 ```
 
@@ -126,7 +126,7 @@ flowchart TD
     B -- No --> C[Redirected away]
     B -- Yes --> D[Manage Categories / Types / Mood Tags]
     D --> E[+ Add / Edit / Delete]
-    E --> F["POST/PUT/DELETE /api/attraction-* or /api/mood-tags"]
+    E --> F["POST/PUT/DELETE /api/attraction-*\nor /api/mood-tags"]
     F -- 403 --> G[Non-admin token rejected server-side too\n— not just a client-side gate]
     F -- 200/201 --> H[List updates in place]
 ```
