@@ -4,12 +4,22 @@
   gap: 16px;
 }
 
+/* When the last card is alone in the final row, span it full width instead
+   of leaving it stuck in a single half/third/fifth-width column. */
+.grid > :last-child:nth-child(2n+1) {
+  grid-column: 1 / -1;
+}
+
 @media (min-width: 768px) {
   .grid { grid-template-columns: repeat(3, 1fr); }
+  .grid > :last-child:nth-child(n) { grid-column: auto; }
+  .grid > :last-child:nth-child(3n+1) { grid-column: 1 / -1; }
 }
 
 @media (min-width: 1280px) {
   .grid { grid-template-columns: repeat(5, 1fr); }
+  .grid > :last-child:nth-child(n) { grid-column: auto; }
+  .grid > :last-child:nth-child(5n+1) { grid-column: 1 / -1; }
 }
 
 .card {
