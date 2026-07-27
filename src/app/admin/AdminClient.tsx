@@ -559,13 +559,18 @@ export function AdminClient() {
           actions={
             !catAdding && !catEditingId && (
               <>
-                <button className={styles.addBtn} onClick={() => setCatAdding(true)}>
-                  <Plus size={14} aria-hidden="true" /> Add category
+                <button className={styles.addBtn} onClick={() => setCatAdding(true)} aria-label="Add category">
+                  <Plus size={14} aria-hidden="true" /> <span className={styles.addBtnLabel}>Add category</span>
                 </button>
                 {legacyTypes.length > 0 && (
-                  <button className={styles.addBtn} onClick={handleMigrate} disabled={migrating}>
-                    {migrating ? <Loader2 size={14} className={styles.spin} /> : <RefreshCw size={14} />}
-                    Migrate legacy ({legacyTypes.length})
+                  <button
+                    className={styles.addBtn}
+                    onClick={handleMigrate}
+                    disabled={migrating}
+                    aria-label={`Migrate legacy (${legacyTypes.length})`}
+                  >
+                    {migrating ? <Loader2 size={14} className={styles.spin} /> : <RefreshCw size={14} aria-hidden="true" />}
+                    <span className={styles.addBtnLabel}>Migrate legacy ({legacyTypes.length})</span>
                   </button>
                 )}
               </>
@@ -660,8 +665,8 @@ export function AdminClient() {
           collapsible
           actions={
             !adding && !editingId && (
-              <button className={styles.addBtn} onClick={() => setAdding(true)}>
-                <Plus size={14} aria-hidden="true" /> Add type
+              <button className={styles.addBtn} onClick={() => setAdding(true)} aria-label="Add type">
+                <Plus size={14} aria-hidden="true" /> <span className={styles.addBtnLabel}>Add type</span>
               </button>
             )
           }
@@ -787,13 +792,18 @@ export function AdminClient() {
           actions={
             !moodAdding && !moodEditingId && (
               <>
-                <button className={styles.addBtn} onClick={() => setMoodAdding(true)}>
-                  <Plus size={14} aria-hidden="true" /> Add mood
+                <button className={styles.addBtn} onClick={() => setMoodAdding(true)} aria-label="Add mood">
+                  <Plus size={14} aria-hidden="true" /> <span className={styles.addBtnLabel}>Add mood</span>
                 </button>
                 {moodTags.length === 0 && (
-                  <button className={styles.addBtn} onClick={handleSeedMoodTags} disabled={seeding}>
-                    {seeding ? <Loader2 size={14} className={styles.spin} /> : <Plus size={14} />}
-                    Seed defaults
+                  <button
+                    className={styles.addBtn}
+                    onClick={handleSeedMoodTags}
+                    disabled={seeding}
+                    aria-label="Seed defaults"
+                  >
+                    {seeding ? <Loader2 size={14} className={styles.spin} /> : <Plus size={14} aria-hidden="true" />}
+                    <span className={styles.addBtnLabel}>Seed defaults</span>
                   </button>
                 )}
               </>

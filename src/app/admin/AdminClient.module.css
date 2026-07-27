@@ -58,6 +58,17 @@
 }
 .addBtn:hover { background: var(--color-primary-light); }
 
+@media (max-width: 639px) {
+  .addBtn {
+    width: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+  .addBtnLabel {
+    display: none;
+  }
+}
+
 
 /* ── Categories list ── */
 .categoriesList {
