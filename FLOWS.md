@@ -10,18 +10,18 @@ components (see [`WIREFRAMES.md`](./WIREFRAMES.md) for the screens referenced he
 flowchart TD
     A[Land on /] --> B[Click 'Start planning' or 'New Trip']
     B --> C{Logged in?}
-    C -- No --> D[/register]
+    C -- No --> D["/register"]
     D --> E[POST /api/auth/register]
     E -- 201 --> F[Redirect to /login with success message]
     E -- 400/409 --> G[Inline error: invalid input / email taken]
     G --> D
-    F --> H[/login]
+    F --> H["/login"]
     H --> I[POST /api/auth/login]
     I -- 200 --> J[Store JWT, AuthContext hydrates]
     I -- 401 --> K[Inline error: invalid credentials]
     K --> H
     C -- Yes --> J
-    J --> L[/new-trip]
+    J --> L["/new-trip"]
     L --> M[POST /api/trips]
     M -- 201 --> N[Redirect to /trips/:id]
     M -- 400 --> O[Inline error: missing/invalid fields]
@@ -39,7 +39,7 @@ flowchart TD
     E -- debounced 300ms --> F["GET /api/attractions?country=...&q=..."]
     F --> G{Found existing?}
     G -- Yes --> H[Select it]
-    G -- No --> I[PenLine 'Create new' → NewAttractionModal]
+    G -- No --> I["PenLine 'Create new' → NewAttractionModal"]
     I --> J["POST /api/trips/:id/attractions (new attraction)"]
     H --> K["POST /api/trips/:id/attractions (existingAttractionId)"]
     J --> L[Attraction now linked + scheduled]
@@ -63,7 +63,7 @@ flowchart TD
     E --> A
 
     F[Residences tab] --> G[+ Add residence]
-    G --> H{Pick existing residence\nfrom another trip, or create new?}
+    G --> H{"Pick existing residence\nfrom another trip, or create new?"}
     H -- Existing --> I[AttractionPickerModal — filtered to subtype=residence]
     H -- New --> J[AddResidenceModal: name, location, type]
     I --> K["POST /api/trips/:id/attractions\n(existingAttractionId + this trip's checkInDate/checkOutDate/price)"]
@@ -88,16 +88,16 @@ flowchart TD
     D --> H[Collaborator logs in]
     H --> I["GET /api/trips — trip appears\n(owner OR collaborator match)"]
     I --> J[Collaborator opens trip, edits itinerary]
-    J --> K{Owner-only action?\n(delete trip / manage collaborators)}
+    J --> K{"Owner-only action?\n(delete trip / manage collaborators)"}
     K -- Yes --> L[403 Forbidden — action hidden/blocked in UI]
-    K -- No --> M[Edit succeeds like the owner's]
+    K -- No --> M["Edit succeeds like the owner's"]
 ```
 
 ## 5. Explore → public trip inspiration
 
 ```mermaid
 flowchart TD
-    A[/explore] --> B["GET /api/explore — public trips w/ cover image"]
+    A["/explore"] --> B["GET /api/explore — public trips w/ cover image"]
     B --> C[Browse map / filter chips]
     C --> D[Click a trip card]
     D --> E["GET /api/trips/:id — no auth required (isPrivate: false)"]
@@ -112,7 +112,7 @@ flowchart TD
     B --> C{ApiError?}
     C -- Yes --> D["Known status (400/401/403/404/409) +\nconsistent {error, code} JSON"]
     C -- No --> E["Unexpected error — logged server-side (src/lib/logger.ts),\nclient sees generic 500, no internals leaked"]
-    D --> F[Client catch block sets visible error state\n(no silent catch {} — see TripDetailClient's actionError pattern)]
+    D --> F["Client catch block sets visible error state\n(no silent catch block — see TripDetailClient's actionError pattern)"]
     E --> F
     F --> G[User sees inline error banner, can retry]
     G --> A
@@ -122,7 +122,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A[/admin] --> B{role === 'admin'?}
+    A["/admin"] --> B{"role === 'admin'?"}
     B -- No --> C[Redirected away]
     B -- Yes --> D[Manage Categories / Types / Mood Tags]
     D --> E[+ Add / Edit / Delete]
