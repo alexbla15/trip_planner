@@ -1415,6 +1415,9 @@ paths:
                     destination:
                       type: string
                       example: Summer in Rome
+                    country:
+                      type: string
+                      example: Italy
                     coverImage:
                       type: string
                       example: https://images.unsplash.com/photo-xxx

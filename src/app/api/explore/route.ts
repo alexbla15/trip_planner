@@ -34,7 +34,7 @@ export const GET = withApiHandler("GET /api/explore", async (req: Request) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .select("_id name coverImage moods attractionIds ownerId")
+      .select("_id name country coverImage moods attractionIds ownerId")
       .populate<{ ownerId: PopulatedOwner | null }>("ownerId", "name avatarUrl")
       .populate<{ attractionIds: PopulatedAttraction[] }>("attractionIds", "city"),
     Trip.countDocuments(filter),
@@ -46,6 +46,7 @@ export const GET = withApiHandler("GET /api/explore", async (req: Request) => {
     return {
       id: trip._id.toString(),
       destination: trip.name,
+      country: trip.country,
       coverImage: trip.coverImage as string,
       tag: trip.moods?.[0] ?? "Adventure",
       tags: trip.moods?.length ? trip.moods : ["Adventure"],

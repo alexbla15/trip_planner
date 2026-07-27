@@ -29,7 +29,11 @@ export function ExploreSection({ items }: ExploreSectionProps) {
 
   const query = search.trim().toLowerCase();
   const filtered = query
-    ? byTag.filter((i) => i.destination.toLowerCase().includes(query))
+    ? byTag.filter((i) =>
+        i.destination.toLowerCase().includes(query) ||
+        i.country.toLowerCase().includes(query) ||
+        i.cities.some((city) => city.toLowerCase().includes(query))
+      )
     : byTag;
 
   return (
@@ -50,10 +54,10 @@ export function ExploreSection({ items }: ExploreSectionProps) {
             <input
               type="search"
               className={styles.searchInput}
-              placeholder="Search destinations…"
+              placeholder="Search trips, countries, cities…"
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
-              aria-label="Search destinations"
+              aria-label="Search trips, countries, or cities"
             />
           </div>
         </div>

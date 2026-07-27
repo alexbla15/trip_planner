@@ -32,6 +32,7 @@ export interface Trip {
 export interface ExploreItem {
   id: string;
   destination: string;
+  country: string;
   coverImage: string;
   tag: string;    // primary display tag (first mood)
   tags: string[]; // all moods — used for vibe-chip filtering
