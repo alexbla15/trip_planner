@@ -113,12 +113,19 @@ function getOverflowAlerts(
         message: `"${a.name}" starts before the visible day window (${String(dayStart).padStart(2, "0")}:00).`,
       });
     } else if (endMins > dayEnd * 60) {
-      const endH = String(Math.floor(endMins / 60)).padStart(2, "0");
-      const endM = String(endMins % 60).padStart(2, "0");
+      // Wrap past midnight (endMins can exceed 1440 for an overnight item) so the
+      // displayed time is always a real clock time, e.g. "00:50" not "24:50" —
+      // and say so explicitly, since (unlike the overnight-continuation blocks
+      // rendered on the next day's column) this message has no visual next-day
+      // context of its own.
+      const wrappedEnd = endMins % 1440;
+      const endH = String(Math.floor(wrappedEnd / 60)).padStart(2, "0");
+      const endM = String(wrappedEnd % 60).padStart(2, "0");
+      const dayNote = endMins >= 1440 ? " the next day" : "";
       alerts.push({
         id:      `overflow-end-${a._id}`,
         type:    "overflow",
-        message: `"${a.name}" runs until ${endH}:${endM}, past the visible day end (${String(dayEnd).padStart(2, "0")}:00).`,
+        message: `"${a.name}" runs until ${endH}:${endM}${dayNote}, past the visible day end (${String(dayEnd).padStart(2, "0")}:00).`,
       });
     }
   }

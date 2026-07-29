@@ -1,6 +1,6 @@
 # Task: Fix Nonsensical "Runs Until 24:50" Overflow Alert
 
-Status: intake
+Status: done
 
 Track: B
 Track reason: Bug fix — broken output (wrong displayed time), not a new visual pattern. Pre-existing, already-documented follow-up from a prior task.
@@ -26,3 +26,15 @@ The overflow alert always shows a real, sensible time — wrapping past midnight
 ## Out of scope
 - Redesigning the overflow-alert UI/styling
 - Changing when an overflow alert is triggered (the `endMins > dayEnd * 60` condition itself is correct and unrelated to this bug)
+
+## Implementation Notes
+- Files modified: `src/app/trips/[id]/CalendarSection.utils.ts` (`getOverflowAlerts`, ~lines 115-127)
+- Deviations from requirements: none
+- New design tokens used: none — text-only formatting fix
+- Approach: `endMins % 1440` for the displayed hour/minute (always a real clock time), plus an explicit `" the next day"` suffix appended only when `endMins >= 1440`, leaving same-day overflow messages (the common case) completely unchanged in wording.
+- Did not reuse the overnight-continuation blocks' exact phrasing (`↷ until HH:MM`, `CalendarSection.tsx`) verbatim, since that convention relies on the block already being visually rendered on the next day's column — this message has no such visual context, so it needs the explicit "the next day" words to avoid reading as same-day.
+- Verified the exact reported case numerically (not just by reading the code): `endMins = 1490` (a plausible late-start + long-duration case) now formats as `"00:50 the next day"` instead of `"24:50"`; same-day boundary cases (`1380`, `1439`) are unchanged; the exact-midnight edge case (`1440`) correctly reads `"00:00 the next day"`.
+- `tsc --noEmit` and `eslint` both clean, zero findings.
+
+## Completion Summary
+Fixed the nonsensical "runs until 24:50" overflow alert by wrapping past-midnight end times to a real clock time and adding an explicit "the next day" note when an item spills into the next day, leaving same-day overflow wording unchanged. Verified numerically against the reported case and boundary cases. Confirmed by user. Closed 2026-07-29.
