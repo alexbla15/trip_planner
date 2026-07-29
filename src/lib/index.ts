@@ -12,6 +12,7 @@
 
 export { formatDisplayDate } from "./formatDate";
 export { AVATARS, randomAvatar } from "./avatarConstants";
+export { isProduction } from "./isProduction";
 
 export type { Currency } from "./currencies";
 export { CURRENCIES, getCurrency, currencySymbol, isPostfixCurrency, formatPrice } from "./currencies";

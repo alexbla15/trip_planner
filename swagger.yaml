@@ -833,6 +833,45 @@ paths:
         401:
           description: Invalid credentials
 
+  /api/auth/demo-login:
+    post:
+      summary: Sign in as a seeded demo or admin account
+      description: |
+        Logs in as a fixed demo account, creating it on first use if it doesn't exist yet.
+        The `admin` role is only available when `NEXT_PUBLIC_APP_ENV=development` —
+        requesting it otherwise (including when the var is unset) returns 403 regardless
+        of the `role` value sent.
+      tags: [Authentication]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role:
+                  type: string
+                  enum: [demo, admin]
+      responses:
+        200:
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        400:
+          description: Missing/invalid role
+        403:
+          description: Admin quick-login requested outside a non-production environment
+        500:
+          description: Demo account env vars not configured
+
   /api/users/search:
     get:
       summary: Search registered users by name or email

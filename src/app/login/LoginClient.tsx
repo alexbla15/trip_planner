@@ -10,10 +10,12 @@ import {
   Eye,
   EyeOff,
   LogIn,
+  User,
+  Shield,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { login as loginRequest } from "@/services";
-import { validateLoginForm } from "@/lib";
+import { login as loginRequest, demoLogin } from "@/services";
+import { validateLoginForm, isProduction } from "@/lib";
 import { FormErrorBanner, FormFieldError, Spinner } from "@/components";
 import styles from "./LoginClient.module.css";
 
@@ -28,6 +30,7 @@ export function LoginClient() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
+  const [quickLoginRole, setQuickLoginRole] = useState<"demo" | "admin" | null>(null);
 
   const emailId = useId();
   const passwordId = useId();
@@ -37,6 +40,28 @@ export function LoginClient() {
 
   function handleBlur(field: string) {
     setTouched((prev) => ({ ...prev, [field]: true }));
+  }
+
+  async function handleQuickLogin(role: "demo" | "admin") {
+    setQuickLoginRole(role);
+    setApiError("");
+
+    try {
+      const res = await demoLogin(role);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setApiError(data.error ?? "Quick login failed. Please try again.");
+        return;
+      }
+
+      await login(data.token as string);
+      router.replace("/");
+    } catch {
+      setApiError("Network error. Please check your connection and try again.");
+    } finally {
+      setQuickLoginRole(null);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -151,8 +176,8 @@ export function LoginClient() {
           <button
             type="submit"
             className={styles.submitBtn}
-            disabled={loading}
-            aria-disabled={loading}
+            disabled={loading || quickLoginRole !== null}
+            aria-disabled={loading || quickLoginRole !== null}
           >
             {loading ? (
               <>
@@ -167,6 +192,45 @@ export function LoginClient() {
             )}
           </button>
         </form>
+
+        {/* Quick login */}
+        <div className={styles.divider}>
+          <span className={styles.dividerLine} />
+          <span className={styles.dividerLabel}>or</span>
+          <span className={styles.dividerLine} />
+        </div>
+
+        <div className={styles.quickLoginGroup}>
+          <button
+            type="button"
+            className={styles.quickLoginBtn}
+            onClick={() => handleQuickLogin("demo")}
+            disabled={loading || quickLoginRole !== null}
+          >
+            {quickLoginRole === "demo" ? (
+              <Spinner variant="icon" iconSize={16} />
+            ) : (
+              <User size={16} aria-hidden="true" />
+            )}
+            Continue as Demo User
+          </button>
+
+          {!isProduction() && (
+            <button
+              type="button"
+              className={styles.quickLoginBtn}
+              onClick={() => handleQuickLogin("admin")}
+              disabled={loading || quickLoginRole !== null}
+            >
+              {quickLoginRole === "admin" ? (
+                <Spinner variant="icon" iconSize={16} />
+              ) : (
+                <Shield size={16} aria-hidden="true" />
+              )}
+              Continue as Admin
+            </button>
+          )}
+        </div>
 
         {/* Switch link */}
         <p className={styles.switchText}>

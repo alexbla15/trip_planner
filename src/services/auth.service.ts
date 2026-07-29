@@ -10,6 +10,16 @@ export function login(email: string, password: string): Promise<Response> {
   });
 }
 
+// Kept as a raw Response for the same reason as `login` above — LoginClient
+// handles a failed quick-login the same way it handles a failed real login.
+export function demoLogin(role: "demo" | "admin"): Promise<Response> {
+  return fetch("/api/auth/demo-login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role }),
+  });
+}
+
 export interface RegisterResponse {
   token?: string;
   error?: string;
