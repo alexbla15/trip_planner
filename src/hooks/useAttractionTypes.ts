@@ -39,10 +39,13 @@ async function fetchTypes(): Promise<AttractionTypeRecord[]> {
   return cachePromise;
 }
 
-/** Invalidates the in-memory cache so the next render re-fetches. */
+const subscribers = new Set<() => void>();
+
+/** Invalidates the in-memory cache and asks every mounted {@link useAttractionTypes} instance to re-fetch. */
 export function invalidateAttractionTypesCache() {
   cache = null;
   cachePromise = null;
+  subscribers.forEach((reload) => reload());
 }
 
 export function useAttractionTypes(): UseAttractionTypesResult {
@@ -50,8 +53,14 @@ export function useAttractionTypes(): UseAttractionTypesResult {
   const [loading, setLoading] = useState(cache === null);
 
   useEffect(() => {
-    if (cache !== null) { setTypes(cache); setLoading(false); return; }
-    fetchTypes().then((data) => { setTypes(data); setLoading(false); });
+    function load() {
+      if (cache !== null) { setTypes(cache); setLoading(false); return; }
+      setLoading(true);
+      fetchTypes().then((data) => { setTypes(data); setLoading(false); });
+    }
+    load();
+    subscribers.add(load);
+    return () => { subscribers.delete(load); };
   }, []);
 
   const { categories, byCategory } = useMemo(() => {

@@ -31,6 +31,7 @@ const DynamicCountriesMap = dynamic(
   { ssr: false, loading: () => <div className={styles.mapLoading}>Loading map…</div> },
 );
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import { getPersonalAnalytics, changePassword, updateCurrentUser, ApiError } from "@/services";
 import { formatDisplayDate, formatPrice, AVATARS } from "@/lib";
 import styles from "./ProfileClient.module.css";
@@ -56,6 +57,7 @@ interface PersonalAnalytics {
 
 export function ProfileClient() {
   const { user: authUser, token, login } = useAuth();
+  const toast = useToast();
   const { byCategory } = useAttractionTypes();
 
   const [analytics, setAnalytics] = useState<PersonalAnalytics | null>(null);
@@ -75,7 +77,6 @@ export function ProfileClient() {
   const [confirmPw, setConfirmPw] = useState("");
   const [pwSaving, setPwSaving] = useState(false);
   const [pwError, setPwError] = useState("");
-  const [pwSuccess, setPwSuccess] = useState("");
 
   // Stat card drill-down
   const [activeStat, setActiveStat] = useState<string | null>(null);
@@ -113,19 +114,19 @@ export function ProfileClient() {
   function cancelPwChange() {
     setShowPwForm(false);
     setCurrentPw(""); setNewPw(""); setConfirmPw("");
-    setPwError(""); setPwSuccess("");
+    setPwError("");
   }
 
   async function handlePasswordChange() {
     if (!token) return;
     if (newPw !== confirmPw) { setPwError("New passwords do not match"); return; }
     if (newPw.length < 8)    { setPwError("New password must be at least 8 characters"); return; }
-    setPwSaving(true); setPwError(""); setPwSuccess("");
+    setPwSaving(true); setPwError("");
     try {
       await changePassword(token, { currentPassword: currentPw, newPassword: newPw });
-      setPwSuccess("Password updated successfully.");
+      toast.success("Password updated");
       setCurrentPw(""); setNewPw(""); setConfirmPw("");
-      setTimeout(() => { setShowPwForm(false); setPwSuccess(""); }, 2000);
+      setShowPwForm(false);
     } catch (err) {
       if (err instanceof ApiError) {
         setPwError((err.body as { error?: string } | null)?.error ?? "Failed to update password");
@@ -145,6 +146,7 @@ export function ProfileClient() {
       await updateCurrentUser(token, { name: editName, avatarUrl: editAvatarUrl || undefined });
       await login(token);
       setIsEditing(false);
+      toast.success("Profile updated");
     } catch (err) {
       if (err instanceof ApiError) {
         setSaveError((err.body as { error?: string } | null)?.error ?? "Failed to save profile");
@@ -414,12 +416,6 @@ export function ProfileClient() {
                 <p className={styles.saveError} role="alert">
                   <AlertCircle size={12} aria-hidden="true" />
                   {pwError}
-                </p>
-              )}
-              {pwSuccess && (
-                <p className={styles.pwSuccess} role="status">
-                  <Check size={12} aria-hidden="true" />
-                  {pwSuccess}
                 </p>
               )}
             </div>

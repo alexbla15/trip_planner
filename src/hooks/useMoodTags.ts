@@ -44,9 +44,12 @@ export function getMoodTagStyle(record: MoodTagRecord | undefined): CSSPropertie
   } as CSSProperties;
 }
 
+const subscribers = new Set<() => void>();
+
 export function invalidateMoodTagsCache() {
   cache = null;
   cachePromise = null;
+  subscribers.forEach((reload) => reload());
 }
 
 export function useMoodTags(): UseMoodTagsResult {
@@ -54,8 +57,14 @@ export function useMoodTags(): UseMoodTagsResult {
   const [loading, setLoading] = useState(!cache);
 
   useEffect(() => {
-    if (cache) { setTags(cache); setLoading(false); return; }
-    fetchTags().then((data) => { setTags(data); setLoading(false); });
+    function load() {
+      if (cache) { setTags(cache); setLoading(false); return; }
+      setLoading(true);
+      fetchTags().then((data) => { setTags(data); setLoading(false); });
+    }
+    load();
+    subscribers.add(load);
+    return () => { subscribers.delete(load); };
   }, []);
 
   const tagMap = useMemo(() => new Map(tags.map((t) => [t.name, t])), [tags]);

@@ -6,6 +6,7 @@ import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, TriangleAler
 import { renderTypeIcon, AttractionDetailModal, AddCustomSlotModal } from "@/components";
 import type { CustomSlotFormData } from "@/components";
 import { useAttractionTypes } from "@/hooks";
+import { useToast } from "@/contexts/ToastContext";
 import {
   getFxRate,
   updateTrip,
@@ -81,6 +82,7 @@ interface CalendarSectionProps {
 
 export function CalendarSection({ trip, attractions, onAttractionsChange, token, canEdit }: CalendarSectionProps) {
   const { colorForType, findType } = useAttractionTypes();
+  const toast = useToast();
   const [local, setLocal]         = useState<Attraction[]>(attractions);
   const [pending, setPending]     = useState<Map<string, Partial<Attraction>>>(new Map());
   const [saving, setSaving]       = useState(false);
@@ -317,7 +319,10 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
         actualDurationUnit:  data.actualDurationUnit,
       })) as Attraction;
       applyLocal([created, ...local]);
-    } catch { /* silent */ }
+      toast.success("Slot added");
+    } catch {
+      toast.error("Couldn't save the slot. Please try again.");
+    }
   }
 
   async function handleCustomSlotUpdate(data: CustomSlotFormData) {
@@ -339,8 +344,13 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
       if (res.ok) {
         const updated = (await res.json()) as Attraction;
         applyLocal(local.map((a) => a._id !== updated._id ? a : updated));
+        toast.success("Slot updated");
+      } else {
+        toast.error("Couldn't update the slot. Please try again.");
       }
-    } catch { /* silent */ }
+    } catch {
+      toast.error("Couldn't update the slot. Please try again.");
+    }
   }
 
   async function handleDeleteCustomSlot(id: string) {
@@ -348,7 +358,10 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
     try {
       await removeAttractionFromTrip(trip._id, id, token);
       applyLocal(local.filter((a) => a._id !== id));
-    } catch { /* silent */ }
+      toast.success("Slot deleted");
+    } catch {
+      toast.error("Couldn't delete the slot. Please try again.");
+    }
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -358,7 +371,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   function saveCalRange(start: number, end: number) {
     if (!token) return;
     updateTrip(trip._id, token, { calDayStart: start, calDayEnd: end })
-      .catch(() => { /* ignore — not critical */ });
+      .catch(() => toast.error("Couldn't save the day range. Please try again."));
   }
 
   function handleDayStartChange(h: number) {

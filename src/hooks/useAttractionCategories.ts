@@ -23,10 +23,13 @@ async function fetchCategories(): Promise<AttractionCategoryRecord[]> {
   return cachePromise;
 }
 
-/** Clears the module-level attraction-categories cache so the next {@link useAttractionCategories} call refetches. Call after creating/editing/deleting a category in the admin panel. */
+const subscribers = new Set<() => void>();
+
+/** Clears the module-level attraction-categories cache and asks every mounted {@link useAttractionCategories} instance to re-fetch. Call after creating/editing/deleting a category in the admin panel. */
 export function invalidateAttractionCategoriesCache() {
   cache = null;
   cachePromise = null;
+  subscribers.forEach((reload) => reload());
 }
 
 /**
@@ -41,8 +44,14 @@ export function useAttractionCategories() {
   const [loading, setLoading] = useState(cache === null);
 
   useEffect(() => {
-    if (cache !== null) { setCategories(cache); setLoading(false); return; }
-    fetchCategories().then((data) => { setCategories(data); setLoading(false); });
+    function load() {
+      if (cache !== null) { setCategories(cache); setLoading(false); return; }
+      setLoading(true);
+      fetchCategories().then((data) => { setCategories(data); setLoading(false); });
+    }
+    load();
+    subscribers.add(load);
+    return () => { subscribers.delete(load); };
   }, []);
 
   return { categories, loading };

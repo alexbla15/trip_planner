@@ -54,6 +54,7 @@ import { ResidencesList } from "./ResidencesList";
 import { CalendarSection } from "./CalendarSection";
 import { useAttractionTypes } from "@/hooks";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import {
   getTrip,
   getTripAttractions,
@@ -85,6 +86,7 @@ interface TripDetailClientProps {
 export function TripDetailClient({ tripId }: TripDetailClientProps) {
   const { findType } = useAttractionTypes();
   const { token, user: authUser, loading: authLoading } = useAuth();
+  const toast = useToast();
   const router = useRouter();
 
   const [trip, setTrip] = useState<Trip | null>(null);
@@ -221,6 +223,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
       const created = (await addAttractionToTrip(trip._id, token, data)) as Attraction;
       upsertAttraction(created);
       setResidencePrefill(undefined);
+      toast.success("Residence added");
     } catch {
       setActionError("Couldn't save the residence. Please try again.");
     }
@@ -232,6 +235,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     try {
       const created = (await addAttractionToTrip(trip._id, token, data)) as Attraction;
       upsertAttraction(created);
+      toast.success("Flight added");
     } catch {
       setActionError("Couldn't save the flight. Please try again.");
     }
@@ -267,6 +271,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
 
       const updated = schedRes.ok ? ((await schedRes.json()) as Attraction) : attrUpdated;
       setAttractions((prev) => prev.map((a) => a._id !== updated._id ? a : updated));
+      toast.success("Residence updated");
     } catch {
       setActionError("Couldn't update the residence. Please try again.");
     }
@@ -285,6 +290,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
       if (!schedRes.ok) throw new Error("Failed to update flight");
       const updated = (await schedRes.json()) as Attraction;
       setAttractions((prev) => prev.map((a) => a._id !== updated._id ? a : updated));
+      toast.success("Flight updated");
     } catch {
       setActionError("Couldn't update the flight. Please try again.");
     }
@@ -311,6 +317,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         photoUrl: data.photoUrl || undefined,
       })) as Attraction;
       upsertAttraction(created);
+      toast.success("Attraction added");
     } catch {
       setActionError("Couldn't save the attraction. Please try again.");
     }
@@ -355,6 +362,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
           };
         })
       );
+      toast.success("Attraction updated");
     } catch {
       setActionError("Couldn't update the attraction. Please try again.");
     }

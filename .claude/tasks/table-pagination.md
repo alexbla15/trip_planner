@@ -1,6 +1,6 @@
 # Task: Pagination for Tables (Max 5 Rows)
 
-Status: intake
+Status: designing
 
 Track: A
 Track reason: No pagination UI component exists for `<table>` elements today (a *list* pagination pattern exists for the trip-detail attractions list — see Implementation Notes in `.claude/tasks/attractions-pagination.done.md` — but not a table-row pattern, and page size/behavior here differs).

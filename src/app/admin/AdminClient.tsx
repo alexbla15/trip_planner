@@ -8,6 +8,7 @@ import {
   Loader2, ChevronDown, AlertCircle, Tag, Smile, Layers, RefreshCw,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import {
   useAttractionTypes,
   invalidateAttractionTypesCache,
@@ -407,6 +408,7 @@ function MoodTagForm({
 
 export function AdminClient() {
   const { user, token, loading: authLoading } = useAuth();
+  const toast = useToast();
   const router = useRouter();
   const { types, loading: typesLoading, categories, byCategory } = useAttractionTypes();
   const { categories: catRecords, loading: catsLoading } = useAttractionCategories();
@@ -474,13 +476,16 @@ export function AdminClient() {
     }
     invalidateAttractionCategoriesCache();
     invalidateAttractionTypesCache();
-    window.location.reload();
+    setCatDeleting(false);
+    setCatDeleteId(null);
+    toast.success("Category deleted");
   }
 
   function handleCatFormDone() {
+    const wasEditing = catEditingId !== null;
     setCatAdding(false);
     setCatEditingId(null);
-    window.location.reload();
+    toast.success(wasEditing ? "Category updated" : "Category created");
   }
 
   async function handleMigrate() {
@@ -493,7 +498,7 @@ export function AdminClient() {
     setMigrating(false);
     invalidateAttractionCategoriesCache();
     invalidateAttractionTypesCache();
-    window.location.reload();
+    toast.success(data.message ?? "Legacy types migrated");
   }
 
   // ── Type handlers ────────────────────────────────────────────────────────────
@@ -503,13 +508,16 @@ export function AdminClient() {
     setDeleting(true);
     await deleteAttractionType(id, token);
     invalidateAttractionTypesCache();
-    window.location.reload();
+    setDeleting(false);
+    setDeleteId(null);
+    toast.success("Type deleted");
   }
 
   function handleFormDone() {
+    const wasEditing = editingId !== null;
     setAdding(false);
     setEditingId(null);
-    window.location.reload();
+    toast.success(wasEditing ? "Type updated" : "Type created");
   }
 
   // ── Mood tag handlers ────────────────────────────────────────────────────────
@@ -519,13 +527,16 @@ export function AdminClient() {
     setMoodDeleting(true);
     await deleteMoodTag(id, token);
     invalidateMoodTagsCache();
-    window.location.reload();
+    setMoodDeleting(false);
+    setMoodDeleteId(null);
+    toast.success("Mood deleted");
   }
 
   function handleMoodFormDone() {
+    const wasEditing = moodEditingId !== null;
     setMoodAdding(false);
     setMoodEditingId(null);
-    window.location.reload();
+    toast.success(wasEditing ? "Mood updated" : "Mood created");
   }
 
   async function handleSeedMoodTags() {
@@ -533,7 +544,8 @@ export function AdminClient() {
     setSeeding(true);
     await seedMoodTags(token);
     invalidateMoodTagsCache();
-    window.location.reload();
+    setSeeding(false);
+    toast.success("Default moods seeded");
   }
 
   // ── Legacy types that haven't been migrated yet ──────────────────────────────

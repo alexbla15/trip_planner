@@ -3,11 +3,14 @@
 import type { ReactNode } from "react";
 import { AttractionsProvider } from "@/contexts/AttractionsContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ToastProvider } from "@/contexts/ToastContext";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <AuthProvider>
-      <AttractionsProvider>{children}</AttractionsProvider>
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <AttractionsProvider>{children}</AttractionsProvider>
+      </AuthProvider>
+    </ToastProvider>
   );
 }

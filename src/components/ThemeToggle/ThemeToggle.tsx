@@ -19,6 +19,7 @@ export function ThemeToggle() {
       className={styles.toggle}
       onClick={toggle}
       aria-label="Toggle color theme"
+      suppressHydrationWarning
     >
       <span className={styles.moonIcon}>
         <Moon size={18} aria-hidden="true" />

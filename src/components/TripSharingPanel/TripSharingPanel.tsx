@@ -5,6 +5,7 @@ import { Lock, Users, X, Loader2, Search } from "lucide-react";
 import type { Trip, TripCollaborator } from "@/types/trip";
 import { updateTrip, searchUsers, addCollaborator, removeCollaborator, ApiError } from "@/services";
 import { ImageWithSkeleton } from "@/components";
+import { useToast } from "@/contexts/ToastContext";
 import type { TripSharingPanelProps } from "./TripSharingPanel.types";
 import { getInitials } from "./TripSharingPanel.utils";
 import styles from "./TripSharingPanel.module.css";
@@ -17,6 +18,7 @@ interface UserResult {
 }
 
 export function TripSharingPanel({ trip, token, onTripUpdate, mode = "live" }: TripSharingPanelProps) {
+  const toast = useToast();
   const [togglingPrivacy, setTogglingPrivacy] = useState(false);
   const [privacyError, setPrivacyError]       = useState<string | null>(null);
 
@@ -45,6 +47,7 @@ export function TripSharingPanel({ trip, token, onTripUpdate, mode = "live" }: T
       if (res.ok) {
         const updated = await res.json();
         onTripUpdate(updated);
+        toast.success(next ? "Trip set to private" : "Trip set to public");
       } else {
         onTripUpdate({ ...trip, isPrivate: trip.isPrivate });
         setPrivacyError("Could not update privacy setting. Please try again.");
@@ -116,6 +119,7 @@ export function TripSharingPanel({ trip, token, onTripUpdate, mode = "live" }: T
     try {
       const json = await addCollaborator(trip._id, token, user.email);
       onTripUpdate(json as Trip);
+      toast.success("Collaborator added");
     } catch (err) {
       if (err instanceof ApiError) {
         setInviteError((err.body as { error?: string } | null)?.error ?? "Something went wrong.");
@@ -139,8 +143,10 @@ export function TripSharingPanel({ trip, token, onTripUpdate, mode = "live" }: T
     try {
       const updated = await removeCollaborator(trip._id, collaborator.userId, token);
       onTripUpdate(updated as Trip);
+      toast.success("Collaborator removed");
     } catch {
       onTripUpdate({ ...trip, collaborators: snapshot });
+      toast.error("Couldn't remove collaborator. Please try again.");
     }
   }
 
