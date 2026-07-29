@@ -36,7 +36,7 @@ import {
 
   // Transport
   Plane, PlaneLanding, PlaneTakeoff, TrainFront, Train, Car, Truck,
-  Ship, BusFront, CarFront, Cable, Anchor, Fuel,
+  Ship, BusFront, CarFront, Cable, CableCar, TramFront, Anchor, Fuel,
   Navigation, Navigation2, Route, LocateFixed, Crosshair,
 
   // Accommodation
@@ -211,6 +211,8 @@ export const ICON_REGISTRY: Record<string, LucideIcon> = {
   BusFront,
   CarFront,
   Cable,
+  CableCar,
+  TramFront,
   Anchor,
   Fuel,
   Navigation,

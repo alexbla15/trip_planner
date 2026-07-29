@@ -97,3 +97,6 @@ export { CountryFilterSelect } from "./CountryFilterSelect";
 
 export { Toast, ToastViewport } from "./Toast";
 export type { ToastItem, ToastVariant } from "./Toast";
+
+export { Pagination, usePagination } from "./Pagination";
+export type { PaginationProps } from "./Pagination";

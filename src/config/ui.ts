@@ -5,3 +5,4 @@ export const MIN_CARD_HEIGHT_PX = 20;         // minimum attraction block height
 export const MIN_BLOCK_WIDTH_PX = 110;        // minimum block width when side-by-side in overlap layout
 export const MIN_OVERLAP_DURATION_MINS = 30;  // minimum duration assumed when calculating overlap
 export const ATTRACTIONS_PAGE_SIZE = 5;      // attractions per page in the trip detail list
+export const TABLE_PAGE_SIZE = 5;             // max rows per page for any paginated data table

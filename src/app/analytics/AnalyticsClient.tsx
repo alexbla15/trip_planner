@@ -18,9 +18,12 @@ import {
   StatCardsGrid,
   RankedList,
   CountryFilterSelect,
+  Pagination,
+  usePagination,
 } from "@/components";
 import type { CityEntry, RankedListItem } from "@/components";
 import { getGlobalAnalytics } from "@/services";
+import { TABLE_PAGE_SIZE } from "@/config/ui";
 import styles from "./AnalyticsClient.module.css";
 
 const DynamicCountriesMap = dynamic(
@@ -72,6 +75,14 @@ export function AnalyticsClient() {
 
   const rawTypes = data?.categoryDistribution ?? [];
 
+  const topUsers = data?.topUsers ?? [];
+  const {
+    page: topUsersPage,
+    totalPages: topUsersTotalPages,
+    paginatedItems: paginatedTopUsers,
+    goToPage: goToTopUsersPage,
+  } = usePagination(topUsers, TABLE_PAGE_SIZE);
+
   const detailRows = useMemo((): RankedListItem[] => {
     if (!activeStat || !data) return [];
     switch (activeStat) {
@@ -82,7 +93,7 @@ export function AnalyticsClient() {
           href: `/trips/${t.tripId}`,
         }));
       case "Total Attractions":
-        return rawTypes.slice(0, 10).map((t) => ({ name: t._id, count: t.count }));
+        return rawTypes.map((t) => ({ name: t._id, count: t.count }));
       case "Users":
         return data.topUsers.map((u) => ({ name: u.name, count: u.attractionsCount }));
       case "Countries":
@@ -90,7 +101,6 @@ export function AnalyticsClient() {
       case "Cities Covered":
         return (data.topCities ?? [])
           .filter((c) => cityCountryFilter === "all" || c.country === cityCountryFilter)
-          .slice(0, 10)
           .map((c) => ({
             name: c._id || "Unknown",
             count: c.count,
@@ -254,24 +264,28 @@ export function AnalyticsClient() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data!.topUsers.map((u, i) => (
-                    <tr key={u.ownerId} className={`${styles.row} ${i === 0 ? styles.rowGold : ""}`}>
-                      <td className={styles.rankCell}>
-                        {i === 0 ? (
-                          <span className={styles.goldRank}>
-                            <Trophy size={14} aria-hidden="true" />1
-                          </span>
-                        ) : (
-                          i + 1
-                        )}
-                      </td>
-                      <td className={styles.explorerCell}>{u.name}</td>
-                      <td className={styles.numCell}>{u.attractionsCount.toLocaleString()}</td>
-                      <td className={styles.numCell}>{u.countriesCount.toLocaleString()}</td>
-                    </tr>
-                  ))}
+                  {paginatedTopUsers.map((u, i) => {
+                    const rank = (topUsersPage - 1) * TABLE_PAGE_SIZE + i + 1;
+                    return (
+                      <tr key={u.ownerId} className={`${styles.row} ${rank === 1 ? styles.rowGold : ""}`}>
+                        <td className={styles.rankCell}>
+                          {rank === 1 ? (
+                            <span className={styles.goldRank}>
+                              <Trophy size={14} aria-hidden="true" />1
+                            </span>
+                          ) : (
+                            rank
+                          )}
+                        </td>
+                        <td className={styles.explorerCell}>{u.name}</td>
+                        <td className={styles.numCell}>{u.attractionsCount.toLocaleString()}</td>
+                        <td className={styles.numCell}>{u.countriesCount.toLocaleString()}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
+              <Pagination page={topUsersPage} totalPages={topUsersTotalPages} onPageChange={goToTopUsersPage} />
             </div>
           )}
         </SectionCard>
