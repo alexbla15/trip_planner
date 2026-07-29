@@ -170,6 +170,9 @@ export function LoginClient() {
               </button>
             </div>
             <FormFieldError id={`${passwordId}-error`} message={touched.password ? errors.password : undefined} />
+            <Link href="/forgot-password" className={styles.forgotLink}>
+              Forgot password?
+            </Link>
           </div>
 
           {/* Submit */}

@@ -872,6 +872,74 @@ paths:
         500:
           description: Demo account env vars not configured
 
+  /api/auth/forgot-password:
+    post:
+      summary: Request a password-reset email
+      description: |
+        Always returns the same generic success message, whether or not the email
+        belongs to a registered account — this endpoint never reveals which emails
+        are registered. If the account exists, a time-limited (1 hour) reset link is
+        emailed via Resend.
+      tags: [Authentication]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        200:
+          description: Generic confirmation (see description)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        400:
+          description: Missing email
+
+  /api/auth/reset-password:
+    post:
+      summary: Set a new password using a reset token
+      tags: [Authentication]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, newPassword]
+              properties:
+                token:
+                  type: string
+                  description: Raw reset token from the emailed link's `?token=` query param
+                newPassword:
+                  type: string
+                  minLength: 8
+      responses:
+        200:
+          description: Password updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        400:
+          description: |
+            Invalid input, or an invalid/expired token — check the `code` field
+            (`INVALID_TOKEN`) to distinguish a bad token from a plain validation error.
+
   /api/users/search:
     get:
       summary: Search registered users by name or email

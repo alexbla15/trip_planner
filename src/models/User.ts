@@ -7,6 +7,8 @@ export interface IUser extends Document {
   avatarUrl?: string;
   role: "user" | "admin";
   createdAt: Date;
+  resetTokenHash?: string;
+  resetTokenExpiry?: Date;
 }
 
 const UserSchema = new Schema<IUser>(
@@ -16,6 +18,10 @@ const UserSchema = new Schema<IUser>(
     password: { type: String, required: true },
     avatarUrl: { type: String },
     role: { type: String, enum: ["user", "admin"], default: "user" },
+    // Password reset — the raw token is only ever emailed, never persisted;
+    // only its hash + expiry live on the document (see src/lib/passwordReset.ts).
+    resetTokenHash: { type: String, select: false },
+    resetTokenExpiry: { type: Date, select: false },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );

@@ -1,8 +1,8 @@
-// Deliberately excludes mongoose.ts and auth.ts: both are server-only (Node
-// `mongoose` driver; `jsonwebtoken` + JWT_SECRET). Re-exporting them here would
-// pull server-only code into the module graph of any client component that
-// imports anything else from this barrel. Their consumers (API route handlers)
-// import them directly by filename instead — see docs/LEARNINGS.md.
+// Deliberately excludes mongoose.ts, auth.ts, and email.ts: all are server-only
+// (Node `mongoose` driver; `jsonwebtoken` + JWT_SECRET; `resend` SDK + RESEND_API_KEY).
+// Re-exporting them here would pull server-only code into the module graph of any
+// client component that imports anything else from this barrel. Their consumers
+// (API route handlers) import them directly by filename instead — see docs/LEARNINGS.md.
 //
 // Also excludes mapIcons.tsx: it imports `react-dom/server` (renderToStaticMarkup),
 // which Next.js forbids in any module reachable from a Client Component's graph.
@@ -49,7 +49,12 @@ export {
 export { polarToCartesian, donutSlicePath, tintColor } from "./geometry";
 
 export type { LoginFormErrors, RegisterFormErrors } from "./validation";
-export { validateLoginForm, validateRegisterForm } from "./validation";
+export {
+  validateLoginForm,
+  validateRegisterForm,
+  validateForgotPasswordForm,
+  validateResetPasswordForm,
+} from "./validation";
 
 export type { TypeFormState, CategoryFormState, MoodTagFormState } from "./adminForms";
 export { typeFormFromRecord, catFormFromRecord, moodFormFromRecord } from "./adminForms";

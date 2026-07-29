@@ -1,5 +1,29 @@
 import { parseOrThrow } from "./http";
 
+export interface MessageResponse {
+  message?: string;
+  error?: string;
+}
+
+export async function forgotPassword(email: string): Promise<MessageResponse> {
+  const res = await fetch("/api/auth/forgot-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  return parseOrThrow<MessageResponse>(res);
+}
+
+// Kept as a raw Response: ResetPasswordClient distinguishes an invalid/expired
+// token (INVALID_TOKEN code) from other failures to pick which terminal state to show.
+export function resetPassword(token: string, newPassword: string): Promise<Response> {
+  return fetch("/api/auth/reset-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, newPassword }),
+  });
+}
+
 // Kept as a raw Response: LoginClient and RegisterClient's auto-login handle a
 // failed login differently (different message, different redirect target).
 export function login(email: string, password: string): Promise<Response> {

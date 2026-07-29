@@ -1,6 +1,7 @@
 export { ApiError, parseOrThrow } from "./http";
 
-export { login, register, demoLogin } from "./auth.service";
+export { login, register, demoLogin, forgotPassword, resetPassword } from "./auth.service";
+export type { MessageResponse } from "./auth.service";
 export type { RegisterResponse } from "./auth.service";
 
 export { getCurrentUser, updateCurrentUser, changePassword, searchUsers } from "./users.service";

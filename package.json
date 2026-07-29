@@ -21,6 +21,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-leaflet": "^5.0.0",
+    "resend": "^6.18.1",
     "swagger-ui-react": "^5.32.11"
   },
   "devDependencies": {
