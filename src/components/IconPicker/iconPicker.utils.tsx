@@ -24,20 +24,24 @@ import {
   Mountain, MountainSnow, Waves, Umbrella, Sailboat, Shell, Footprints, Tent,
   Compass, Map, MapPin, MapPinned, Binoculars, Telescope, Sun, Sunset, Sunrise, Moon,
   CloudSun, Snowflake, Flame, Droplets, Droplet, Wind, CloudRain, Rainbow,
-  Palmtree,
+  Palmtree, CloudDrizzle, CloudFog, CloudHail, CloudLightning, CloudMoon, CloudMoonRain, CloudSunRain,
+
+  // Wildlife
+  Bird, Rabbit, Squirrel, Turtle, Snail, Bug, PawPrint,
 
   // Sports & Fitness
   Dumbbell, Bike, PersonStanding, Swords, Trophy, Medal, Target, Volleyball,
-  Zap, Activity, Stethoscope, Axe,
+  Zap, Activity, Stethoscope, Axe, Award, Podium, Ribbon, Timer, Flag,
+  CircleDot, Disc, Gauge, BowArrow, Kayak, Motorbike,
 
   // Entertainment & Leisure
   FerrisWheel, Dices, Gamepad2, Joystick, PartyPopper, Sparkles, Wand2,
-  Heart, Smile, Laugh, Puzzle,
+  Heart, Smile, Laugh, Puzzle, Balloon, ChessKing,
 
   // Transport
   Plane, PlaneLanding, PlaneTakeoff, TrainFront, Train, Car, Truck,
   Ship, BusFront, CarFront, Cable, CableCar, TramFront, Anchor, Fuel,
-  Navigation, Navigation2, Route, LocateFixed, Crosshair,
+  Navigation, Navigation2, Route, LocateFixed, Crosshair, Rocket, Satellite,
 
   // Accommodation
   Hotel, BedDouble, Home, Building, Building2, KeyRound, DoorOpen,
@@ -49,6 +53,13 @@ import {
   // People & Social
   Users, User, UserRound, UserCheck, Baby, Dog, Cat,
   Handshake, UsersRound, ThumbsUp,
+
+  // Wellness & Health
+  Ambulance, Bandage, HeartPulse, Pill, Syringe, Thermometer,
+
+  // Education & Science
+  Atom, Calculator, Dna, FlaskConical, GraduationCap, Lightbulb,
+  Microscope, PenTool, Pencil, Ruler,
 
   // Infrastructure
   Warehouse, Factory, School2, Hospital,
@@ -171,6 +182,22 @@ export const ICON_REGISTRY: Record<string, LucideIcon> = {
   CloudRain,
   Rainbow,
   Palmtree,
+  CloudDrizzle,
+  CloudFog,
+  CloudHail,
+  CloudLightning,
+  CloudMoon,
+  CloudMoonRain,
+  CloudSunRain,
+
+  // ── Wildlife ───────────────────────────────────────────────────────────────
+  Bird,
+  Rabbit,
+  Squirrel,
+  Turtle,
+  Snail,
+  Bug,
+  PawPrint,
 
   // ── Sports & Fitness ──────────────────────────────────────────────────────
   Dumbbell,
@@ -185,6 +212,17 @@ export const ICON_REGISTRY: Record<string, LucideIcon> = {
   Activity,
   Stethoscope,
   Axe,
+  Award,
+  Podium,
+  Ribbon,
+  Timer,
+  Flag,
+  CircleDot,
+  Disc,
+  Gauge,
+  BowArrow,
+  Kayak,
+  Motorbike,
 
   // ── Entertainment & Leisure ───────────────────────────────────────────────
   FerrisWheel,
@@ -198,6 +236,8 @@ export const ICON_REGISTRY: Record<string, LucideIcon> = {
   Smile,
   Laugh,
   Puzzle,
+  Balloon,
+  ChessKing,
 
   // ── Transport ─────────────────────────────────────────────────────────────
   Plane,
@@ -220,6 +260,8 @@ export const ICON_REGISTRY: Record<string, LucideIcon> = {
   Route,
   LocateFixed,
   Crosshair,
+  Rocket,
+  Satellite,
 
   // ── Accommodation ─────────────────────────────────────────────────────────
   Hotel,
@@ -254,6 +296,26 @@ export const ICON_REGISTRY: Record<string, LucideIcon> = {
   Handshake,
   UsersRound,
   ThumbsUp,
+
+  // ── Wellness & Health ─────────────────────────────────────────────────────
+  Ambulance,
+  Bandage,
+  HeartPulse,
+  Pill,
+  Syringe,
+  Thermometer,
+
+  // ── Education & Science ───────────────────────────────────────────────────
+  Atom,
+  Calculator,
+  Dna,
+  FlaskConical,
+  GraduationCap,
+  Lightbulb,
+  Microscope,
+  PenTool,
+  Pencil,
+  Ruler,
 
   // ── Infrastructure ────────────────────────────────────────────────────────
   Warehouse,

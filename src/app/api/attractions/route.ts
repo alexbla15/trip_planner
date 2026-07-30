@@ -25,6 +25,7 @@ export const GET = withApiHandler("GET /api/attractions", async (req: Request) =
     ownerId: searchParams.get("ownerId"),
     skip: skipParam ? Number(skipParam) : null,
     limit: limitParam ? Number(limitParam) : null,
+    includeHidden: searchParams.get("includeHidden") === "true",
   });
 
   // Response body stays a plain array for backward compatibility with existing callers

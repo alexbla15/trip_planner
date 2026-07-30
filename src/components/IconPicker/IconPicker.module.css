@@ -47,17 +47,20 @@
   pointer-events: none;
 }
 
-/* ── Dropdown panel ── */
+/* ── Dropdown panel ──
+   Rendered through a portal into document.body (see IconPicker.tsx) so it can
+   escape ancestors with `overflow: hidden` — e.g. the admin page's collapsible
+   section wrapper, which needs that overflow for its height animation and
+   would otherwise clip the dropdown. Position is computed in JS and applied
+   via inline style (top/left), hence `position: fixed` with no top/left here. */
 .dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
+  position: fixed;
   width: 240px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  z-index: 100;
+  z-index: 1300;
   animation: dropdownIn var(--duration-fast) var(--easing-out) both;
 }
 

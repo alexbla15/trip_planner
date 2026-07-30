@@ -10,8 +10,11 @@ export async function getExploreItems(): Promise<unknown[]> {
   return parseOrThrow<unknown[]>(res);
 }
 
+// includeHidden=true: Explore is a public discovery view over shared place data, not
+// trip-planning details — it should never hide an attraction just because the only
+// trip referencing it happens to be private (see src/lib/services/attractions.service.ts).
 export async function getAttractionsByCity(city: string): Promise<unknown[]> {
-  const res = await fetch(`/api/attractions?city=${encodeURIComponent(city)}`);
+  const res = await fetch(`/api/attractions?city=${encodeURIComponent(city)}&includeHidden=true`);
   return parseOrThrow<unknown[]>(res);
 }
 

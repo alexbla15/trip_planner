@@ -1,6 +1,6 @@
 # Task: Fix "Georgia" Resolving to the US State Instead of the Country on the World Map
 
-Status: intake
+Status: done
 
 Track: B
 Track reason: Bug fix — wrong data returned by an existing query, no UI/visual change.
@@ -23,3 +23,12 @@ Trips whose `country` field is "Georgia" (or any other country name that collide
 ## Out of scope
 - General Nominatim query-quality improvements beyond the country/region disambiguation (e.g. handling countries with multiple valid English names)
 - Adding a manual country-name → ISO-code mapping layer (a heavier fix than needed for this specific ambiguity)
+
+## Implementation Notes
+- Files modified: `src/app/api/geo/country/route.ts` (added `&featureType=country` to the Nominatim query URL)
+- Deviations from requirements: none
+- **Verified live against the real Nominatim API, not just by reading the code** — confirmed the exact bug first: a bare query for "Georgia" (no `featureType`) returns "Georgia, United States" as the *first* result (which the old code picked), with the actual country second. Adding `featureType=country` returns only the country ("საქართველო" — Georgian for "Georgia"), correctly excluding the US state entirely. Re-verified through the app's own running `GET /api/geo/country?name=Georgia` endpoint, which now returns the country polygon.
+- Checked current trip data directly in MongoDB for other US-state-name collisions: the only countries currently in use are Czech Republic, Georgia, Hungary, Iceland, and United Kingdom — Georgia is the only one that collides with a US state name, so no second fix is needed right now.
+- Cache staleness check: the module-scope `Map` cache in this route was empty for "Georgia" at the time of this fix (no prior request had cached the wrong US-state polygon during this session), so no cache-clearing/restart was needed for this specific case. Worth noting for the future: since the cache has no TTL, any country that *had* already been queried and cached with a wrong result before a similar fix would need a process restart (or a cache-clearing mechanism) to pick up the corrected value — the 24-hour `revalidate` only applies to the underlying `fetch`, not this in-memory `Map`.
+- `tsc --noEmit` and `eslint` both clean, zero findings.
+

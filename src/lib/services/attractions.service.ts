@@ -27,6 +27,14 @@ export interface SearchAttractionsParams {
    *  so pagination narrows the page size, never exceeds the pre-existing result cap. */
   skip?: number | null;
   limit?: number | null;
+  /** Skips the "hidden by private trip" filter below. Attractions are global, shared
+   *  place records — not private trip-planning details — so a public discovery view
+   *  (Explore's city drill-down) should never hide one just because the only trip
+   *  referencing it happens to be private. Defaults to false (the existing filtered
+   *  behavior) for every other caller, e.g. trip-scoped attraction search/pickers,
+   *  where avoiding a private-trip-only attraction leaking into another user's search
+   *  is still the right behavior. */
+  includeHidden?: boolean | null;
 }
 
 export interface SearchAttractionsResult {
@@ -43,7 +51,7 @@ export async function searchAttractions(
   userId: string | null,
   params: SearchAttractionsParams
 ): Promise<SearchAttractionsResult> {
-  const { country, city, q, type, ownerId } = params;
+  const { country, city, q, type, ownerId, includeHidden } = params;
 
   if (!country?.trim() && !city?.trim() && !type?.trim()) {
     throw badRequest("country, city, or type param is required");
@@ -51,22 +59,25 @@ export async function searchAttractions(
 
   await dbConnect();
 
-  const privateFilter = userId
-    ? { isPrivate: true, ownerId: { $ne: userId }, "collaborators.userId": { $ne: userId } }
-    : { isPrivate: true };
+  let hiddenIds: string[] = [];
+  if (!includeHidden) {
+    const privateFilter = userId
+      ? { isPrivate: true, ownerId: { $ne: userId }, "collaborators.userId": { $ne: userId } }
+      : { isPrivate: true };
 
-  const accessibleFilter = userId
-    ? { $or: [{ ownerId: userId }, { "collaborators.userId": userId }, { isPrivate: { $ne: true } }] }
-    : { isPrivate: { $ne: true } };
+    const accessibleFilter = userId
+      ? { $or: [{ ownerId: userId }, { "collaborators.userId": userId }, { isPrivate: { $ne: true } }] }
+      : { isPrivate: { $ne: true } };
 
-  const [privateTrips, accessibleTrips] = await Promise.all([
-    Trip.find(privateFilter).select("attractionIds").lean(),
-    Trip.find(accessibleFilter).select("attractionIds").lean(),
-  ]);
+    const [privateTrips, accessibleTrips] = await Promise.all([
+      Trip.find(privateFilter).select("attractionIds").lean(),
+      Trip.find(accessibleFilter).select("attractionIds").lean(),
+    ]);
 
-  const privateIds = new Set(privateTrips.flatMap((t) => (t.attractionIds ?? []).filter(Boolean).map((id) => id.toString())));
-  const accessibleIds = new Set(accessibleTrips.flatMap((t) => (t.attractionIds ?? []).filter(Boolean).map((id) => id.toString())));
-  const hiddenIds = [...privateIds].filter((id) => !accessibleIds.has(id));
+    const privateIds = new Set(privateTrips.flatMap((t) => (t.attractionIds ?? []).filter(Boolean).map((id) => id.toString())));
+    const accessibleIds = new Set(accessibleTrips.flatMap((t) => (t.attractionIds ?? []).filter(Boolean).map((id) => id.toString())));
+    hiddenIds = [...privateIds].filter((id) => !accessibleIds.has(id));
+  }
 
   const filter: Record<string, unknown> = {};
   if (country?.trim()) filter.country = country.trim();

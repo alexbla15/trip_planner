@@ -24,7 +24,8 @@ export const GET = withApiHandler("GET /api/geo/country", async (req: Request) =
   try {
     const url =
       `https://nominatim.openstreetmap.org/search` +
-      `?q=${encodeURIComponent(country)}&format=geojson&polygon_geojson=1&limit=5`;
+      `?q=${encodeURIComponent(country)}&format=geojson&polygon_geojson=1&limit=5` +
+      `&featureType=country`;
 
     const res = await fetch(url, {
       headers: { "User-Agent": "TripPlanner/1.0 (educational project)" },
