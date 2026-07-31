@@ -1,6 +1,6 @@
 # Task: Explore City Drill-Down Hides Attractions That Are Only Linked to a Private Trip
 
-Status: reviewing
+Status: done
 
 Track: B
 Track reason: Bug fix — wrong/incomplete data returned by an existing query due to overly broad privacy filtering; no new UI surface.
@@ -38,3 +38,6 @@ Per user decision: Explore's city drill-down always shows every attraction with 
   - `GET /api/attractions?city=Tbilisi&includeHidden=true` → 31 attractions (matches the city-list aggregate count exactly, confirming the fix)
   - `GET /api/attractions?country=Georgia` (the trip-scoped search path, unauthenticated) → still 1 attraction, confirming `searchAttractionsByCountry`'s existing privacy filtering is untouched by this change
 - `tsc --noEmit` and `eslint` both clean, zero findings.
+
+## Completion Summary
+Fixed Explore's city drill-down showing only 1 of 31 Tbilisi attractions (and any similarly-affected city) by adding an opt-in `includeHidden` flag that lets Explore's city view skip the "hidden by private trip" filter meant for trip-scoped search, while every other caller keeps the existing filtered behavior unchanged. Verified live: Explore now returns the full attraction count matching the city-list aggregate, and the trip-scoped country search path still correctly filters as before. Confirmed by user. Closed 2026-07-30.

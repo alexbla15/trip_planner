@@ -788,7 +788,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                               </div>
                               {attraction.photoUrl?.startsWith("http") && (
                                 <div className={styles.attractionThumb} aria-hidden="true">
-                                  <ImageWithSkeleton src={attraction.photoUrl} alt="" width={52} height={52} className={styles.attractionThumbImg} />
+                                  <ImageWithSkeleton src={attraction.photoUrl} alt="" width={52} height={52} unoptimized className={styles.attractionThumbImg} />
                                 </div>
                               )}
                               {canEdit && (

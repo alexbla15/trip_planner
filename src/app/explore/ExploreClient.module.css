@@ -254,6 +254,16 @@
   flex: 1;
   min-width: 0;
   position: relative;
+  /* Contain Leaflet's stacking context (its internal panes go up to z-index 700)
+     so it can never escape above the fixed Navbar (z-index 100/150) or any other
+     page chrome — was previously only applied on the mobile override below. */
+  isolation: isolate;
+}
+
+/* isolation alone still let Leaflet's root container paint above sibling page chrome
+   in practice — pin its own stacking order explicitly below everything else. */
+.mapArea :global(.leaflet-container) {
+  z-index: -1;
 }
 
 /* Mobile bar (hidden on desktop) */

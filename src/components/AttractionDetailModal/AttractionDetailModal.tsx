@@ -118,6 +118,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime }: Attra
                 src={attraction.photoUrl}
                 alt={`${attraction.name} photo`}
                 fill
+                unoptimized
                 className={styles.photoImg}
                 sizes="(max-width: 640px) 100vw, 500px"
               />

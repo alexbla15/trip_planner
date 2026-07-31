@@ -32,3 +32,6 @@ Trips whose `country` field is "Georgia" (or any other country name that collide
 - Cache staleness check: the module-scope `Map` cache in this route was empty for "Georgia" at the time of this fix (no prior request had cached the wrong US-state polygon during this session), so no cache-clearing/restart was needed for this specific case. Worth noting for the future: since the cache has no TTL, any country that *had* already been queried and cached with a wrong result before a similar fix would need a process restart (or a cache-clearing mechanism) to pick up the corrected value — the 24-hour `revalidate` only applies to the underlying `fetch`, not this in-memory `Map`.
 - `tsc --noEmit` and `eslint` both clean, zero findings.
 
+## Completion Summary
+Fixed "Georgia" incorrectly resolving to the US state instead of the country on the world map by adding Nominatim's `featureType=country` parameter to the geo lookup. Verified live against the real Nominatim API (reproduced the bug, then confirmed the fix) and through the app's own endpoint. No other current trip country name collides with a US state. Confirmed by user. Closed 2026-07-30.
+
