@@ -279,12 +279,22 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
 
   // Full route:
   //   arrival airports → residence (or not if arrived today) → attractions → residence (or not if departing today) → departure airports
-  const dayResidence = dayResidences[0] ?? null;
+  //
+  // A day can have TWO residences when it's a transfer day (checking out of one place
+  // and into another) — dayResidences[0] alone can't tell them apart, so the start of
+  // the day's path must anchor on whichever residence is being checked OUT of today,
+  // and the end on whichever is being checked INTO today. A residence just being
+  // stayed in (spans the day without either boundary landing on it) anchors both ends,
+  // matching the original single-residence behavior.
+  const checkOutResidence = dayResidences.find((r) => r.checkOutDate === selectedDay) ?? null;
+  const checkInResidence  = dayResidences.find((r) => r.checkInDate === selectedDay) ?? null;
+  const startResidence = checkOutResidence ?? dayResidences[0] ?? null;
+  const endResidence   = checkInResidence ?? dayResidences[0] ?? null;
   const fullRoute = useMemo<Attraction[]>(() => {
-    const start = arrivalWaypoints.length > 0 ? arrivalWaypoints : (dayResidence ? [dayResidence] : []);
-    const end   = departureWaypoints.length > 0 ? departureWaypoints : (dayResidence ? [dayResidence] : []);
+    const start = arrivalWaypoints.length > 0 ? arrivalWaypoints : (startResidence ? [startResidence] : []);
+    const end   = departureWaypoints.length > 0 ? departureWaypoints : (endResidence ? [endResidence] : []);
     return [...start, ...routeAttractions, ...end];
-  }, [arrivalWaypoints, departureWaypoints, dayResidence, routeAttractions]);
+  }, [arrivalWaypoints, departureWaypoints, startResidence, endResidence, routeAttractions]);
 
   // legModes keyed by "${fromId}__${toId}" (mode-independent stable key)
   function stableLegKey(fromId: string, toId: string) { return `${fromId}__${toId}`; }

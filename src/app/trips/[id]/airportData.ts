@@ -116,6 +116,9 @@ export const AIRPORTS: Record<string, AirportInfo> = {
   OSL: { name: "Oslo Gardermoen", city: "Oslo", country: "Norway", lat: 60.1939, lng: 11.1004 },
   CPH: { name: "Copenhagen", city: "Copenhagen", country: "Denmark", lat: 55.6181, lng: 12.6560 },
   HEL: { name: "Helsinki Vantaa", city: "Helsinki", country: "Finland", lat: 60.3172, lng: 24.9633 },
+  // Iceland
+  KEF: { name: "Keflavík International", city: "Keflavík", country: "Iceland", lat: 63.9850, lng: -22.6056 },
+  AEY: { name: "Akureyri", city: "Akureyri", country: "Iceland", lat: 65.6600, lng: -18.0727 },
   // Canada
   YYZ: { name: "Pearson International", city: "Toronto", country: "Canada", lat: 43.6777, lng: -79.6248 },
   YUL: { name: "Montréal–Trudeau", city: "Montreal", country: "Canada", lat: 45.4706, lng: -73.7408 },

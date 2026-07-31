@@ -1,6 +1,6 @@
 # Task: Fix Map Path When Two Residences Fall on the Same Day (Check-out + Check-in)
 
-Status: intake
+Status: done
 
 Track: B
 Track reason: Bug fix to existing map route/path logic — no new UI surface, just correcting which point is treated as the day's start/end.
@@ -24,3 +24,15 @@ When a day includes both a check-out and a check-in residence, the map path corr
 ## Out of scope
 - Redesigning the map/path visualization itself
 - Handling more than two residences overlapping on the same day (not a reported scenario)
+
+## Implementation Notes
+- Files modified: `src/app/trips/[id]/TripDayMapWidget.tsx` (~lines 280-295)
+- Deviations from requirements: none
+- New design tokens used: none — logic-only fix, no UI change (residence markers already correctly showed both residences; only the route/path anchor selection was wrong)
+- Root cause confirmed exactly as scoped: `const dayResidence = dayResidences[0] ?? null;` picked one arbitrary residence and used it as **both** the start and end anchor of the day's route whenever no flight waypoints existed that day — so on a transfer day (checking out of one place, into another) the second residence was silently dropped from the path entirely.
+- Fix: `checkOutResidence = dayResidences.find(r => r.checkOutDate === selectedDay)`, `checkInResidence = dayResidences.find(r => r.checkInDate === selectedDay)` — start anchors on the check-out residence (falling back to `dayResidences[0]` when neither boundary lands on this day, preserving the original single-residence "staying here" behavior), end anchors on the check-in residence with the same fallback.
+- **Verified against real production data, not just reasoned about:** found real transfer days already in the database across two different trips ("UK 2022": 3 transfer days; "Iceland 2023": 4 transfer days) via a direct MongoDB query. Simulated the exact fix logic against "UK 2022"'s 2022-10-04 transfer day (Best Western Northfields Ealing Hotel → The Lansdowne Boutique Rooms): confirmed the old code would have anchored both start and end of that day's route at the Best Western (silently ignoring the Lansdowne, the place actually being checked into), while the new logic correctly anchors start at the check-out hotel and end at the check-in hotel.
+- `tsc --noEmit` clean. `eslint` shows 1 pre-existing error + 2 pre-existing warnings on this file, all confirmed unrelated to the touched lines (a `set-state-in-effect` finding on the unrelated `qualifyingDays` effect, and two `exhaustive-deps` warnings on unrelated effects/memos further down the file).
+
+## Completion Summary
+Fixed the trip day-map route path silently dropping a residence on transfer days (check-out of one place, check-in to another on the same day) — the path now correctly starts at the check-out residence and ends at the check-in residence, instead of anchoring both ends at one arbitrary residence. Verified against real transfer days already in the database. Confirmed by user. Closed 2026-07-31.

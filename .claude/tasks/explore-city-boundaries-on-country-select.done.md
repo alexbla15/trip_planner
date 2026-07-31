@@ -1,6 +1,6 @@
 # Task: Show City Boundaries (Not Pins) When a Country Is Selected on Explore
 
-Status: reviewing
+Status: done
 
 Track: A
 Track reason: New map visualization behavior/interaction (boundary polygons in place of point pins for a view that currently only shows pins) — not a bug fix or existing-pattern tweak.
@@ -79,3 +79,6 @@ All of the above verified with `tsc --noEmit` (clean) after each change; final `
    - Added zoom-aware size gating: a new `ZoomWatcher` child component (mirrors the existing `MapController` pattern) reports the map's current zoom; `boundaryFitsLabel(map, boundary, zoom)` uses `L.geoJSON(boundary).getBounds()` + `map.project(...)` to compute the boundary's actual on-screen pixel width/height at that zoom, and only renders the boundary-with-label when it's at least 70×32px. Below that threshold — a small city, or zoomed out far enough that it would look cramped or crowd its neighbors — it falls back to the same pin-with-hover-tooltip already used when no boundary resolves at all. Recomputed live on every `zoomend`, so zooming in on a cluster of small cities progressively reveals labels as they'd have room.
    - **Known limitation, noted rather than silently glossed over:** this is a per-city size threshold, not true pairwise label-collision detection between different cities — it correctly handles "too small to show a label" but doesn't explicitly check whether two *adjacent*, individually-large-enough cities' labels would visually touch each other. In practice, tightly clustered cities are usually small relative to the view at that zoom, so the size threshold catches most real crowding — but a genuine collision solver (measuring actual rendered label DOM boxes pairwise) would be a further follow-up if this size-based approximation doesn't fully match what the user sees in practice.
 - `tsc --noEmit` clean; `eslint` shows the same single pre-existing finding as before (line number only shifted due to inserted code above it) — confirmed unrelated to this round's changes.
+
+## Completion Summary
+City boundaries now render (with distinct colors and an in-shape name label) after selecting a country on Explore, replacing plain pins wherever a boundary resolves and fits cleanly at the current zoom. Along the way, fixed a real burst-rate-limiting bug against Nominatim (added a persisted MongoDB cache + a request throttle), a Leaflet z-index leak over the page's Navbar, and an unrelated `next/image` hostname error on attraction photos. Confirmed by user across several review rounds. Closed 2026-07-31.
