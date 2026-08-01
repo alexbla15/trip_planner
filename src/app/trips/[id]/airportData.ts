@@ -118,6 +118,7 @@ export const AIRPORTS: Record<string, AirportInfo> = {
   HEL: { name: "Helsinki Vantaa", city: "Helsinki", country: "Finland", lat: 60.3172, lng: 24.9633 },
   // Iceland
   KEF: { name: "Keflavík International", city: "Keflavík", country: "Iceland", lat: 63.9850, lng: -22.6056 },
+  RKV: { name: "Reykjavík Domestic", city: "Reykjavík", country: "Iceland", lat: 64.1287, lng: -21.9376 },
   AEY: { name: "Akureyri", city: "Akureyri", country: "Iceland", lat: 65.6600, lng: -18.0727 },
   // Canada
   YYZ: { name: "Pearson International", city: "Toronto", country: "Canada", lat: 43.6777, lng: -79.6248 },
