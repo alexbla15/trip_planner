@@ -19,6 +19,7 @@ import {
   BedDouble,
   Plane,
   Tag,
+  Pencil,
 } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { useAttractionTypes } from "@/hooks";
@@ -38,9 +39,11 @@ interface AttractionDetailModalProps {
   attraction: Attraction | null;
   onClose: () => void;
   onEditTime?: () => void;
+  canEdit?: boolean;
+  onEdit?: () => void;
 }
 
-export function AttractionDetailModal({ attraction, onClose, onEditTime }: AttractionDetailModalProps) {
+export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit, onEdit }: AttractionDetailModalProps) {
   const { findType } = useAttractionTypes();
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -305,16 +308,28 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime }: Attra
           )}
         </div>
 
-        {onEditTime && (
+        {(onEditTime || (canEdit && onEdit)) && (
           <div className={styles.footer}>
-            <button
-              type="button"
-              className={styles.editTimeBtn}
-              onClick={() => { onEditTime(); onClose(); }}
-            >
-              <Timer size={14} aria-hidden="true" />
-              Edit time &amp; duration
-            </button>
+            {canEdit && onEdit && (
+              <button
+                type="button"
+                className={styles.editTimeBtn}
+                onClick={() => { onEdit(); onClose(); }}
+              >
+                <Pencil size={14} aria-hidden="true" />
+                Edit attraction
+              </button>
+            )}
+            {onEditTime && (
+              <button
+                type="button"
+                className={styles.editTimeBtn}
+                onClick={() => { onEditTime(); onClose(); }}
+              >
+                <Timer size={14} aria-hidden="true" />
+                Edit time &amp; duration
+              </button>
+            )}
           </div>
         )}
       </div>

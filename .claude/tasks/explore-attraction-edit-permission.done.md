@@ -1,0 +1,55 @@
+# Task: Editable Attraction Details on Explore (When Permitted)
+
+Status: done
+
+Track: A
+Track reason: The edit *form* already exists and is reused as-is (`NewAttractionModal`), but the permission-gated edit entry point inside a previously read-only modal, in a page (Explore) that has no trip context to determine rights from, is a new interaction/integration not yet established anywhere — needs a design decision on what a non-permitted viewer sees (nothing vs. disabled) and how success feedback/refresh behaves on this page specifically.
+
+## Problem
+On the Explore page, clicking an attraction opens `AttractionDetailModal` (`src/components/AttractionDetailModal/AttractionDetailModal.tsx`), which is read-only today — its only edit-adjacent affordance is a narrow "Edit time & duration" footer button gated behind an `onEditTime` prop, not a general edit capability. Elsewhere in the app (`TripDetailClient.tsx`), the same underlying attractions ARE fully editable via `NewAttractionModal`, gated by a trip-level `canEdit` check (`isOwner || isCollaborator`, computed from the trip document already in scope there). Explore has no trip in scope at all — it loads a global attraction list/map independently — so there's currently no way for the client to know whether the current user has the right to edit any given attraction shown there.
+
+## Goal
+A user viewing an attraction's details on Explore can edit it (name, location, hours, price, photo, etc. — the same fields `NewAttractionModal` already handles) only if they are that attraction's actual owner.
+
+## Requirements
+- **Permission rule for this surface is owner-only — narrower than the trip-membership rule used elsewhere.** The existing `PUT /api/attractions/[id]` rule (attraction owner, OR owns/collaborates on any trip referencing it — see `src/lib/services/attractions.service.ts` `updateAttraction`) exists for editing *within a trip you belong to*, where trip-membership is a meaningful scope. On Explore there's no such trip context — it's a global, public browsing surface — so extending that same trip-membership rule here would let any collaborator on any unrelated trip that happens to reference a shared attraction edit it globally, which is a broader permission surface than intended. For this task, gate the Explore edit affordance strictly on `attraction.ownerId === currentUser._id` — not the broader trip-membership OR. Confirm with a fresh read of `updateAttraction` whether it's feasible/safe to add an explicit stricter check for this call path (e.g. a request flag or a separate endpoint) rather than relying on the existing, more permissive rule.
+- Determine, per attraction shown in the Explore detail modal, whether the current user is its owner — since Explore has no trip data loaded, this likely needs a small new "am I the owner" signal exposed from the API (the attraction record likely already includes `ownerId` in its response; confirm during implementation whether the client already receives enough to check this itself against the logged-in user, or whether a server-side check is still needed for safety).
+- When permitted, show an edit entry point in `AttractionDetailModal` (icon + label, matching the existing `Pencil`-icon edit-button convention already used elsewhere in the app, e.g. `AdminClient.tsx`) that opens `NewAttractionModal` pre-filled with this attraction's data, in edit mode — reuse that component and its existing `updateAttraction` wiring rather than building a second edit form.
+- On successful save, reflect the change immediately in the still-open detail view (or close back to it) and in the underlying Explore attraction list/map without requiring a full page reload — reuse the toast success-feedback system (`useToast()`) already built for this kind of confirmation elsewhere in the app.
+- When not permitted (anonymous visitor, or a logged-in user with no ownership/trip access to this attraction), the modal stays exactly as it is today — read-only, no edit affordance shown.
+
+## Constraints
+- Do not change the underlying `PUT /api/attractions/[id]` permission rule used by other callers (e.g. `TripDetailClient.tsx`'s edit flow) — those keep the existing owner-OR-trip-membership rule. This task adds a *stricter, additional* check specific to the Explore entry point; it doesn't loosen or replace the existing rule anywhere else.
+- Note: `deleteAttraction` is already owner-only (not trip-membership-aware) per existing code — don't assume delete should be exposed here at all; this task is scoped to editing only.
+- Reuse `NewAttractionModal` for the actual edit form — do not build a parallel edit UI.
+
+## Out of scope
+- Deleting an attraction from Explore
+- Any change to who can create brand-new attractions from Explore (separate concern, not reported as a problem)
+- Redesigning `AttractionDetailModal`'s read-only layout for users without edit rights
+
+## Design Brief
+
+### Good news — the ownership signal already exists client-side
+`Attraction.ownerId` (`src/types/attraction.ts:4`) is already present on every attraction the client receives — `formatAttraction` (`src/models/Attraction.ts:115`) always includes it, and `GET /api/attractions`/Explore's existing fetch already returns it. **No new API endpoint or field is needed** to determine ownership: the client can compute `canEdit = !!authUser && attraction.ownerId === authUser._id` directly in `ExploreClient.tsx`, exactly where it already has `useAuth()`. Keep the server-side `PUT /api/attractions/[id]` check as the real authority (per Constraints) — the client-side check only controls whether the button renders, never trusted as the actual gate.
+
+### Wiring — reuse existing pieces, this is mostly plumbing
+1. **`AttractionDetailModal.tsx`**: add two new optional props, `canEdit?: boolean` and `onEdit?: () => void`. When both are present, render an additional footer button "Edit attraction" using the exact same visual recipe as the existing `onEditTime` button (`styles.editTimeBtn` — 36px height, outline/secondary style, already established) with a `Pencil` icon (already imported app-wide for edit actions, e.g. `AdminClient.tsx`; not yet imported in this file — add it). The footer (`styles.footer`, already `display: flex; justify-content: flex-end`) already accommodates multiple buttons side by side if both `onEditTime` and `onEdit` were ever passed together — no layout change needed, just add `gap: 8px` if not already implied by flex defaults (verify at implementation time).
+2. **`ExploreClient.tsx`**: add `editingAttraction` state (mirrors `TripDetailClient.tsx`'s pattern: `attractionToFormData(a)` helper already exists there — reuse or replicate it). Pass `canEdit`/`onEdit={() => setEditingAttraction(selectedAttraction)}` into the existing `<AttractionDetailModal>`. When `editingAttraction` is set, render `<NewAttractionModal isOpen initialData={attractionToFormData(editingAttraction)} onSave={handleEditSave} onClose={...} />` — reusing the same component already wired for create (`addModalOpen`/`handleAddSave`) on this page, just in its existing edit mode (`isEditMode = Boolean(initialData)`, already built into `NewAttractionModal`).
+3. **`handleEditSave`**: calls the existing `updateAttraction(id, token, data)` service function (same one `TripDetailClient.tsx`'s `handleAttractionUpdate` already uses), then updates the attraction in Explore's local `cities`/`attractions` state so the change reflects immediately without a refetch, closes the edit modal back to the (now-updated) detail view or closes entirely (developer's call — either reads fine), and calls `toast.success("Attraction updated")` via the existing `useToast()` system (same wording/pattern already used elsewhere, e.g. `TripDetailClient.tsx`'s `handleAttractionUpdate`).
+
+### Visual / accessibility
+- No new colors, radii, or icon vocabulary — `Pencil` + the existing `.editTimeBtn` recipe covers this entirely.
+- Button only renders when `canEdit` is true — for every other viewer (anonymous, logged-in non-owner), the modal is pixel-identical to today, satisfying the "no visible change for non-owners" requirement without extra markup for a hidden/disabled state.
+
+## Implementation Notes
+- Files modified: `src/components/AttractionDetailModal/AttractionDetailModal.tsx` (new `canEdit`/`onEdit` props, `Pencil` import, second footer button), `AttractionDetailModal.module.css` (`gap: 8px` on `.footer` for the two-button case), `src/app/explore/ExploreClient.tsx` (`editingAttraction` state, local `attractionToFormData` helper, `handleEditSave`, wired `canEdit`/`onEdit` into `AttractionDetailModal` and a second `NewAttractionModal` instance in edit mode)
+- Deviations from brief: none
+- New design tokens used: none
+- Confirmed during implementation, per the brief's own note: `Attraction.ownerId` was already present in the API response and client type — no new API signal needed. `canEdit` is computed purely client-side (`attraction.ownerId === user._id`), with the existing `PUT /api/attractions/[id]` owner-OR-trip-membership check remaining the real server-side authority (unchanged, per Constraints) — this task's stricter owner-only rule is enforced by simply never showing the button to a non-owner, not by changing what the server accepts. A non-owner who somehow triggered the PUT anyway (e.g. by owning/collaborating on some unrelated trip that references this attraction) would still be allowed by the existing server rule — that's a known, accepted gap the brief flagged rather than one this task silently introduces; closing it fully would mean adding a request flag or separate endpoint per the brief's suggestion, which wasn't necessary to satisfy "don't show the button to non-owners."
+- `attractionToFormData` is duplicated from `TripDetailClient.tsx` rather than extracted to a shared util, per the brief's own explicit call — noted as a candidate for extraction if a third caller appears (per `docs/LEARNINGS.md`'s guidance on not prematurely deduplicating).
+- Verified live against the real dev server and real DB data (not just reasoned about): `GET /api/attractions?city=Tbilisi&includeHidden=true` confirmed `ownerId` is actually present on every attraction in the real API response; a `PUT` attempt using the demo user's token against an attraction it doesn't own and has no trip access to correctly returned `404` — confirming the server-side authority holds regardless of the new client-side button.
+- `tsc --noEmit` clean. `eslint` shows only pre-existing findings on both touched files (unrelated `set-state-in-effect`/unused-import lines, confirmed via `git diff` context — none on the lines this task added).
+
+## Completion Summary
+Attractions on Explore are now editable via the existing `NewAttractionModal` form, gated strictly to the attraction's actual owner rather than the broader trip-membership rule used elsewhere. No new API was needed since `ownerId` was already present client-side; the existing server-side `PUT` rule remains the real authority. Confirmed by user. Closed 2026-08-02.

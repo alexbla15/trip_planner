@@ -4,12 +4,35 @@ import dynamic from "next/dynamic";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Globe, Plus, ChevronLeft, SlidersHorizontal, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import { useAttractionTypes } from "@/hooks";
-import { getCities, getAttractionsByCity, createAttraction } from "@/services";
+import { getCities, getAttractionsByCity, createAttraction, updateAttraction } from "@/services";
 import { AttractionDetailModal, NewAttractionModal, Spinner, FormErrorBanner } from "@/components";
-import type { AttractionFormData } from "@/components";
+import type { AttractionFormData, OpeningHours, DurationUnit } from "@/components";
+import { DEFAULT_OPENING_HOURS } from "@/components";
 import type { Attraction } from "@/types/attraction";
 import styles from "./ExploreClient.module.css";
+
+// Mirrors TripDetailClient.tsx's attractionToFormData — kept local since it's a small,
+// self-contained mapping and this is currently the only other caller.
+function attractionToFormData(a: Attraction): AttractionFormData {
+  return {
+    name: a.name,
+    country: a.country,
+    city: a.city ?? "",
+    coordinates: a.coordinates ?? null,
+    types: (a.types ?? []) as AttractionFormData["types"],
+    durationValue: a.durationValue ?? "",
+    durationUnit: (a.durationUnit ?? "hours") as DurationUnit,
+    price: a.price ?? null,
+    currency: a.currency ?? "USD",
+    openingHours: (a.openingHours as OpeningHours | undefined)?.Mon
+      ? (a.openingHours as OpeningHours)
+      : structuredClone(DEFAULT_OPENING_HOURS),
+    notes: a.notes ?? "",
+    photoUrl: a.photoUrl ?? "",
+  };
+}
 
 const ExploreMapWidget = dynamic(
   () => import("./ExploreMapWidget").then((m) => ({ default: m.ExploreMapWidget })),
@@ -43,6 +66,7 @@ export type MapHandle = {
 
 export function ExploreClient() {
   const { user, token } = useAuth();
+  const toast = useToast();
   const { types, categories, byCategory } = useAttractionTypes();
 
   // Data
@@ -58,6 +82,7 @@ export function ExploreClient() {
   const [selectedCountry, setSelectedCountry]     = useState<string | null>(null);
   const [selectedCity, setSelectedCity]           = useState<string | null>(null);
   const [selectedAttraction, setSelectedAttraction] = useState<Attraction | null>(null);
+  const [editingAttraction, setEditingAttraction] = useState<Attraction | null>(null);
   const [addModalOpen, setAddModalOpen]           = useState(false);
   const [sidebarOpen, setSidebarOpen]             = useState(false);
 
@@ -242,6 +267,23 @@ export function ExploreClient() {
     if (selectedCity && newAttraction.city === selectedCity) {
       setCityAttractions((prev) => [...prev, newAttraction]);
     }
+  }
+
+  async function handleEditSave(data: AttractionFormData) {
+    if (!token || !editingAttraction) return;
+    const id = editingAttraction._id;
+    setPageError(null);
+    let updated: Attraction;
+    try {
+      updated = (await updateAttraction(id, token, data)) as Attraction;
+    } catch {
+      setPageError("Couldn't update the attraction. Please try again.");
+      return;
+    }
+    setEditingAttraction(null);
+    setSelectedAttraction(null);
+    setCityAttractions((prev) => prev.map((a) => (a._id === updated._id ? updated : a)));
+    toast.success("Attraction updated");
   }
 
   // Current view level
@@ -492,6 +534,8 @@ export function ExploreClient() {
       <AttractionDetailModal
         attraction={selectedAttraction}
         onClose={() => setSelectedAttraction(null)}
+        canEdit={!!user && selectedAttraction?.ownerId === user._id}
+        onEdit={() => setEditingAttraction(selectedAttraction)}
       />
 
       {addModalOpen && (
@@ -499,6 +543,15 @@ export function ExploreClient() {
           isOpen={addModalOpen}
           onClose={() => setAddModalOpen(false)}
           onSave={handleAddSave}
+        />
+      )}
+
+      {editingAttraction && (
+        <NewAttractionModal
+          isOpen={!!editingAttraction}
+          initialData={attractionToFormData(editingAttraction)}
+          onClose={() => setEditingAttraction(null)}
+          onSave={handleEditSave}
         />
       )}
     </div>
