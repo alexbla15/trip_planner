@@ -36,7 +36,7 @@ interface FieldErrors {
   types?: string;
 }
 
-export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, initialData }: NewAttractionModalProps) {
+export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, initialData, initialCoordinates }: NewAttractionModalProps) {
   const isEditMode = Boolean(initialData);
 
   const [name, setName] = useState("");
@@ -101,6 +101,11 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
     setErrors({});
     setTouched({});
     setIs24h(false);
+    // Pre-fill just the location (e.g. from a dropped map pin) without entering edit
+    // mode — reuses the same reverse-geocode auto-fill as a user-driven map click.
+    if (!initialData && initialCoordinates) {
+      handleCoordinatesChange(initialCoordinates);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 

@@ -100,3 +100,6 @@ export type { ToastItem, ToastVariant } from "./Toast";
 
 export { Pagination, usePagination } from "./Pagination";
 export type { PaginationProps } from "./Pagination";
+
+export { TripPickerModal } from "./TripPickerModal";
+export type { TripPickerModalProps } from "./TripPickerModal";

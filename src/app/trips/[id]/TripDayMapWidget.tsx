@@ -299,7 +299,7 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
   // legModes keyed by "${fromId}__${toId}" (mode-independent stable key)
   function stableLegKey(fromId: string, toId: string) { return `${fromId}__${toId}`; }
   function modeForLeg(fromId: string, toId: string): TravelMode {
-    return legModes[stableLegKey(fromId, toId)] ?? "walk";
+    return legModes[stableLegKey(fromId, toId)] ?? "car";
   }
   function setLegMode(fromId: string, toId: string, mode: TravelMode) {
     setLegModes((p) => ({ ...p, [stableLegKey(fromId, toId)]: mode }));
@@ -624,8 +624,9 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
                     </span>
                   </div>
                 </div>
-                {/* Step breakdown */}
-                {cached && cached.steps.length > 0 && (
+                {/* Step breakdown — transit only; walk/car always return one redundant
+                    step that just repeats the duration already shown above */}
+                {mode === "transit" && cached && cached.steps.length > 0 && (
                   <ol className={styles.stepList}>
                     {cached.steps.map((step, si) => (
                       <li key={si} className={styles.stepItem}>

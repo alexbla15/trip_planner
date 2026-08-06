@@ -1,17 +1,35 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback, type MutableRefObject } from "react";
-import { MapContainer, TileLayer, Marker, Tooltip, Circle, GeoJSON as GeoJSONLayer, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Tooltip, Circle, Polyline, GeoJSON as GeoJSONLayer, useMap, useMapEvents } from "react-leaflet";
 import type { GeoJsonObject } from "geojson";
 import L from "leaflet";
 import { useAttractionTypes } from "@/hooks";
 import { getCityBoundary, getCountryBoundary } from "@/services";
-import { makeCountryMarkerIcon, makeCityMarkerIcon, makeAttractionMarkerIcon } from "@/lib/mapIcons";
+import type { TravelMode, RouteLeg } from "@/services";
+import { makeCountryMarkerIcon, makeCityMarkerIcon, makeAttractionMarkerIcon, makeCustomPinIcon } from "@/lib/mapIcons";
 import { colorForBoundaryIndex } from "@/lib/mapBoundaryColors";
 import type { Attraction } from "@/types/attraction";
-import type { CityEntry, CountryEntry, MapHandle } from "./ExploreClient";
+import type { CityEntry, CountryEntry, MapHandle, MeasurePoint } from "./ExploreClient";
 import styles from "./ExploreMapWidget.module.css";
 import "leaflet/dist/leaflet.css";
+
+const MEASURE_MODE_COLORS: Record<TravelMode, string> = {
+  walk: "#0EA5E9",
+  car: "#F59E0B",
+  transit: "#8B5CF6",
+};
+
+// Clicking the map while in measure mode drops/replaces the custom pin — a plain
+// useMapEvents click handler, same pattern already used for zoomend in ZoomWatcher.
+function MeasureClickWatcher({ active, onMapClick }: { active: boolean; onMapClick: (lat: number, lng: number) => void }) {
+  useMapEvents({
+    click: (e) => {
+      if (active) onMapClick(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -52,6 +70,14 @@ function ZoomWatcher({ onZoomChange }: { onZoomChange: (map: L.Map, zoom: number
 const MIN_LABEL_WIDTH_PX = 70;
 const MIN_LABEL_HEIGHT_PX = 32;
 
+/** True when a boundary is the enclosing-municipality fallback (`src/app/api/geo/city/route.ts`)
+ *  rather than the town's own boundary — used to render it visually distinct (dashed) so it
+ *  doesn't read as a precise town shape. */
+function isFallbackBoundary(boundary: GeoJsonObject): boolean {
+  const props = (boundary as { properties?: Record<string, unknown> }).properties;
+  return props?.isFallbackBoundary === true;
+}
+
 /** Whether a boundary renders large enough at the given zoom to comfortably fit a
  *  centered name label without it overflowing the shape or crowding its neighbors —
  *  below this, callers should fall back to a plain pin instead. */
@@ -80,6 +106,12 @@ interface ExploreMapWidgetProps {
   onCityClick: (city: CityEntry) => void;
   onAttractionClick: (attraction: Attraction) => void;
   mapRef: MutableRefObject<MapHandle | null>;
+  measureMode: boolean;
+  measurePoints: MeasurePoint[];
+  measureLegMode: TravelMode;
+  measureRoute: RouteLeg | null;
+  onMeasureMapClick: (lat: number, lng: number) => void;
+  onCustomPinClick: (lat: number, lng: number) => void;
 }
 
 export function ExploreMapWidget({
@@ -93,6 +125,12 @@ export function ExploreMapWidget({
   onCityClick,
   onAttractionClick,
   mapRef,
+  measureMode,
+  measurePoints,
+  measureLegMode,
+  measureRoute,
+  onMeasureMapClick,
+  onCustomPinClick,
 }: ExploreMapWidgetProps) {
   const { findType } = useAttractionTypes();
 
@@ -175,6 +213,7 @@ export function ExploreMapWidget({
       />
       <MapController mapRef={mapRef} />
       <ZoomWatcher onZoomChange={handleZoomChange} />
+      <MeasureClickWatcher active={measureMode} onMapClick={onMeasureMapClick} />
 
       {/* ── World view: real country polygon (or circle while loading) + pin ── */}
       {view === "world" &&
@@ -273,6 +312,7 @@ export function ExploreMapWidget({
           // resolved AND when the boundary is too small to fit a label without
           // overflowing/crowding its neighbors.
           if (boundary && fitsLabel) {
+            const isFallback = isFallbackBoundary(boundary);
             return (
               <GeoJSONLayer
                 key={city.name}
@@ -283,13 +323,17 @@ export function ExploreMapWidget({
                   fillOpacity: 0.25,
                   weight: 2.5,
                   opacity: 1,
+                  dashArray: isFallback ? "6 4" : undefined,
                 })}
                 onEachFeature={(_, layer) =>
-                  layer.bindTooltip(city.name, {
-                    permanent: true,
-                    direction: "center",
-                    className: styles.cityBoundaryLabel,
-                  })
+                  layer.bindTooltip(
+                    isFallback ? `${city.name} <em>(approximate — municipality boundary)</em>` : city.name,
+                    {
+                      permanent: true,
+                      direction: "center",
+                      className: styles.cityBoundaryLabel,
+                    }
+                  )
                 }
                 eventHandlers={{ click: () => onCityClick(city) }}
               />
@@ -311,7 +355,7 @@ export function ExploreMapWidget({
           );
         })}
 
-      {/* ── City view: city boundary (real polygon or 8 km fallback) ── */}
+      {/* ── City view: city boundary (real polygon, municipality fallback, or 8 km circle) ── */}
       {view === "city" && cityBoundary && (
         <GeoJSONLayer
           key={selectedCity ?? ""}
@@ -322,6 +366,7 @@ export function ExploreMapWidget({
             fillOpacity: 0.18,
             weight: 3,
             opacity: 1,
+            dashArray: isFallbackBoundary(cityBoundary) ? "6 4" : undefined,
           })}
         />
       )}
@@ -344,20 +389,54 @@ export function ExploreMapWidget({
           const typeRecord = findType(a.types?.[0] ?? "");
           const color    = typeRecord?.color   ?? "#64748B";
           const iconName = typeRecord?.icon    ?? "MapPin";
+          const isMeasureSelected = measurePoints.some((p) => p.kind === "attraction" && p.attraction._id === a._id);
           return (
             <Marker
               key={a._id}
               position={[a.coordinates.lat, a.coordinates.lng]}
-              icon={makeAttractionMarkerIcon(color, iconName)}
+              icon={makeAttractionMarkerIcon(color, iconName, isMeasureSelected)}
               eventHandlers={{ click: () => onAttractionClick(a) }}
             >
               <Tooltip direction="top" offset={[0, -17]}>
                 <strong>{a.name}</strong>
                 {a.types?.[0] ? ` · ${a.types[0]}` : ""}
+                {isMeasureSelected ? " · Selected for measuring" : ""}
               </Tooltip>
             </Marker>
           );
         })}
+
+      {/* ── Measure-distance tool: custom dropped pin(s) + route between the 2 selected points ── */}
+      {measurePoints
+        .filter((p): p is Extract<MeasurePoint, { kind: "custom" }> => p.kind === "custom")
+        .map((p, i) => (
+          <Marker
+            key={`measure-pin-${i}`}
+            position={[p.lat, p.lng]}
+            icon={makeCustomPinIcon()}
+            eventHandlers={{ click: () => onCustomPinClick(p.lat, p.lng) }}
+          >
+            <Tooltip direction="top" offset={[0, -18]}>Dropped pin · click to save as an attraction</Tooltip>
+          </Marker>
+        ))}
+      {measurePoints.length === 2 && (() => {
+        const from = measurePoints[0].kind === "attraction" ? measurePoints[0].attraction.coordinates : measurePoints[0];
+        const to   = measurePoints[1].kind === "attraction" ? measurePoints[1].attraction.coordinates : measurePoints[1];
+        if (!from || !to) return null;
+        const effectiveMode = measureRoute?.transitUnavailable ? "walk" : measureLegMode;
+        const positions: [number, number][] = measureRoute?.geometry ?? [[from.lat, from.lng], [to.lat, to.lng]];
+        return (
+          <Polyline
+            positions={positions}
+            pathOptions={{
+              color: MEASURE_MODE_COLORS[effectiveMode],
+              weight: measureRoute ? 4 : 2,
+              opacity: measureRoute ? 0.9 : 0.45,
+              dashArray: measureRoute ? undefined : "6 4",
+            }}
+          />
+        );
+      })()}
     </MapContainer>
   );
 }

@@ -124,11 +124,13 @@ export function CitiesMap({ cities, selectedCountry, countLabel = "attraction" }
         const isLoading = !cityBoundaries.has(city._id);
 
         if (!isLoading && boundary) {
+          const isFallback = (boundary as { properties?: Record<string, unknown> }).properties?.isFallbackBoundary === true;
           const label = `${city.count.toLocaleString()} ${countLabel}${city.count !== 1 ? "s" : ""}`;
           const tooltipHtml =
             `<strong>${city._id}</strong>` +
             (city.country ? `, ${city.country}` : "") +
-            ` · ${label}`;
+            ` · ${label}` +
+            (isFallback ? ` <em>(approximate — municipality boundary)</em>` : "");
           return (
             <GeoJSONLayer
               key={city._id}
@@ -139,6 +141,7 @@ export function CitiesMap({ cities, selectedCountry, countLabel = "attraction" }
                 fillOpacity: 0.25,
                 weight: 2.5,
                 opacity: 1,
+                dashArray: isFallback ? "6 4" : undefined,
               })}
               onEachFeature={(_, layer) =>
                 layer.bindTooltip(tooltipHtml, { direction: "top" })

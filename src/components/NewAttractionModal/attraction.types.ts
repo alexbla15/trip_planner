@@ -79,4 +79,8 @@ export interface NewAttractionModalProps {
   defaultCountry?: string;
   /** When provided, the modal enters edit mode — all fields pre-filled, title changes to "Edit Attraction". */
   initialData?: AttractionFormData;
+  /** When provided (and `initialData` is not), pre-fills just the location — e.g. from a
+   *  dropped map pin — while keeping the modal in create mode ("New Attraction"). Triggers
+   *  the same reverse-geocode auto-fill (name/city) as a user-driven map click. */
+  initialCoordinates?: Coordinates | null;
 }

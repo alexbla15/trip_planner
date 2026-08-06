@@ -2,16 +2,40 @@
 
 import dynamic from "next/dynamic";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Globe, Plus, ChevronLeft, SlidersHorizontal, X } from "lucide-react";
+import { Globe, Plus, ChevronLeft, SlidersHorizontal, X, Ruler, Footprints, Car, Bus, Loader2, Search } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useAttractionTypes } from "@/hooks";
-import { getCities, getAttractionsByCity, createAttraction, updateAttraction } from "@/services";
-import { AttractionDetailModal, NewAttractionModal, Spinner, FormErrorBanner } from "@/components";
+import {
+  getCities, getAttractionsByCity, createAttraction, updateAttraction,
+  fetchRouteLeg, formatLegDuration, formatStepDuration,
+  searchLocation, addAttractionToTrip,
+} from "@/services";
+import type { TravelMode, RouteLeg } from "@/services";
+import { AttractionDetailModal, NewAttractionModal, TripPickerModal, Spinner, FormErrorBanner } from "@/components";
 import type { AttractionFormData, OpeningHours, DurationUnit } from "@/components";
 import { DEFAULT_OPENING_HOURS } from "@/components";
 import type { Attraction } from "@/types/attraction";
+import type { Trip } from "@/types/trip";
 import styles from "./ExploreClient.module.css";
+
+interface LocationSearchResult {
+  lat: string;
+  lon: string;
+  display_name: string;
+}
+
+export type MeasurePoint =
+  | { kind: "attraction"; attraction: Attraction }
+  | { kind: "custom"; lat: number; lng: number };
+
+function measurePointCoord(p: MeasurePoint): { lat: number; lng: number } | null {
+  return p.kind === "attraction" ? p.attraction.coordinates ?? null : { lat: p.lat, lng: p.lng };
+}
+
+function measurePointLabel(p: MeasurePoint): string {
+  return p.kind === "attraction" ? p.attraction.name : "Dropped pin";
+}
 
 // Mirrors TripDetailClient.tsx's attractionToFormData — kept local since it's a small,
 // self-contained mapping and this is currently the only other caller.
@@ -84,13 +108,47 @@ export function ExploreClient() {
   const [selectedAttraction, setSelectedAttraction] = useState<Attraction | null>(null);
   const [editingAttraction, setEditingAttraction] = useState<Attraction | null>(null);
   const [addModalOpen, setAddModalOpen]           = useState(false);
+  const [pinToAttractionCoords, setPinToAttractionCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [tripPickerOpen, setTripPickerOpen] = useState(false);
+  const [attractionForTripPicker, setAttractionForTripPicker] = useState<Attraction | null>(null);
   const [sidebarOpen, setSidebarOpen]             = useState(false);
 
   // Filters (only active in city view)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes]           = useState<string[]>([]);
 
+  // Measure-distance tool (available once a country is selected — see view guard below)
+  const [measureMode, setMeasureMode]               = useState(false);
+  const [measurePoints, setMeasurePoints]           = useState<MeasurePoint[]>([]);
+  const [measureLegMode, setMeasureLegMode]         = useState<TravelMode>("walk");
+  const [measureRoute, setMeasureRoute]             = useState<RouteLeg | null>(null);
+  const [measureRouteLoading, setMeasureRouteLoading] = useState(false);
+
+  // Measure-tool location search — same debounced Nominatim search + suggestions
+  // pattern as NewAttractionModal's LeafletMapWidget.tsx, so pins can be placed by
+  // searching a place name, not only by clicking the map.
+  const [measureSearchQuery, setMeasureSearchQuery]           = useState("");
+  const [measureSearchSuggestions, setMeasureSearchSuggestions] = useState<LocationSearchResult[]>([]);
+  const [measureSearching, setMeasureSearching]               = useState(false);
+  const measureSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const mapRef = useRef<MapHandle | null>(null);
+
+  // Fetch the route between the two selected measure points whenever either the
+  // points or the travel mode change — mirrors TripDayMapWidget.tsx's leg-fetch effect.
+  useEffect(() => {
+    if (measurePoints.length !== 2) { setMeasureRoute(null); return; }
+    const from = measurePointCoord(measurePoints[0]);
+    const to   = measurePointCoord(measurePoints[1]);
+    if (!from || !to) { setMeasureRoute(null); return; }
+
+    let cancelled = false;
+    setMeasureRouteLoading(true);
+    fetchRouteLeg(from, to, measureLegMode)
+      .then((leg) => { if (!cancelled) setMeasureRoute(leg); })
+      .finally(() => { if (!cancelled) setMeasureRouteLoading(false); });
+    return () => { cancelled = true; };
+  }, [measurePoints, measureLegMode]);
 
   // Load cities on mount
   useEffect(() => {
@@ -284,6 +342,103 @@ export function ExploreClient() {
     setSelectedAttraction(null);
     setCityAttractions((prev) => prev.map((a) => (a._id === updated._id ? updated : a)));
     toast.success("Attraction updated");
+  }
+
+  function toggleMeasureMode() {
+    setMeasureMode((prev) => {
+      const next = !prev;
+      if (!next) {
+        setMeasurePoints([]);
+        setMeasureRoute(null);
+        setMeasureSearchQuery("");
+        setMeasureSearchSuggestions([]);
+      }
+      return next;
+    });
+  }
+
+  function addMeasurePoint(point: MeasurePoint) {
+    // Once 2 points are set, a new selection replaces the oldest (FIFO) so the tool
+    // stays ready for the next comparison without an explicit "clear" step.
+    setMeasurePoints((prev) => (prev.length < 2 ? [...prev, point] : [prev[1], point]));
+  }
+
+  function handleMeasureMapClick(lat: number, lng: number) {
+    addMeasurePoint({ kind: "custom", lat, lng });
+  }
+
+  function handleCustomPinClick(lat: number, lng: number) {
+    setPinToAttractionCoords({ lat, lng });
+  }
+
+  async function handlePinAttractionSave(data: AttractionFormData) {
+    if (!token || !pinToAttractionCoords) return;
+    const { lat, lng } = pinToAttractionCoords;
+    let newAttraction: Attraction;
+    setPageError(null);
+    try {
+      newAttraction = (await createAttraction(token, data)) as Attraction;
+    } catch {
+      setPageError("Couldn't save the attraction. Please try again.");
+      return;
+    }
+    setPinToAttractionCoords(null);
+    // The dropped pin's job is done — drop it from the measure tool now that it's a
+    // real saved attraction, rather than leaving a stale duplicate-looking pin behind.
+    setMeasurePoints((prev) => prev.filter((p) => !(p.kind === "custom" && p.lat === lat && p.lng === lng)));
+    if (selectedCity && newAttraction.city === selectedCity) {
+      setCityAttractions((prev) => [...prev, newAttraction]);
+    }
+    toast.success("Attraction saved");
+  }
+
+  async function handleTripSelect(trip: Trip) {
+    if (!token || !attractionForTripPicker) return;
+    setTripPickerOpen(false);
+    try {
+      await addAttractionToTrip(trip._id, token, { existingAttractionId: attractionForTripPicker._id });
+      toast.success(`Added to ${trip.name}`);
+    } catch {
+      toast.error(`Couldn't add to ${trip.name}. Please try again.`);
+    }
+  }
+
+  function handleMeasureSearchChange(val: string) {
+    setMeasureSearchQuery(val);
+    if (measureSearchDebounceRef.current) clearTimeout(measureSearchDebounceRef.current);
+    if (!val.trim()) { setMeasureSearchSuggestions([]); return; }
+    measureSearchDebounceRef.current = setTimeout(async () => {
+      setMeasureSearching(true);
+      try {
+        setMeasureSearchSuggestions((await searchLocation(val)) as LocationSearchResult[]);
+      } catch {
+        setMeasureSearchSuggestions([]);
+      } finally {
+        setMeasureSearching(false);
+      }
+    }, 400);
+  }
+
+  function handleMeasureSearchSelect(result: LocationSearchResult) {
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+    addMeasurePoint({ kind: "custom", lat, lng });
+    mapRef.current?.flyToCity(lat, lng);
+    setMeasureSearchQuery(result.display_name.split(",").slice(0, 2).join(", ").trim());
+    setMeasureSearchSuggestions([]);
+  }
+
+  function handleMeasureAttractionSelect(attraction: Attraction) {
+    setMeasurePoints((prev) => {
+      const idx = prev.findIndex((p) => p.kind === "attraction" && p.attraction._id === attraction._id);
+      if (idx !== -1) return prev.filter((_, i) => i !== idx);
+      return prev.length < 2 ? [...prev, { kind: "attraction", attraction }] : [prev[1], { kind: "attraction", attraction }];
+    });
+  }
+
+  function handleAttractionMarkerClick(attraction: Attraction) {
+    if (measureMode) handleMeasureAttractionSelect(attraction);
+    else setSelectedAttraction(attraction);
   }
 
   // Current view level
@@ -483,10 +638,112 @@ export function ExploreClient() {
           )}
         </div>
 
-        {/* ── Footer: pinned at the bottom outside scroll, city view only ── */}
-        {view === "city" && (
+        {/* ── Measure-distance panel: shown once a country is selected, either view ── */}
+        {(view === "country" || view === "city") && measureMode && (
+          <div className={styles.measurePanel}>
+            <div className={styles.measureSearchWrapper}>
+              <Search size={14} aria-hidden="true" className={styles.measureSearchIcon} />
+              <input
+                type="text"
+                value={measureSearchQuery}
+                onChange={(e) => handleMeasureSearchChange(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Escape") setMeasureSearchSuggestions([]); }}
+                placeholder="Search for a location to drop a pin…"
+                className={styles.measureSearchInput}
+                aria-label="Search for a location"
+                aria-autocomplete="list"
+                aria-expanded={measureSearchSuggestions.length > 0}
+                autoComplete="off"
+              />
+              {measureSearching && <span className={styles.measureSearchSpinner} aria-label="Searching…" />}
+              {measureSearchSuggestions.length > 0 && (
+                <ul className={styles.measureSuggestions} role="listbox" aria-label="Location suggestions">
+                  {measureSearchSuggestions.map((r, i) => (
+                    <li key={i} role="option" aria-selected={false}>
+                      <button
+                        type="button"
+                        className={styles.measureSuggestionItem}
+                        onClick={() => handleMeasureSearchSelect(r)}
+                      >
+                        {r.display_name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <p className={styles.measureHint} aria-live="polite">
+              {measurePoints.length === 0
+                ? "Click the map, search a location, or pick an attraction to pick your first point."
+                : measurePoints.length === 1
+                ? "Pick a second point — another attraction, a search result, or click the map."
+                : null}
+            </p>
+            {measurePoints.length === 2 && (
+              <div className={styles.legRow}>
+                <div className={styles.legHeader}>
+                  <span className={styles.legName}>
+                    {measurePointLabel(measurePoints[0])} → {measurePointLabel(measurePoints[1])}
+                  </span>
+                  <div className={styles.legRight}>
+                    <div className={styles.modeGroup} role="group" aria-label="Travel mode">
+                      <button type="button"
+                        className={`${styles.modeBtn} ${measureLegMode === "walk" ? styles.modeBtnActive : ""}`}
+                        onClick={() => setMeasureLegMode("walk")}
+                        aria-pressed={measureLegMode === "walk"} aria-label="Walk">
+                        <Footprints size={14} aria-hidden="true" />
+                      </button>
+                      <button type="button"
+                        className={`${styles.modeBtn} ${measureLegMode === "car" ? styles.modeBtnActive : ""}`}
+                        onClick={() => setMeasureLegMode("car")}
+                        aria-pressed={measureLegMode === "car"} aria-label="Drive">
+                        <Car size={14} aria-hidden="true" />
+                      </button>
+                      <button type="button"
+                        className={`${styles.modeBtn} ${measureLegMode === "transit" ? styles.modeBtnActive : ""}`}
+                        onClick={() => setMeasureLegMode("transit")}
+                        aria-pressed={measureLegMode === "transit"} aria-label="Public transport">
+                        <Bus size={14} aria-hidden="true" />
+                      </button>
+                    </div>
+                    <span className={styles.legTime}>
+                      {measureRouteLoading
+                        ? <Loader2 size={12} className={styles.legSpinner} aria-label="Loading route…" />
+                        : measureRoute ? formatLegDuration(measureRoute) : "—"}
+                    </span>
+                  </div>
+                </div>
+                {/* Step breakdown — transit only; walk/car always return one redundant
+                    step that just repeats the duration already shown above */}
+                {measureLegMode === "transit" && measureRoute && measureRoute.steps.length > 0 && (
+                  <ol className={styles.stepList}>
+                    {measureRoute.steps.map((step, si) => (
+                      <li key={si} className={styles.stepItem}>
+                        <span className={styles.stepIcon} aria-hidden="true">
+                          {step.icon === "walk"    ? <Footprints size={11} /> :
+                           step.icon === "transit" ? <Bus size={11} />        :
+                                                     <Car size={11} />}
+                        </span>
+                        {step.badge && (
+                          <span className={styles.stepBadge} aria-label={`Line ${step.badge}`}>
+                            {step.badge}
+                          </span>
+                        )}
+                        <span className={styles.stepLabel}>{step.label}</span>
+                        <span className={styles.stepTime}>{formatStepDuration(step.durationSec)}</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Footer: pinned at the bottom outside scroll ── */}
+        {(view === "country" || view === "city") && (
           <div className={styles.sidebarFooter}>
-            {hasActiveFilters && (
+            {hasActiveFilters && view === "city" && (
               <button
                 type="button"
                 className={styles.clearBtn}
@@ -495,7 +752,7 @@ export function ExploreClient() {
                 Clear filters
               </button>
             )}
-            {user && (
+            {user && view === "city" && (
               <button
                 type="button"
                 className={styles.addBtn}
@@ -505,6 +762,15 @@ export function ExploreClient() {
                 Add Attraction
               </button>
             )}
+            <button
+              type="button"
+              className={`${styles.addBtn} ${measureMode ? styles.addBtnActive : ""}`}
+              onClick={toggleMeasureMode}
+              aria-pressed={measureMode}
+            >
+              {measureMode ? <X size={16} aria-hidden="true" /> : <Ruler size={16} aria-hidden="true" />}
+              {measureMode ? "Exit measuring" : "Measure distance"}
+            </button>
           </div>
         )}
       </aside>
@@ -526,8 +792,14 @@ export function ExploreClient() {
           attractions={filteredAttractions}
           onCountryClick={handleCountrySelect}
           onCityClick={handleCitySelect}
-          onAttractionClick={setSelectedAttraction}
+          onAttractionClick={handleAttractionMarkerClick}
           mapRef={mapRef}
+          measureMode={measureMode}
+          measurePoints={measurePoints}
+          measureLegMode={measureLegMode}
+          measureRoute={measureRoute}
+          onMeasureMapClick={handleMeasureMapClick}
+          onCustomPinClick={handleCustomPinClick}
         />
       </div>
 
@@ -536,6 +808,18 @@ export function ExploreClient() {
         onClose={() => setSelectedAttraction(null)}
         canEdit={!!user && selectedAttraction?.ownerId === user._id}
         onEdit={() => setEditingAttraction(selectedAttraction)}
+        onAddToTrip={user ? () => {
+          setAttractionForTripPicker(selectedAttraction);
+          setTripPickerOpen(true);
+        } : undefined}
+      />
+
+      <TripPickerModal
+        isOpen={tripPickerOpen}
+        onClose={() => setTripPickerOpen(false)}
+        onSelect={handleTripSelect}
+        token={token}
+        country={attractionForTripPicker?.country ?? ""}
       />
 
       {addModalOpen && (
@@ -552,6 +836,15 @@ export function ExploreClient() {
           initialData={attractionToFormData(editingAttraction)}
           onClose={() => setEditingAttraction(null)}
           onSave={handleEditSave}
+        />
+      )}
+
+      {pinToAttractionCoords && (
+        <NewAttractionModal
+          isOpen={!!pinToAttractionCoords}
+          initialCoordinates={pinToAttractionCoords}
+          onClose={() => setPinToAttractionCoords(null)}
+          onSave={handlePinAttractionSave}
         />
       )}
     </div>

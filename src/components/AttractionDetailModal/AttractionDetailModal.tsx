@@ -20,6 +20,7 @@ import {
   Plane,
   Tag,
   Pencil,
+  Plus,
 } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { useAttractionTypes } from "@/hooks";
@@ -41,9 +42,10 @@ interface AttractionDetailModalProps {
   onEditTime?: () => void;
   canEdit?: boolean;
   onEdit?: () => void;
+  onAddToTrip?: () => void;
 }
 
-export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit, onEdit }: AttractionDetailModalProps) {
+export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit, onEdit, onAddToTrip }: AttractionDetailModalProps) {
   const { findType } = useAttractionTypes();
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -308,8 +310,18 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
           )}
         </div>
 
-        {(onEditTime || (canEdit && onEdit)) && (
+        {(onEditTime || (canEdit && onEdit) || onAddToTrip) && (
           <div className={styles.footer}>
+            {onAddToTrip && (
+              <button
+                type="button"
+                className={styles.editTimeBtn}
+                onClick={() => { onAddToTrip(); onClose(); }}
+              >
+                <Plus size={14} aria-hidden="true" />
+                Add to my trip
+              </button>
+            )}
             {canEdit && onEdit && (
               <button
                 type="button"
