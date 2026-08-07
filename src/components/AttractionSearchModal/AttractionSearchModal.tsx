@@ -90,7 +90,9 @@ export function AttractionSearchModal({
   }, [results, selectedCategory, findType]);
 
   function handleRowClick(attraction: Attraction) {
-    if (existingIdSet.has(attraction._id)) return;
+    // Already-added results stay clickable — selecting one again adds another scheduled
+    // instance of the same attraction rather than being blocked (the "Added" tag is a
+    // status indicator, not a disabled state).
     if (multiSelect) {
       setSelectedIds((prev) => {
         const next = new Set(prev);
@@ -210,9 +212,8 @@ export function AttractionSearchModal({
                     type="button"
                     className={`${styles.resultRow} ${isAdded ? styles.resultRowAdded : ""} ${isSelected ? styles.resultRowSelected : ""}`}
                     onClick={() => handleRowClick(attraction)}
-                    disabled={isAdded}
                     aria-pressed={multiSelect ? isSelected : undefined}
-                    aria-label={`${isAdded ? "Already added: " : multiSelect ? "" : "Add "}${attraction.name}${isAdded || multiSelect ? "" : " to trip"}`}
+                    aria-label={`${isAdded ? "Add another instance of " : multiSelect ? "" : "Add "}${attraction.name}${!isAdded && !multiSelect ? " to trip" : ""}`}
                   >
                     {multiSelect && (
                       <div className={styles.resultCheck} aria-hidden="true">
@@ -229,11 +230,8 @@ export function AttractionSearchModal({
                         {attraction.city ? ` · ${attraction.city}` : ""}
                       </span>
                     </div>
-                    {isAdded ? (
-                      <span className={styles.addedTag}>Added</span>
-                    ) : (
-                      !multiSelect && <Plus size={16} className={styles.resultAdd} aria-hidden="true" />
-                    )}
+                    {isAdded && <span className={styles.addedTag}>Added</span>}
+                    {!multiSelect && <Plus size={16} className={styles.resultAdd} aria-hidden="true" />}
                   </button>
                 </li>
               );

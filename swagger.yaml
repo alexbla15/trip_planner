@@ -293,6 +293,16 @@ components:
         notes:
           type: string
           nullable: true
+        attractionRef:
+          type: string
+          nullable: true
+          description: >
+            Set only on a 2nd+ scheduled instance of a regular attraction — the shared
+            Attraction document's real id. The Trip.schedules map key for such an entry is a
+            fresh synthetic id (at-<objectId>), not the attraction's own id, so multiple
+            instances of the same attraction can each hold independent plannedDate/plannedTime.
+            The primary/first instance is unchanged: its schedule key IS the attraction's own
+            id, and this field is absent.
 
     Attraction:
       type: object
@@ -303,6 +313,23 @@ components:
       properties:
         _id:
           type: string
+          description: >
+            Identifies this row. For a regular attraction's 2nd+ scheduled instance (see
+            AttractionSchedule.attractionRef), this is a synthetic per-instance id
+            (`at-<objectId>`), not the shared document's own id — see attractionId. For
+            every other case (primary instance, unscheduled linked attraction, custom-slot,
+            flight) this equals the "real" id for that row, unchanged from before this field
+            existed.
+          example: 65f1234567890abcdef123bb
+        attractionId:
+          type: string
+          nullable: true
+          description: >
+            The shared Attraction document's real id. Always present for a regular attraction
+            (whether the primary instance or an additional one), absent for custom-slot/flight
+            rows (which have no backing document). Use this — not _id — when editing the
+            shared document itself (PATCH /api/attractions/{id}) once more than one instance
+            can exist.
           example: 65f1234567890abcdef123bb
         ownerId:
           type: string
@@ -502,6 +529,15 @@ components:
             set. checkInDate/checkOutDate/price/currency/notes are still read from this same
             request body, but are stored as a per-trip schedule override rather than written onto
             the shared document — see AttractionSchedule.
+        allowDuplicate:
+          type: boolean
+          default: false
+          description: >
+            Only relevant together with existingAttractionId. When the referenced attraction is
+            already linked to this trip and allowDuplicate is true, creates an additional
+            scheduled instance (its own plannedDate/plannedTime, a fresh synthetic response _id,
+            attractionRef pointing back to the shared document) instead of returning the existing
+            single instance unchanged (the default, existingAttractionId-only behavior).
         # Subtype fields — include when creating residence, flight, or custom-slot (custom time-slot) entries
         subtype:
           type: string

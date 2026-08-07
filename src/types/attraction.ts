@@ -1,5 +1,14 @@
 export interface Attraction {
+  /** Identifies this ROW — for a regular attraction's 2nd+ scheduled instance, this is a
+   *  synthetic per-instance id, not the shared document's own id (see `attractionId`). For
+   *  every other case (the primary instance, an unscheduled linked attraction, a custom-slot,
+   *  a flight), this is unchanged from before and equals the "real" id for that row. */
   _id: string;
+  /** The shared Attraction document's real id — always present for a regular attraction
+   *  (whether primary or an additional instance), absent for custom-slot/flight rows (which
+   *  have no backing document). Operations on the shared data itself (full edit/save) must
+   *  use this field, not `_id`, once more than one instance can exist. */
+  attractionId?: string;
   // no tripId — attractions are global; scheduling lives in Trip.schedules
   ownerId?: string;
   name: string;

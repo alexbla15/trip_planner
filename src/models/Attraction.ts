@@ -108,10 +108,15 @@ export const Attraction =
 
 export function formatAttraction(
   doc: IAttraction,
-  schedule?: Partial<AttractionShape> | null
+  schedule?: Partial<AttractionShape> | null,
+  /** Row id override — pass the schedule-instance key when this row represents a 2nd+
+   *  scheduled instance of `doc` (see `IScheduleEntry.attractionRef`). Defaults to the
+   *  document's own id, matching every existing call site's behavior unchanged. */
+  idOverride?: string
 ): AttractionShape {
   return {
-    _id: doc._id.toString(),
+    _id: idOverride ?? doc._id.toString(),
+    attractionId: doc._id.toString(),
     ownerId: doc.ownerId?.toString(),
     name: doc.name,
     country: doc.country,

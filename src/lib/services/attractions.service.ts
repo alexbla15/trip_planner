@@ -325,11 +325,37 @@ export async function listTripAttractions(
     .populate("types")
     .sort(sort === "price" ? { price: 1 } : undefined)
     .exec();
+  const docsById = new Map(docs.map((doc) => [doc._id.toString(), doc]));
 
-  const result = docs.map((doc) => {
-    const schedule = trip.schedules?.get(doc._id.toString());
-    return formatAttraction(doc, schedule ?? null);
-  });
+  // Group regular-attraction schedule entries by which real document they reference — a
+  // real attraction can have multiple instances (see IScheduleEntry.attractionRef), each
+  // with its own plannedDate/plannedTime. The legacy/primary instance's schedule key IS the
+  // attraction's own id (attractionRef absent); an additional instance's key is a fresh
+  // synthetic id with attractionRef pointing back to the real document.
+  const entriesByDocId = new Map<string, Array<[string, IScheduleEntry]>>();
+  for (const [key, entry] of trip.schedules?.entries() ?? []) {
+    if (entry?.isCustomSlot || entry?.isFlight) continue; // handled separately below
+    const realId = entry?.attractionRef ?? (docsById.has(key) ? key : null);
+    if (!realId || !docsById.has(realId)) continue; // stale key / doc no longer linked
+    const list = entriesByDocId.get(realId) ?? [];
+    list.push([key, entry]);
+    entriesByDocId.set(realId, list);
+  }
+
+  // One row per instance, grouped under each doc in the query's existing sort order
+  // (name/price) so overall ordering is unchanged from before this feature existed.
+  const result: AttractionShape[] = [];
+  for (const doc of docs) {
+    const idStr = doc._id.toString();
+    const entries = entriesByDocId.get(idStr);
+    if (!entries || entries.length === 0) {
+      result.push(formatAttraction(doc, null, idStr)); // linked but not yet scheduled
+    } else {
+      for (const [key, entry] of entries) {
+        result.push(formatAttraction(doc, entry, key));
+      }
+    }
+  }
 
   // Append custom time-slots and flights (schedule-only entries — no Attraction document).
   // toObject({ flattenMaps: true }) bypasses Mongoose strict mode and returns raw
@@ -400,6 +426,10 @@ export async function listTripAttractions(
 
 export interface AddAttractionToTripInput {
   existingAttractionId?: string;
+  /** When true and this attraction is already linked to the trip, create an additional
+   *  scheduled instance (synthetic key + attractionRef) instead of returning the existing
+   *  single instance unchanged. See IScheduleEntry.attractionRef. */
+  allowDuplicate?: boolean;
   name?: string;
   country?: string;
   city?: string;
@@ -446,7 +476,7 @@ export async function addAttractionToTrip(
 ): Promise<AddAttractionToTripResult> {
   const trip = await getAuthedTrip(payload, tripId);
 
-  const { existingAttractionId, name, country, city, coordinates, types, durationValue, durationUnit,
+  const { existingAttractionId, allowDuplicate, name, country, city, coordinates, types, durationValue, durationUnit,
     price, currency, openingHours, notes, photoUrl,
     subtype, residenceType, checkInDate, checkOutDate,
     flightNumber, airline, departureAirport, arrivalAirport, departureTime, arrivalTime, gate, seat,
@@ -616,6 +646,30 @@ export async function addAttractionToTrip(
     (id) => id.toString() === attractionId
   );
   if (alreadyLinked) {
+    if (allowDuplicate) {
+      const instanceKey = `at-${new Types.ObjectId().toString()}`;
+      const scheduleEntry: IScheduleEntry = {
+        plannedDate: plannedDate ?? null,
+        plannedTime: plannedTime ?? null,
+        actualDurationValue: actualDurationValue || undefined,
+        actualDurationUnit: actualDurationUnit || undefined,
+        attractionRef: attractionId,
+        ...(subtype === "residence" ? {
+          checkInDate: checkInDate || undefined,
+          checkOutDate: checkOutDate || undefined,
+          price: price ?? undefined,
+          currency: currency || undefined,
+          notes: notes || undefined,
+        } : {}),
+      };
+      // Use findByIdAndUpdate + $set, not trip.save() — trip.schedules is a Map-typed
+      // field and .save() can silently no-op on Map mutations (see docs/LEARNINGS.md).
+      await Trip.findByIdAndUpdate(tripId, {
+        $set: { [`schedules.${instanceKey}`]: scheduleEntry },
+      });
+      await attraction.populate("types");
+      return { status: 201, data: formatAttraction(attraction, scheduleEntry, instanceKey) };
+    }
     const schedule = trip.schedules?.get(attractionId);
     await attraction.populate("types");
     return { status: 200, data: formatAttraction(attraction, schedule ?? null) };
@@ -814,10 +868,13 @@ export async function updateTripAttractionSchedule(
   }
 
   const updatedSchedule = updatedTrip?.schedules?.get(attractionId) ?? null;
-  const attraction = await Attraction.findById(attractionId);
+  // A 2nd+ scheduled instance's key is synthetic (not a real Attraction id) — attractionRef
+  // points back to the shared document. The primary instance's key IS the real id.
+  const realAttractionId = updatedSchedule?.attractionRef ?? attractionId;
+  const attraction = await Attraction.findById(realAttractionId);
   if (!attraction) throw notFound("Attraction not found");
 
-  return formatAttraction(attraction, updatedSchedule);
+  return formatAttraction(attraction, updatedSchedule, attractionId);
 }
 
 /** Unlink attraction from this trip (or remove a custom time-slot / flight entirely).
@@ -847,10 +904,23 @@ export async function removeAttractionFromTrip(
     return;
   }
 
-  await Trip.findByIdAndUpdate(tripId, { $pull: { attractionIds: attractionId } });
+  // A 2nd+ scheduled instance's key is synthetic and attractionRef holds the shared
+  // document's real id; the primary instance's key IS that real id (attractionRef absent).
+  const entry = trip.schedules?.get(attractionId);
+  const realAttractionId = entry?.attractionRef ?? attractionId;
 
   if (trip.schedules?.has(attractionId)) {
     trip.schedules.delete(attractionId);
     await trip.save();
+  }
+
+  // Only unlink the shared document from the trip if no other instance (primary key or
+  // another attractionRef pointing at it) still references it — removing one instance
+  // must not break siblings scheduled from the same attraction.
+  const stillReferenced = [...(trip.schedules?.entries() ?? [])].some(
+    ([key, e]) => key === realAttractionId || e?.attractionRef === realAttractionId
+  );
+  if (!stillReferenced) {
+    await Trip.findByIdAndUpdate(tripId, { $pull: { attractionIds: realAttractionId } });
   }
 }

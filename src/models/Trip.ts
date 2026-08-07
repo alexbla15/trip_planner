@@ -7,6 +7,13 @@ export interface IScheduleEntry {
   actualDurationUnit?: "minutes" | "hours";
   /** True for custom time-slot entries — no corresponding Attraction document exists. */
   isCustomSlot?: boolean;
+  /** Set only on a 2nd+ scheduled instance of a regular attraction — the shared
+   *  Attraction document's real id. The schedule Map key for such an entry is a fresh
+   *  synthetic id (`at-<objectId>`), NOT the attraction's own id, so multiple instances
+   *  of the same attraction can each hold independent plannedDate/plannedTime. The
+   *  primary/first instance is unchanged: its schedule key IS the attraction's own id,
+   *  and this field is absent — fully backward compatible with existing trips. */
+  attractionRef?: string;
   name?: string;
   typeNames?: string[];
   price?: number | null;
@@ -85,6 +92,7 @@ const TripSchema = new Schema<ITrip>(
           actualDurationValue: { type: String },
           actualDurationUnit:  { type: String, enum: ["minutes", "hours"] },
           isCustomSlot:        { type: Boolean },
+          attractionRef:       { type: String },
           name:                { type: String },
           typeNames:           [{ type: String }],
           price:               { type: Number, default: null },

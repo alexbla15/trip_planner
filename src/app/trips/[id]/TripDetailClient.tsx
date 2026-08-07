@@ -179,10 +179,14 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     if (!token || !trip) return;
     setSearchModalOpen(false);
     setActionError(null);
+    // Search results carry the shared attraction document's own id — compare against the
+    // real doc ids already linked to this trip to detect "adding again" (a 2nd+ instance).
+    const linkedIds = new Set(attractions.map((a) => a.attractionId ?? a._id));
     try {
       for (const attraction of existing) {
         const created = (await addAttractionToTrip(trip._id, token, {
           existingAttractionId: attraction._id,
+          allowDuplicate: linkedIds.has(attraction._id),
         })) as Attraction;
         upsertAttraction(created);
       }
@@ -243,7 +247,10 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
 
   async function handleResidenceUpdate(data: ResidenceFormData) {
     if (!token || !editingResidence || !trip) return;
+    // The row id (schedule key) may be a synthetic 2nd+ instance key — the shared
+    // Attraction document must be addressed by its own real id, not the row's.
     const id = editingResidence._id;
+    const realId = editingResidence.attractionId ?? editingResidence._id;
     setEditingResidence(null);
     setActionError(null);
     try {
@@ -251,7 +258,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
       // document; this trip's stay dates/price/notes are specific to THIS booking and
       // live only in this trip's schedule entry — never on the shared document, which
       // other trips may also reference.
-      const attrUpdated = (await updateAttraction(id, token, {
+      const attrUpdated = (await updateAttraction(realId, token, {
         name: data.name,
         country: data.country,
         city: data.city,
@@ -344,17 +351,23 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
 
   async function handleAttractionUpdate(data: AttractionFormData) {
     if (!token || !editingAttraction) return;
-    const id = editingAttraction._id;
+    // The row id (schedule key) may be a synthetic 2nd+ instance key — the shared
+    // Attraction document must be addressed by its own real id, not the row's.
+    const realId = editingAttraction.attractionId ?? editingAttraction._id;
     setEditingAttraction(null);
     setActionError(null);
 
     try {
-      const updated = (await updateAttraction(id, token, data)) as Attraction;
+      const updated = (await updateAttraction(realId, token, data)) as Attraction;
       setAttractions((prev) =>
         prev.map((a) => {
-          if (a._id !== updated._id) return a;
+          // Shared-document fields apply to every scheduled instance of this attraction,
+          // not just the row that was open in the edit modal.
+          if ((a.attractionId ?? a._id) !== realId) return a;
           return {
             ...updated,
+            _id: a._id,
+            attractionId: realId,
             plannedDate: a.plannedDate,
             plannedTime: a.plannedTime,
             actualDurationValue: a.actualDurationValue,
@@ -863,7 +876,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         onAdd={handleSearchAdd}
         onCreateNew={handleSearchCreateNew}
         token={token}
-        existingAttractionIds={attractions.map((a) => a._id)}
+        existingAttractionIds={attractions.map((a) => a.attractionId ?? a._id)}
         multiSelect
       />
 

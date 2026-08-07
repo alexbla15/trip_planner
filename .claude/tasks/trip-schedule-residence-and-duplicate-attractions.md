@@ -1,6 +1,6 @@
 # Task: Allow Residences in Schedule (Already Works?) + Allow Scheduling the Same Attraction Twice
 
-Status: intake
+Status: reviewing
 
 Track: B
 Track reason: The duplicate-attraction relaxation is a data-model/logic change (schedule storage keyed by attraction id needs to become instance-keyed) — no new UI surface, existing calendar UI already renders whatever's in the schedule. The residence part may turn out to need no code change at all (see Requirements).
@@ -29,3 +29,24 @@ User request (as given, with a mid-conversation correction): "allow to add resid
 ## Out of scope
 - Changing custom-slot/flight instance-handling (already correct)
 - Any change to `TripDayMapWidget.tsx`'s residence "home base" marker logic (unrelated map-rendering concern, not the schedule/assign flow)
+
+## Implementation Notes
+
+**Residences**: re-confirmed no code fix was needed — the investigation's conclusion held. `AttractionSearchModal` is used twice; the residence-picker instance already omits `existingAttractionIds` (no blocking), and nothing in the assign/schedule path excludes `subtype === "residence"`. Not touched further.
+
+**Duplicate attractions**: implemented the synthetic-instance-key design from the Requirements section.
+- `src/models/Trip.ts`: added `attractionRef?: string` to `IScheduleEntry` (+ schema field) — set only on a 2nd+ instance, pointing back to the shared `Attraction` doc. Primary instance is unchanged (schedule key IS the doc id, field absent).
+- `src/types/attraction.ts` / `src/models/Attraction.ts`: added `attractionId` to the client `Attraction` shape; `formatAttraction()` gained an optional `idOverride` param so a row's `_id` can be the synthetic instance key while `attractionId` always carries the real doc id.
+- `src/lib/services/attractions.service.ts`:
+  - `listTripAttractions` now groups schedule entries by real doc id (via `attractionRef` or the entry's own key) and emits one row per instance, preserving prior sort order for the single-instance case.
+  - `addAttractionToTrip` gained `allowDuplicate?: boolean` on the input. When the attraction is already linked and `allowDuplicate` is true, generates an `at-<objectId>` key and writes the new instance via `Trip.findByIdAndUpdate` + `$set` (never `.save()`, per the documented Map-field gotcha). Default behavior (no flag) is byte-for-byte unchanged.
+  - `updateTripAttractionSchedule` now resolves the real doc id via the entry's `attractionRef` before loading the `Attraction`, and returns the row under its original (possibly synthetic) key.
+  - `removeAttractionFromTrip` now only unlinks the shared doc from `attractionIds` when no other instance (primary key or another `attractionRef`) still references it — deleting one instance no longer corrupts/breaks sibling instances.
+- `src/components/AttractionSearchModal/AttractionSearchModal.tsx`: already-added results are no longer disabled — the "Added" tag is now a status indicator, not a blocking state; clicking/selecting an already-added result triggers another add.
+- `src/app/trips/[id]/TripDetailClient.tsx`: `handleSearchAdd` now detects "already linked" client-side and passes `allowDuplicate: true` in that case; `handleResidenceUpdate`/`handleAttractionUpdate` now address the shared document via `attractionId ?? _id` instead of the row's own `_id` (which may be synthetic); `handleAttractionUpdate`'s local-state merge now also propagates a shared-doc edit to every row referencing that document, not just the row that was open in the edit modal; `existingAttractionIds` passed to the search modal now uses real doc ids.
+- `swagger.yaml`: documented `attractionId` (response) and `allowDuplicate` (request) on the relevant schemas, plus `attractionRef` on `AttractionSchedule`.
+- Added a `docs/LEARNINGS.md` entry: a brand-new Mongoose schema field is silently stripped by strict mode until the dev server is restarted (model registration survives Next.js hot-reload) — this cost real debugging time during verification (`attractionRef` wasn't persisting until a restart, despite correct code).
+
+**Live verification** (throwaway trip/attraction via real dev server + real MongoDB, cleaned up after): add once, re-add without `allowDuplicate` (idempotent 200, same `_id`), re-add with `allowDuplicate` (201, new synthetic `_id`, same `attractionId`) → GET shows 2 independent rows with correct separate `plannedDate`/`plannedTime` → PATCH one instance doesn't affect the other → editing the shared document via `attractionId` reflects on both rows → deleting one instance leaves the other intact and keeps the doc linked → deleting the last instance fully unlinks the doc from `attractionIds`. All checks passed.
+- Deviations: none from the task's Requirements/Constraints.
+- New design tokens used: none (Track B, no new UI surface — only a disabled-state removal on existing markup).
