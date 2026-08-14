@@ -142,6 +142,13 @@
   gap: 1px;
 }
 
+.itemNameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .itemName {
   font-size: 14px;
   font-weight: 600;
@@ -149,6 +156,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
 }
 
 .itemMeta {

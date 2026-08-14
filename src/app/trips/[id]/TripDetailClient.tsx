@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import {
   MoodTagChip,
+  PrivateChip,
   NewAttractionModal,
   AddResidenceModal,
   AddFlightModal,
@@ -540,7 +541,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
 
   if (!trip) return null;
 
-  const { name, country, coverImage, startDate, endDate, moods, budget, currency, ownerName, ownerAvatarUrl, collaborators } = trip;
+  const { name, country, coverImage, startDate, endDate, moods, budget, currency, ownerName, ownerAvatarUrl, collaborators, isPrivate } = trip;
   const isOwner        = !!authUser && authUser._id === trip.ownerId;
   const isCollaborator = !!authUser && !isOwner && (trip.collaborators ?? []).some((c) => c.userId === authUser._id);
   const canEdit        = isOwner || isCollaborator;
@@ -574,6 +575,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
               <ChevronLeft size={16} aria-hidden="true" />
               My Trips
             </Link>
+            {isPrivate && <PrivateChip size="xl" />}
           </div>
 
           {/* Hero text — bottom of hero */}

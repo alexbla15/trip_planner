@@ -1,15 +1,16 @@
 import Image from "next/image";
 import { Calendar } from "lucide-react";
 import { MoodTagChip } from "@/components/MoodTagChip";
+import { PrivateChip } from "@/components/PrivateChip";
 import { formatDisplayDate } from "@/lib";
 import styles from "./TripCard.module.css";
 import type { TripCardProps } from "./TripCard.types";
 
 export function TripCard({ trip }: TripCardProps) {
-  const { name, country, coverImage, startDate, endDate, moods } = trip;
+  const { name, country, coverImage, startDate, endDate, moods, isPrivate } = trip;
 
   return (
-    <article className={styles.card}>
+    <article className={`${styles.card} ${isPrivate ? styles.cardPrivate : ""}`}>
       <div className={styles.imageContainer}>
         {coverImage ? (
           <Image
@@ -23,6 +24,11 @@ export function TripCard({ trip }: TripCardProps) {
           <div className={styles.imagePlaceholder} aria-hidden="true" />
         )}
         <div className={styles.imageOverlay} aria-hidden="true" />
+        {isPrivate && (
+          <div className={styles.privateBadge}>
+            <PrivateChip size="lg" />
+          </div>
+        )}
       </div>
       <div className={styles.body}>
         <h3 className={styles.destination}>{name}</h3>
@@ -33,11 +39,13 @@ export function TripCard({ trip }: TripCardProps) {
             {formatDisplayDate(startDate)} – {formatDisplayDate(endDate)}
           </span>
         </div>
-        <div className={styles.tags}>
-          {moods.slice(0, 2).map((tag) => (
-            <MoodTagChip key={tag} tag={tag} />
-          ))}
-        </div>
+        {moods.length > 0 && (
+          <div className={styles.tags}>
+            {moods.slice(0, 2).map((tag) => (
+              <MoodTagChip key={tag} tag={tag} />
+            ))}
+          </div>
+        )}
       </div>
     </article>
   );

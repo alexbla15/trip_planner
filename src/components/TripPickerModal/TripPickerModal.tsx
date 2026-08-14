@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { X, MapPinned, Globe, Loader2, AlertCircle } from "lucide-react";
 import { listTrips } from "@/services";
 import { formatDisplayDate } from "@/lib";
+import { PrivateChip } from "@/components/PrivateChip";
 import type { Trip } from "@/types/trip";
 import styles from "./TripPickerModal.module.css";
 
@@ -117,7 +118,10 @@ export function TripPickerModal({ isOpen, onClose, onSelect, token, country }: T
                     onClick={() => onSelect(trip)}
                   >
                     <div className={styles.itemInfo}>
-                      <span className={styles.itemName}>{trip.name}</span>
+                      <span className={styles.itemNameRow}>
+                        <span className={styles.itemName}>{trip.name}</span>
+                        {trip.isPrivate && <PrivateChip />}
+                      </span>
                       <span className={styles.itemMeta}>
                         {trip.country}
                         {trip.startDate && trip.endDate

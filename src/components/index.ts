@@ -25,6 +25,8 @@ export type { ExploreSectionProps } from "./ExploreSection";
 
 export { MoodTagChip } from "./MoodTagChip";
 export type { MoodTagChipProps } from "./MoodTagChip";
+export { PrivateChip } from "./PrivateChip";
+export type { PrivateChipProps } from "./PrivateChip";
 export { MoodTagButton } from "./MoodTagButton";
 export type { MoodTagButtonProps } from "./MoodTagButton";
 
