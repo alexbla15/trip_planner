@@ -815,7 +815,11 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                             else setViewingAttraction(clickTarget);
                             return;
                           }
-                          if (a.subtype || isFlight) { setViewingAttraction(clickTarget); return; }
+                          // Flights have their own dedicated editor (real depart/arrival
+                          // times, not a single plannedTime) — view-only here. Residences
+                          // are otherwise a regular schedule entry and get the same
+                          // click-to-edit-time popup as any other attraction.
+                          if (isFlight) { setViewingAttraction(clickTarget); return; }
                           if (canEdit && !isContinuation) openPopup(e, clickTarget);
                           else setViewingAttraction(clickTarget);
                         }
@@ -848,7 +852,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                             aria-label={`${a.name}${isContinuation ? ` — continued from ${formatDayLabel(prevDayIso!)}, until ${continuationEndLabel}` : ` at ${a.plannedTime}`}${
                               isContinuation ? " — click to view details" :
                               isCustomSlot && canEdit ? " — click to edit" :
-                              !a.subtype && !isFlight && canEdit ? " — click to edit time" :
+                              !isFlight && canEdit ? " — click to edit time" :
                               " — click to view details"
                             }`}
                           >

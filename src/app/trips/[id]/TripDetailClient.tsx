@@ -384,15 +384,34 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   async function handleRemoveAttraction(attractionId: string) {
     if (!trip) return;
     setActionError(null);
+
+    // The Attractions tab shows one row per unique attraction (see regularAttractions),
+    // but a single attraction can have multiple scheduled instances (see "Schedule again"
+    // in the Calendar tab) — removing it here should remove every instance, not just the
+    // one representative row that happened to be clicked. For flights/residences (never
+    // duplicated) this resolves to exactly the one row, unchanged from before.
+    const clicked = attractions.find((a) => a._id === attractionId);
+    const realId = clicked?.attractionId ?? attractionId;
+    const instanceIds = attractions
+      .filter((a) => (a.attractionId ?? a._id) === realId)
+      .map((a) => a._id);
+
     // Optimistic update
     const snapshot = attractions;
-    setAttractions((prev) => prev.filter((a) => a._id !== attractionId));
-    setPage((p) => Math.min(p, Math.max(1, Math.ceil((attractions.length - 1) / ATTRACTIONS_PAGE_SIZE))));
+    setAttractions((prev) => prev.filter((a) => (a.attractionId ?? a._id) !== realId));
+    setPage((p) => Math.min(p, Math.max(1, Math.ceil((attractions.length - instanceIds.length) / ATTRACTIONS_PAGE_SIZE))));
 
     try {
-      // Unlinks from this trip — does NOT delete the global attraction from the DB
-      const res = await removeAttractionFromTrip(trip._id, attractionId, token);
-      if (!res.ok) {
+      // Unlinks from this trip — does NOT delete the global attraction from the DB.
+      // Sequential, not Promise.all: each call's "is this the last instance?" check
+      // reads the trip fresh from the DB, so firing them concurrently races — an
+      // earlier call can read stale schedules (before a later call's delete lands)
+      // and wrongly conclude the attraction is still referenced, leaving it linked.
+      const results = [];
+      for (const id of instanceIds) {
+        results.push(await removeAttractionFromTrip(trip._id, id, token));
+      }
+      if (results.some((res) => !res.ok)) {
         setAttractions(snapshot);
         setActionError("Couldn't remove the attraction. Please try again.");
       }
@@ -437,10 +456,21 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     };
   }, [editingFlight]);
 
-  const regularAttractions = useMemo(
-    () => attractions.filter((a) => !a.subtype && a.types?.[0] !== "Flight"),
-    [attractions]
-  );
+  const regularAttractions = useMemo(() => {
+    // An attraction can have multiple scheduled instances (see "Schedule again" in the
+    // Calendar tab) — the Attractions tab is a list of distinct attractions, not
+    // schedule instances, so dedupe to one representative row per real attraction id.
+    const seen = new Set<string>();
+    const result: Attraction[] = [];
+    for (const a of attractions) {
+      if (a.subtype || a.types?.[0] === "Flight") continue;
+      const key = a.attractionId ?? a._id;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(a);
+    }
+    return result;
+  }, [attractions]);
 
   const presentCategories = useMemo(
     () => [...new Set(
