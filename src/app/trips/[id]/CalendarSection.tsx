@@ -181,6 +181,21 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
     return q ? list.filter((a) => a.name.toLowerCase().includes(q)) : list;
   }, [regularAttractions, scheduled, unscheduled, filter, search]);
 
+  // Group multiple scheduled instances of the same attraction under one sidebar card —
+  // each instance stays individually reassignable/unassignable, but the "+ Schedule
+  // again" control and the card header are shared, instead of rendering N near-identical
+  // cards for the same attraction.
+  const sidebarGroups = useMemo(() => {
+    const order: string[] = [];
+    const groups = new Map<string, Attraction[]>();
+    for (const a of sidebarList) {
+      const key = a.attractionId ?? a._id;
+      if (!groups.has(key)) { groups.set(key, []); order.push(key); }
+      groups.get(key)!.push(a);
+    }
+    return order.map((key) => ({ key, instances: groups.get(key)! }));
+  }, [sidebarList]);
+
   const alerts: ScheduleAlert[] = useMemo(
     () => (canEdit ? computeAlerts(local, dayStart, dayEnd) : []),
     [local, dayStart, dayEnd, canEdit]
@@ -262,10 +277,60 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
     addPending(id, patch);
   }
 
-  function handleUnassign(id: string) {
+  // Unassigning a 2nd+ instance (synthetic "at-" key) removes it outright instead of
+  // demoting it to an "Unscheduled" row — an unscheduled duplicate serves no purpose
+  // (the attraction is already represented by its other instance/s; "+ Schedule again"
+  // recreates one on demand). Only the primary instance's unassign keeps the old
+  // behavior of moving the card into the Unscheduled list.
+  async function handleUnassign(id: string) {
+    if (id.startsWith("at-")) {
+      if (!token) return;
+      try {
+        await removeAttractionFromTrip(trip._id, id, token);
+        applyLocal(local.filter((a) => a._id !== id));
+        setPending((prev) => {
+          if (!prev.has(id)) return prev;
+          const next = new Map(prev);
+          next.delete(id);
+          return next;
+        });
+      } catch {
+        toast.error("Couldn't remove that scheduled instance. Please try again.");
+      }
+      return;
+    }
     const patch = { plannedDate: null, plannedTime: null };
     applyLocal(local.map((a) => a._id === id ? { ...a, ...patch } : a));
     addPending(id, patch);
+  }
+
+  // Schedules an additional, independent instance of an already-scheduled attraction —
+  // the "Move to day…" select on a scheduled card reassigns that SAME instance, so
+  // scheduling the same attraction again (e.g. the same restaurant twice) needs its own
+  // entry point. Unlike the old version, this schedules the new instance directly onto
+  // the chosen day (same earliest-free-slot logic as handleAssign) instead of dropping an
+  // unscheduled duplicate into a different list for the user to hunt down and assign.
+  async function handleDuplicateAttraction(a: Attraction, dayIso: string) {
+    if (!token || !dayIso) return;
+
+    const rawVal = parseFloat(a.actualDurationValue ?? a.durationValue ?? "");
+    const unit = a.actualDurationUnit ?? a.durationUnit ?? "hours";
+    const durationMins = isNaN(rawVal) || rawVal <= 0 ? 60 : unit === "hours" ? rawVal * 60 : rawVal;
+    const timedOnDay = local.filter((x) => x.plannedDate === dayIso && !!x.plannedTime);
+    const plannedTime = findEarliestFreeSlot(timedOnDay, durationMins);
+
+    try {
+      const created = (await addAttractionToTrip(trip._id, token, {
+        existingAttractionId: a.attractionId ?? a._id,
+        allowDuplicate: true,
+        plannedDate: dayIso,
+        plannedTime,
+      })) as Attraction;
+      applyLocal([created, ...local]);
+      toast.success(`Scheduled another "${a.name}" for ${formatDayLabel(dayIso)}`);
+    } catch {
+      toast.error("Couldn't schedule it again. Please try again.");
+    }
   }
 
   // ── Change 1: Apply popup edits ────────────────────────────────────────────
@@ -486,43 +551,139 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
             </div>
 
             <div className={styles.sidebarList}>
-              {sidebarList.length === 0 ? (
+              {sidebarGroups.length === 0 ? (
                 <p className={styles.panelEmpty}>No attractions match.</p>
-              ) : sidebarList.map((a) => {
-                const icon = renderTypeIcon(findType(a.types?.[0] ?? "")?.icon ?? "");
-                const isScheduled = !!a.plannedDate;
-                const color = colorForType(a.types?.[0] ?? "");
+              ) : sidebarGroups.map(({ key, instances }) => {
+                const first = instances[0];
+                const icon = renderTypeIcon(findType(first.types?.[0] ?? "")?.icon ?? "");
+                const color = colorForType(first.types?.[0] ?? "");
+                const anyScheduled = instances.some((i) => !!i.plannedDate);
+                const canDuplicate = instances.length > 0 && instances.every((i) => !!i.attractionId);
+
+                // Single instance (the common case): unchanged markup/behavior from before
+                // this feature existed.
+                if (instances.length === 1) {
+                  const a = first;
+                  const isScheduled = !!a.plannedDate;
+                  return (
+                    <div key={key}
+                      className={`${styles.sidebarCard} ${isScheduled ? styles.sidebarCardScheduled : ""}`}
+                      style={{ ["--type-color" as string]: color }}
+                    >
+                      <div className={styles.cardTopRow}>
+                        <div className={styles.typeIconCircle} aria-hidden="true">{icon}</div>
+                        <span className={styles.cardName}>{a.name}</span>
+                      </div>
+                      {isScheduled && a.plannedDate && (
+                        <span className={styles.dayBadge}>
+                          {formatDayLabel(a.plannedDate)}{a.plannedTime ? ` · ${a.plannedTime}` : ""}
+                        </span>
+                      )}
+                      {a.durationValue && (
+                        <span className={styles.recDuration}>Rec: {a.durationValue} {a.durationUnit}</span>
+                      )}
+                      {canEdit && (
+                        <select className={styles.assignSelect}
+                          value={a.plannedDate ?? ""}
+                          aria-label={`${isScheduled ? "Reassign" : "Assign"} ${a.name}`}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "__unassign__") handleUnassign(a._id);
+                            else handleAssign(a._id, val);
+                          }}
+                        >
+                          <option value="" disabled={isScheduled}>
+                            {isScheduled ? "Move to day…" : "Assign to day…"}
+                          </option>
+                          {isScheduled && <option value="__unassign__">— Unassign</option>}
+                          {days.map((day) => (
+                            <option key={day} value={day}>{formatDayLabel(day)}</option>
+                          ))}
+                        </select>
+                      )}
+                      {canEdit && isScheduled && a.attractionId && (
+                        <select className={styles.duplicateSelect}
+                          value=""
+                          aria-label={`Schedule ${a.name} again on another day`}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val) handleDuplicateAttraction(a, val);
+                          }}
+                        >
+                          <option value="">+ Schedule again…</option>
+                          {days.map((day) => (
+                            <option key={day} value={day}>{formatDayLabel(day)}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  );
+                }
+
+                // Multiple instances of the same attraction: one card, one row per
+                // instance — each independently reassignable/unassignable — plus a
+                // single shared "+ Schedule again" control to add yet another.
                 return (
-                  <div key={a._id}
-                    className={`${styles.sidebarCard} ${isScheduled ? styles.sidebarCardScheduled : ""}`}
+                  <div key={key}
+                    className={`${styles.sidebarCard} ${anyScheduled ? styles.sidebarCardScheduled : ""}`}
                     style={{ ["--type-color" as string]: color }}
                   >
                     <div className={styles.cardTopRow}>
                       <div className={styles.typeIconCircle} aria-hidden="true">{icon}</div>
-                      <span className={styles.cardName}>{a.name}</span>
+                      <span className={styles.cardName}>{first.name}</span>
                     </div>
-                    {isScheduled && a.plannedDate && (
-                      <span className={styles.dayBadge}>
-                        {formatDayLabel(a.plannedDate)}{a.plannedTime ? ` · ${a.plannedTime}` : ""}
-                      </span>
+                    {first.durationValue && (
+                      <span className={styles.recDuration}>Rec: {first.durationValue} {first.durationUnit}</span>
                     )}
-                    {a.durationValue && (
-                      <span className={styles.recDuration}>Rec: {a.durationValue} {a.durationUnit}</span>
-                    )}
-                    {canEdit && (
-                      <select className={styles.assignSelect}
-                        value={a.plannedDate ?? ""}
-                        aria-label={`${isScheduled ? "Reassign" : "Assign"} ${a.name}`}
+                    <div className={styles.instancesList}>
+                      {instances.map((a) => {
+                        const isScheduled = !!a.plannedDate;
+                        return (
+                          <div key={a._id} className={styles.instanceRow}>
+                            {isScheduled && a.plannedDate ? (
+                              <span className={styles.dayBadge}>
+                                {formatDayLabel(a.plannedDate)}{a.plannedTime ? ` · ${a.plannedTime}` : ""}
+                              </span>
+                            ) : (
+                              <span className={styles.dayBadgeMuted}>Unscheduled</span>
+                            )}
+                            {canEdit && (
+                              <select className={styles.assignSelect}
+                                value={a.plannedDate ?? ""}
+                                aria-label={`${isScheduled ? "Reassign" : "Assign"} this instance of ${a.name}`}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val === "__unassign__") handleUnassign(a._id);
+                                  else handleAssign(a._id, val);
+                                }}
+                              >
+                                <option value="" disabled={isScheduled}>
+                                  {isScheduled ? "Move to day…" : "Assign to day…"}
+                                </option>
+                                {isScheduled && (
+                                  <option value="__unassign__">
+                                    {a._id.startsWith("at-") ? "— Remove" : "— Unassign"}
+                                  </option>
+                                )}
+                                {days.map((day) => (
+                                  <option key={day} value={day}>{formatDayLabel(day)}</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {canEdit && canDuplicate && (
+                      <select className={styles.duplicateSelect}
+                        value=""
+                        aria-label={`Schedule ${first.name} again on another day`}
                         onChange={(e) => {
                           const val = e.target.value;
-                          if (val === "__unassign__") handleUnassign(a._id);
-                          else handleAssign(a._id, val);
+                          if (val) handleDuplicateAttraction(first, val);
                         }}
                       >
-                        <option value="" disabled={isScheduled}>
-                          {isScheduled ? "Move to day…" : "Assign to day…"}
-                        </option>
-                        {isScheduled && <option value="__unassign__">— Unassign</option>}
+                        <option value="">+ Schedule again…</option>
                         {days.map((day) => (
                           <option key={day} value={day}>{formatDayLabel(day)}</option>
                         ))}

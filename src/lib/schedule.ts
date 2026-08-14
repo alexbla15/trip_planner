@@ -22,6 +22,19 @@ export function attractionEndMins(a: Attraction): number {
   return start + Math.max(dur, MIN_OVERLAP_DURATION_MINS);
 }
 
+// Real declared end time, with no MIN_OVERLAP_DURATION_MINS floor — unlike
+// attractionEndMins above (used for calendar layout/spacing, where a visual minimum
+// block size is wanted), a genuine routing conflict must be based only on the
+// attraction's actual duration. Flooring it made back-to-back or short-gap
+// attractions falsely read as "conflicting" on the map with no real overlap.
+function attractionEndMinsExact(a: Attraction): number {
+  const start = timeToMins(a.plannedTime!);
+  const val = parseFloat(a.actualDurationValue ?? a.durationValue ?? "0");
+  const unit = a.actualDurationUnit ?? a.durationUnit ?? "hours";
+  const dur = unit === "hours" ? val * 60 : val;
+  return start + Math.max(dur, 0);
+}
+
 export function legKey(fromId: string, toId: string, mode: TravelMode): string {
   return `${mode}__${fromId}__${toId}`;
 }
@@ -36,13 +49,13 @@ export function detectConflicts(sorted: Attraction[]): ConflictGroup[] {
   let i = 0;
   while (i < sorted.length) {
     const group: Attraction[] = [sorted[i]];
-    let groupEnd = attractionEndMins(sorted[i]);
+    let groupEnd = attractionEndMinsExact(sorted[i]);
     let j = i + 1;
     while (j < sorted.length) {
       const jStart = timeToMins(sorted[j].plannedTime!);
       if (jStart < groupEnd) {
         group.push(sorted[j]);
-        groupEnd = Math.max(groupEnd, attractionEndMins(sorted[j]));
+        groupEnd = Math.max(groupEnd, attractionEndMinsExact(sorted[j]));
         j++;
       } else {
         break;

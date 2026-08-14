@@ -475,6 +475,38 @@
   width: fit-content;
 }
 
+.dayBadgeMuted {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-subtle);
+  width: fit-content;
+}
+
+/* Multi-instance card: one row per scheduled instance of the same attraction */
+.instancesList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.instanceRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.instanceRow .dayBadge,
+.instanceRow .dayBadgeMuted {
+  flex-shrink: 0;
+}
+
+.instanceRow .assignSelect {
+  flex: 1;
+}
+
 .mobileDayIndicator { display: none; }
 .mobileDot { display: none; }
 .mobileDotActive { display: none; }
@@ -721,6 +753,31 @@
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+.duplicateSelect {
+  height: 26px;
+  padding: 0 6px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--color-text-secondary);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  width: 100%;
+  transition: border-color var(--duration-fast) var(--easing-out), color var(--duration-fast) var(--easing-out), background var(--duration-fast) var(--easing-out);
+}
+
+.duplicateSelect:hover,
+.duplicateSelect:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
 }
 
 /* Time select inside block — lighter style */

@@ -277,6 +277,36 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
     [mapped, altIds]
   );
 
+  // Visiting the same place twice in one day (see "+ Schedule again") puts multiple stops
+  // at the exact same coordinates — consolidate them into a single pin instead of stacking
+  // separate markers on top of each other. The tooltip lists every visit time; the marker's
+  // order badge shows the earliest visit's position in the route. Route legs/OSRM fetches
+  // are unaffected — they still address each instance individually via its own _id.
+  interface MarkerGroup { key: string; position: [number, number]; instances: Attraction[]; order: number; isAlt: boolean }
+  const markerGroups = useMemo<MarkerGroup[]>(() => {
+    const groups = new Map<string, Attraction[]>();
+    const order: string[] = [];
+    for (const a of mapped) {
+      const key = `${a.coordinates!.lat.toFixed(5)},${a.coordinates!.lng.toFixed(5)}`;
+      if (!groups.has(key)) { groups.set(key, []); order.push(key); }
+      groups.get(key)!.push(a);
+    }
+    return order.map((key) => {
+      const instances = groups.get(key)!;
+      const first = instances[0];
+      const routeOrders = instances
+        .filter((a) => !altIds.has(a._id))
+        .map((a) => routeAttractions.indexOf(a) + 1);
+      return {
+        key,
+        position: [first.coordinates!.lat, first.coordinates!.lng],
+        instances,
+        order: routeOrders.length > 0 ? Math.min(...routeOrders) : 0,
+        isAlt: routeOrders.length === 0,
+      };
+    });
+  }, [mapped, altIds, routeAttractions]);
+
   // Full route:
   //   arrival airports → residence (or not if arrived today) → attractions → residence (or not if departing today) → departure airports
   //
@@ -462,20 +492,20 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             />
 
-            {/* Markers */}
-            {mapped.map((a) => {
-              const routeIdx = routeAttractions.indexOf(a);
-              const isAlt = altIds.has(a._id);
-              const order = isAlt ? 0 : routeIdx + 1;
+            {/* Markers — one pin per unique location, even when visited more than once in a day */}
+            {markerGroups.map((g) => {
+              const first = g.instances[0];
               return (
                 <Marker
-                  key={a._id}
-                  position={[a.coordinates!.lat, a.coordinates!.lng]}
-                  icon={makeMarkerIcon(a.types, order, isAlt, colorForType, findType(a.types?.[0] ?? "")?.icon ?? "")}
+                  key={g.key}
+                  position={g.position}
+                  icon={makeMarkerIcon(first.types, g.order, g.isAlt, colorForType, findType(first.types?.[0] ?? "")?.icon ?? "")}
                 >
                   <Tooltip direction="top" offset={[0, -14]}>
-                    <strong>{a.name}</strong>
-                    {a.plannedTime ? ` · ${a.plannedTime}` : ""}
+                    <strong>{first.name}</strong>
+                    {g.instances.length > 1
+                      ? ` · ${g.instances.map((a) => a.plannedTime).filter(Boolean).join(", ")}`
+                      : first.plannedTime ? ` · ${first.plannedTime}` : ""}
                   </Tooltip>
                 </Marker>
               );
