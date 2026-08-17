@@ -23,6 +23,7 @@ import {
   Plane,
   MapPin,
   SearchX,
+  Check,
 } from "lucide-react";
 import {
   MoodTagChip,
@@ -63,6 +64,8 @@ import {
   updateAttraction,
   updateTripAttractionSchedule,
   removeAttractionFromTrip,
+  markAttractionVisited,
+  unmarkAttractionVisited,
 } from "@/services";
 import { formatDisplayDate, currencySymbol, formatPrice } from "@/lib";
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
@@ -419,6 +422,36 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     } catch {
       setAttractions(snapshot);
       setActionError("Couldn't remove the attraction. Please try again.");
+    }
+  }
+
+  // "Visited" is a per-user fact about the shared attraction document, not the schedule
+  // instance/row — flip it on every row that shares the same real attraction id (mirrors
+  // the same propagation rule used for shared-doc edits in handleAttractionUpdate), plus
+  // the detail modal if it's currently showing this attraction.
+  async function handleToggleVisited(attraction: Attraction) {
+    if (!token || !attraction.attractionId) return;
+    const realId = attraction.attractionId;
+    const next = !attraction.isVisited;
+
+    setAttractions((prev) =>
+      prev.map((a) => (a.attractionId ?? a._id) === realId ? { ...a, isVisited: next } : a)
+    );
+    setViewingAttraction((prev) =>
+      prev && (prev.attractionId ?? prev._id) === realId ? { ...prev, isVisited: next } : prev
+    );
+
+    try {
+      if (next) await markAttractionVisited(realId, token);
+      else await unmarkAttractionVisited(realId, token);
+    } catch {
+      setAttractions((prev) =>
+        prev.map((a) => (a.attractionId ?? a._id) === realId ? { ...a, isVisited: !next } : a)
+      );
+      setViewingAttraction((prev) =>
+        prev && (prev.attractionId ?? prev._id) === realId ? { ...prev, isVisited: !next } : prev
+      );
+      toast.error("Couldn't update visited status. Please try again.");
     }
   }
 
@@ -836,24 +869,38 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                                   <ImageWithSkeleton src={attraction.photoUrl} alt="" width={52} height={52} unoptimized className={styles.attractionThumbImg} />
                                 </div>
                               )}
-                              {canEdit && (
+                              {(canEdit || token) && (
                                 <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
-                                  <button
-                                    type="button"
-                                    className={styles.editBtn}
-                                    onClick={() => setEditingAttraction(attraction)}
-                                    aria-label={`Edit ${attraction.name}`}
-                                  >
-                                    <PenLine size={14} aria-hidden="true" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className={styles.removeBtn}
-                                    onClick={() => handleRemoveAttraction(attraction._id)}
-                                    aria-label={`Remove ${attraction.name}`}
-                                  >
-                                    <Trash2 size={14} aria-hidden="true" />
-                                  </button>
+                                  {token && attraction.attractionId && (
+                                    <button
+                                      type="button"
+                                      className={`${styles.editBtn} ${attraction.isVisited ? styles.editBtnActive : ""}`}
+                                      onClick={() => handleToggleVisited(attraction)}
+                                      aria-label={attraction.isVisited ? `${attraction.name} marked as visited` : `Mark ${attraction.name} as visited`}
+                                    >
+                                      <Check size={14} aria-hidden="true" />
+                                    </button>
+                                  )}
+                                  {canEdit && (
+                                    <>
+                                      <button
+                                        type="button"
+                                        className={styles.editBtn}
+                                        onClick={() => setEditingAttraction(attraction)}
+                                        aria-label={`Edit ${attraction.name}`}
+                                      >
+                                        <PenLine size={14} aria-hidden="true" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className={styles.removeBtn}
+                                        onClick={() => handleRemoveAttraction(attraction._id)}
+                                        aria-label={`Remove ${attraction.name}`}
+                                      >
+                                        <Trash2 size={14} aria-hidden="true" />
+                                      </button>
+                                    </>
+                                  )}
                                 </div>
                               )}
                             </li>
@@ -923,6 +970,12 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
       <AttractionDetailModal
         attraction={viewingAttraction}
         onClose={() => setViewingAttraction(null)}
+        isVisited={viewingAttraction?.isVisited}
+        onToggleVisited={
+          token && viewingAttraction?.attractionId
+            ? () => handleToggleVisited(viewingAttraction)
+            : undefined
+        }
       />
 
       {/* No existingAttractionIds here, deliberately: unlike regular attractions, re-picking the

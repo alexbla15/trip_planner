@@ -1,7 +1,11 @@
 import { parseOrThrow } from "./http";
 
-export async function getCities(): Promise<unknown> {
-  const res = await fetch("/api/attractions/cities");
+// token is optional (works for anonymous visitors) but must be sent when present —
+// otherwise the server can't compute per-city visitedCount/unvisitedCount for the caller.
+export async function getCities(token?: string | null): Promise<unknown> {
+  const res = await fetch("/api/attractions/cities", {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
   return parseOrThrow<unknown>(res);
 }
 
@@ -13,8 +17,13 @@ export async function getExploreItems(): Promise<unknown[]> {
 // includeHidden=true: Explore is a public discovery view over shared place data, not
 // trip-planning details — it should never hide an attraction just because the only
 // trip referencing it happens to be private (see src/lib/services/attractions.service.ts).
-export async function getAttractionsByCity(city: string): Promise<unknown[]> {
-  const res = await fetch(`/api/attractions?city=${encodeURIComponent(city)}&includeHidden=true`);
+// token is optional (Explore works for anonymous visitors) but must be sent when present —
+// otherwise the server treats the caller as anonymous and every result's isVisited comes
+// back false regardless of what's actually saved, even for a logged-in user.
+export async function getAttractionsByCity(city: string, token?: string | null): Promise<unknown[]> {
+  const res = await fetch(`/api/attractions?city=${encodeURIComponent(city)}&includeHidden=true`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
   return parseOrThrow<unknown[]>(res);
 }
 
@@ -104,4 +113,20 @@ export function removeAttractionFromTrip(
     method: "DELETE",
     headers: { Authorization: `Bearer ${token ?? ""}` },
   });
+}
+
+export async function markAttractionVisited(attractionId: string, token: string): Promise<unknown> {
+  const res = await fetch(`/api/users/me/visited/${attractionId}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return parseOrThrow<unknown>(res);
+}
+
+export async function unmarkAttractionVisited(attractionId: string, token: string): Promise<unknown> {
+  const res = await fetch(`/api/users/me/visited/${attractionId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return parseOrThrow<unknown>(res);
 }

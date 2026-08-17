@@ -25,13 +25,16 @@ export function makeCityMarkerIcon(): L.DivIcon {
   });
 }
 
-export function makeAttractionMarkerIcon(color: string, iconName: string, selected = false): L.DivIcon {
+export function makeAttractionMarkerIcon(color: string, iconName: string, selected = false, isVisited = false): L.DivIcon {
   let svg = "";
   try {
     const IconComp = getIconComponent(iconName);
     svg = renderToStaticMarkup(<IconComp size={14} color="#ffffff" aria-hidden="true" />);
   } catch { /* */ }
-  const border = selected ? "3px solid #D97706" : "2px solid #fff";
+  // Measure-tool selection outranks visited status (it's a temporary, in-the-moment
+  // state); visited status gets its own border color (--color-success) so a marked
+  // place stays visually distinguishable from unvisited ones at a glance.
+  const border = selected ? "3px solid #D97706" : isVisited ? "3px solid #059669" : "2px solid #fff";
   return L.divIcon({
     html: `<div style="width:30px;height:30px;border-radius:50%;background:${color};border:${border};box-shadow:0 2px 6px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center">${svg}</div>`,
     iconSize: [30, 30] as [number, number],

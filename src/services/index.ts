@@ -26,6 +26,8 @@ export {
   addAttractionToTrip,
   updateTripAttractionSchedule,
   removeAttractionFromTrip,
+  markAttractionVisited,
+  unmarkAttractionVisited,
 } from "./attractions.service";
 
 export {

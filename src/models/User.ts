@@ -1,4 +1,4 @@
-import mongoose, { Schema, type Document } from "mongoose";
+import mongoose, { Schema, type Document, type Types } from "mongoose";
 
 export interface IUser extends Document {
   name: string;
@@ -9,6 +9,10 @@ export interface IUser extends Document {
   createdAt: Date;
   resetTokenHash?: string;
   resetTokenExpiry?: Date;
+  /** Attractions this user has personally marked as visited — a private, per-user
+   *  fact independent of any trip (an attraction is a shared/global entity, so this
+   *  can never live on the Attraction document itself). */
+  visitedAttractionIds: Types.ObjectId[];
 }
 
 const UserSchema = new Schema<IUser>(
@@ -22,6 +26,7 @@ const UserSchema = new Schema<IUser>(
     // only its hash + expiry live on the document (see src/lib/passwordReset.ts).
     resetTokenHash: { type: String, select: false },
     resetTokenExpiry: { type: Date, select: false },
+    visitedAttractionIds: [{ type: Schema.Types.ObjectId, ref: "Attraction" }],
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );

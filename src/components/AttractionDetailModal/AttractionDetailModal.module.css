@@ -77,6 +77,13 @@
   text-overflow: ellipsis;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 .closeBtn {
   display: flex;
   align-items: center;
@@ -101,6 +108,49 @@
 .closeBtn:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* Compact icon-only visited toggle, same 36px footprint as .closeBtn so both
+   header actions read as one family. Outline/neutral when unvisited, filled
+   success-green when visited — state also carries in the button's aria-label
+   text, not color alone. */
+.visitedToggleBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid var(--color-border);
+  background: none;
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  transition: background var(--duration-fast) var(--easing-out),
+    color var(--duration-fast) var(--easing-out),
+    border-color var(--duration-fast) var(--easing-out);
+}
+
+.visitedToggleBtn:hover {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.visitedToggleBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.visitedToggleBtnActive {
+  border-color: var(--color-success);
+  background: var(--color-success);
+  color: #FFFFFF;
+}
+
+.visitedToggleBtnActive:hover {
+  border-color: var(--color-success);
+  color: #FFFFFF;
+  opacity: 0.9;
 }
 
 /* ── Body ── */

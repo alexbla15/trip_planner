@@ -26,11 +26,17 @@
 
 .sidebarHeader {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 10px;
   padding: 20px 16px 12px;
   border-bottom: 1px solid var(--color-border-subtle);
   flex-shrink: 0;
+}
+
+.sidebarHeaderTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .sidebarTitle {

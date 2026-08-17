@@ -9,6 +9,10 @@ export interface Attraction {
    *  have no backing document). Operations on the shared data itself (full edit/save) must
    *  use this field, not `_id`, once more than one instance can exist. */
   attractionId?: string;
+  /** Whether the CURRENT user has personally marked this attraction visited — private,
+   *  per-user, independent of any trip. Always false for custom-slot/flight rows (no
+   *  backing document) and for anonymous callers. */
+  isVisited?: boolean;
   // no tripId — attractions are global; scheduling lives in Trip.schedules
   ownerId?: string;
   name: string;

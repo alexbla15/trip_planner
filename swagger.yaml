@@ -331,6 +331,15 @@ components:
             shared document itself (PATCH /api/attractions/{id}) once more than one instance
             can exist.
           example: 65f1234567890abcdef123bb
+        isVisited:
+          type: boolean
+          default: false
+          description: >
+            Whether the REQUESTING user has personally marked this attraction visited — a
+            private, per-user fact merged onto the response at read time (never stored on
+            the Attraction document itself, since it's shared across users/trips). Always
+            false for an unauthenticated caller. Toggle via PUT/DELETE
+            /api/users/me/visited/{attractionId}.
         ownerId:
           type: string
           example: 65f1234567890abcdef12345
@@ -1039,6 +1048,48 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserProfile'
 
+  /api/users/me/visited/{attractionId}:
+    put:
+      summary: Mark an attraction as personally visited (idempotent)
+      tags: [Authentication]
+      parameters:
+        - name: attractionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Marked visited
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isVisited: { type: boolean, example: true }
+        401:
+          description: Unauthorized
+    delete:
+      summary: Unmark an attraction as personally visited (idempotent)
+      tags: [Authentication]
+      parameters:
+        - name: attractionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Unmarked visited
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isVisited: { type: boolean, example: false }
+        401:
+          description: Unauthorized
+
   /api/fx:
     get:
       summary: Get live exchange rate between two currencies
@@ -1398,6 +1449,11 @@ paths:
   /api/attractions/cities:
     get:
       summary: List cities that have public attractions with coordinates
+      description: >
+        Works without a token (security: [] — same optional-auth pattern as GET
+        /api/attractions). When a valid token IS supplied, visitedCount/unvisitedCount
+        are computed for that caller; an anonymous or unauthenticated request always
+        gets visitedCount: 0 for every city (unvisitedCount then equals count).
       tags: [Attractions]
       security: []
       responses:
@@ -1428,6 +1484,13 @@ paths:
                         count:
                           type: integer
                           example: 12
+                        visitedCount:
+                          type: integer
+                          example: 3
+                          description: How many of this city's attractions the requesting user has marked visited.
+                        unvisitedCount:
+                          type: integer
+                          example: 9
         '500':
           description: Internal server error
 

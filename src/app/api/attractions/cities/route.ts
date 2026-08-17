@@ -1,13 +1,24 @@
 import { NextResponse } from "next/server";
+import { Types } from "mongoose";
 import { dbConnect } from "@/lib/mongoose";
 import { Attraction } from "@/models/Attraction";
 import { withApiHandler } from "@/lib/withApiHandler";
 import { corsPreflight } from "@/lib/cors";
+import { getUserFromRequest } from "@/lib/auth";
+import { getVisitedIdSet } from "@/lib/services/visited.service";
 
 export const OPTIONS = corsPreflight;
 
-export const GET = withApiHandler("GET /api/attractions/cities", async () => {
+export const GET = withApiHandler("GET /api/attractions/cities", async (req: Request) => {
+  // Optional auth — used to compute per-city visitedCount/unvisitedCount for the
+  // requesting user, same optional pattern as GET /api/attractions.
+  let userId: string | null = null;
+  try { userId = getUserFromRequest(req).userId; } catch { /* unauthenticated */ }
+
   await dbConnect();
+  const visitedIds = await getVisitedIdSet(userId);
+  const visitedObjectIds = [...visitedIds].map((id) => new Types.ObjectId(id));
+
   const result = await Attraction.aggregate([
     {
       $match: {
@@ -15,12 +26,14 @@ export const GET = withApiHandler("GET /api/attractions/cities", async () => {
         "coordinates.lng": { $exists: true, $ne: null },
       },
     },
+    { $addFields: { isVisited: { $in: ["$_id", visitedObjectIds] } } },
     {
       $group: {
         _id: { city: "$city", country: "$country" },
         lat:   { $avg: "$coordinates.lat" },
         lng:   { $avg: "$coordinates.lng" },
         count: { $sum: 1 },
+        visitedCount: { $sum: { $cond: ["$isVisited", 1, 0] } },
       },
     },
     {
@@ -31,6 +44,8 @@ export const GET = withApiHandler("GET /api/attractions/cities", async () => {
         lat: 1,
         lng: 1,
         count: 1,
+        visitedCount: 1,
+        unvisitedCount: { $subtract: ["$count", "$visitedCount"] },
       },
     },
     { $sort: { count: -1 } },

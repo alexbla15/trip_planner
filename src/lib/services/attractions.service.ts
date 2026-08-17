@@ -4,6 +4,7 @@ import { badRequest, notFound, conflict } from "@/lib/apiError";
 import { Attraction, formatAttraction, type IAttraction } from "@/models/Attraction";
 import { AttractionType } from "@/models/AttractionType";
 import { Trip, type ITrip, type IScheduleEntry } from "@/models/Trip";
+import { getVisitedIdSet, isAttractionVisited } from "@/lib/services/visited.service";
 import type { JwtPayload } from "@/lib/auth";
 import type { Attraction as AttractionShape } from "@/types/attraction";
 
@@ -326,6 +327,7 @@ export async function listTripAttractions(
     .sort(sort === "price" ? { price: 1 } : undefined)
     .exec();
   const docsById = new Map(docs.map((doc) => [doc._id.toString(), doc]));
+  const visitedIds = await getVisitedIdSet(userId);
 
   // Group regular-attraction schedule entries by which real document they reference — a
   // real attraction can have multiple instances (see IScheduleEntry.attractionRef), each
@@ -348,11 +350,12 @@ export async function listTripAttractions(
   for (const doc of docs) {
     const idStr = doc._id.toString();
     const entries = entriesByDocId.get(idStr);
+    const isVisited = visitedIds.has(idStr);
     if (!entries || entries.length === 0) {
-      result.push(formatAttraction(doc, null, idStr)); // linked but not yet scheduled
+      result.push(formatAttraction(doc, null, idStr, isVisited)); // linked but not yet scheduled
     } else {
       for (const [key, entry] of entries) {
-        result.push(formatAttraction(doc, entry, key));
+        result.push(formatAttraction(doc, entry, key, isVisited));
       }
     }
   }
@@ -641,6 +644,7 @@ export async function addAttractionToTrip(
   }
 
   const attractionId = attraction._id.toString();
+  const isVisited = await isAttractionVisited(payload.userId, attractionId);
 
   const alreadyLinked = trip.attractionIds.some(
     (id) => id.toString() === attractionId
@@ -668,11 +672,11 @@ export async function addAttractionToTrip(
         $set: { [`schedules.${instanceKey}`]: scheduleEntry },
       });
       await attraction.populate("types");
-      return { status: 201, data: formatAttraction(attraction, scheduleEntry, instanceKey) };
+      return { status: 201, data: formatAttraction(attraction, scheduleEntry, instanceKey, isVisited) };
     }
     const schedule = trip.schedules?.get(attractionId);
     await attraction.populate("types");
-    return { status: 200, data: formatAttraction(attraction, schedule ?? null) };
+    return { status: 200, data: formatAttraction(attraction, schedule ?? null, undefined, isVisited) };
   }
 
   trip.attractionIds.push(attraction._id);
@@ -701,7 +705,7 @@ export async function addAttractionToTrip(
   await trip.save();
   await attraction.populate("types");
 
-  return { status: 201, data: formatAttraction(attraction, scheduleEntry) };
+  return { status: 201, data: formatAttraction(attraction, scheduleEntry, undefined, isVisited) };
 }
 
 export interface UpdateTripAttractionScheduleInput {
@@ -873,8 +877,9 @@ export async function updateTripAttractionSchedule(
   const realAttractionId = updatedSchedule?.attractionRef ?? attractionId;
   const attraction = await Attraction.findById(realAttractionId);
   if (!attraction) throw notFound("Attraction not found");
+  const isVisited = await isAttractionVisited(payload.userId, realAttractionId);
 
-  return formatAttraction(attraction, updatedSchedule, attractionId);
+  return formatAttraction(attraction, updatedSchedule, attractionId, isVisited);
 }
 
 /** Unlink attraction from this trip (or remove a custom time-slot / flight entirely).

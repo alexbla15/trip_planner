@@ -394,13 +394,14 @@ export function ExploreMapWidget({
             <Marker
               key={a._id}
               position={[a.coordinates.lat, a.coordinates.lng]}
-              icon={makeAttractionMarkerIcon(color, iconName, isMeasureSelected)}
+              icon={makeAttractionMarkerIcon(color, iconName, isMeasureSelected, a.isVisited)}
               eventHandlers={{ click: () => onAttractionClick(a) }}
             >
               <Tooltip direction="top" offset={[0, -17]}>
                 <strong>{a.name}</strong>
                 {a.types?.[0] ? ` · ${a.types[0]}` : ""}
                 {isMeasureSelected ? " · Selected for measuring" : ""}
+                {a.isVisited ? " · Visited" : ""}
               </Tooltip>
             </Marker>
           );

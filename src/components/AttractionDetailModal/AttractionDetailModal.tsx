@@ -21,6 +21,7 @@ import {
   Tag,
   Pencil,
   Plus,
+  Check,
 } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { useAttractionTypes } from "@/hooks";
@@ -43,9 +44,13 @@ interface AttractionDetailModalProps {
   canEdit?: boolean;
   onEdit?: () => void;
   onAddToTrip?: () => void;
+  /** Present only for a logged-in user viewing a real (non custom-slot/flight)
+   *  attraction — toggling marks/unmarks it as personally visited. */
+  onToggleVisited?: () => void;
+  isVisited?: boolean;
 }
 
-export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit, onEdit, onAddToTrip }: AttractionDetailModalProps) {
+export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit, onEdit, onAddToTrip, onToggleVisited, isVisited }: AttractionDetailModalProps) {
   const { findType } = useAttractionTypes();
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -104,14 +109,28 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
             )}
             <h2 className={styles.title}>{attraction.name}</h2>
           </div>
-          <button
-            type="button"
-            className={styles.closeBtn}
-            onClick={onClose}
-            aria-label="Close"
-          >
-            <X size={20} aria-hidden="true" />
-          </button>
+          <div className={styles.headerActions}>
+            {onToggleVisited && (
+              <button
+                type="button"
+                className={`${styles.visitedToggleBtn} ${isVisited ? styles.visitedToggleBtnActive : ""}`}
+                onClick={onToggleVisited}
+                aria-pressed={!!isVisited}
+                aria-label={isVisited ? `${attraction.name} marked as visited — click to unmark` : `Mark ${attraction.name} as visited`}
+                title={isVisited ? "Visited" : "Mark as visited"}
+              >
+                <Check size={18} aria-hidden="true" />
+              </button>
+            )}
+            <button
+              type="button"
+              className={styles.closeBtn}
+              onClick={onClose}
+              aria-label="Close"
+            >
+              <X size={20} aria-hidden="true" />
+            </button>
+          </div>
         </div>
 
         {/* Body */}

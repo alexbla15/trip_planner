@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Globe, Plus, ChevronLeft, SlidersHorizontal, X, Ruler, Footprints, Car, Bus, Loader2, Search } from "lucide-react";
+import { Globe, Plus, ChevronLeft, SlidersHorizontal, X, Ruler, Footprints, Car, Bus, Loader2, Search, Check } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useAttractionTypes } from "@/hooks";
@@ -10,6 +10,7 @@ import {
   getCities, getAttractionsByCity, createAttraction, updateAttraction,
   fetchRouteLeg, formatLegDuration, formatStepDuration,
   searchLocation, addAttractionToTrip,
+  markAttractionVisited, unmarkAttractionVisited,
 } from "@/services";
 import type { TravelMode, RouteLeg } from "@/services";
 import { AttractionDetailModal, NewAttractionModal, TripPickerModal, Spinner, FormErrorBanner } from "@/components";
@@ -72,6 +73,10 @@ export interface CityEntry {
   lat: number;
   lng: number;
   count: number;
+  /** How many of this city's attractions the requesting user has marked visited.
+   *  0 for an anonymous/unauthenticated request. */
+  visitedCount: number;
+  unvisitedCount: number;
 }
 
 export interface CountryEntry {
@@ -116,6 +121,7 @@ export function ExploreClient() {
   // Filters (only active in city view)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes]           = useState<string[]>([]);
+  const [visitedFilter, setVisitedFilter]           = useState<"all" | "visited" | "unvisited">("all");
 
   // Measure-distance tool (available once a country is selected — see view guard below)
   const [measureMode, setMeasureMode]               = useState(false);
@@ -150,39 +156,58 @@ export function ExploreClient() {
     return () => { cancelled = true; };
   }, [measurePoints, measureLegMode]);
 
-  // Load cities on mount
+  // Load cities on mount (re-fetches on auth change too — visitedCount/unvisitedCount
+  // per city depend on who's asking).
   useEffect(() => {
     setCitiesLoading(true);
     setCitiesLoadError(false);
-    getCities()
+    getCities(token)
       .then((data) => setCities((data as { cities: CityEntry[] }).cities ?? []))
       .catch(() => setCitiesLoadError(true))
       .finally(() => setCitiesLoading(false));
-  }, [citiesReloadKey]);
+  }, [citiesReloadKey, token]);
 
   // Load attractions when city changes
   useEffect(() => {
     if (!selectedCity) { setCityAttractions([]); return; }
     setAttractionsLoading(true);
     setPageError(null);
-    getAttractionsByCity(selectedCity)
+    getAttractionsByCity(selectedCity, token)
       .then((data) => setCityAttractions(Array.isArray(data) ? (data as Attraction[]) : []))
       .catch(() => setPageError("Couldn't load attractions for this city. Please try again."))
       .finally(() => setAttractionsLoading(false));
-  }, [selectedCity]);
+  }, [selectedCity, token]);
+
+  // Cities matching the visited filter — a country/city only stays listed if at least
+  // one of its attractions matches (e.g. "Unvisited" hides a city where every attraction
+  // is already marked visited). Applies across the whole Explore experience (world →
+  // country → city), driven by the single header picker, not just the selected city's list.
+  const visibleCities = useMemo(() => {
+    if (visitedFilter === "all") return cities;
+    return cities.filter((c) => (visitedFilter === "visited" ? c.visitedCount > 0 : c.unvisitedCount > 0));
+  }, [cities, visitedFilter]);
+
+  // The number to display for a city/country pill under the active visited filter — the
+  // total attraction count is misleading once filtered (e.g. showing "12" under "Unvisited"
+  // when only 4 of those 12 are actually unvisited), so show whichever count matches what
+  // drilling into that city would actually reveal.
+  function countFor(entry: { count: number; visitedCount: number; unvisitedCount: number }): number {
+    return visitedFilter === "all" ? entry.count : visitedFilter === "visited" ? entry.visitedCount : entry.unvisitedCount;
+  }
 
   // Derive unique countries with centroid + radius
   const countries = useMemo<CountryEntry[]>(() => {
     const map = new Map<string, { count: number; latSum: number; lngSum: number; cityList: CityEntry[] }>();
-    for (const city of cities) {
+    for (const city of visibleCities) {
+      const cityCount = countFor(city);
       const existing = map.get(city.country);
       if (existing) {
-        existing.count += city.count;
+        existing.count += cityCount;
         existing.latSum += city.lat;
         existing.lngSum += city.lng;
         existing.cityList.push(city);
       } else {
-        map.set(city.country, { count: city.count, latSum: city.lat, lngSum: city.lng, cityList: [city] });
+        map.set(city.country, { count: cityCount, latSum: city.lat, lngSum: city.lng, cityList: [city] });
       }
     }
     return [...map.entries()]
@@ -199,12 +224,17 @@ export function ExploreClient() {
         return { name, lat, lng, count: d.count, radius: Math.max(150_000, maxDist * 1.4) };
       })
       .sort((a, b) => b.count - a.count);
-  }, [cities]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleCities, visitedFilter]);
 
   const citiesInCountry = useMemo(
-    () => (selectedCountry ? cities.filter((c) => c.country === selectedCountry) : []),
-    [cities, selectedCountry]
+    () => (selectedCountry ? visibleCities.filter((c) => c.country === selectedCountry) : []),
+    [visibleCities, selectedCountry]
   );
+
+  function passesVisitedFilter(a: Attraction): boolean {
+    return visitedFilter === "all" || (visitedFilter === "visited" ? !!a.isVisited : !a.isVisited);
+  }
 
   // Client-side filtering of city attractions
   const filteredAttractions = useMemo(() => {
@@ -220,21 +250,31 @@ export function ExploreClient() {
         });
       const passType =
         selectedTypes.length === 0 || typeNames.some((t) => selectedTypes.includes(t));
-      return passCategory && passType;
+      return passCategory && passType && passesVisitedFilter(a);
     });
-  }, [cityAttractions, selectedCategories, selectedTypes, byCategory]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cityAttractions, selectedCategories, selectedTypes, visitedFilter, byCategory]);
 
-  // Categories present in the current city
+  // Attractions matching only the visited filter — the base set for computing which
+  // category/type chips are worth showing, so e.g. "Unvisited" doesn't leave a category
+  // chip visible that would produce zero results if also selected (every match already visited).
+  const visitedScopedAttractions = useMemo(
+    () => cityAttractions.filter(passesVisitedFilter),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [cityAttractions, visitedFilter]
+  );
+
+  // Categories present in the current city (honoring the visited filter)
   const availableCategories = useMemo(() => {
-    const typeNamesInCity = new Set(cityAttractions.flatMap((a) => a.types ?? []));
+    const typeNamesInCity = new Set(visitedScopedAttractions.flatMap((a) => a.types ?? []));
     return categories.filter((cat) =>
       (byCategory[cat] ?? []).some((t) => typeNamesInCity.has(t.name))
     );
-  }, [categories, byCategory, cityAttractions]);
+  }, [categories, byCategory, visitedScopedAttractions]);
 
-  // Types present in the current city, filtered by selected categories
+  // Types present in the current city (honoring the visited filter), filtered by selected categories
   const availableTypes = useMemo(() => {
-    const typeNamesInCity = new Set(cityAttractions.flatMap((a) => a.types ?? []));
+    const typeNamesInCity = new Set(visitedScopedAttractions.flatMap((a) => a.types ?? []));
     return types.filter((t) => {
       const inCity = typeNamesInCity.has(t.name);
       const inCategory =
@@ -244,11 +284,15 @@ export function ExploreClient() {
         );
       return inCity && inCategory;
     });
-  }, [types, byCategory, cityAttractions, selectedCategories]);
+  }, [types, byCategory, visitedScopedAttractions, selectedCategories]);
 
-  const hasActiveFilters = selectedCategories.length > 0 || selectedTypes.length > 0;
-  const activeFilterCount = selectedCategories.length + selectedTypes.length;
+  const hasActiveFilters = selectedCategories.length > 0 || selectedTypes.length > 0 || visitedFilter !== "all";
+  const activeFilterCount = selectedCategories.length + selectedTypes.length + (visitedFilter !== "all" ? 1 : 0);
 
+  // Note: visitedFilter is deliberately NOT reset by any of these — it's a page-level
+  // filter (applies to which countries/cities are even listed, via visibleCities), not a
+  // per-city one, so navigating world → country → city → back must preserve the user's
+  // choice. Only selectedCategories/selectedTypes are city-specific and reset on navigation.
   const handleCountrySelect = useCallback(
     (country: CountryEntry) => {
       setSelectedCountry(country.name);
@@ -342,6 +386,52 @@ export function ExploreClient() {
     setSelectedAttraction(null);
     setCityAttractions((prev) => prev.map((a) => (a._id === updated._id ? updated : a)));
     toast.success("Attraction updated");
+  }
+
+  // "Visited" is a per-user fact about the shared attraction document — flip it on
+  // every row sharing the same real attraction id, plus the open detail modal if it's
+  // currently showing this attraction, with an optimistic update + rollback on failure.
+  // Keeps the separate `cities` aggregate (visitedCount/unvisitedCount, used to filter
+  // which countries/cities are even listed) in sync with a toggle — without this, those
+  // counts stay stale until the next full page load, so e.g. the last unvisited attraction
+  // in a city gets marked visited but the city keeps appearing under "Unvisited".
+  function adjustCityVisitedCount(cityName: string | undefined, country: string, delta: number) {
+    if (!cityName) return;
+    setCities((prev) =>
+      prev.map((c) =>
+        c.name === cityName && c.country === country
+          ? { ...c, visitedCount: c.visitedCount + delta, unvisitedCount: c.unvisitedCount - delta }
+          : c
+      )
+    );
+  }
+
+  async function handleToggleVisited(attraction: Attraction) {
+    if (!token || !attraction.attractionId) return;
+    const realId = attraction.attractionId;
+    const next = !attraction.isVisited;
+
+    setCityAttractions((prev) =>
+      prev.map((a) => (a.attractionId ?? a._id) === realId ? { ...a, isVisited: next } : a)
+    );
+    setSelectedAttraction((prev) =>
+      prev && (prev.attractionId ?? prev._id) === realId ? { ...prev, isVisited: next } : prev
+    );
+    adjustCityVisitedCount(attraction.city, attraction.country, next ? 1 : -1);
+
+    try {
+      if (next) await markAttractionVisited(realId, token);
+      else await unmarkAttractionVisited(realId, token);
+    } catch {
+      setCityAttractions((prev) =>
+        prev.map((a) => (a.attractionId ?? a._id) === realId ? { ...a, isVisited: !next } : a)
+      );
+      setSelectedAttraction((prev) =>
+        prev && (prev.attractionId ?? prev._id) === realId ? { ...prev, isVisited: !next } : prev
+      );
+      adjustCityVisitedCount(attraction.city, attraction.country, next ? -1 : 1);
+      toast.error("Couldn't update visited status. Please try again.");
+    }
   }
 
   function toggleMeasureMode() {
@@ -488,18 +578,57 @@ export function ExploreClient() {
         aria-label="Explore filters"
       >
         <div className={styles.sidebarHeader}>
-          <h1 className={styles.sidebarTitle}>
-            <Globe size={18} className={styles.sidebarTitleIcon} aria-hidden="true" />
-            Explore
-          </h1>
-          <button
-            type="button"
-            className={styles.sidebarClose}
-            onClick={() => setSidebarOpen(false)}
-            aria-label="Close filters"
-          >
-            <X size={18} aria-hidden="true" />
-          </button>
+          <div className={styles.sidebarHeaderTop}>
+            <h1 className={styles.sidebarTitle}>
+              <Globe size={18} className={styles.sidebarTitleIcon} aria-hidden="true" />
+              Explore
+            </h1>
+            <button
+              type="button"
+              className={styles.sidebarClose}
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Close filters"
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
+          </div>
+
+          {/* Applies across the whole Explore experience (world/country/city), not just
+              a single city's attraction list — visited status is personal to the
+              logged-in user, hidden entirely for anonymous visitors. */}
+          {user && (
+            <div className={styles.chipGroup} role="radiogroup" aria-label="Filter by visited status">
+              <button
+                type="button"
+                className={`${styles.chip} ${visitedFilter === "all" ? styles.chipActive : ""}`}
+                role="radio"
+                aria-checked={visitedFilter === "all"}
+                onClick={() => setVisitedFilter("all")}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                className={`${styles.chip} ${visitedFilter === "visited" ? styles.chipActive : ""}`}
+                role="radio"
+                aria-checked={visitedFilter === "visited"}
+                onClick={() => setVisitedFilter("visited")}
+              >
+                <Check size={12} aria-hidden="true" />
+                Visited
+              </button>
+              <button
+                type="button"
+                className={`${styles.chip} ${visitedFilter === "unvisited" ? styles.chipActive : ""}`}
+                role="radio"
+                aria-checked={visitedFilter === "unvisited"}
+                onClick={() => setVisitedFilter("unvisited")}
+              >
+                <X size={12} aria-hidden="true" />
+                Unvisited
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ── Scrollable content area ── */}
@@ -522,11 +651,17 @@ export function ExploreClient() {
                     Try again
                   </button>
                 </>
-              ) : !citiesLoading && countries.length === 0 ? (
+              ) : !citiesLoading && countries.length === 0 && cities.length === 0 ? (
                 <p className={styles.worldPrompt}>
                   No attractions have been added yet.
                   <br />
                   Be the first to add one!
+                </p>
+              ) : !citiesLoading && countries.length === 0 ? (
+                <p className={styles.worldPrompt}>
+                  No destinations match the {visitedFilter} filter.
+                  <br />
+                  Try a different one above.
                 </p>
               ) : (
                 <p className={styles.worldPrompt}>
@@ -573,7 +708,7 @@ export function ExploreClient() {
                     onClick={() => handleCitySelect(c)}
                   >
                     {c.name}
-                    <span className={styles.cityPillCount}>{c.count}</span>
+                    <span className={styles.cityPillCount}>{countFor(c)}</span>
                   </button>
                 ))}
               </div>
@@ -747,7 +882,7 @@ export function ExploreClient() {
               <button
                 type="button"
                 className={styles.clearBtn}
-                onClick={() => { setSelectedCategories([]); setSelectedTypes([]); }}
+                onClick={() => { setSelectedCategories([]); setSelectedTypes([]); setVisitedFilter("all"); }}
               >
                 Clear filters
               </button>
@@ -812,6 +947,12 @@ export function ExploreClient() {
           setAttractionForTripPicker(selectedAttraction);
           setTripPickerOpen(true);
         } : undefined}
+        isVisited={selectedAttraction?.isVisited}
+        onToggleVisited={
+          token && selectedAttraction?.attractionId
+            ? () => handleToggleVisited(selectedAttraction)
+            : undefined
+        }
       />
 
       <TripPickerModal

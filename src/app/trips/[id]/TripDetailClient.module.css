@@ -651,6 +651,15 @@
   background: var(--color-bg-subtle);
 }
 
+.editBtnActive {
+  color: var(--color-success);
+}
+
+.editBtnActive:hover {
+  color: var(--color-success);
+  background: rgba(5, 150, 105, 0.08);
+}
+
 .editBtn:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;

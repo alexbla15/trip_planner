@@ -112,11 +112,17 @@ export function formatAttraction(
   /** Row id override — pass the schedule-instance key when this row represents a 2nd+
    *  scheduled instance of `doc` (see `IScheduleEntry.attractionRef`). Defaults to the
    *  document's own id, matching every existing call site's behavior unchanged. */
-  idOverride?: string
+  idOverride?: string,
+  /** Whether the requesting user has marked this attraction visited — per-user, so
+   *  callers must resolve it themselves (see `src/lib/services/visited.service.ts`)
+   *  and never derive it from anything on `doc`. Defaults to false (unauthenticated
+   *  callers / callers that haven't resolved visited status). */
+  isVisited?: boolean
 ): AttractionShape {
   return {
     _id: idOverride ?? doc._id.toString(),
     attractionId: doc._id.toString(),
+    isVisited: isVisited ?? false,
     ownerId: doc.ownerId?.toString(),
     name: doc.name,
     country: doc.country,
