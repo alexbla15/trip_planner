@@ -88,7 +88,7 @@ interface TripDetailClientProps {
 }
 
 export function TripDetailClient({ tripId }: TripDetailClientProps) {
-  const { findType } = useAttractionTypes();
+  const { findType, types } = useAttractionTypes();
   const { token, user: authUser, loading: authLoading } = useAuth();
   const toast = useToast();
   const router = useRouter();
@@ -132,8 +132,9 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   const [editingFlight, setEditingFlight]           = useState<Attraction | null>(null);
   const [viewingAttraction, setViewingAttraction]   = useState<Attraction | null>(null);
 
-  const [searchQuery, setSearchQuery]           = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery]             = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes]         = useState<string[]>([]);
 
   // Fetch trip — waits for auth to settle so token-less unauthenticated users
   // aren't confused with still-loading authenticated users
@@ -515,19 +516,46 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     [regularAttractions, findType]
   );
 
+  // Types actually present on this trip's attractions — only these show as chips,
+  // same pattern as Explore's availableTypes.
+  const presentTypes = useMemo(() => {
+    const nameSet = new Set(regularAttractions.flatMap((a) => a.types));
+    return types.filter((t) => nameSet.has(t.name));
+  }, [regularAttractions, types]);
+
+  // Dropping a category also drops any selected types that belong to it — mirrors
+  // ExploreClient.tsx's handleCategoriesChange (see docs/LEARNINGS.md) so a type chip
+  // left selected under a removed category doesn't keep filtering silently.
+  function handleCategoriesChange(next: string[]) {
+    const removed = selectedCategories.filter((c) => !next.includes(c));
+    setSelectedCategories(next);
+    if (removed.length > 0) {
+      setSelectedTypes((prev) => prev.filter((t) => {
+        const cat = findType(t)?.category;
+        return !cat || !removed.includes(cat);
+      }));
+    }
+  }
+
   const filteredAttractions = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return regularAttractions
       .filter((a) => {
         const matchesText = !q || a.name.toLowerCase().includes(q);
         const matchesCategory =
-          !selectedCategory || a.types.some((t) => findType(t)?.category === selectedCategory);
-        return matchesText && matchesCategory;
+          selectedCategories.length === 0 ||
+          a.types.some((t) => {
+            const cat = findType(t)?.category;
+            return cat && selectedCategories.includes(cat);
+          });
+        const matchesType =
+          selectedTypes.length === 0 || a.types.some((t) => selectedTypes.includes(t));
+        return matchesText && matchesCategory && matchesType;
       })
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [regularAttractions, searchQuery, selectedCategory, findType]);
+  }, [regularAttractions, searchQuery, selectedCategories, selectedTypes, findType]);
 
-  useEffect(() => { setPage(1); }, [searchQuery, selectedCategory]);
+  useEffect(() => { setPage(1); }, [searchQuery, selectedCategories, selectedTypes]);
 
   if (forbidden) {
     return (
@@ -784,8 +812,13 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                       searchValue={searchQuery}
                       onSearchChange={setSearchQuery}
                       categories={presentCategories}
-                      selectedCategory={selectedCategory}
-                      onCategoryChange={setSelectedCategory}
+                      selectedCategories={selectedCategories}
+                      onCategoriesChange={handleCategoriesChange}
+                      categoryLabel="Categories"
+                      types={presentTypes}
+                      selectedTypes={selectedTypes}
+                      onTypesChange={setSelectedTypes}
+                      typeLabel="Types"
                       resultCount={filteredAttractions.length}
                     />
                   )}
@@ -823,7 +856,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                       <button
                         type="button"
                         className={styles.clearFiltersBtn}
-                        onClick={() => { setSearchQuery(""); setSelectedCategory(null); }}
+                        onClick={() => { setSearchQuery(""); setSelectedCategories([]); setSelectedTypes([]); }}
                       >
                         Clear filters
                       </button>

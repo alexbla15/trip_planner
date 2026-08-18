@@ -13,7 +13,7 @@ import {
   markAttractionVisited, unmarkAttractionVisited,
 } from "@/services";
 import type { TravelMode, RouteLeg } from "@/services";
-import { AttractionDetailModal, NewAttractionModal, TripPickerModal, Spinner, FormErrorBanner } from "@/components";
+import { AttractionDetailModal, NewAttractionModal, TripPickerModal, Spinner, FormErrorBanner, AttractionFilter } from "@/components";
 import type { AttractionFormData, OpeningHours, DurationUnit } from "@/components";
 import { DEFAULT_OPENING_HOURS } from "@/components";
 import type { Attraction } from "@/types/attraction";
@@ -251,63 +251,69 @@ export function ExploreClient() {
     return visitedFilter === "all" || (visitedFilter === "visited" ? !!a.isVisited : !a.isVisited);
   }
 
+  // Shared by both city- and country-scoped attraction lists: does this attraction match
+  // the currently selected category/type chips? (Visited status is checked separately via
+  // passesVisitedFilter — the two are independent filters combined by each caller.)
+  function matchesChipFilters(a: Attraction): boolean {
+    const typeNames = a.types ?? [];
+    const passCategory =
+      selectedCategories.length === 0 ||
+      typeNames.some((t) => {
+        const cat = Object.entries(byCategory).find(([, ts]) =>
+          ts.some((tp) => tp.name === t)
+        )?.[0];
+        return cat && selectedCategories.includes(cat);
+      });
+    const passType =
+      selectedTypes.length === 0 || typeNames.some((t) => selectedTypes.includes(t));
+    return passCategory && passType;
+  }
+
   // Client-side filtering of city attractions
   const filteredAttractions = useMemo(() => {
-    return cityAttractions.filter((a) => {
-      const typeNames = a.types ?? [];
-      const passCategory =
-        selectedCategories.length === 0 ||
-        typeNames.some((t) => {
-          const cat = Object.entries(byCategory).find(([, ts]) =>
-            ts.some((tp) => tp.name === t)
-          )?.[0];
-          return cat && selectedCategories.includes(cat);
-        });
-      const passType =
-        selectedTypes.length === 0 || typeNames.some((t) => selectedTypes.includes(t));
-      return passCategory && passType && passesVisitedFilter(a);
-    });
+    return cityAttractions.filter((a) => matchesChipFilters(a) && passesVisitedFilter(a));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cityAttractions, selectedCategories, selectedTypes, visitedFilter, byCategory]);
 
-  // Country-view attraction pins — only the visited filter applies here (category/type
-  // filter chips are city-view-only UI, unaffected by this).
-  const filteredCountryAttractions = useMemo(
-    () => countryAttractions.filter(passesVisitedFilter),
+  // Country-view attraction pins — same category/type + visited filtering as city view,
+  // so selecting a type in country view narrows the map pins too, not just a list.
+  const filteredCountryAttractions = useMemo(() => {
+    return countryAttractions.filter((a) => matchesChipFilters(a) && passesVisitedFilter(a));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [countryAttractions, visitedFilter]
-  );
+  }, [countryAttractions, selectedCategories, selectedTypes, visitedFilter, byCategory]);
 
-  // Attractions matching only the visited filter — the base set for computing which
-  // category/type chips are worth showing, so e.g. "Unvisited" doesn't leave a category
-  // chip visible that would produce zero results if also selected (every match already visited).
-  const visitedScopedAttractions = useMemo(
-    () => cityAttractions.filter(passesVisitedFilter),
+  // Attractions matching only the visited filter, scoped to whichever level is currently
+  // selected (country-wide once a country is picked, narrowed to the city once one is
+  // picked) — the base set for computing which category/type chips are worth showing, so
+  // e.g. "Unvisited" doesn't leave a category chip visible that would produce zero results
+  // if also selected (every match already visited).
+  const chipScopedAttractions = useMemo(() => {
+    const pool = selectedCity ? cityAttractions : countryAttractions;
+    return pool.filter(passesVisitedFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [cityAttractions, visitedFilter]
-  );
+  }, [selectedCity, cityAttractions, countryAttractions, visitedFilter]);
 
-  // Categories present in the current city (honoring the visited filter)
+  // Categories present in the current scope (honoring the visited filter)
   const availableCategories = useMemo(() => {
-    const typeNamesInCity = new Set(visitedScopedAttractions.flatMap((a) => a.types ?? []));
+    const typeNamesInScope = new Set(chipScopedAttractions.flatMap((a) => a.types ?? []));
     return categories.filter((cat) =>
-      (byCategory[cat] ?? []).some((t) => typeNamesInCity.has(t.name))
+      (byCategory[cat] ?? []).some((t) => typeNamesInScope.has(t.name))
     );
-  }, [categories, byCategory, visitedScopedAttractions]);
+  }, [categories, byCategory, chipScopedAttractions]);
 
-  // Types present in the current city (honoring the visited filter), filtered by selected categories
+  // Types present in the current scope (honoring the visited filter), filtered by selected categories
   const availableTypes = useMemo(() => {
-    const typeNamesInCity = new Set(visitedScopedAttractions.flatMap((a) => a.types ?? []));
+    const typeNamesInScope = new Set(chipScopedAttractions.flatMap((a) => a.types ?? []));
     return types.filter((t) => {
-      const inCity = typeNamesInCity.has(t.name);
+      const inScope = typeNamesInScope.has(t.name);
       const inCategory =
         selectedCategories.length === 0 ||
         selectedCategories.some((cat) =>
           (byCategory[cat] ?? []).some((bt) => bt.name === t.name)
         );
-      return inCity && inCategory;
+      return inScope && inCategory;
     });
-  }, [types, byCategory, visitedScopedAttractions, selectedCategories]);
+  }, [types, byCategory, chipScopedAttractions, selectedCategories]);
 
   const hasActiveFilters = selectedCategories.length > 0 || selectedTypes.length > 0 || visitedFilter !== "all";
   const activeFilterCount = selectedCategories.length + selectedTypes.length + (visitedFilter !== "all" ? 1 : 0);
@@ -355,27 +361,21 @@ export function ExploreClient() {
     mapRef.current?.flyToWorld();
   }, []);
 
-  function toggleCategory(cat: string) {
-    const isRemoving = selectedCategories.includes(cat);
-    setSelectedCategories((prev) =>
-      isRemoving ? prev.filter((c) => c !== cat) : [...prev, cat]
-    );
-    if (isRemoving) {
+  // Dropping a category also drops any selected types that belong to it — a type chip
+  // left selected under a removed category would otherwise keep filtering silently.
+  function handleCategoriesChange(next: string[]) {
+    const removed = selectedCategories.filter((c) => !next.includes(c));
+    setSelectedCategories(next);
+    if (removed.length > 0) {
       setSelectedTypes((prev) =>
         prev.filter((t) => {
           const parentCat = Object.entries(byCategory).find(([, ts]) =>
             ts.some((tp) => tp.name === t)
           )?.[0];
-          return parentCat !== cat;
+          return !parentCat || !removed.includes(parentCat);
         })
       );
     }
-  }
-
-  function toggleType(typeName: string) {
-    setSelectedTypes((prev) =>
-      prev.includes(typeName) ? prev.filter((t) => t !== typeName) : [...prev, typeName]
-    );
   }
 
   async function handleAddSave(data: AttractionFormData) {
@@ -721,6 +721,30 @@ export function ExploreClient() {
               <p className={styles.cityCount}>
                 {citiesInCountry.length} cit{citiesInCountry.length !== 1 ? "ies" : "y"}
               </p>
+
+              {countryAttractions.length > 0 && (
+                <p className={styles.cityCount}>
+                  {filteredCountryAttractions.length} of {countryAttractions.length} attraction
+                  {countryAttractions.length !== 1 ? "s" : ""}
+                </p>
+              )}
+
+              {(availableCategories.length > 0 || availableTypes.length > 0) && (
+                <div className={styles.filterSection}>
+                  <AttractionFilter
+                    hideSearch
+                    categories={availableCategories}
+                    selectedCategories={selectedCategories}
+                    onCategoriesChange={handleCategoriesChange}
+                    categoryLabel="Categories"
+                    types={availableTypes}
+                    selectedTypes={selectedTypes}
+                    onTypesChange={setSelectedTypes}
+                    typeLabel="Types"
+                  />
+                </div>
+              )}
+
               <div className={styles.cityList}>
                 <span className={styles.cityListLabel}>Cities</span>
                 {citiesInCountry.map((c) => (
@@ -751,41 +775,19 @@ export function ExploreClient() {
                 {cityAttractions.length !== 1 ? "s" : ""}
               </p>
 
-              {availableCategories.length > 0 && (
+              {(availableCategories.length > 0 || availableTypes.length > 0) && (
                 <div className={styles.filterSection}>
-                  <span className={styles.filterLabel}>Categories</span>
-                  <div className={styles.chipGroup} role="group" aria-label="Filter by category">
-                    {availableCategories.map((cat) => (
-                      <button
-                        key={cat}
-                        type="button"
-                        className={`${styles.chip} ${selectedCategories.includes(cat) ? styles.chipActive : ""}`}
-                        aria-pressed={selectedCategories.includes(cat)}
-                        onClick={() => toggleCategory(cat)}
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {availableTypes.length > 0 && (
-                <div className={styles.filterSection}>
-                  <span className={styles.filterLabel}>Types</span>
-                  <div className={styles.chipGroup} role="group" aria-label="Filter by type">
-                    {availableTypes.map((t) => (
-                      <button
-                        key={t.name}
-                        type="button"
-                        className={`${styles.chip} ${selectedTypes.includes(t.name) ? styles.chipActive : ""}`}
-                        aria-pressed={selectedTypes.includes(t.name)}
-                        onClick={() => toggleType(t.name)}
-                      >
-                        {t.name}
-                      </button>
-                    ))}
-                  </div>
+                  <AttractionFilter
+                    hideSearch
+                    categories={availableCategories}
+                    selectedCategories={selectedCategories}
+                    onCategoriesChange={handleCategoriesChange}
+                    categoryLabel="Categories"
+                    types={availableTypes}
+                    selectedTypes={selectedTypes}
+                    onTypesChange={setSelectedTypes}
+                    typeLabel="Types"
+                  />
                 </div>
               )}
 
@@ -901,7 +903,7 @@ export function ExploreClient() {
         {/* ── Footer: pinned at the bottom outside scroll ── */}
         {(view === "world" || view === "country" || view === "city") && (
           <div className={styles.sidebarFooter}>
-            {hasActiveFilters && view === "city" && (
+            {hasActiveFilters && (view === "city" || view === "country") && (
               <button
                 type="button"
                 className={styles.clearBtn}
