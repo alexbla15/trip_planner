@@ -408,6 +408,10 @@ export function ExploreClient() {
     setEditingAttraction(null);
     setSelectedAttraction(null);
     setCityAttractions((prev) => prev.map((a) => (a._id === updated._id ? updated : a)));
+    // Country view renders from this separate array (fetched via getAttractionsByCountry),
+    // not cityAttractions — without this, editing at the country level leaves the marker
+    // showing stale data (e.g. the old photo) until the country/city is re-fetched.
+    setCountryAttractions((prev) => prev.map((a) => (a._id === updated._id ? updated : a)));
     toast.success("Attraction updated");
   }
 
@@ -437,6 +441,12 @@ export function ExploreClient() {
     setCityAttractions((prev) =>
       prev.map((a) => (a.attractionId ?? a._id) === realId ? { ...a, isVisited: next } : a)
     );
+    // Country view renders from this separate array — without this, toggling visited
+    // while a visited/unvisited filter is active at the country level leaves the map
+    // pin showing (or hiding) stale data until a full re-fetch.
+    setCountryAttractions((prev) =>
+      prev.map((a) => (a.attractionId ?? a._id) === realId ? { ...a, isVisited: next } : a)
+    );
     setSelectedAttraction((prev) =>
       prev && (prev.attractionId ?? prev._id) === realId ? { ...prev, isVisited: next } : prev
     );
@@ -447,6 +457,9 @@ export function ExploreClient() {
       else await unmarkAttractionVisited(realId, token);
     } catch {
       setCityAttractions((prev) =>
+        prev.map((a) => (a.attractionId ?? a._id) === realId ? { ...a, isVisited: !next } : a)
+      );
+      setCountryAttractions((prev) =>
         prev.map((a) => (a.attractionId ?? a._id) === realId ? { ...a, isVisited: !next } : a)
       );
       setSelectedAttraction((prev) =>

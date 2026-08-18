@@ -1,6 +1,6 @@
 # Task: Multi-select type filter in Trip Details attractions tab
 
-Status: intake
+Status: reviewing
 Track: B
 Track reason: Reuses the `AttractionFilter` component's multi-select mode shipped in [[attraction-filter-shared-type-support]] — no new visual pattern, upgrading an existing consumer's props.
 
@@ -29,3 +29,13 @@ Let a user filter a trip's attraction list by multiple categories and/or individ
 
 ## Out of scope
 - Attraction Search Modal, Attraction Picker Modal, Explore Country/City views — separate tasks (or already done).
+
+## Implementation Notes
+- Files created/modified:
+  - `src/app/trips/[id]/TripDetailClient.tsx` — replaced `selectedCategory: string | null` state with `selectedCategories: string[]` + new `selectedTypes: string[]`; added `presentTypes` (mirrors `presentCategories`, filters `useAttractionTypes().types` down to names present on `regularAttractions`); added `handleCategoriesChange` cascade helper (mirrors `ExploreClient.tsx`'s, using `findType(t)?.category` directly since a per-type category lookup was already available here — no need for the `byCategory` reverse lookup Explore uses); `filteredAttractions` now applies AND-between-groups/OR-within-group category+type matching, same semantics as Explore's `matchesChipFilters`; `setPage(1)` effect now also depends on `selectedTypes`; the "Clear filters" empty-state button now resets both `selectedCategories` and `selectedTypes` (previously reset the single old state).
+  - `<AttractionFilter>` call wired to multi-select mode with `categoryLabel="Categories"`/`typeLabel="Types"` (chose to add labels since the toolbar now shows two chip rows instead of one, matching Explore's pattern for the same reason); `hideSearch` not passed, so the search bar stays as before.
+- Deviations from task requirements: none.
+- New design tokens used: none.
+- Verification: `npx tsc --noEmit` clean (initially caught and fixed one stale `setSelectedCategory` reference in the "Clear filters" empty-state button — not mentioned in the original grep, only surfaced by the type-checker); `npx eslint` shows only pre-existing unrelated errors/warnings; `next build` succeeds, all 40 routes prerender.
+
+Also fixed, unrelated to this task but reported by the user mid-session: Explore's `handleEditSave` (`src/app/explore/ExploreClient.tsx`) updated `cityAttractions` after an edit but not `countryAttractions` — so editing an attraction's photo (or any field) while browsing at the country level (not yet drilled into a city) left the marker/detail view showing stale data until a full re-fetch. Added the matching `setCountryAttractions` update alongside the existing `setCityAttractions` one.
