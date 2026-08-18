@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useAttractionTypes } from "@/hooks";
 import {
-  getCities, getAttractionsByCity, createAttraction, updateAttraction,
+  getCities, getAttractionsByCity, getAttractionsByCountry, createAttraction, updateAttraction,
   fetchRouteLeg, formatLegDuration, formatStepDuration,
   searchLocation, addAttractionToTrip,
   markAttractionVisited, unmarkAttractionVisited,
@@ -101,6 +101,7 @@ export function ExploreClient() {
   // Data
   const [cities, setCities]                       = useState<CityEntry[]>([]);
   const [cityAttractions, setCityAttractions]     = useState<Attraction[]>([]);
+  const [countryAttractions, setCountryAttractions] = useState<Attraction[]>([]);
   const [citiesLoading, setCitiesLoading]         = useState(true);
   const [citiesLoadError, setCitiesLoadError]     = useState(false);
   const [citiesReloadKey, setCitiesReloadKey]     = useState(0);
@@ -178,6 +179,20 @@ export function ExploreClient() {
       .finally(() => setAttractionsLoading(false));
   }, [selectedCity, token]);
 
+  // Load every attraction in the country when a country is selected but no city yet —
+  // powers the country-view map's individual attraction pins (replacing the old
+  // per-city pin/boundary breakdown). Skipped once a city is picked (city-scoped fetch
+  // above takes over).
+  useEffect(() => {
+    if (!selectedCountry || selectedCity) { setCountryAttractions([]); return; }
+    setAttractionsLoading(true);
+    setPageError(null);
+    getAttractionsByCountry(selectedCountry, token)
+      .then((data) => setCountryAttractions(Array.isArray(data) ? (data as Attraction[]) : []))
+      .catch(() => setPageError("Couldn't load attractions for this country. Please try again."))
+      .finally(() => setAttractionsLoading(false));
+  }, [selectedCountry, selectedCity, token]);
+
   // Cities matching the visited filter — a country/city only stays listed if at least
   // one of its attractions matches (e.g. "Unvisited" hides a city where every attraction
   // is already marked visited). Applies across the whole Explore experience (world →
@@ -254,6 +269,14 @@ export function ExploreClient() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cityAttractions, selectedCategories, selectedTypes, visitedFilter, byCategory]);
+
+  // Country-view attraction pins — only the visited filter applies here (category/type
+  // filter chips are city-view-only UI, unaffected by this).
+  const filteredCountryAttractions = useMemo(
+    () => countryAttractions.filter(passesVisitedFilter),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [countryAttractions, visitedFilter]
+  );
 
   // Attractions matching only the visited filter — the base set for computing which
   // category/type chips are worth showing, so e.g. "Unvisited" doesn't leave a category
@@ -925,13 +948,11 @@ export function ExploreClient() {
 
         <ExploreMapWidget
           countries={countries}
-          citiesInCountry={citiesInCountry}
           selectedCountry={selectedCountry}
           selectedCity={selectedCity}
           cities={cities}
-          attractions={filteredAttractions}
+          attractions={view === "country" ? filteredCountryAttractions : filteredAttractions}
           onCountryClick={handleCountrySelect}
-          onCityClick={handleCitySelect}
           onAttractionClick={handleAttractionMarkerClick}
           mapRef={mapRef}
           measureMode={measureMode}

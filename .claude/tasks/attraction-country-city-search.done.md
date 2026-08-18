@@ -1,6 +1,6 @@
 # Task: Searchable Country/City Fields in Add/Update Attraction
 
-Status: reviewing
+Status: done
 
 Track: A
 Track reason: New interactive component (searchable combobox) — no exact existing pattern was directly reusable as-is (closest analog, `CurrencySelect`, is a compact trigger/input toggle unsuited to a full-width labeled form field), so it needed its own visual/interaction design pass, even though it borrows established conventions from elsewhere in the app.
@@ -27,3 +27,6 @@ Second part: Explore's "Add Attraction" button only rendered `{user && view === 
 - `NewAttractionModal`: added `prefillCountry`/`prefillCity` props — distinct from the existing `defaultCountry` (which *locks* the field, used by the trip page since a trip has one fixed destination). These pre-fill but leave the field editable/searchable, since Explore isn't scoped to one destination. Reset-on-open logic: `initialData?.field ?? defaultCountry ?? prefillCountry/prefillCity ?? ""`.
 - `ExploreClient.tsx`: footer now renders at `world`/`country`/`city` (previously `country`/`city` only); "Add Attraction" button now shows for any logged-in user regardless of view (previously city-only); "Measure distance" stayed scoped to `country`/`city` only (unrelated to this request, that constraint is intentional per existing code comments). The Add modal now passes `prefillCountry={selectedCountry ?? undefined}` / `prefillCity={selectedCity ?? undefined}`, so the form reflects whatever's already chosen — blank at world view, country-only at country view, both at city view.
 - Verified the prefill resolution logic directly across all four scenarios (world/country/city/trip-page-locked). `tsc`/`eslint`: clean, same pre-existing issues as before, nothing new.
+
+## Completion Summary
+Country and City fields in the shared Add/Update Attraction form are now searchable — Country via typeahead over the fixed country list, City via typeahead over cities already used elsewhere in the app (scoped to the selected country, still accepting a brand-new city). Explore's "Add Attraction" entry point now works from every navigation depth (world/country/city), with the form pre-filling whichever of country/city is already selected rather than staying blank or requiring a city first. Confirmed closed by the user 2026-08-18.

@@ -14,17 +14,6 @@ export function makeCountryMarkerIcon(): L.DivIcon {
   });
 }
 
-export function makeCityMarkerIcon(): L.DivIcon {
-  let svg = "";
-  try { svg = renderToStaticMarkup(<MapPin size={16} color="#ffffff" aria-hidden="true" />); } catch { /* */ }
-  return L.divIcon({
-    html: `<div style="width:36px;height:36px;border-radius:50%;background:#059669;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;cursor:pointer">${svg}</div>`,
-    iconSize: [36, 36] as [number, number],
-    iconAnchor: [18, 18] as [number, number],
-    className: "",
-  });
-}
-
 export function makeAttractionMarkerIcon(color: string, iconName: string, selected = false, isVisited = false): L.DivIcon {
   let svg = "";
   try {

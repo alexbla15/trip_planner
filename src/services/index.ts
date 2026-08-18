@@ -18,6 +18,7 @@ export {
   getCities,
   getExploreItems,
   getAttractionsByCity,
+  getAttractionsByCountry,
   searchAttractionsByCountry,
   searchAttractionsByType,
   createAttraction,
