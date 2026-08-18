@@ -19,7 +19,8 @@ import {
   DAY_KEYS,
 } from "./attraction.constants";
 import { CurrencySelect } from "@/components/CurrencySelect";
-import { reverseGeocode } from "@/services";
+import { SearchableSelect } from "@/components/SearchableSelect";
+import { reverseGeocode, getCities } from "@/services";
 import { AttractionTypePicker } from "@/components/AttractionTypePicker";
 import { CoverImageField } from "@/components";
 import { ModalShell } from "@/components/Modal";
@@ -36,13 +37,35 @@ interface FieldErrors {
   types?: string;
 }
 
-export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, initialData, initialCoordinates }: NewAttractionModalProps) {
+export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, prefillCountry, prefillCity, initialData, initialCoordinates }: NewAttractionModalProps) {
   const isEditMode = Boolean(initialData);
 
   const [name, setName] = useState("");
   const [country, setCountry] = useState(defaultCountry ?? "");
   const [city, setCity] = useState("");
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
+  const [knownCities, setKnownCities] = useState<{ name: string; country: string }[]>([]);
+  const [citiesLoading, setCitiesLoading] = useState(false);
+
+  // Load existing DB cities once per modal open, so the city field can suggest places
+  // already in use — never blocks/required, a brand-new city is still a valid entry.
+  useEffect(() => {
+    if (!isOpen) return;
+    setCitiesLoading(true);
+    getCities()
+      .then((data) => setKnownCities((data as { cities: { name: string; country: string }[] }).cities ?? []))
+      .catch(() => setKnownCities([]))
+      .finally(() => setCitiesLoading(false));
+  }, [isOpen]);
+
+  // Only suggest cities within the selected country (once one is chosen) — otherwise
+  // every city in the DB would show, which isn't useful once a country is picked.
+  const cityOptions = (() => {
+    const scoped = country
+      ? knownCities.filter((c) => c.country.toLowerCase() === country.toLowerCase())
+      : knownCities;
+    return [...new Set(scoped.map((c) => c.name))].sort((a, b) => a.localeCompare(b));
+  })();
 
   // Reverse-geocode and auto-fill name / city when user picks a map point
   async function handleCoordinatesChange(coords: Coordinates) {
@@ -83,8 +106,8 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
   useEffect(() => {
     if (!isOpen) return;
     setName(initialData?.name ?? "");
-    setCountry(initialData?.country ?? defaultCountry ?? "");
-    setCity(initialData?.city ?? "");
+    setCountry(initialData?.country ?? defaultCountry ?? prefillCountry ?? "");
+    setCity(initialData?.city ?? prefillCity ?? "");
     setCoordinates(initialData?.coordinates ?? null);
     setSelectedTypes(initialData?.types ?? []);
     setDurationValue(initialData?.durationValue ?? "");
@@ -284,29 +307,18 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
             {defaultCountry}
           </div>
         ) : (
-          <div className={styles.selectWrapper}>
-            <select
-              id="attraction-country"
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-              onBlur={() => handleBlur("country")}
-              className={`${styles.select} ${touched.country && errors.country ? styles.inputError : ""}`}
-              aria-required="true"
-              aria-describedby={touched.country && errors.country ? "error-country" : undefined}
-            >
-              <option value="">Select a country…</option>
-              {COUNTRIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              size={16}
-              className={styles.selectIcon}
-              aria-hidden="true"
-            />
-          </div>
+          <SearchableSelect
+            id="attraction-country"
+            value={country}
+            onChange={setCountry}
+            onBlur={() => handleBlur("country")}
+            options={COUNTRIES}
+            placeholder="Search country…"
+            error={touched.country && !!errors.country}
+            ariaRequired
+            ariaLabel="Country"
+            ariaDescribedBy={touched.country && errors.country ? "error-country" : undefined}
+          />
         )}
         {touched.country && errors.country && (
           <p id="error-country" className={styles.errorMsg} role="alert">
@@ -322,14 +334,16 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, in
           <Building size={14} aria-hidden="true" />
           City
         </label>
-        <input
+        <SearchableSelect
           id="attraction-city"
-          type="text"
-          placeholder="e.g. Paris"
           value={city}
-          onChange={(e) => setCity(e.target.value)}
-          className={styles.input}
-          aria-label="City"
+          onChange={setCity}
+          options={cityOptions}
+          loading={citiesLoading}
+          allowFreeText
+          placeholder="e.g. Paris"
+          ariaLabel="City"
+          emptyMessage="No existing cities match — type to add a new one"
         />
       </div>
 

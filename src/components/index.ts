@@ -69,6 +69,8 @@ export { TripSharingPanel } from "./TripSharingPanel";
 export type { TripSharingPanelProps } from "./TripSharingPanel";
 
 export { CurrencySelect } from "./CurrencySelect";
+export { SearchableSelect } from "./SearchableSelect";
+export type { SearchableSelectProps } from "./SearchableSelect";
 export { IconPicker, ICON_REGISTRY, ICON_NAMES, getIconComponent, renderTypeIcon } from "./IconPicker";
 export { TripTabBar } from "./TripTabBar";
 

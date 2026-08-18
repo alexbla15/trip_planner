@@ -1,0 +1,29 @@
+# Task: Searchable Country/City Fields in Add/Update Attraction
+
+Status: reviewing
+
+Track: A
+Track reason: New interactive component (searchable combobox) — no exact existing pattern was directly reusable as-is (closest analog, `CurrencySelect`, is a compact trigger/input toggle unsuited to a full-width labeled form field), so it needed its own visual/interaction design pass, even though it borrows established conventions from elsewhere in the app.
+
+## Problem
+In the Add/Update Attraction form (`NewAttractionModal.tsx`), Country was a native `<select>` from a static list, and City was a plain free-text `<input>` with zero autocomplete — no way to search either, and no way to discover cities already used elsewhere in the app when adding a new attraction to one of them.
+
+## What shipped
+- New reusable `SearchableSelect` component (`src/components/SearchableSelect/`) — a labeled-form-field-styled combobox (matches this form's existing `.input`/`.select` sizing/tokens, not `CurrencySelect`'s compact pill), reusing the established interaction conventions already used elsewhere in this codebase: `onMouseDown` + `preventDefault()` on options (so blur doesn't swallow the click), outside-mousedown-to-close, arrow-key navigation, Escape-to-revert. Supports an `allowFreeText` mode for fields where an unlisted value should still be accepted (vs. `CurrencySelect`/native-select-style fields where only a listed option is valid).
+- `NewAttractionModal.tsx`: Country now uses `SearchableSelect` with the existing static `COUNTRIES` list, `allowFreeText={false}` (must pick a real country, same constraint as the old `<select>`). City now uses `SearchableSelect` with `allowFreeText={true}`, sourced from `getCities()` (the same endpoint that already powers Explore's city list) — options are filtered to the currently-selected country once one is picked, and a brand-new city (not yet in the DB) is still accepted, since city was never a required/constrained field.
+- Scope: only `NewAttractionModal.tsx` (the shared create/edit attraction form) — `AddResidenceModal.tsx`'s city field (also free-text) was identified as a similar candidate during research but left untouched since the request was specifically "add/update attraction."
+
+## Verification
+- `tsc --noEmit`: clean.
+- `eslint`: 2 new `react-hooks/set-state-in-effect` errors (the new cities-fetch effect, and `SearchableSelect`'s value-sync effect) — same rule already triggered by essentially every other data-fetching `useEffect` in this codebase throughout this session (confirmed pre-existing/unaddressed convention, not something introduced uniquely here); no other new issues.
+- Verified the combobox's filter/commit/reconcile logic directly (partial case-insensitive filtering; exact-match snapping to canonical casing; country reverting to the last valid value on garbage input; city accepting free text for a new place).
+- Confirmed live against the real dev server that `GET /api/attractions/cities` returns real city data (60 cities across the DB) that will populate the new city field's suggestions.
+- Not verified: actual browser click-through/keyboard interaction (no browser available in this environment) — logic-level and data-flow verification only. Awaiting user sign-off after trying it live.
+
+## Follow-up: not reflected live + "Add Attraction" only worked from city view in Explore
+User reported the new searchable fields weren't showing up in `trips/[id]`'s or Explore's add/update attraction forms — both genuinely already use the same `NewAttractionModal` component (confirmed via grep, no second implementation exists), so this was a stale dev-server issue: `SearchableSelect` was a brand-new component folder, and after many hours of uptime the running Turbopack dev server hadn't picked up the new files. Restarting should have been routine, but the first restart attempt left the `.next` build cache in a corrupted state (an auto-generated type-checking file was left mid-write, and real routes — `/`, `/trips`, `/api/users/me` — started 404ing for the live user). Recovered by killing the process, deleting `.next` entirely (a regenerable build-output directory, not source) once file locks cleared, and starting a fresh `next dev` — verified `/`, `/trips`, and `/explore` all serve 200 again.
+
+Second part: Explore's "Add Attraction" button only rendered `{user && view === "city"}` (and the whole footer housing it was gated to `country`/`city` views, excluding world view entirely) — so there was no way to add an attraction without first drilling into a specific city, and even then the form didn't reflect the country/city context you'd navigated into.
+- `NewAttractionModal`: added `prefillCountry`/`prefillCity` props — distinct from the existing `defaultCountry` (which *locks* the field, used by the trip page since a trip has one fixed destination). These pre-fill but leave the field editable/searchable, since Explore isn't scoped to one destination. Reset-on-open logic: `initialData?.field ?? defaultCountry ?? prefillCountry/prefillCity ?? ""`.
+- `ExploreClient.tsx`: footer now renders at `world`/`country`/`city` (previously `country`/`city` only); "Add Attraction" button now shows for any logged-in user regardless of view (previously city-only); "Measure distance" stayed scoped to `country`/`city` only (unrelated to this request, that constraint is intentional per existing code comments). The Add modal now passes `prefillCountry={selectedCountry ?? undefined}` / `prefillCity={selectedCity ?? undefined}`, so the form reflects whatever's already chosen — blank at world view, country-only at country view, both at city view.
+- Verified the prefill resolution logic directly across all four scenarios (world/country/city/trip-page-locked). `tsc`/`eslint`: clean, same pre-existing issues as before, nothing new.

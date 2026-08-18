@@ -1,0 +1,110 @@
+.wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.input {
+  height: 44px;
+  padding: 0 36px 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: 14px;
+  color: var(--color-text-primary);
+  width: 100%;
+  font-family: inherit;
+  transition: border-color var(--duration-fast) var(--easing-out),
+    box-shadow var(--duration-fast) var(--easing-out);
+}
+
+.input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.input:disabled {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-tertiary);
+  cursor: not-allowed;
+}
+
+.inputError {
+  border-color: var(--color-error);
+}
+
+.inputError:focus {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+}
+
+@keyframes searchableSelectSpin {
+  to { transform: translateY(-50%) rotate(360deg); }
+}
+
+.iconSpin {
+  animation: searchableSelectSpin 0.8s linear infinite;
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: 50;
+  max-height: 220px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.option {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 14px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--easing-out);
+}
+
+.option:hover {
+  background: var(--color-bg-subtle);
+}
+
+.optionHighlighted {
+  background: var(--color-primary-light);
+}
+
+.optionSelected {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.emptyMsg {
+  display: flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 12px;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}

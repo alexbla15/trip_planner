@@ -876,7 +876,7 @@ export function ExploreClient() {
         )}
 
         {/* ── Footer: pinned at the bottom outside scroll ── */}
-        {(view === "country" || view === "city") && (
+        {(view === "world" || view === "country" || view === "city") && (
           <div className={styles.sidebarFooter}>
             {hasActiveFilters && view === "city" && (
               <button
@@ -887,7 +887,10 @@ export function ExploreClient() {
                 Clear filters
               </button>
             )}
-            {user && view === "city" && (
+            {/* Available at every step (world/country/city) — the form reflects whichever
+                of country/city is currently selected, editable rather than locked, since
+                Explore isn't scoped to one destination the way a trip is. */}
+            {user && (
               <button
                 type="button"
                 className={styles.addBtn}
@@ -897,15 +900,17 @@ export function ExploreClient() {
                 Add Attraction
               </button>
             )}
-            <button
-              type="button"
-              className={`${styles.addBtn} ${measureMode ? styles.addBtnActive : ""}`}
-              onClick={toggleMeasureMode}
-              aria-pressed={measureMode}
-            >
-              {measureMode ? <X size={16} aria-hidden="true" /> : <Ruler size={16} aria-hidden="true" />}
-              {measureMode ? "Exit measuring" : "Measure distance"}
-            </button>
+            {(view === "country" || view === "city") && (
+              <button
+                type="button"
+                className={`${styles.addBtn} ${measureMode ? styles.addBtnActive : ""}`}
+                onClick={toggleMeasureMode}
+                aria-pressed={measureMode}
+              >
+                {measureMode ? <X size={16} aria-hidden="true" /> : <Ruler size={16} aria-hidden="true" />}
+                {measureMode ? "Exit measuring" : "Measure distance"}
+              </button>
+            )}
           </div>
         )}
       </aside>
@@ -968,6 +973,8 @@ export function ExploreClient() {
           isOpen={addModalOpen}
           onClose={() => setAddModalOpen(false)}
           onSave={handleAddSave}
+          prefillCountry={selectedCountry ?? undefined}
+          prefillCity={selectedCity ?? undefined}
         />
       )}
 
