@@ -1,6 +1,6 @@
 # Task: Official website link on attractions
 
-Status: reviewing
+Status: done
 Track: A
 Track reason: Requires a new, deliberately "pretty" navigation button component/pattern on attraction cards — not a plain link, and no existing token/pattern in the design system covers it.
 
@@ -110,3 +110,21 @@ User asked for two changes: (1) re-run the backfill for the batches that failed 
   - **This is incomplete, not a finished pass** — mid-run, the session hit a hard account-level API limit ("You've hit your session limit · resets 10pm Asia/Jerusalem"), which failed 5 of 6 Germany batches outright and one Iceland batch (separately, to a mid-stream API error). Germany in particular is barely covered (2/236) purely because the limit landed while its batches were running, not because those venues lack real websites.
   - 66 attractions were pre-filtered out of the research pool entirely (free/natural landmarks, waterfalls, generic chain-branch entries like "Tesco Express" — categories that plausibly have no meaningful "official site" of their own) — these were never researched and are expected to stay unset.
   - **Follow-up needed**: re-run the same batching approach for Germany and the missed Iceland batch once the session limit resets, using the same `scripts/_filter-backfill.mjs` (recreate from this note if deleted) → parallel-agent-research → `scripts/backfill-website-urls.mjs` pipeline.
+
+## Revision 2 — filter chip consistency (unrelated follow-up request)
+
+User: "category and type fiter should loke the same (as well as the collapsing)". The category/type chip *styling* was already shared (`AttractionFilter.module.css`'s `.filterChip`/`.filterChipActive` used identically everywhere), so the real inconsistency was the **collapsing behavior**: `AttractionPickerModal` and `AttractionSearchModal` each had their own hand-duplicated foldable-toggle (identical `chipFilter*` CSS classes and JSX copy-pasted between the two), while `ExploreClient.tsx` (both country and city views) and `TripDetailClient.tsx`'s Attractions tab rendered the chips always-open with no toggle at all.
+
+Fix: internalized the collapsible toggle into the shared `AttractionFilter` component itself via a new `collapsible?: boolean` prop (+ `collapsibleLabel?: string`), so every call site gets byte-identical markup, CSS, and state handling.
+
+- `src/components/AttractionFilter/AttractionFilter.types.ts` — added `collapsible?: boolean` and `collapsibleLabel?: string`.
+- `src/components/AttractionFilter/AttractionFilter.tsx` — added internal `filtersOpen` state (`useState`) and a `collapseId` (`useId`); when `collapsible` is true, the category/type chip blocks render inside a toggle button (`SlidersHorizontal` icon, label, active-count badge, animated `ChevronDown`) + a grid-transition collapse wrapper, otherwise chips render inline as before (default `false`, fully backward compatible).
+- `src/components/AttractionFilter/AttractionFilter.module.css` — added the `.chipFilterToggle`/`.chipFilterBadge`/`.chipFilterChevron(Open)`/`.chipFilterCollapse(Open)`/`.chipFilterInner` classes, migrated from the two duplicated call sites; deliberately dropped their hardcoded 24px horizontal padding so the toggle sits flush with the rest of `.attractionsToolbar` (which has no side padding of its own) — horizontal spacing now comes from whatever container each call site already wraps it in, which is more consistent across a modal vs. a sidebar card than a baked-in value.
+- `src/components/AttractionPickerModal/AttractionPickerModal.tsx` + `.module.css` — removed the local `filtersOpen` state and duplicated toggle JSX/CSS; now passes `collapsible` to a single `AttractionFilter` call wrapped in a slim `.chipFilterWrap` (padding + border-bottom, replacing the old `.chipFilterSection`/`.chipFilterToggle`/etc. block).
+- `src/components/AttractionSearchModal/AttractionSearchModal.tsx` + `.module.css` — same removal/simplification; `.chipFilterWrap` here is just `margin-top: 10px` since it nests inside the already-padded `.searchBar`.
+- `src/app/explore/ExploreClient.tsx` — added `collapsible` to both `AttractionFilter` calls (country view, city view) — previously these had no toggle at all, chips were always expanded.
+- `src/app/trips/[id]/TripDetailClient.tsx` — added `collapsible` to the Attractions tab's `AttractionFilter` call (search bar stays visible; only the category/type chips fold, since `collapsible` only wraps those, not the search input).
+- Verified via `npx tsc --noEmit` (clean) and `npx eslint` on all touched files (clean, exit 0); confirmed no orphaned `chipFilter*` CSS class references remained in either modal's stylesheet.
+
+## Completion Summary
+Attractions now carry an optional `websiteUrl`, editable from the New Attraction and Add/Edit Residence forms, surfaced via a shared `WebsiteLinkButton` (full pill / compact icon-only variants) on the trip attraction list row and the shared `AttractionDetailModal` header (used by both the trip calendar and Explore), with 128/523 existing attractions backfilled from verified sources so far (Germany + one Iceland batch still pending a re-run once the earlier session limit clears). A follow-up request to make the category/type filter chips and their collapsing behavior consistent across all four usage sites (`AttractionPickerModal`, `AttractionSearchModal`, Explore, trip Attractions tab) was also implemented via a new `collapsible` prop on the shared `AttractionFilter` component. User confirmed both closed on 2026-08-19.

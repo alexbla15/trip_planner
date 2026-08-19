@@ -1,6 +1,6 @@
 # Goal: Attraction type filter everywhere
 
-Status: in progress
+Status: done
 
 Bring the multi-select attraction type/category filter that already exists in Explore → City view to every other place attractions are listed.
 
@@ -9,7 +9,7 @@ Bring the multi-select attraction type/category filter that already exists in Ex
 - [x] .claude/tasks/explore-country-type-filter.done.md
 - [x] .claude/tasks/trip-details-attraction-type-filter.done.md
 - [x] .claude/tasks/attraction-search-modal-type-filter.done.md
-- [ ] .claude/tasks/attraction-picker-modal-type-filter.md
+- [x] .claude/tasks/attraction-picker-modal-type-filter.done.md
 
 ## Plan
 1. attraction-filter-shared-type-support — extract the multi-select category+type chip logic currently living inline in Explore → City view (`ExploreClient.tsx`) into the shared `AttractionFilter` component, so every other task can adopt it instead of reimplementing chips. Must land first; everything else depends on it.
