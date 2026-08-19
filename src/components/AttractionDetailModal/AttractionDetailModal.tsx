@@ -24,6 +24,7 @@ import {
   Check,
 } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
+import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
 import { useAttractionTypes } from "@/hooks";
 
 const LocationViewMap = dynamic(
@@ -110,6 +111,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
             <h2 className={styles.title}>{attraction.name}</h2>
           </div>
           <div className={styles.headerActions}>
+            <WebsiteLinkButton url={attraction.websiteUrl} variant="compact" className={styles.websiteBtn} />
             {onToggleVisited && (
               <button
                 type="button"

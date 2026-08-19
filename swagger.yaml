@@ -401,6 +401,11 @@ components:
           type: string
           nullable: true
           example: https://example.com/photo.jpg
+        websiteUrl:
+          type: string
+          nullable: true
+          description: Official venue website, set by the attraction's owner or backfilled from a verified source. Absent when no real official site exists for the place.
+          example: https://www.louvre.fr
         plannedDate:
           type: string
           nullable: true

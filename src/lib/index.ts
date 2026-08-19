@@ -11,6 +11,7 @@
 // directly from "@/lib/mapIcons" instead.
 
 export { formatDisplayDate } from "./formatDate";
+export { isValidUrl } from "./url";
 export { AVATARS, randomAvatar } from "./avatarConstants";
 export { isProduction } from "./isProduction";
 

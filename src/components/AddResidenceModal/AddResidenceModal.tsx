@@ -12,6 +12,7 @@ import { toDateValue } from "@/lib";
 import { MapPicker } from "@/components/NewAttractionModal";
 import type { Coordinates } from "@/components/NewAttractionModal";
 import type { AddResidenceModalProps, ResidenceFormData, ResidenceType } from "./AddResidenceModal.types";
+import { isValidUrl } from "@/lib";
 import styles from "./AddResidenceModal.module.css";
 
 const HEADING_ID = "add-residence-modal-title";
@@ -22,6 +23,7 @@ interface FieldErrors {
   residenceType?: string;
   checkInDate?: string;
   checkOutDate?: string;
+  websiteUrl?: string;
 }
 
 export function AddResidenceModal({
@@ -57,6 +59,7 @@ export function AddResidenceModal({
     } catch { /* best-effort */ }
   }
   const [notes, setNotes]                 = useState("");
+  const [websiteUrl, setWebsiteUrl]       = useState("");
   const [errors, setErrors]               = useState<FieldErrors>({});
   const [touched, setTouched]             = useState<Record<string, boolean>>({});
   const [saving, setSaving]               = useState(false);
@@ -77,6 +80,7 @@ export function AddResidenceModal({
     setPrice(initialData?.price ?? null);
     setPriceCurrency(initialData?.currency ?? currency ?? "USD");
     setNotes(initialData?.notes ?? "");
+    setWebsiteUrl(initialData?.websiteUrl ?? "");
     setErrors({});
     setTouched({});
   }, [isOpen]); // intentionally omits initialData/prefill/tripCity — only sync when modal opens
@@ -92,6 +96,7 @@ export function AddResidenceModal({
     if (!checkOutDate)       errs.checkOutDate   = "Check-out date is required";
     else if (checkInDate && checkOutDate < checkInDate)
       errs.checkOutDate = "Check-out must be on or after check-in";
+    if (!isValidUrl(websiteUrl)) errs.websiteUrl = "Enter a valid URL (e.g. https://example.com)";
     return errs;
   }
 
@@ -101,7 +106,7 @@ export function AddResidenceModal({
   }
 
   async function handleSave() {
-    setTouched({ name: true, residenceType: true, checkInDate: true, checkOutDate: true });
+    setTouched({ name: true, residenceType: true, checkInDate: true, checkOutDate: true, websiteUrl: true });
     const errs = validate();
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -120,6 +125,7 @@ export function AddResidenceModal({
       notes,
       types: residenceType !== "Other" ? [residenceType] : [],
       subtype: "residence",
+      websiteUrl: websiteUrl.trim(),
       existingAttractionId: activePrefill?.existingAttractionId,
     };
     await Promise.resolve(onSave(data));
@@ -332,6 +338,29 @@ export function AddResidenceModal({
           onChange={(e) => setNotes(e.target.value)}
           className={styles.textarea}
         />
+      </div>
+
+      {/* Official website */}
+      <div className={styles.field}>
+        <label htmlFor="res-website" className={styles.labelWithIcon}>
+          <Globe size={14} aria-hidden="true" />
+          Website (optional)
+        </label>
+        <input
+          id="res-website"
+          type="url"
+          placeholder="https://…"
+          value={websiteUrl}
+          onChange={(e) => setWebsiteUrl(e.target.value)}
+          onBlur={() => handleBlur("websiteUrl")}
+          className={`${styles.input} ${touched.websiteUrl && errors.websiteUrl ? styles.inputError : ""}`}
+          aria-describedby={touched.websiteUrl && errors.websiteUrl ? "res-err-website" : undefined}
+        />
+        {touched.websiteUrl && errors.websiteUrl && (
+          <p id="res-err-website" className={styles.errorMsg} role="alert">
+            <AlertCircle size={12} aria-hidden="true" />{errors.websiteUrl}
+          </p>
+        )}
       </div>
     </ModalShell>
   );

@@ -56,6 +56,7 @@ function attractionToFormData(a: Attraction): AttractionFormData {
       : structuredClone(DEFAULT_OPENING_HOURS),
     notes: a.notes ?? "",
     photoUrl: a.photoUrl ?? "",
+    websiteUrl: a.websiteUrl ?? "",
   };
 }
 
@@ -746,6 +747,7 @@ export function ExploreClient() {
                 <div className={styles.filterSection}>
                   <AttractionFilter
                     hideSearch
+                    collapsible
                     categories={availableCategories}
                     selectedCategories={selectedCategories}
                     onCategoriesChange={handleCategoriesChange}
@@ -792,6 +794,7 @@ export function ExploreClient() {
                 <div className={styles.filterSection}>
                   <AttractionFilter
                     hideSearch
+                    collapsible
                     categories={availableCategories}
                     selectedCategories={selectedCategories}
                     onCategoriesChange={handleCategoriesChange}

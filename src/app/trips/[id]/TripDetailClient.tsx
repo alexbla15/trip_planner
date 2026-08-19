@@ -39,6 +39,7 @@ import {
   TripTabBar,
   FormErrorBanner,
   ImageWithSkeleton,
+  WebsiteLinkButton,
 } from "@/components";
 import type {
   ResidenceFormData,
@@ -271,6 +272,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         residenceType: data.residenceType,
         types: data.types,
         subtype: data.subtype,
+        websiteUrl: data.websiteUrl || undefined,
       })) as Attraction;
 
       const schedRes = await updateTripAttractionSchedule(trip._id, id, token, {
@@ -327,6 +329,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         openingHours: data.openingHours,
         notes: data.notes || undefined,
         photoUrl: data.photoUrl || undefined,
+        websiteUrl: data.websiteUrl || undefined,
       })) as Attraction;
       upsertAttraction(created);
       toast.success("Attraction added");
@@ -351,6 +354,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         : structuredClone(DEFAULT_OPENING_HOURS),
       notes: a.notes ?? "",
       photoUrl: a.photoUrl ?? "",
+      websiteUrl: a.websiteUrl ?? "",
     };
   }
 
@@ -469,6 +473,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
       price:         editingResidence.price ?? null,
       currency:      editingResidence.currency ?? "USD",
       notes:         editingResidence.notes ?? "",
+      websiteUrl:    editingResidence.websiteUrl ?? "",
     };
   }, [editingResidence]);
 
@@ -811,6 +816,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                     <AttractionFilter
                       searchValue={searchQuery}
                       onSearchChange={setSearchQuery}
+                      collapsible
                       categories={presentCategories}
                       selectedCategories={selectedCategories}
                       onCategoriesChange={handleCategoriesChange}
@@ -902,8 +908,9 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                                   <ImageWithSkeleton src={attraction.photoUrl} alt="" width={52} height={52} unoptimized className={styles.attractionThumbImg} />
                                 </div>
                               )}
-                              {(canEdit || token) && (
+                              {(canEdit || token || attraction.websiteUrl) && (
                                 <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
+                                  <WebsiteLinkButton url={attraction.websiteUrl} variant="compact" />
                                   {token && attraction.attractionId && (
                                     <button
                                       type="button"

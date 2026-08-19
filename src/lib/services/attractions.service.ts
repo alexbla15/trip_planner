@@ -123,11 +123,12 @@ export interface CreateAttractionInput {
   openingHours?: any;
   notes?: string;
   photoUrl?: string;
+  websiteUrl?: string;
 }
 
 export async function createAttraction(payload: JwtPayload, body: CreateAttractionInput): Promise<IAttraction> {
   const { name, country, city, coordinates, types, durationValue, durationUnit,
-    price, currency, openingHours, notes, photoUrl } = body;
+    price, currency, openingHours, notes, photoUrl, websiteUrl } = body;
 
   if (!name?.trim() || !country?.trim() || !city?.trim()) {
     throw badRequest("name, country, and city are required");
@@ -163,6 +164,7 @@ export async function createAttraction(payload: JwtPayload, body: CreateAttracti
       openingHours: openingHours ?? undefined,
       notes: notes || undefined,
       photoUrl: photoUrl || undefined,
+      websiteUrl: websiteUrl || undefined,
     });
 
     await attraction.populate("types");
@@ -245,6 +247,7 @@ export async function updateAttraction(
   }
   if (body.notes !== undefined) attraction.notes = body.notes as string;
   if (body.photoUrl !== undefined) attraction.photoUrl = body.photoUrl as string;
+  if (body.websiteUrl !== undefined) attraction.websiteUrl = body.websiteUrl as string;
 
   // NOTE: plannedDate, plannedTime, actualDuration* are now trip-specific schedule fields
   // and live in Trip.schedules — they are NOT updated here.
@@ -446,6 +449,7 @@ export interface AddAttractionToTripInput {
   openingHours?: any;
   notes?: string;
   photoUrl?: string;
+  websiteUrl?: string;
   subtype?: "residence" | "flight" | "custom-slot";
   residenceType?: string;
   checkInDate?: string;
@@ -480,7 +484,7 @@ export async function addAttractionToTrip(
   const trip = await getAuthedTrip(payload, tripId);
 
   const { existingAttractionId, allowDuplicate, name, country, city, coordinates, types, durationValue, durationUnit,
-    price, currency, openingHours, notes, photoUrl,
+    price, currency, openingHours, notes, photoUrl, websiteUrl,
     subtype, residenceType, checkInDate, checkOutDate,
     flightNumber, airline, departureAirport, arrivalAirport, departureTime, arrivalTime, gate, seat,
     plannedDate, plannedTime, actualDurationValue, actualDurationUnit } = body;
@@ -634,6 +638,7 @@ export async function addAttractionToTrip(
           openingHours: openingHours ?? undefined,
           notes: isResidence ? undefined : (notes || undefined),
           photoUrl: photoUrl || undefined,
+          websiteUrl: websiteUrl || undefined,
           subtype: subtype || undefined,
           residenceType: residenceType || undefined,
         });

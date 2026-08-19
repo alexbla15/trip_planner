@@ -13,6 +13,8 @@ export interface ResidenceFormData {
   notes: string;
   types: string[];
   subtype: "residence";
+  /** Official hotel/property website — reusable place data, lives on the shared document. */
+  websiteUrl: string;
   /** Set when this submission links an existing (shared) residence document rather than creating a new one — see the "pick existing residence" flow. */
   existingAttractionId?: string;
 }
@@ -36,6 +38,7 @@ export interface ResidenceInitialData {
   price: number | null;
   currency: string;
   notes: string;
+  websiteUrl: string;
 }
 
 export interface AddResidenceModalProps {

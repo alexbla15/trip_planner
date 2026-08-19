@@ -1,7 +1,7 @@
 "use client";
 
-import { useId } from "react";
-import { Search } from "lucide-react";
+import { useId, useState } from "react";
+import { Search, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { getIconComponent } from "@/components/IconPicker";
 import { useAttractionTypes } from "@/hooks";
 import type { AttractionFilterProps } from "./AttractionFilter.types";
@@ -25,9 +25,13 @@ export function AttractionFilter({
   resultCount,
   inputRef,
   hideSearch = false,
+  collapsible = false,
+  collapsibleLabel = "Filter by category or type",
 }: AttractionFilterProps) {
   const { byCategory } = useAttractionTypes();
   const inputId = useId();
+  const collapseId = useId();
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const multiSelect = !!onCategoriesChange;
   const activeCategories = selectedCategories ?? [];
   // Single-select mode needs 2+ categories to be worth filtering (a lone category vs.
@@ -35,6 +39,8 @@ export function AttractionFilter({
   // meaningful on/off toggle — show it.
   const showCategoryChips = multiSelect ? categories.length > 0 : categories.length > 1;
   const showTypeChips = multiSelect && !!types && types.length > 0;
+  const hasChips = showCategoryChips || showTypeChips;
+  const activeChipCount = activeCategories.length + selectedTypes.length;
 
   function isCategoryActive(cat: string): boolean {
     return multiSelect ? activeCategories.includes(cat) : selectedCategory === cat;
@@ -76,61 +82,98 @@ export function AttractionFilter({
           </div>
         </>
       )}
-      {showCategoryChips && (
-        <div className={categoryLabel ? styles.filterSection : undefined}>
-          {categoryLabel && <span className={styles.filterSectionLabel}>{categoryLabel}</span>}
-          <div className={styles.filterChips} role="group" aria-label="Filter by category">
-            {!multiSelect && (
-              <button
-                type="button"
-                className={`${styles.filterChip} ${selectedCategory === null ? styles.filterChipActive : ""}`}
-                aria-pressed={selectedCategory === null}
-                onClick={() => onCategoryChange?.(null)}
-              >
-                All
-              </button>
+      {hasChips && (() => {
+        const chips = (
+          <>
+            {showCategoryChips && (
+              <div className={categoryLabel ? styles.filterSection : undefined}>
+                {categoryLabel && <span className={styles.filterSectionLabel}>{categoryLabel}</span>}
+                <div className={styles.filterChips} role="group" aria-label="Filter by category">
+                  {!multiSelect && (
+                    <button
+                      type="button"
+                      className={`${styles.filterChip} ${selectedCategory === null ? styles.filterChipActive : ""}`}
+                      aria-pressed={selectedCategory === null}
+                      onClick={() => onCategoryChange?.(null)}
+                    >
+                      All
+                    </button>
+                  )}
+                  {categories.map((cat) => {
+                    const CatIcon = getIconComponent(byCategory[cat]?.[0]?.categoryIcon ?? "Globe");
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        className={`${styles.filterChip} ${isCategoryActive(cat) ? styles.filterChipActive : ""}`}
+                        aria-pressed={isCategoryActive(cat)}
+                        onClick={() => handleCategoryClick(cat)}
+                      >
+                        <CatIcon size={12} aria-hidden="true" />
+                        {cat}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             )}
-            {categories.map((cat) => {
-              const CatIcon = getIconComponent(byCategory[cat]?.[0]?.categoryIcon ?? "Globe");
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  className={`${styles.filterChip} ${isCategoryActive(cat) ? styles.filterChipActive : ""}`}
-                  aria-pressed={isCategoryActive(cat)}
-                  onClick={() => handleCategoryClick(cat)}
-                >
-                  <CatIcon size={12} aria-hidden="true" />
-                  {cat}
-                </button>
-              );
-            })}
+            {showTypeChips && (
+              <div className={typeLabel ? styles.filterSection : undefined}>
+                {typeLabel && <span className={styles.filterSectionLabel}>{typeLabel}</span>}
+                <div className={styles.filterChips} role="group" aria-label="Filter by type">
+                  {types!.map((t) => {
+                    const TypeIcon = getIconComponent(t.icon ?? "Globe");
+                    const active = selectedTypes.includes(t.name);
+                    return (
+                      <button
+                        key={t.name}
+                        type="button"
+                        className={`${styles.filterChip} ${active ? styles.filterChipActive : ""}`}
+                        aria-pressed={active}
+                        onClick={() => handleTypeClick(t.name)}
+                      >
+                        <TypeIcon size={12} aria-hidden="true" />
+                        {t.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </>
+        );
+
+        if (!collapsible) return chips;
+
+        return (
+          <div>
+            <button
+              type="button"
+              className={styles.chipFilterToggle}
+              onClick={() => setFiltersOpen((v) => !v)}
+              aria-expanded={filtersOpen}
+              aria-controls={collapseId}
+            >
+              <SlidersHorizontal size={14} aria-hidden="true" />
+              {collapsibleLabel}
+              {activeChipCount > 0 && (
+                <span className={styles.chipFilterBadge}>{activeChipCount}</span>
+              )}
+              <ChevronDown
+                size={14}
+                aria-hidden="true"
+                className={`${styles.chipFilterChevron} ${filtersOpen ? styles.chipFilterChevronOpen : ""}`}
+              />
+            </button>
+            <div
+              id={collapseId}
+              className={`${styles.chipFilterCollapse} ${filtersOpen ? styles.chipFilterCollapseOpen : ""}`}
+            >
+              <div className={styles.chipFilterInner}>{chips}</div>
+            </div>
           </div>
-        </div>
-      )}
-      {showTypeChips && (
-        <div className={typeLabel ? styles.filterSection : undefined}>
-          {typeLabel && <span className={styles.filterSectionLabel}>{typeLabel}</span>}
-          <div className={styles.filterChips} role="group" aria-label="Filter by type">
-            {types!.map((t) => {
-              const TypeIcon = getIconComponent(t.icon ?? "Globe");
-              const active = selectedTypes.includes(t.name);
-              return (
-                <button
-                  key={t.name}
-                  type="button"
-                  className={`${styles.filterChip} ${active ? styles.filterChipActive : ""}`}
-                  aria-pressed={active}
-                  onClick={() => handleTypeClick(t.name)}
-                >
-                  <TypeIcon size={12} aria-hidden="true" />
-                  {t.name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+        );
+      })()}
       {resultCount !== undefined && (
         <p aria-live="polite" className={styles.srOnly}>
           {resultCount} attraction{resultCount !== 1 ? "s" : ""} shown

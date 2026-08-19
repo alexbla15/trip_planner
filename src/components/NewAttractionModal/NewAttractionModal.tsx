@@ -26,7 +26,7 @@ import { CoverImageField } from "@/components";
 import { ModalShell } from "@/components/Modal";
 import { MapPicker } from "./MapPicker";
 import { OpeningHoursGrid } from "./OpeningHoursGrid";
-import { buildInitialHours } from "@/lib";
+import { buildInitialHours, isValidUrl } from "@/lib";
 import styles from "./NewAttractionModal.module.css";
 
 const HEADING_ID = "new-attraction-modal-title";
@@ -35,6 +35,7 @@ interface FieldErrors {
   name?: string;
   country?: string;
   types?: string;
+  websiteUrl?: string;
 }
 
 export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, prefillCountry, prefillCity, initialData, initialCoordinates }: NewAttractionModalProps) {
@@ -95,6 +96,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   const [is24h, setIs24h]               = useState(false);
   const [notes, setNotes] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
@@ -121,6 +123,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     );
     setNotes(initialData?.notes ?? "");
     setPhotoUrl(initialData?.photoUrl ?? "");
+    setWebsiteUrl(initialData?.websiteUrl ?? "");
     setErrors({});
     setTouched({});
     setIs24h(false);
@@ -153,6 +156,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     if (!name.trim()) errs.name = "Attraction name is required";
     if (!country) errs.country = "Country is required";
     if (selectedTypes.length === 0) errs.types = "Select at least one type";
+    if (!isValidUrl(websiteUrl)) errs.websiteUrl = "Enter a valid URL (e.g. https://example.com)";
     return errs;
   }
 
@@ -169,7 +173,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   }
 
   async function handleSave() {
-    const allTouched = { name: true, country: true, types: true };
+    const allTouched = { name: true, country: true, types: true, websiteUrl: true };
     setTouched(allTouched);
     const errs = validate();
     setErrors(errs);
@@ -189,6 +193,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       openingHours,
       notes,
       photoUrl,
+      websiteUrl: websiteUrl.trim(),
     };
     await Promise.resolve(onSave(data));
     setSaving(false);
@@ -209,6 +214,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setOpeningHours(buildInitialHours());
     setNotes("");
     setPhotoUrl("");
+    setWebsiteUrl("");
     setErrors({});
     setTouched({});
   }
@@ -486,6 +492,30 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
         value={photoUrl}
         onChange={setPhotoUrl}
       />
+
+      {/* Official website */}
+      <div className={styles.field}>
+        <label htmlFor="attraction-website" className={styles.labelWithIcon}>
+          <Globe size={14} aria-hidden="true" />
+          Website (optional)
+        </label>
+        <input
+          id="attraction-website"
+          type="url"
+          placeholder="https://…"
+          value={websiteUrl}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setWebsiteUrl(e.target.value)}
+          onBlur={() => handleBlur("websiteUrl")}
+          className={`${styles.input} ${touched.websiteUrl && errors.websiteUrl ? styles.inputError : ""}`}
+          aria-describedby={touched.websiteUrl && errors.websiteUrl ? "error-website" : undefined}
+        />
+        {touched.websiteUrl && errors.websiteUrl && (
+          <p id="error-website" className={styles.errorMsg} role="alert">
+            <AlertCircle size={12} aria-hidden="true" />
+            {errors.websiteUrl}
+          </p>
+        )}
+      </div>
     </ModalShell>
   );
 }

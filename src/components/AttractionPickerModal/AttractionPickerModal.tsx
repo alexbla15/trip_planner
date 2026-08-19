@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { X, Search, Plus, MapPin, ChevronDown, AlertCircle, SlidersHorizontal } from "lucide-react";
+import { X, Search, Plus, MapPin, ChevronDown, AlertCircle } from "lucide-react";
 import { useGlobalAttractions } from "@/contexts/AttractionsContext";
 import { NewAttractionModal, COUNTRIES } from "@/components/NewAttractionModal";
 import { renderTypeIcon } from "@/components/IconPicker";
@@ -41,9 +41,6 @@ export function AttractionPickerModal({
   const [cityFilter, setCityFilter] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  // Foldable, opt-in — starts closed (no filter applied) so the picker doesn't add visual
-  // weight for the common case of just browsing by country/city.
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [newAttractionOpen, setNewAttractionOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -56,7 +53,6 @@ export function AttractionPickerModal({
       setCityFilter("");
       setSelectedCategories([]);
       setSelectedTypes([]);
-      setFiltersOpen(false);
       setSelectedIndices(new Set());
     }
   }, [isOpen]);
@@ -227,45 +223,19 @@ export function AttractionPickerModal({
         {/* Category/type chip filter — foldable, closed by default (no filter applied
             until the user opts in) */}
         {(presentCategories.length > 0 || presentTypes.length > 0) && (
-          <div className={styles.chipFilterSection}>
-            <button
-              type="button"
-              className={styles.chipFilterToggle}
-              onClick={() => setFiltersOpen((v) => !v)}
-              aria-expanded={filtersOpen}
-              aria-controls="picker-chip-filters"
-            >
-              <SlidersHorizontal size={14} aria-hidden="true" />
-              Filter by category or type
-              {(selectedCategories.length + selectedTypes.length) > 0 && (
-                <span className={styles.chipFilterBadge}>
-                  {selectedCategories.length + selectedTypes.length}
-                </span>
-              )}
-              <ChevronDown
-                size={14}
-                aria-hidden="true"
-                className={`${styles.chipFilterChevron} ${filtersOpen ? styles.chipFilterChevronOpen : ""}`}
-              />
-            </button>
-            <div
-              id="picker-chip-filters"
-              className={`${styles.chipFilterCollapse} ${filtersOpen ? styles.chipFilterCollapseOpen : ""}`}
-            >
-              <div className={styles.chipFilterInner}>
-                <AttractionFilter
-                  hideSearch
-                  categories={presentCategories}
-                  selectedCategories={selectedCategories}
-                  onCategoriesChange={handleCategoriesChange}
-                  categoryLabel="Categories"
-                  types={presentTypes}
-                  selectedTypes={selectedTypes}
-                  onTypesChange={setSelectedTypes}
-                  typeLabel="Types"
-                />
-              </div>
-            </div>
+          <div className={styles.chipFilterWrap}>
+            <AttractionFilter
+              hideSearch
+              collapsible
+              categories={presentCategories}
+              selectedCategories={selectedCategories}
+              onCategoriesChange={handleCategoriesChange}
+              categoryLabel="Categories"
+              types={presentTypes}
+              selectedTypes={selectedTypes}
+              onTypesChange={setSelectedTypes}
+              typeLabel="Types"
+            />
           </div>
         )}
 

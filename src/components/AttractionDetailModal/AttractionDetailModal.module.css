@@ -84,6 +84,19 @@
   flex-shrink: 0;
 }
 
+/* Aligns WebsiteLinkButton's compact variant to this header's 36px icon-button
+   family (closeBtn/visitedToggleBtn) instead of its own default 32px/shadowed look. */
+.websiteBtn {
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid var(--color-border);
+  box-shadow: none;
+}
+
+.websiteBtn:hover {
+  border-color: var(--color-primary);
+}
+
 .closeBtn {
   display: flex;
   align-items: center;

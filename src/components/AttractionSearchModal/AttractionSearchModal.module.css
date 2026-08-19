@@ -102,6 +102,11 @@
   flex-shrink: 0;
 }
 
+/* ── Foldable category/type chip filter, nested inside .searchBar ── */
+.chipFilterWrap {
+  margin-top: 10px;
+}
+
 /* ── Scrollable body ── */
 .body {
   flex: 1;

@@ -1,6 +1,6 @@
 # Task: Category/type filter in Attraction Picker Modal
 
-Status: intake
+Status: reviewing
 Track: B
 Track reason: Reuses the `AttractionFilter` component's multi-select mode shipped in [[attraction-filter-shared-type-support]] — no new visual pattern, adding the shared component to a view that has none of this filtering today.
 
@@ -30,3 +30,12 @@ Let a user narrow the picker's list by category/type, same capability as every o
 - Adding a name-search text input to this modal.
 - Converting the country/city filters to use `AttractionFilter`.
 - Any other view — this is the last task in the goal.
+
+## Implementation Notes
+- Files created/modified:
+  - `src/components/AttractionPickerModal/AttractionPickerModal.tsx` — added `selectedCategories`/`selectedTypes` state; `countryCityFiltered` (renamed from the old `filteredWithIndex`) is now the base for both the final list and the `presentCategories`/`presentTypes` chip derivation, so chips reflect the current country/city filter live; added `handleCategoriesChange` cascade helper (same pattern as the other 3 tasks); `filteredWithIndex` now also requires category/type match (AND-between-groups/OR-within-group, matching `ExploreClient.tsx`'s `matchesChipFilters`); reset-on-close effect extended to clear the new state.
+  - `src/components/AttractionPickerModal/AttractionPickerModal.module.css` — added a foldable filter section (`chipFilterSection`/`chipFilterToggle`/`chipFilterBadge`/`chipFilterCollapse`/`chipFilterInner`) using the same CSS-grid `grid-template-rows: 0fr → 1fr` collapse technique documented in `docs/DESIGN_SYSTEM.md`'s "Collapsible Section" pattern, sized for a compact toggle row rather than `SectionCard`'s full page-section heading (which was too visually heavy for a modal filter row).
+  - `<AttractionFilter hideSearch categoryLabel="Categories" typeLabel="Types" .../>` rendered inside the collapsible body, between the existing country/city filter row and the results list.
+- Deviations from task requirements: added a foldable/collapsible wrapper around the chip filter (closed by default, "no filter" starting state) with visible "Categories"/"Types" labels — per user follow-up feedback mid-task ("the filter should include the titles (categories, types), and must be foldable as well (no filter)"), not in the original task requirements. Deliberately deviates from `docs/DESIGN_SYSTEM.md`'s general Collapsible Section guidance ("Default state is always expanded... collapsing is an opt-in declutter action, never a surprise-hidden default") — the user explicitly asked for a closed-by-default fold here, which is a reasonable product call for a filter that's genuinely optional/secondary to the main country/city browse flow, but is a departure from that general rule worth knowing about.
+- New design tokens used: none — reused `--duration-base`/`--easing-out` and the existing color tokens.
+- Verification: `npx tsc --noEmit` clean; `npx eslint` shows only pre-existing unrelated warnings/errors (untouched lines); `next build` succeeds, all 40 routes prerender; dev server restarted post-build, `/explore` confirmed loading (200, slow first-compile on this machine's network-drive filesystem — a pre-existing environment characteristic unrelated to this change, already flagged by Next.js itself in the dev server log). Could not exercise the picker live in a browser (no logged-in session available in this environment, and it's reached from the authenticated New Trip flow) — verified via code read only.

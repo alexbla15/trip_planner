@@ -28,6 +28,8 @@ export interface Attraction {
   openingHours?: Record<string, { closed: boolean; open: string; close: string }>;
   notes?: string;
   photoUrl?: string;
+  /** Official venue website — user-editable, separate from photoUrl. */
+  websiteUrl?: string;
   plannedDate?: string | null;
   plannedTime?: string | null;  // "HH:MM", e.g. "09:00"
   actualDurationValue?: string;

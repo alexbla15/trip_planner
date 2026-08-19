@@ -69,6 +69,7 @@ export interface AttractionFormData {
   openingHours: OpeningHours;
   notes: string;
   photoUrl: string;
+  websiteUrl: string;
 }
 
 export interface NewAttractionModalProps {

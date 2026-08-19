@@ -30,4 +30,10 @@ export interface AttractionFilterProps {
   onTypesChange?: (types: string[]) => void;
   /** Optional visible label above the type chip row (e.g. "Types"). */
   typeLabel?: string;
+
+  /** Wraps the category/type chips in a foldable toggle, closed by default — same
+   *  collapsing behavior and look everywhere it's used. */
+  collapsible?: boolean;
+  /** Label on the collapsible toggle button. */
+  collapsibleLabel?: string;
 }

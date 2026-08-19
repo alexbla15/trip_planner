@@ -196,16 +196,27 @@ export function AttractionSearchModal({
           <AttractionFilter
             searchValue={query}
             onSearchChange={handleQueryChange}
-            categories={presentCategories}
-            selectedCategories={selectedCategories}
-            onCategoriesChange={handleCategoriesChange}
-            types={presentTypes}
-            selectedTypes={selectedTypes}
-            onTypesChange={setSelectedTypes}
+            categories={[]}
             placeholder={`Search in ${country}…`}
             searchLabel={`Search attractions in ${country}`}
             inputRef={searchRef}
           />
+          {(presentCategories.length > 0 || presentTypes.length > 0) && (
+            <div className={styles.chipFilterWrap}>
+              <AttractionFilter
+                hideSearch
+                collapsible
+                categories={presentCategories}
+                selectedCategories={selectedCategories}
+                onCategoriesChange={handleCategoriesChange}
+                categoryLabel="Categories"
+                types={presentTypes}
+                selectedTypes={selectedTypes}
+                onTypesChange={setSelectedTypes}
+                typeLabel="Types"
+              />
+            </div>
+          )}
         </div>
       }
     >

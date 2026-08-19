@@ -24,6 +24,9 @@ export interface IAttraction extends Document {
   openingHours?: Record<string, IOpeningHoursDay>;
   notes?: string;
   photoUrl?: string;
+  /** Official venue website — user-editable, separate from photoUrl. Never fabricated on
+   *  backfill; left unset when no real official site exists for a place. */
+  websiteUrl?: string;
   createdAt: Date;
   updatedAt: Date;
   // Subtype discriminator
@@ -71,6 +74,7 @@ const AttractionSchema = new Schema<IAttraction>(
     currency: { type: String, default: "USD" },
     notes: { type: String },
     photoUrl: { type: String },
+    websiteUrl: { type: String },
     openingHours: {
       Mon: { type: OpeningHoursDaySchema },
       Tue: { type: OpeningHoursDaySchema },
@@ -142,6 +146,7 @@ export function formatAttraction(
     openingHours: doc.openingHours as AttractionShape["openingHours"],
     notes: schedule?.notes ?? doc.notes,
     photoUrl: doc.photoUrl,
+    websiteUrl: doc.websiteUrl,
     createdAt: doc.createdAt?.toISOString(),
     updatedAt: doc.updatedAt?.toISOString(),
     // Subtype fields — checkInDate/checkOutDate prefer a per-trip schedule override (see
