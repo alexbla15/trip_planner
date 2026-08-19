@@ -30,9 +30,10 @@ export function AttractionSearchModal({
 }: AttractionSearchModalProps) {
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 300);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const existingIdSet = useMemo(() => new Set(existingAttractionIds), [existingAttractionIds]);
-  const { categories, findType } = useAttractionTypes();
+  const { types, findType } = useAttractionTypes();
   const [results, setResults] = useState<Attraction[]>([]);
   const [bodyState, setBodyState] = useState<BodyState>("initial");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -42,7 +43,8 @@ export function AttractionSearchModal({
   useEffect(() => {
     if (isOpen) {
       setQuery("");
-      setSelectedCategory(null);
+      setSelectedCategories([]);
+      setSelectedTypes([]);
       setResults([]);
       setBodyState("initial");
       setSelectedIds(new Set());
@@ -82,12 +84,46 @@ export function AttractionSearchModal({
     }
   }
 
+  // Categories/types actually present in the current search results — only these show
+  // as chips, same pattern as Explore's availableCategories/availableTypes.
+  const presentCategories = useMemo(() => [...new Set(
+    results.flatMap((a) =>
+      a.types.map((t) => findType(t)?.category).filter((c): c is string => Boolean(c))
+    )
+  )], [results, findType]);
+
+  const presentTypes = useMemo(() => {
+    const nameSet = new Set(results.flatMap((a) => a.types));
+    return types.filter((t) => nameSet.has(t.name));
+  }, [results, types]);
+
+  // Dropping a category also drops any selected types that belong to it — mirrors
+  // ExploreClient.tsx's handleCategoriesChange (see docs/LEARNINGS.md) so a type chip
+  // left selected under a removed category doesn't keep filtering silently.
+  function handleCategoriesChange(next: string[]) {
+    const removed = selectedCategories.filter((c) => !next.includes(c));
+    setSelectedCategories(next);
+    if (removed.length > 0) {
+      setSelectedTypes((prev) => prev.filter((t) => {
+        const cat = findType(t)?.category;
+        return !cat || !removed.includes(cat);
+      }));
+    }
+  }
+
   const filteredResults = useMemo(() => {
-    if (!selectedCategory) return results;
-    return results.filter((a) =>
-      a.types.some((t) => findType(t)?.category === selectedCategory)
-    );
-  }, [results, selectedCategory, findType]);
+    return results.filter((a) => {
+      const matchesCategory =
+        selectedCategories.length === 0 ||
+        a.types.some((t) => {
+          const cat = findType(t)?.category;
+          return cat && selectedCategories.includes(cat);
+        });
+      const matchesType =
+        selectedTypes.length === 0 || a.types.some((t) => selectedTypes.includes(t));
+      return matchesCategory && matchesType;
+    });
+  }, [results, selectedCategories, selectedTypes, findType]);
 
   function handleRowClick(attraction: Attraction) {
     // Already-added results stay clickable — selecting one again adds another scheduled
@@ -160,9 +196,12 @@ export function AttractionSearchModal({
           <AttractionFilter
             searchValue={query}
             onSearchChange={handleQueryChange}
-            categories={categories}
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
+            categories={presentCategories}
+            selectedCategories={selectedCategories}
+            onCategoriesChange={handleCategoriesChange}
+            types={presentTypes}
+            selectedTypes={selectedTypes}
+            onTypesChange={setSelectedTypes}
             placeholder={`Search in ${country}…`}
             searchLabel={`Search attractions in ${country}`}
             inputRef={searchRef}
@@ -248,7 +287,7 @@ export function AttractionSearchModal({
             <button
               type="button"
               className={styles.createInlineBtn}
-              onClick={() => setSelectedCategory(null)}
+              onClick={() => { setSelectedCategories([]); setSelectedTypes([]); }}
             >
               Show all results
             </button>

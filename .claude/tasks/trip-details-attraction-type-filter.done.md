@@ -1,6 +1,9 @@
 # Task: Multi-select type filter in Trip Details attractions tab
 
-Status: reviewing
+Status: done
+
+## Completion Summary
+Trip Details attractions tab now supports the same multi-select category + type chip filter as Explore, via the shared `AttractionFilter` component, with cascade-clear and pagination-reset behavior preserved. Confirmed by the user on 2026-08-18, alongside two related bugfixes surfaced mid-session (Explore's country-level attraction list not syncing after a photo edit or a visited-status toggle).
 Track: B
 Track reason: Reuses the `AttractionFilter` component's multi-select mode shipped in [[attraction-filter-shared-type-support]] — no new visual pattern, upgrading an existing consumer's props.
 
@@ -39,3 +42,5 @@ Let a user filter a trip's attraction list by multiple categories and/or individ
 - Verification: `npx tsc --noEmit` clean (initially caught and fixed one stale `setSelectedCategory` reference in the "Clear filters" empty-state button — not mentioned in the original grep, only surfaced by the type-checker); `npx eslint` shows only pre-existing unrelated errors/warnings; `next build` succeeds, all 40 routes prerender.
 
 Also fixed, unrelated to this task but reported by the user mid-session: Explore's `handleEditSave` (`src/app/explore/ExploreClient.tsx`) updated `cityAttractions` after an edit but not `countryAttractions` — so editing an attraction's photo (or any field) while browsing at the country level (not yet drilled into a city) left the marker/detail view showing stale data until a full re-fetch. Added the matching `setCountryAttractions` update alongside the existing `setCityAttractions` one.
+
+Also fixed, same class of bug, also reported mid-session: `handleToggleVisited` (same file) had the identical gap — toggling an attraction's visited status only updated `cityAttractions`, so a visited/unvisited filter active at the country level wouldn't add/remove the map pin until a full re-fetch. Added matching `setCountryAttractions` updates to both the optimistic update and the error-rollback path.

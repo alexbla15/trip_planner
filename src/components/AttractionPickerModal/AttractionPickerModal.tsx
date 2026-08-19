@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { X, Search, Plus, MapPin, ChevronDown, AlertCircle } from "lucide-react";
+import { X, Search, Plus, MapPin, ChevronDown, AlertCircle, SlidersHorizontal } from "lucide-react";
 import { useGlobalAttractions } from "@/contexts/AttractionsContext";
 import { NewAttractionModal, COUNTRIES } from "@/components/NewAttractionModal";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { useAttractionTypes } from "@/hooks";
+import { AttractionFilter } from "@/components/AttractionFilter";
 import type { AttractionFormData } from "@/components/NewAttractionModal";
 import styles from "./AttractionPickerModal.module.css";
 
@@ -34,10 +35,15 @@ export function AttractionPickerModal({
   alreadyAdded = [],
 }: AttractionPickerModalProps) {
   const { globalAttractions, addGlobalAttraction } = useGlobalAttractions();
-  const { findType } = useAttractionTypes();
+  const { types, findType } = useAttractionTypes();
 
   const [countryFilter, setCountryFilter] = useState("");
   const [cityFilter, setCityFilter] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  // Foldable, opt-in — starts closed (no filter applied) so the picker doesn't add visual
+  // weight for the common case of just browsing by country/city.
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [newAttractionOpen, setNewAttractionOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -48,6 +54,9 @@ export function AttractionPickerModal({
     if (!isOpen) {
       setCountryFilter("");
       setCityFilter("");
+      setSelectedCategories([]);
+      setSelectedTypes([]);
+      setFiltersOpen(false);
       setSelectedIndices(new Set());
     }
   }, [isOpen]);
@@ -76,7 +85,10 @@ export function AttractionPickerModal({
     alreadyAdded.map((a) => `${a.name}|${a.country}|${a.city}`)
   );
 
-  const filteredWithIndex = globalAttractions
+  // Country/city-scoped, before category/type chips are applied — the base set used both
+  // for the final list and for computing which chips are worth showing (so chips reflect
+  // what's actually filterable right now, same pattern as every other view in this goal).
+  const countryCityFiltered = globalAttractions
     .map((a, i) => ({ attraction: a, index: i }))
     .filter(({ attraction: a }) => {
       const matchesCountry = !countryFilter || a.country === countryFilter;
@@ -85,6 +97,43 @@ export function AttractionPickerModal({
         (a.city ?? "").toLowerCase().includes(cityFilter.toLowerCase());
       return matchesCountry && matchesCity;
     });
+
+  const presentCategories = [...new Set(
+    countryCityFiltered.flatMap(({ attraction: a }) =>
+      a.types.map((t) => findType(t)?.category).filter((c): c is string => Boolean(c))
+    )
+  )];
+
+  const presentTypes = (() => {
+    const nameSet = new Set(countryCityFiltered.flatMap(({ attraction: a }) => a.types));
+    return types.filter((t) => nameSet.has(t.name));
+  })();
+
+  // Dropping a category also drops any selected types that belong to it — mirrors
+  // ExploreClient.tsx's handleCategoriesChange (see docs/LEARNINGS.md) so a type chip
+  // left selected under a removed category doesn't keep filtering silently.
+  function handleCategoriesChange(next: string[]) {
+    const removed = selectedCategories.filter((c) => !next.includes(c));
+    setSelectedCategories(next);
+    if (removed.length > 0) {
+      setSelectedTypes((prev) => prev.filter((t) => {
+        const cat = findType(t)?.category;
+        return !cat || !removed.includes(cat);
+      }));
+    }
+  }
+
+  const filteredWithIndex = countryCityFiltered.filter(({ attraction: a }) => {
+    const matchesCategory =
+      selectedCategories.length === 0 ||
+      a.types.some((t) => {
+        const cat = findType(t)?.category;
+        return cat && selectedCategories.includes(cat);
+      });
+    const matchesType =
+      selectedTypes.length === 0 || a.types.some((t) => selectedTypes.includes(t));
+    return matchesCategory && matchesType;
+  });
 
   function toggleSelect(index: number) {
     setSelectedIndices((prev) => {
@@ -174,6 +223,51 @@ export function AttractionPickerModal({
             />
           </div>
         </div>
+
+        {/* Category/type chip filter — foldable, closed by default (no filter applied
+            until the user opts in) */}
+        {(presentCategories.length > 0 || presentTypes.length > 0) && (
+          <div className={styles.chipFilterSection}>
+            <button
+              type="button"
+              className={styles.chipFilterToggle}
+              onClick={() => setFiltersOpen((v) => !v)}
+              aria-expanded={filtersOpen}
+              aria-controls="picker-chip-filters"
+            >
+              <SlidersHorizontal size={14} aria-hidden="true" />
+              Filter by category or type
+              {(selectedCategories.length + selectedTypes.length) > 0 && (
+                <span className={styles.chipFilterBadge}>
+                  {selectedCategories.length + selectedTypes.length}
+                </span>
+              )}
+              <ChevronDown
+                size={14}
+                aria-hidden="true"
+                className={`${styles.chipFilterChevron} ${filtersOpen ? styles.chipFilterChevronOpen : ""}`}
+              />
+            </button>
+            <div
+              id="picker-chip-filters"
+              className={`${styles.chipFilterCollapse} ${filtersOpen ? styles.chipFilterCollapseOpen : ""}`}
+            >
+              <div className={styles.chipFilterInner}>
+                <AttractionFilter
+                  hideSearch
+                  categories={presentCategories}
+                  selectedCategories={selectedCategories}
+                  onCategoriesChange={handleCategoriesChange}
+                  categoryLabel="Categories"
+                  types={presentTypes}
+                  selectedTypes={selectedTypes}
+                  onTypesChange={setSelectedTypes}
+                  typeLabel="Types"
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Body */}
         <div className={styles.body}>

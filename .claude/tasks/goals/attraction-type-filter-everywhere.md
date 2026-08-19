@@ -7,8 +7,8 @@ Bring the multi-select attraction type/category filter that already exists in Ex
 ## Tasks
 - [x] .claude/tasks/attraction-filter-shared-type-support.done.md
 - [x] .claude/tasks/explore-country-type-filter.done.md
-- [ ] .claude/tasks/trip-details-attraction-type-filter.md
-- [ ] .claude/tasks/attraction-search-modal-type-filter.md
+- [x] .claude/tasks/trip-details-attraction-type-filter.done.md
+- [x] .claude/tasks/attraction-search-modal-type-filter.done.md
 - [ ] .claude/tasks/attraction-picker-modal-type-filter.md
 
 ## Plan
