@@ -2,7 +2,6 @@ import type { Attraction } from "@/types/attraction";
 import type { TravelMode } from "@/services";
 import {
   DEFAULT_DAY_START,
-  DEFAULT_DAY_END,
   SLOT_HEIGHT_PX,
   MIN_CARD_HEIGHT_PX,
   MIN_BLOCK_WIDTH_PX,
@@ -130,26 +129,16 @@ export function layoutTimed(timed: Attraction[]): LayoutItem[] {
 }
 
 /**
- * Returns the earliest "HH:MM" that fits a new attraction of `durationMins`
- * without overlapping any already-timed attraction on the same day.
+ * Returns the "HH:MM" to place a newly-assigned attraction on a day: right after the
+ * end of that day's current last-scheduled attraction, or 07:00 if the day is empty.
+ * No upper clamp — the calendar's visible range is itself derived from the schedule
+ * (see `computeScheduleHourBounds`), so clamping placement to it would be circular.
  */
-export function findEarliestFreeSlot(timedOnDay: Attraction[], durationMins: number): string {
-  const events = timedOnDay
-    .filter((a) => !!a.plannedTime)
-    .map((a) => ({ start: timeToMins(a.plannedTime!), end: attractionEndMins(a) }))
-    .sort((a, b) => a.start - b.start);
-
-  let candidate = DEFAULT_DAY_START * 60; // start at 07:00
-
-  for (const ev of events) {
-    // If the new block fits before this event, stop
-    if (candidate + durationMins <= ev.start) break;
-    // Otherwise push candidate to the end of this event
-    candidate = Math.max(candidate, ev.end);
-  }
-
-  // Clamp to within the visible range
-  candidate = Math.min(candidate, (DEFAULT_DAY_END - 1) * 60);
+export function nextSlotAfterLast(timedOnDay: Attraction[]): string {
+  const timed = timedOnDay.filter((a) => !!a.plannedTime);
+  const candidate = timed.length === 0
+    ? DEFAULT_DAY_START * 60
+    : Math.max(DEFAULT_DAY_START * 60, ...timed.map(attractionEndMins));
 
   const h = Math.floor(candidate / 60);
   const m = candidate % 60;

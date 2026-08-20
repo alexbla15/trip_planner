@@ -37,7 +37,7 @@ export {
   detectConflicts,
   findRouteNeighbour,
   layoutTimed,
-  findEarliestFreeSlot,
+  nextSlotAfterLast,
   dayColumnWidth,
   calcDaySpanMinutes,
   calcSpend,

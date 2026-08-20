@@ -8,7 +8,7 @@ Batch of six fixes/enhancements to itinerary scheduling correctness (opening hou
 - [x] .claude/tasks/opening-hours-midnight-wraparound-fix.done.md
 - [x] .claude/tasks/multi-range-opening-hours.done.md
 - [x] .claude/tasks/calendar-auto-range-controls.done.md
-- [ ] .claude/tasks/attraction-assign-append-to-day.md
+- [x] .claude/tasks/attraction-assign-append-to-day.done.md
 - [ ] .claude/tasks/trip-detail-edit-readonly-toggle.md
 - [ ] .claude/tasks/explore-map-city-zoom-clustering.md
 

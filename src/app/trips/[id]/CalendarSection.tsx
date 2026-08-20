@@ -21,7 +21,7 @@ import {
   slotTop,
   cardPx,
   layoutTimed,
-  findEarliestFreeSlot,
+  nextSlotAfterLast,
   dayColumnWidth,
   calcDaySpanMinutes,
   calcSpend,
@@ -250,17 +250,11 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   function handleAssign(id: string, dayIso: string) {
     if (!dayIso) return;
 
-    // Resolve the attraction's duration in minutes
-    const attraction  = local.find((a) => a._id === id);
-    const rawVal      = parseFloat(attraction?.actualDurationValue ?? attraction?.durationValue ?? "");
-    const unit        = attraction?.actualDurationUnit ?? attraction?.durationUnit ?? "hours";
-    const durationMins = isNaN(rawVal) || rawVal <= 0 ? 60 : unit === "hours" ? rawVal * 60 : rawVal;
-
     // Find all already-timed attractions on this day (excluding the one being moved)
     const timedOnDay = local.filter((a) => a.plannedDate === dayIso && !!a.plannedTime && a._id !== id);
 
-    // Auto-schedule at the earliest free slot
-    const plannedTime = findEarliestFreeSlot(timedOnDay, durationMins);
+    // Auto-schedule right after the day's last attraction (or 07:00 if the day is empty)
+    const plannedTime = nextSlotAfterLast(timedOnDay);
 
     const patch = { plannedDate: dayIso, plannedTime };
     applyLocal(local.map((a) => a._id === id ? { ...a, ...patch } : a));
@@ -298,16 +292,13 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   // the "Move to day…" select on a scheduled card reassigns that SAME instance, so
   // scheduling the same attraction again (e.g. the same restaurant twice) needs its own
   // entry point. Unlike the old version, this schedules the new instance directly onto
-  // the chosen day (same earliest-free-slot logic as handleAssign) instead of dropping an
+  // the chosen day (same append-after-last logic as handleAssign) instead of dropping an
   // unscheduled duplicate into a different list for the user to hunt down and assign.
   async function handleDuplicateAttraction(a: Attraction, dayIso: string) {
     if (!token || !dayIso) return;
 
-    const rawVal = parseFloat(a.actualDurationValue ?? a.durationValue ?? "");
-    const unit = a.actualDurationUnit ?? a.durationUnit ?? "hours";
-    const durationMins = isNaN(rawVal) || rawVal <= 0 ? 60 : unit === "hours" ? rawVal * 60 : rawVal;
     const timedOnDay = local.filter((x) => x.plannedDate === dayIso && !!x.plannedTime);
-    const plannedTime = findEarliestFreeSlot(timedOnDay, durationMins);
+    const plannedTime = nextSlotAfterLast(timedOnDay);
 
     try {
       const created = (await addAttractionToTrip(trip._id, token, {
