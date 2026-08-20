@@ -1,6 +1,6 @@
 # Task: Support multiple opening-hours ranges per day
 
-Status: reviewing
+Status: done
 Track: A
 Track reason: new repeatable add/remove row interaction in the opening-hours form — not an existing pattern in the design system
 
@@ -62,3 +62,15 @@ This project is a Next.js web app using CSS Modules (not React Native) — apply
 - Editing an attraction previously saved as 24/7 now correctly shows the 24/7 flag checked (grid hidden) instead of a week of `00:00–23:59` rows — added `isAllDay24h()` (`src/lib/openingHours.ts`, exported via `src/lib/index.ts`) and used it to derive `is24h` when `NewAttractionModal` loads `initialData`.
 - Fixed attraction-photo misalignment in `TripDetailClient`'s attraction list (`.attractionItem`): the actions row was conditionally omitted entirely for anonymous/no-permission viewers, and the website-link button rendered nothing (no DOM) when an attraction had no `websiteUrl` — both collapsed `.rowActions`' width per-item and shifted the thumbnail before it. Now `.rowActions` always renders, and the website button is wrapped in a fixed 32×32px `.websiteSlot` so its absence no longer changes row width.
 - Re-verified with `tsc --noEmit` and `next build`, both clean.
+
+## Follow-up investigation: "update fails when adding two opening hours / on 24/7 toggle"
+Root-caused via a real browser (Playwright) + direct DB checks, not a code defect in the multi-range work itself:
+- The long-running local dev server had a **stale cached Mongoose model** compiled from before the `OpeningHoursDay` schema change (`src/models/Attraction.ts`). Mongoose compiles a collection's schema once per process and never recompiles on hot-reload, so every save through that process silently dropped `ranges` (cast against the old `{open, close}` schema) while still returning `200 OK` — data loss with no visible error. Restarting the dev server (recompiling the model) fixed it; verified both the 2-range and 24/7 save paths end-to-end afterward (request body, response body, and DB state all correct).
+- This same stale-model window corrupted 3 real attractions' opening hours (**Altes Museum, Alexanderplatz, Museum Island**) — they displayed as "Closed" every day despite having real hours. Fixed via `scripts/fix-stale-opening-hours-shape.mjs`, reshaping their data to `ranges` while preserving the real open/close values that were still present, and defaulting only the two records with no recoverable data at all to 24/7 per the add-attractions skill's existing convention for unverifiable hours.
+- Updated `.claude/skills/add-attractions/SKILL.md`'s `openingHours` documentation to the new `ranges` shape, so future bulk-adds via that skill don't write the old shape again.
+- Also found and fixed an unrelated pre-existing bug surfaced by this investigation: `CalendarSection.tsx`'s side-by-side overlap layout computed each block's width from **its own** `numCols` instead of the day's shared `maxOverlap`, so blocks with different individual overlap counts landed on different column-width scales and visually overlapped instead of aligning to a grid (reported by the user as the "Welcome To Berlin Tour" block overlapping neighboring cards). Fixed by using `maxOverlap` for every block's width; verified against the real "Berlin 2024" trip's Dec 26 schedule (the exact data from the report) before and after.
+- Incidentally corrected "Parliament House"'s `types` field, which an earlier debug script in this investigation had accidentally overwritten to empty — restored to `["Landmark"]`.
+- Read-only attraction views (`AttractionDetailModal`) showing an attraction saved as 24/7 displayed the full redundant per-day table instead of a flag. Added an `isAllDay24h()` check there too and a matching "Open 24/7" badge; verified live (badge visible, table hidden) via a real browser + DOM check.
+
+## Completion Summary
+Attractions can now have multiple opening-hours ranges per day, editable via an inline add/remove control in `NewAttractionModal`, and correctly evaluated by the calendar's closed-hours check. Along the way, root-caused and fixed the user's separate "update fails" report (a stale dev-server Mongoose model silently dropping saved hours — not a code defect, fixed by restarting the process), repaired 3 real attractions corrupted by that same window, updated the `add-attractions` skill's docs to the new shape, and fixed an unrelated pre-existing calendar layout bug (overlapping schedule blocks) surfaced during the investigation. The 24/7 shortcut now also collapses to a single flag in both the edit form and the read-only detail view instead of showing a full table. Confirmed by the user and closed 2026-08-20.

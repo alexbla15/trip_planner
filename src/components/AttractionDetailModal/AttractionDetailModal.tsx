@@ -33,7 +33,7 @@ const LocationViewMap = dynamic(
 );
 import type { AttractionType } from "@/components/NewAttractionModal";
 import type { Attraction } from "@/types/attraction";
-import { formatDisplayDate, formatPrice } from "@/lib";
+import { formatDisplayDate, formatPrice, isAllDay24h } from "@/lib";
 import styles from "./AttractionDetailModal.module.css";
 
 const DAY_KEYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
@@ -286,25 +286,29 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                 <Clock size={14} aria-hidden="true" />
                 Opening Hours
               </h3>
-              <table className={styles.hoursTable} aria-label="Opening hours">
-                <tbody>
-                  {DAY_KEYS.map((day) => {
-                    const row = attraction.openingHours?.[day];
-                    return (
-                      <tr key={day} className={styles.hoursRow}>
-                        <td className={styles.hoursDay}>{day}</td>
-                        <td className={styles.hoursTime}>
-                          {row?.closed || !row?.ranges?.length ? (
-                            <span className={styles.closed}>Closed</span>
-                          ) : (
-                            row.ranges.map((r) => `${r.open} – ${r.close}`).join(", ")
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              {isAllDay24h(attraction.openingHours) ? (
+                <span className={styles.open24h}>Open 24/7</span>
+              ) : (
+                <table className={styles.hoursTable} aria-label="Opening hours">
+                  <tbody>
+                    {DAY_KEYS.map((day) => {
+                      const row = attraction.openingHours?.[day];
+                      return (
+                        <tr key={day} className={styles.hoursRow}>
+                          <td className={styles.hoursDay}>{day}</td>
+                          <td className={styles.hoursTime}>
+                            {row?.closed || !row?.ranges?.length ? (
+                              <span className={styles.closed}>Closed</span>
+                            ) : (
+                              row.ranges.map((r) => `${r.open} – ${r.close}`).join(", ")
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
             </div>
           )}
 

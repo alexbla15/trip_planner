@@ -339,6 +339,19 @@
   font-weight: 500;
 }
 
+.open24h {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--color-primary);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .timeNote {
   color: var(--color-text-secondary);
   font-size: 12px;

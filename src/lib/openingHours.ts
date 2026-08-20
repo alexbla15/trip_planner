@@ -49,11 +49,14 @@ export function hasOpeningHoursData(hours: unknown): boolean {
 }
 
 /** The shape `NewAttractionModal`'s "24/7" shortcut writes: every day open, one
- *  00:00–23:59 range. Used to detect it on load so editing a 24/7 attraction shows
- *  the 24/7 flag (and hides the day grid) instead of a week of 00:00–23:59 rows. */
-export function isAllDay24h(hours: OpeningHours): boolean {
+ *  00:00–23:59 range. Used to detect it (on load, so editing a 24/7 attraction shows
+ *  the 24/7 flag instead of a week of 00:00–23:59 rows; and in read-only displays, so
+ *  they show a "24/7" flag instead of the same redundant per-day table). Accepts the
+ *  broader `Record<string, OpeningHoursDay>` shape so callers using either the form-side
+ *  `OpeningHours` type or the API/shared `types/attraction.ts` one can both pass through. */
+export function isAllDay24h(hours: Record<string, OpeningHoursDay>): boolean {
   return DAY_KEYS.every((day) => {
     const d = hours[day];
-    return !d.closed && d.ranges.length === 1 && d.ranges[0].open === "00:00" && d.ranges[0].close === "23:59";
+    return !!d && !d.closed && d.ranges.length === 1 && d.ranges[0].open === "00:00" && d.ranges[0].close === "23:59";
   });
 }

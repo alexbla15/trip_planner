@@ -649,8 +649,11 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                         </div>
                       ))}
 
-                      {/* Side-by-side overlap layout */}
-                      {layout.map(({ attraction: a, col, numCols }) => {
+                      {/* Side-by-side overlap layout — every block on a given day shares the
+                          same column width (derived from that day's peak overlap, maxOverlap),
+                          not each block's own local numCols, so blocks with different individual
+                          numCols still land on a consistent grid instead of drifting apart. */}
+                      {layout.map(({ attraction: a, col }) => {
                         if (!a.plannedTime) return null;
                         const top        = slotTop(a.plannedTime, dayStart);
                         const height     = cardPx(a);
@@ -659,7 +662,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                         const rawIcon      = renderTypeIcon(findType(a.types?.[0] ?? "")?.icon ?? "");
                         const icon         = (!rawIcon && isCustomSlot) ? <Coffee size={10} /> : rawIcon;
                         const isPending = pending.has(a._id);
-                        const blockW    = availW / numCols;
+                        const blockW    = availW / maxOverlap;
                         const blockL    = LABEL_W + col * blockW;
                         const isCompact = height < SLOT_HEIGHT_PX;
 
