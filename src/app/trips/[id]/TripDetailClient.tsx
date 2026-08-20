@@ -886,41 +886,41 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                                   <ImageWithSkeleton src={attraction.photoUrl} alt="" width={52} height={52} unoptimized className={styles.attractionThumbImg} />
                                 </div>
                               )}
-                              {(canEdit || token || attraction.websiteUrl) && (
-                                <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
+                              <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
+                                <span className={styles.websiteSlot}>
                                   <WebsiteLinkButton url={attraction.websiteUrl} variant="compact" />
-                                  {token && attraction.attractionId && (
+                                </span>
+                                {token && attraction.attractionId && (
+                                  <button
+                                    type="button"
+                                    className={`${styles.editBtn} ${attraction.isVisited ? styles.editBtnActive : ""}`}
+                                    onClick={() => handleToggleVisited(attraction)}
+                                    aria-label={attraction.isVisited ? `${attraction.name} marked as visited` : `Mark ${attraction.name} as visited`}
+                                  >
+                                    <Check size={14} aria-hidden="true" />
+                                  </button>
+                                )}
+                                {canEdit && (
+                                  <>
                                     <button
                                       type="button"
-                                      className={`${styles.editBtn} ${attraction.isVisited ? styles.editBtnActive : ""}`}
-                                      onClick={() => handleToggleVisited(attraction)}
-                                      aria-label={attraction.isVisited ? `${attraction.name} marked as visited` : `Mark ${attraction.name} as visited`}
+                                      className={styles.editBtn}
+                                      onClick={() => setEditingAttraction(attraction)}
+                                      aria-label={`Edit ${attraction.name}`}
                                     >
-                                      <Check size={14} aria-hidden="true" />
+                                      <PenLine size={14} aria-hidden="true" />
                                     </button>
-                                  )}
-                                  {canEdit && (
-                                    <>
-                                      <button
-                                        type="button"
-                                        className={styles.editBtn}
-                                        onClick={() => setEditingAttraction(attraction)}
-                                        aria-label={`Edit ${attraction.name}`}
-                                      >
-                                        <PenLine size={14} aria-hidden="true" />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        className={styles.removeBtn}
-                                        onClick={() => handleRemoveAttraction(attraction._id)}
-                                        aria-label={`Remove ${attraction.name}`}
-                                      >
-                                        <Trash2 size={14} aria-hidden="true" />
-                                      </button>
-                                    </>
-                                  )}
-                                </div>
-                              )}
+                                    <button
+                                      type="button"
+                                      className={styles.removeBtn}
+                                      onClick={() => handleRemoveAttraction(attraction._id)}
+                                      aria-label={`Remove ${attraction.name}`}
+                                    >
+                                      <Trash2 size={14} aria-hidden="true" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             </li>
                           );
                         })}

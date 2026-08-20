@@ -630,6 +630,18 @@
   flex-shrink: 0;
 }
 
+/* Reserves the website button's footprint even when WebsiteLinkButton renders nothing
+   (no websiteUrl), so rowActions stays the same width and the thumbnail before it
+   doesn't shift position between attractions with and without a website link. */
+.websiteSlot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
 .editBtn {
   display: flex;
   align-items: center;

@@ -236,17 +236,26 @@ components:
           description: Last hour shown in the calendar day view (must be > calDayStart).
 
     # --- ATTRACTION SCHEMAS ---
-    OpeningHoursDay:
+    OpeningHoursRange:
       type: object
       properties:
-        closed:
-          type: boolean
         open:
           type: string
           example: "09:00"
         close:
           type: string
           example: "18:00"
+
+    OpeningHoursDay:
+      type: object
+      properties:
+        closed:
+          type: boolean
+        ranges:
+          type: array
+          description: One or more open/close windows for this day (e.g. a lunch break splits the day into two ranges). A closing time earlier than its opening time is interpreted as spanning past midnight.
+          items:
+            $ref: '#/components/schemas/OpeningHoursRange'
 
     # Trip-specific scheduling for one attraction
     AttractionSchedule:

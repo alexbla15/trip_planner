@@ -1,10 +1,14 @@
 import mongoose, { Schema, type Document, type Types } from "mongoose";
 import type { Attraction as AttractionShape } from "@/types/attraction";
 
-interface IOpeningHoursDay {
-  closed: boolean;
+interface IOpeningHoursRange {
   open: string;
   close: string;
+}
+
+interface IOpeningHoursDay {
+  closed: boolean;
+  ranges: IOpeningHoursRange[];
 }
 
 export interface IAttraction extends Document {
@@ -46,8 +50,13 @@ export interface IAttraction extends Document {
   seat?: string;
 }
 
+const OpeningHoursRangeSchema = new Schema<IOpeningHoursRange>(
+  { open: String, close: String },
+  { _id: false }
+);
+
 const OpeningHoursDaySchema = new Schema<IOpeningHoursDay>(
-  { closed: Boolean, open: String, close: String },
+  { closed: Boolean, ranges: [OpeningHoursRangeSchema] },
   { _id: false }
 );
 

@@ -1,6 +1,6 @@
 # Task: Support multiple opening-hours ranges per day
 
-Status: designing
+Status: reviewing
 Track: A
 Track reason: new repeatable add/remove row interaction in the opening-hours form — not an existing pattern in the design system
 
@@ -41,3 +41,24 @@ This project is a Next.js web app using CSS Modules (not React Native) — apply
 - Respect `prefers-reduced-motion` implicitly by keeping any add/remove transition to the existing `--duration-fast` opacity/transform pattern already used for `.toggleThumb`/`.timeInputs` — no new animation choreography needed for a simple list add/remove.
 
 **Data model reminder for implementation:** `OpeningHoursDay` becomes `{ closed: boolean; ranges: { open: string; close: string }[] }`. The component's local edit handlers (`handleTimeChange`) need an added `rangeIndex` parameter; `handleClosedToggle` stays as-is.
+
+## Implementation Notes
+- Files created/modified:
+  - `src/types/attraction.ts`, `src/components/NewAttractionModal/attraction.types.ts` — `OpeningHoursDay` now `{closed, ranges: OpeningHoursRange[]}`; new `OpeningHoursRange` type.
+  - `src/components/NewAttractionModal/attraction.constants.ts` — `DEFAULT_OPENING_HOURS` updated to the ranges shape.
+  - `src/lib/openingHours.ts` — added `normalizeOpeningHours()` (upgrades legacy `{open,close}` day data to `{ranges:[...]}`, defensively fills missing/malformed days from the default template) and `hasOpeningHoursData()` (replaces the old ad-hoc `.Mon` truthiness check); re-exported from `src/lib/index.ts`.
+  - `src/components/NewAttractionModal/attraction.utils.ts` (`attractionToFormData`) and `NewAttractionModal.tsx` (initial-hours effect + the 24/7 toggle) — now route through `hasOpeningHoursData`/`normalizeOpeningHours` instead of the old shape check.
+  - `src/components/NewAttractionModal/OpeningHoursGrid.tsx` + `.module.css` — each day's time inputs are now a vertical stack of range rows; added `Plus`/`X` (`lucide-react`) icon buttons to add/remove ranges per the Design Brief (tokens, sizing, focus states, 4px inter-range gap).
+  - `src/app/trips/[id]/CalendarSection.utils.ts` (`getClosedAlert`) — now checks the planned time against every range for the day (open if it falls in any one), reusing per-range wraparound-safe comparison from the earlier midnight fix; the closed-alert message now lists all of the day's ranges.
+  - `src/components/AttractionDetailModal/AttractionDetailModal.tsx` — the read-only hours table (found during implementation; the task brief hadn't caught this display) now renders all ranges for a day, comma-separated.
+  - `src/models/Attraction.ts` — Mongoose `OpeningHoursDaySchema` updated to `{closed, ranges: [OpeningHoursRangeSchema]}`.
+  - `swagger.yaml` — added `OpeningHoursRange` schema; `OpeningHoursDay` now references an array of ranges instead of a single open/close pair.
+  - `scripts/migrate-opening-hours-ranges.mjs` (new, one-off) — converts every existing `attractions` document's `openingHours` from the old shape to the new one in place, preserving the original open/close values. Run against the live DB with user confirmation: 535 attractions migrated, 0 skipped.
+- Deviations from brief: none on layout/tokens. One addition beyond the brief's scope: found and fixed a second opening-hours *display* (`AttractionDetailModal.tsx`) that the task's "Out of scope" note incorrectly assumed didn't exist — updating it was necessary for correctness (it would otherwise have silently shown `undefined – undefined` for every attraction after the type change), so it was treated as in-scope.
+- New design tokens used: none — reused `--color-primary`, `--color-error`, `--color-text-tertiary`, `--radius-sm`, `--duration-fast`, `--easing-out` exactly as specified in the brief.
+
+## Revision (user feedback before close-out)
+- Moved the "add range" `Plus` button from its own row below all ranges to inline at the end of the **last** range row, so a day with one range shows the button on that same line (`OpeningHoursGrid.tsx`).
+- Editing an attraction previously saved as 24/7 now correctly shows the 24/7 flag checked (grid hidden) instead of a week of `00:00–23:59` rows — added `isAllDay24h()` (`src/lib/openingHours.ts`, exported via `src/lib/index.ts`) and used it to derive `is24h` when `NewAttractionModal` loads `initialData`.
+- Fixed attraction-photo misalignment in `TripDetailClient`'s attraction list (`.attractionItem`): the actions row was conditionally omitted entirely for anonymous/no-permission viewers, and the website-link button rendered nothing (no DOM) when an attraction had no `websiteUrl` — both collapsed `.rowActions`' width per-item and shifted the thumbnail before it. Now `.rowActions` always renders, and the website button is wrapped in a fixed 32×32px `.websiteSlot` so its absence no longer changes row width.
+- Re-verified with `tsc --noEmit` and `next build`, both clean.

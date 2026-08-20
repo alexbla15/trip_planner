@@ -47,18 +47,20 @@ function getClosedAlert(a: Attraction): ScheduleAlert | null {
   }
 
   const planned = timeToMins(a.plannedTime);
-  const open    = timeToMins(hours.open);
-  const close   = timeToMins(hours.close);
-  // An overnight range (e.g. 18:00-03:00) wraps past midnight, so "closed" is
-  // the gap between close and open rather than the region outside [open, close).
-  const isClosed = close < open
-    ? (planned >= close && planned < open)
-    : (planned < open || planned >= close);
-  if (isClosed) {
+  const ranges  = hours.ranges ?? [];
+  // A range is checked individually so a venue with split hours (e.g. 10:00-12:00 and
+  // 13:00-15:00) is only "closed" when the planned time falls in none of its ranges.
+  // An overnight range (e.g. 18:00-03:00) wraps past midnight, so within that single
+  // range "open" is the gap between close and open rather than the region outside it.
+  const isWithinRange = (open: number, close: number) =>
+    close < open ? (planned >= open || planned < close) : (planned >= open && planned < close);
+  const isOpen = ranges.some((r) => isWithinRange(timeToMins(r.open), timeToMins(r.close)));
+  if (!isOpen) {
+    const hoursLabel = ranges.map((r) => `${r.open}–${r.close}`).join(", ");
     return {
       id:      `closed-${a._id}`,
       type:    "closed",
-      message: `"${a.name}" is scheduled at ${a.plannedTime} but opens ${hours.open}–${hours.close}.`,
+      message: `"${a.name}" is scheduled at ${a.plannedTime} but opens ${hoursLabel}.`,
     };
   }
 

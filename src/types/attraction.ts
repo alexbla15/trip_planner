@@ -1,7 +1,11 @@
-export interface OpeningHoursDay {
-  closed: boolean;
+export interface OpeningHoursRange {
   open: string;
   close: string;
+}
+
+export interface OpeningHoursDay {
+  closed: boolean;
+  ranges: OpeningHoursRange[];
 }
 
 export type OpeningHours = Record<string, OpeningHoursDay>;

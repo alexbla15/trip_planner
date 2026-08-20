@@ -1,6 +1,7 @@
 "use client";
 
-import type { DayKey, OpeningHours } from "./attraction.types";
+import { Plus, X } from "lucide-react";
+import type { DayKey, OpeningHours, OpeningHoursRange } from "./attraction.types";
 import { DAY_KEYS } from "./attraction.constants";
 import styles from "./OpeningHoursGrid.module.css";
 
@@ -13,22 +14,22 @@ interface DayRowProps {
   day: DayKey;
   isOdd: boolean;
   closed: boolean;
-  open: string;
-  close: string;
+  ranges: OpeningHoursRange[];
   onClosedToggle: () => void;
-  onOpenChange: (val: string) => void;
-  onCloseChange: (val: string) => void;
+  onRangeChange: (rangeIndex: number, field: "open" | "close", val: string) => void;
+  onAddRange: () => void;
+  onRemoveRange: (rangeIndex: number) => void;
 }
 
 function DayRow({
   day,
   isOdd,
   closed,
-  open,
-  close,
+  ranges,
   onClosedToggle,
-  onOpenChange,
-  onCloseChange,
+  onRangeChange,
+  onAddRange,
+  onRemoveRange,
 }: DayRowProps) {
   const toggleId = `hours-closed-${day}`;
 
@@ -55,26 +56,55 @@ function DayRow({
         </span>
       </div>
 
-      <div className={`${styles.timeInputs} ${closed ? styles.timeInputsDisabled : ""}`}>
-        <input
-          type="time"
-          value={open}
-          onChange={(e) => onOpenChange(e.target.value)}
-          disabled={closed}
-          aria-label={`${day} opening time`}
-          className={styles.timeInput}
-        />
-        <span className={styles.timeSeparator} aria-hidden="true">
-          –
-        </span>
-        <input
-          type="time"
-          value={close}
-          onChange={(e) => onCloseChange(e.target.value)}
-          disabled={closed}
-          aria-label={`${day} closing time`}
-          className={styles.timeInput}
-        />
+      <div className={`${styles.rangeList} ${closed ? styles.rangeListDisabled : ""}`}>
+        {ranges.map((range, i) => {
+          const isLast = i === ranges.length - 1;
+          return (
+            <div key={i} className={styles.timeInputs}>
+              <input
+                type="time"
+                value={range.open}
+                onChange={(e) => onRangeChange(i, "open", e.target.value)}
+                disabled={closed}
+                aria-label={`${day} opening time${ranges.length > 1 ? ` (range ${i + 1})` : ""}`}
+                className={styles.timeInput}
+              />
+              <span className={styles.timeSeparator} aria-hidden="true">
+                –
+              </span>
+              <input
+                type="time"
+                value={range.close}
+                onChange={(e) => onRangeChange(i, "close", e.target.value)}
+                disabled={closed}
+                aria-label={`${day} closing time${ranges.length > 1 ? ` (range ${i + 1})` : ""}`}
+                className={styles.timeInput}
+              />
+              {i > 0 && (
+                <button
+                  type="button"
+                  disabled={closed}
+                  onClick={() => onRemoveRange(i)}
+                  aria-label={`Remove this opening-hours range for ${day}`}
+                  className={`${styles.rangeButton} ${styles.removeRangeButton}`}
+                >
+                  <X size={14} />
+                </button>
+              )}
+              {isLast && (
+                <button
+                  type="button"
+                  disabled={closed}
+                  onClick={onAddRange}
+                  aria-label={`Add another opening-hours range for ${day}`}
+                  className={styles.rangeButton}
+                >
+                  <Plus size={14} />
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -88,10 +118,22 @@ export function OpeningHoursGrid({ value, onChange }: OpeningHoursGridProps) {
     });
   }
 
-  function handleTimeChange(day: DayKey, field: "open" | "close", val: string) {
+  function handleRangeChange(day: DayKey, rangeIndex: number, field: "open" | "close", val: string) {
+    const ranges = value[day].ranges.map((r, i) => (i === rangeIndex ? { ...r, [field]: val } : r));
+    onChange({ ...value, [day]: { ...value[day], ranges } });
+  }
+
+  function handleAddRange(day: DayKey) {
     onChange({
       ...value,
-      [day]: { ...value[day], [field]: val },
+      [day]: { ...value[day], ranges: [...value[day].ranges, { open: "09:00", close: "18:00" }] },
+    });
+  }
+
+  function handleRemoveRange(day: DayKey, rangeIndex: number) {
+    onChange({
+      ...value,
+      [day]: { ...value[day], ranges: value[day].ranges.filter((_, i) => i !== rangeIndex) },
     });
   }
 
@@ -103,11 +145,11 @@ export function OpeningHoursGrid({ value, onChange }: OpeningHoursGridProps) {
           day={day}
           isOdd={i % 2 !== 0}
           closed={value[day].closed}
-          open={value[day].open}
-          close={value[day].close}
+          ranges={value[day].ranges}
           onClosedToggle={() => handleClosedToggle(day)}
-          onOpenChange={(val) => handleTimeChange(day, "open", val)}
-          onCloseChange={(val) => handleTimeChange(day, "close", val)}
+          onRangeChange={(rangeIndex, field, val) => handleRangeChange(day, rangeIndex, field, val)}
+          onAddRange={() => handleAddRange(day)}
+          onRemoveRange={(rangeIndex) => handleRemoveRange(day, rangeIndex)}
         />
       ))}
     </div>

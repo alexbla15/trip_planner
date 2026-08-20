@@ -77,16 +77,55 @@
   width: 44px;
 }
 
+.rangeList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: opacity var(--duration-fast) var(--easing-out);
+}
+
+.rangeListDisabled {
+  opacity: 0.38;
+  pointer-events: none;
+}
+
 .timeInputs {
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: opacity var(--duration-fast) var(--easing-out);
 }
 
-.timeInputsDisabled {
-  opacity: 0.38;
-  pointer-events: none;
+.rangeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--duration-fast) var(--easing-out);
+}
+
+.rangeButton:hover:not(:disabled) {
+  color: var(--color-primary);
+}
+
+.removeRangeButton:hover:not(:disabled) {
+  color: var(--color-error);
+}
+
+.rangeButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.rangeButton:disabled {
+  cursor: not-allowed;
 }
 
 .timeInput {

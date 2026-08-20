@@ -294,10 +294,10 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                       <tr key={day} className={styles.hoursRow}>
                         <td className={styles.hoursDay}>{day}</td>
                         <td className={styles.hoursTime}>
-                          {row?.closed ? (
+                          {row?.closed || !row?.ranges?.length ? (
                             <span className={styles.closed}>Closed</span>
                           ) : (
-                            `${row?.open ?? "—"} – ${row?.close ?? "—"}`
+                            row.ranges.map((r) => `${r.open} – ${r.close}`).join(", ")
                           )}
                         </td>
                       </tr>

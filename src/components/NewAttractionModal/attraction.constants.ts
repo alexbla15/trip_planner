@@ -81,13 +81,13 @@ export const CATEGORY_COLORS: Record<string, string> = {
 export const DAY_KEYS: DayKey[] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export const DEFAULT_OPENING_HOURS: OpeningHours = {
-  Mon: { closed: false, open: "09:00", close: "18:00" },
-  Tue: { closed: false, open: "09:00", close: "18:00" },
-  Wed: { closed: false, open: "09:00", close: "18:00" },
-  Thu: { closed: false, open: "09:00", close: "18:00" },
-  Fri: { closed: false, open: "09:00", close: "18:00" },
-  Sat: { closed: false, open: "10:00", close: "17:00" },
-  Sun: { closed: true, open: "10:00", close: "17:00" },
+  Mon: { closed: false, ranges: [{ open: "09:00", close: "18:00" }] },
+  Tue: { closed: false, ranges: [{ open: "09:00", close: "18:00" }] },
+  Wed: { closed: false, ranges: [{ open: "09:00", close: "18:00" }] },
+  Thu: { closed: false, ranges: [{ open: "09:00", close: "18:00" }] },
+  Fri: { closed: false, ranges: [{ open: "09:00", close: "18:00" }] },
+  Sat: { closed: false, ranges: [{ open: "10:00", close: "17:00" }] },
+  Sun: { closed: true, ranges: [{ open: "10:00", close: "17:00" }] },
 };
 
 

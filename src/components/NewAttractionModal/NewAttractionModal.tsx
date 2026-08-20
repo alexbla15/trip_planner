@@ -27,7 +27,7 @@ import { CoverImageField } from "@/components";
 import { ModalShell } from "@/components/Modal";
 import { MapPicker } from "./MapPicker";
 import { OpeningHoursGrid } from "./OpeningHoursGrid";
-import { buildInitialHours, isValidUrl } from "@/lib";
+import { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h, isValidUrl } from "@/lib";
 import { useReverseGeocodeAutofill } from "@/hooks";
 import { filterCityOptions } from "./NewAttractionModal.utils";
 import styles from "./NewAttractionModal.module.css";
@@ -105,17 +105,16 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setDurationUnit(initialData?.durationUnit ?? "hours");
     setPrice(initialData?.price ?? null);
     setCurrency(initialData?.currency ?? "USD");
-    setOpeningHours(
-      (initialData?.openingHours as OpeningHours | undefined)?.Mon
-        ? structuredClone(initialData?.openingHours as OpeningHours)
-        : buildInitialHours()
-    );
+    const loadedHours = hasOpeningHoursData(initialData?.openingHours)
+      ? normalizeOpeningHours(initialData?.openingHours)
+      : buildInitialHours();
+    setOpeningHours(loadedHours);
     setNotes(initialData?.notes ?? "");
     setPhotoUrl(initialData?.photoUrl ?? "");
     setWebsiteUrl(initialData?.websiteUrl ?? "");
     setErrors({});
     setTouched({});
-    setIs24h(false);
+    setIs24h(isAllDay24h(loadedHours));
     // Pre-fill just the location (e.g. from a dropped map pin) without entering edit
     // mode — reuses the same reverse-geocode auto-fill as a user-driven map click.
     if (!initialData && initialCoordinates) {
@@ -129,7 +128,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     if (checked) {
       setOpeningHours(
         Object.fromEntries(
-          DAY_KEYS.map((d) => [d, { closed: false, open: "00:00", close: "23:59" }])
+          DAY_KEYS.map((d) => [d, { closed: false, ranges: [{ open: "00:00", close: "23:59" }] }])
         ) as OpeningHours
       );
     }
