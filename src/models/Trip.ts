@@ -58,8 +58,6 @@ export interface ITrip extends Document {
   schedules: Map<string, IScheduleEntry>;
   collaborators: ICollaborator[];
   isPrivate: boolean;
-  calDayStart?: number;
-  calDayEnd?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -116,8 +114,6 @@ const TripSchema = new Schema<ITrip>(
     },
     collaborators: { type: [CollaboratorSchema], default: [] },
     isPrivate:     { type: Boolean, default: false },
-    calDayStart:   { type: Number },
-    calDayEnd:     { type: Number },
   },
   { timestamps: true }
 );
@@ -184,8 +180,6 @@ export function formatTrip(doc: ITrip): import("@/types/trip").Trip {
         return { userId: u._id.toString(), name: u.name, email: u.email, avatarUrl: u.avatarUrl ?? null };
       }),
     isPrivate: doc.isPrivate ?? false,
-    calDayStart: doc.calDayStart,
-    calDayEnd:   doc.calDayEnd,
     createdAt: doc.createdAt?.toISOString(),
     updatedAt: doc.updatedAt?.toISOString(),
   };

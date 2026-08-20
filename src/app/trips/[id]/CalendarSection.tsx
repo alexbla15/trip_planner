@@ -9,7 +9,6 @@ import { useAttractionTypes } from "@/hooks";
 import { useToast } from "@/contexts/ToastContext";
 import {
   getFxRate,
-  updateTrip,
   addAttractionToTrip,
   updateTripAttractionSchedule,
   removeAttractionFromTrip,
@@ -55,9 +54,6 @@ const TripDayMapWidget = dynamic(
   }
 );
 
-/** Hour options for the day-range selects */
-const ALL_HOURS = Array.from({ length: 25 }, (_, i) => i); // 0..24
-
 type SidebarFilter = "all" | "scheduled" | "unscheduled";
 
 // ── Popup state type ──────────────────────────────────────────────────────────
@@ -99,23 +95,6 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   const [customSlotModalOpen, setCustomSlotModalOpen] = useState(false);
   const [editingCustomSlot, setEditingCustomSlot]     = useState<Attraction | null>(null);
 
-  // Day-range controls — initialized from DB (calDayStart/calDayEnd) if the user has
-  // already customized it; otherwise fit the window to the earliest start / latest end
-  // across the whole schedule (rounded out to whole hours), falling back to the fixed
-  // defaults only when nothing is scheduled yet. Computed once via the lazy useState
-  // initializer — later changes to `attractions` must not retroactively resize a window
-  // the user (or a prior save) may have already set.
-  const [dayStart, setDayStart] = useState(() => {
-    if (trip.calDayStart != null) return trip.calDayStart;
-    const bounds = computeScheduleHourBounds(attractions);
-    return bounds?.start ?? DEFAULT_DAY_START;
-  });
-  const [dayEnd, setDayEnd] = useState(() => {
-    if (trip.calDayEnd != null) return trip.calDayEnd;
-    const bounds = computeScheduleHourBounds(attractions);
-    return bounds?.end ?? DEFAULT_DAY_END;
-  });
-
   // Sidebar
   const [filter, setFilter]       = useState<SidebarFilter>("unscheduled");
   const [search, setSearch]       = useState("");
@@ -142,7 +121,15 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   const regularAttractions = local.filter((a) => a.subtype !== "custom-slot");
   const scheduled   = regularAttractions.filter((a) => !!a.plannedDate);
   const unscheduled = regularAttractions.filter((a) => !a.plannedDate);
-  const hourSlots   = makeHourSlots(dayStart, dayEnd);
+
+  // Day-range is fully derived from the current schedule — never user-editable — so it
+  // always tracks the earliest start / latest end across all scheduled attractions
+  // (including custom slots) and updates immediately on every add/move/remove/retime,
+  // falling back to the fixed defaults only when nothing is scheduled yet.
+  const scheduleBounds = useMemo(() => computeScheduleHourBounds(local), [local]);
+  const dayStart = scheduleBounds?.start ?? DEFAULT_DAY_START;
+  const dayEnd   = scheduleBounds?.end   ?? DEFAULT_DAY_END;
+  const hourSlots = makeHourSlots(dayStart, dayEnd);
 
   // Convert each scheduled attraction from its own currency to the trip currency before summing
   useEffect(() => {
@@ -436,30 +423,11 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
 
   const hasPending = pending.size > 0;
 
-  function saveCalRange(start: number, end: number) {
-    if (!token) return;
-    updateTrip(trip._id, token, { calDayStart: start, calDayEnd: end })
-      .catch(() => toast.error("Couldn't save the day range. Please try again."));
-  }
-
-  function handleDayStartChange(h: number) {
-    setDayStart(h);
-    saveCalRange(h, dayEnd);
-  }
-
-  function handleDayEndChange(h: number) {
-    setDayEnd(h);
-    saveCalRange(dayStart, h);
-  }
-
   const headerProps = {
     totalSpend, trip, canEdit,
     hasPending, saving, savedOk,
-    dayStart, dayEnd,
     showMap,
     onSave: handleSaveAll,
-    onDayStartChange: handleDayStartChange,
-    onDayEndChange: handleDayEndChange,
     onToggleMap: () => setShowMap((v) => !v),
     onAddCustomSlot: () => setCustomSlotModalOpen(true),
   };
@@ -878,12 +846,8 @@ interface HeaderProps {
   hasPending: boolean;
   saving: boolean;
   savedOk: boolean;
-  dayStart: number;
-  dayEnd: number;
   showMap: boolean;
   onSave: () => void;
-  onDayStartChange: (h: number) => void;
-  onDayEndChange: (h: number) => void;
   onToggleMap: () => void;
   onAddCustomSlot: () => void;
 }
@@ -891,34 +855,13 @@ interface HeaderProps {
 function Header({
   totalSpend, trip, canEdit,
   hasPending, saving, savedOk,
-  dayStart, dayEnd,
   showMap,
-  onSave, onDayStartChange, onDayEndChange, onToggleMap, onAddCustomSlot,
+  onSave, onToggleMap, onAddCustomSlot,
 }: HeaderProps) {
   return (
     <div className={styles.sectionHeadingRow}>
       <div className={styles.sectionIconCircle}><Calendar size={18} aria-hidden="true" /></div>
       <h2 className={styles.sectionHeading}>Trip Itinerary</h2>
-
-      {/* Day time range controls */}
-      <div className={styles.rangeControls}>
-        <label className={styles.rangeLabel} htmlFor="day-start">From</label>
-        <select id="day-start" className={styles.rangeSelect}
-          value={dayStart}
-          onChange={(e) => onDayStartChange(Number(e.target.value))}>
-          {ALL_HOURS.filter(h => h < dayEnd).map(h => (
-            <option key={h} value={h}>{String(h).padStart(2,"0")}:00</option>
-          ))}
-        </select>
-        <label className={styles.rangeLabel} htmlFor="day-end">To</label>
-        <select id="day-end" className={styles.rangeSelect}
-          value={dayEnd}
-          onChange={(e) => onDayEndChange(Number(e.target.value))}>
-          {ALL_HOURS.filter(h => h > dayStart).map(h => (
-            <option key={h} value={h}>{String(h).padStart(2,"0")}:00</option>
-          ))}
-        </select>
-      </div>
 
       <div className={styles.summaryBadges}>
         {canEdit && (

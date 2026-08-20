@@ -35,42 +35,6 @@
   margin: 0;
 }
 
-/* Day time range controls */
-.rangeControls {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: 12px;
-}
-
-.rangeLabel {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-tertiary);
-  white-space: nowrap;
-}
-
-.rangeSelect {
-  height: 28px;
-  padding: 0 6px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  font-size: 11px;
-  font-family: inherit;
-  color: var(--color-text-secondary);
-  appearance: none;
-  -webkit-appearance: none;
-  cursor: pointer;
-  transition: border-color var(--duration-fast) var(--easing-out);
-}
-
-.rangeSelect:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--color-primary-light);
-}
-
 .summaryBadges {
   display: flex;
   align-items: center;
@@ -269,11 +233,6 @@
   /* Compress heading row so controls don't overflow */
   .sectionHeadingRow {
     gap: 8px;
-  }
-
-  .rangeControls {
-    margin-left: 0;
-    flex-wrap: wrap;
   }
 
   .summaryBadges {

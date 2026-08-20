@@ -156,16 +156,6 @@ components:
           type: boolean
           default: false
           description: When true, the trip is visible only to the owner and collaborators.
-        calDayStart:
-          type: integer
-          minimum: 0
-          maximum: 23
-          description: First hour shown in the calendar day view (0–23). Persisted per trip.
-        calDayEnd:
-          type: integer
-          minimum: 1
-          maximum: 24
-          description: Last hour shown in the calendar day view (1–24, must be > calDayStart).
         createdAt:
           type: string
           format: date-time
@@ -224,16 +214,6 @@ components:
             owner-only, silently ignored if sent by a non-owner collaborator. Prefer the dedicated
             /api/trips/{id}/collaborators endpoints for single add/remove operations; this field
             is meant for the create/edit forms which batch all pending changes into one request.
-        calDayStart:
-          type: integer
-          minimum: 0
-          maximum: 23
-          description: First hour shown in the calendar day view.
-        calDayEnd:
-          type: integer
-          minimum: 1
-          maximum: 24
-          description: Last hour shown in the calendar day view (must be > calDayStart).
 
     # --- ATTRACTION SCHEMAS ---
     OpeningHoursRange:

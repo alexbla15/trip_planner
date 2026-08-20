@@ -120,15 +120,13 @@ interface UpdateTripInput {
   notes?: string;
   isPrivate?: boolean;
   collaboratorEmails?: string[];
-  calDayStart?: number;
-  calDayEnd?: number;
 }
 
 /** Updates a trip; only the owner or a collaborator may call this (collaboratorEmails changes are owner-only and silently ignored otherwise). */
 export async function updateTrip(payload: JwtPayload, tripId: string, body: UpdateTripInput): Promise<ITrip> {
   await dbConnect();
 
-  const { name, cities, country, coverImage, startDate, endDate, budget, currency, moods, notes, isPrivate, collaboratorEmails, calDayStart, calDayEnd } = body;
+  const { name, cities, country, coverImage, startDate, endDate, budget, currency, moods, notes, isPrivate, collaboratorEmails } = body;
 
   // Built explicitly — avoids Mongoose Map-field change-detection bugs on `schedules`.
   const $set: Record<string, unknown> = {};
@@ -143,8 +141,6 @@ export async function updateTrip(payload: JwtPayload, tripId: string, body: Upda
   if (moods) $set.moods = moods;
   if (notes !== undefined) $set.notes = notes;
   if (isPrivate !== undefined) $set.isPrivate = isPrivate;
-  if (calDayStart !== undefined) $set.calDayStart = calDayStart;
-  if (calDayEnd !== undefined) $set.calDayEnd = calDayEnd;
 
   if (collaboratorEmails !== undefined) {
     const isOwner = await Trip.exists({ _id: tripId, ownerId: payload.userId });

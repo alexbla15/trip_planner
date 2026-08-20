@@ -23,8 +23,6 @@ export interface Trip {
   attractionIds?: string[];
   collaborators: TripCollaborator[];
   isPrivate: boolean;
-  calDayStart?: number;
-  calDayEnd?: number;
   createdAt?: string;
   updatedAt?: string;
 }
