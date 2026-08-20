@@ -24,6 +24,7 @@ import {
   MapPin,
   SearchX,
   Check,
+  Eye,
 } from "lucide-react";
 import {
   MoodTagChip,
@@ -105,6 +106,11 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const [page, setPage] = useState(1);
+
+  // Lets an owner/collaborator preview the trip as a read-only viewer would see it,
+  // without changing the underlying role check (`canEdit` below) — session-only, no
+  // persistence. Rendered only when `canEdit` is true; non-editors have no toggle.
+  const [viewMode, setViewMode] = useState<"edit" | "readonly">("edit");
 
   const [activeTab, setActiveTab] = useState<TripTabId>("overview");
 
@@ -589,6 +595,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   const isOwner        = !!authUser && authUser._id === trip.ownerId;
   const isCollaborator = !!authUser && !isOwner && (trip.collaborators ?? []).some((c) => c.userId === authUser._id);
   const canEdit        = isOwner || isCollaborator;
+  const effectiveCanEdit = canEdit && viewMode === "edit";
 
   const flightAttractions    = attractions.filter((a) => a.subtype === "flight"    || a.types?.[0] === "Flight");
   const residenceAttractions = attractions.filter((a) => a.subtype === "residence");
@@ -619,7 +626,24 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
               <ChevronLeft size={16} aria-hidden="true" />
               My Trips
             </Link>
-            {isPrivate && <PrivateChip size="xl" />}
+            <div className={styles.heroTopBarEnd}>
+              {isPrivate && <PrivateChip size="xl" />}
+              {canEdit && (
+                <button
+                  type="button"
+                  className={`${styles.viewModeToggle} ${viewMode === "edit" ? styles.viewModeToggleActive : ""}`}
+                  onClick={() => setViewMode((m) => (m === "edit" ? "readonly" : "edit"))}
+                  aria-pressed={viewMode === "edit"}
+                  aria-label={viewMode === "edit" ? "Switch to read-only mode" : "Switch to edit mode"}
+                >
+                  {viewMode === "edit" ? (
+                    <><PenLine size={14} aria-hidden="true" />Edit mode</>
+                  ) : (
+                    <><Eye size={14} aria-hidden="true" />Read-only</>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Hero text — bottom of hero */}
@@ -745,7 +769,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                   attractions={attractions}
                   onAttractionsChange={setAttractions}
                   token={token ?? ""}
-                  canEdit={canEdit}
+                  canEdit={effectiveCanEdit}
                 />
               </>
             )}
@@ -753,7 +777,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
             {activeTab === "flights" && (
               <FlightsList
                 flights={flightAttractions}
-                canEdit={canEdit}
+                canEdit={effectiveCanEdit}
                 onAdd={() => setFlightModalOpen(true)}
                 onEdit={(a) => setEditingFlight(a)}
                 onRemove={handleRemoveAttraction}
@@ -764,7 +788,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
             {activeTab === "residences" && (
               <ResidencesList
                 residences={residenceAttractions}
-                canEdit={canEdit}
+                canEdit={effectiveCanEdit}
                 onAdd={() => setResidenceSearchOpen(true)}
                 onEdit={(a) => setEditingResidence(a)}
                 onRemove={handleRemoveAttraction}
@@ -777,7 +801,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                 <div className={styles.card}>
                   <div className={styles.attractionsHeader}>
                     <h2 className={styles.sectionHeading}>Attractions</h2>
-                    {canEdit && (
+                    {effectiveCanEdit && (
                       <button
                         className={styles.addBtn}
                         type="button"
@@ -900,7 +924,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                                     <Check size={14} aria-hidden="true" />
                                   </button>
                                 )}
-                                {canEdit && (
+                                {effectiveCanEdit && (
                                   <>
                                     <button
                                       type="button"

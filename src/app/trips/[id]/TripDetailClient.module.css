@@ -188,6 +188,57 @@
   outline-offset: 2px;
 }
 
+.heroTopBarEnd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Edit/read-only mode toggle — same glass-over-photo treatment as .heroEditBtn for
+   legibility over variable hero-image brightness, sized like a compact pill so it
+   sits comfortably next to PrivateChip. */
+.viewModeToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: background var(--duration-fast) var(--easing-out),
+    border-color var(--duration-fast) var(--easing-out);
+}
+
+.viewModeToggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.viewModeToggle:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.8);
+  outline-offset: 2px;
+}
+
+.viewModeToggleActive {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.viewModeToggleActive:hover {
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+
 .destination {
   font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
   font-size: clamp(24px, 4vw, 36px);

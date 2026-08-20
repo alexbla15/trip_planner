@@ -1,6 +1,6 @@
 # Task: Zoom-based city/attraction pin switching on Explore country map
 
-Status: intake
+Status: designing
 Track: A
 Track reason: new marker type (square city pins), new zoom-driven view logic — not an existing pattern in ExploreMapWidget or the design system
 
