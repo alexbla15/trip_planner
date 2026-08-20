@@ -49,7 +49,12 @@ function getClosedAlert(a: Attraction): ScheduleAlert | null {
   const planned = timeToMins(a.plannedTime);
   const open    = timeToMins(hours.open);
   const close   = timeToMins(hours.close);
-  if (planned < open || planned >= close) {
+  // An overnight range (e.g. 18:00-03:00) wraps past midnight, so "closed" is
+  // the gap between close and open rather than the region outside [open, close).
+  const isClosed = close < open
+    ? (planned >= close && planned < open)
+    : (planned < open || planned >= close);
+  if (isClosed) {
     return {
       id:      `closed-${a._id}`,
       type:    "closed",
