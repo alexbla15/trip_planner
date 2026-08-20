@@ -1,6 +1,6 @@
 import L from "leaflet";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Globe, MapPin } from "lucide-react";
+import { Globe, MapPin, Building2 } from "lucide-react";
 import { getIconComponent } from "@/components/IconPicker";
 import {
   MARKER_ICON_WHITE,
@@ -10,6 +10,7 @@ import {
   COUNTRY_MARKER_SIZE_PX,
   ATTRACTION_MARKER_SIZE_PX,
   CUSTOM_PIN_SIZE_PX,
+  CITY_MARKER_SIZE_PX,
 } from "./mapIcons.constants";
 
 export function makeCountryMarkerIcon(): L.DivIcon {
@@ -41,6 +42,21 @@ export function makeAttractionMarkerIcon(color: string, iconName: string, select
     html: `<div style="width:${ATTRACTION_MARKER_SIZE_PX}px;height:${ATTRACTION_MARKER_SIZE_PX}px;border-radius:50%;background:${color};border:${border};box-shadow:0 2px 6px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center">${svg}</div>`,
     iconSize: [ATTRACTION_MARKER_SIZE_PX, ATTRACTION_MARKER_SIZE_PX] as [number, number],
     iconAnchor: [ATTRACTION_MARKER_SIZE_PX / 2, ATTRACTION_MARKER_SIZE_PX / 2] as [number, number],
+    className: "",
+  });
+}
+
+// Aggregate pin for a city's worth of attractions, shown in country view when zoomed
+// out past CITY_PIN_ZOOM_THRESHOLD (see ExploreMapWidget.tsx) — square (vs. every
+// other marker's circle) so it reads as "not an individual place" at a glance, with
+// a count badge instead of an per-attraction pin flood.
+export function makeCityMarkerIcon(count: number): L.DivIcon {
+  let svg = "";
+  try { svg = renderToStaticMarkup(<Building2 size={16} color={MARKER_ICON_WHITE} aria-hidden="true" />); } catch { /* */ }
+  return L.divIcon({
+    html: `<div style="position:relative;width:${CITY_MARKER_SIZE_PX}px;height:${CITY_MARKER_SIZE_PX}px;border-radius:6px;background:${COUNTRY_MARKER_COLOR};border:2.5px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.22);display:flex;align-items:center;justify-content:center;cursor:pointer">${svg}<div style="position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 3px;border-radius:50%;background:#fff;color:${COUNTRY_MARKER_COLOR};font-size:10px;font-weight:700;font-family:inherit;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.3)">${count}</div></div>`,
+    iconSize: [CITY_MARKER_SIZE_PX, CITY_MARKER_SIZE_PX] as [number, number],
+    iconAnchor: [CITY_MARKER_SIZE_PX / 2, CITY_MARKER_SIZE_PX / 2] as [number, number],
     className: "",
   });
 }

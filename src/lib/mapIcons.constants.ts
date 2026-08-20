@@ -7,3 +7,4 @@ export const VISITED_BORDER_COLOR = "#059669";
 export const COUNTRY_MARKER_SIZE_PX = 40;
 export const ATTRACTION_MARKER_SIZE_PX = 30;
 export const CUSTOM_PIN_SIZE_PX = 32;
+export const CITY_MARKER_SIZE_PX = 36;

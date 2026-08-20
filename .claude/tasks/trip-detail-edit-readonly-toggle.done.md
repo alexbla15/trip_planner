@@ -61,3 +61,6 @@ This is a Next.js web app using CSS Modules (no Tailwind, no component library) 
 
 ## Completion Summary
 Owners/collaborators can now switch trips/[id] between "Edit mode" and "Read-only" via a toggle in the hero, which gates the same editing affordances non-editors already can't use, without touching the underlying role check or the separate trip-metadata editor. Confirmed by the user and closed 2026-08-20.
+
+## Revision (post-close user feedback)
+User corrected the "Edit trip" decision above — it should be hidden in read-only mode too, not exempted. Changed its gate from `canEdit` to `effectiveCanEdit` in `TripDetailClient.tsx`. Verified live: visible in edit mode, hidden after switching to read-only.

@@ -948,6 +948,7 @@ export function ExploreClient() {
           cities={cities}
           attractions={view === "country" ? filteredCountryAttractions : filteredAttractions}
           onCountryClick={handleCountrySelect}
+          onCityClick={handleCitySelect}
           onAttractionClick={handleAttractionMarkerClick}
           mapRef={mapRef}
           measureMode={measureMode}

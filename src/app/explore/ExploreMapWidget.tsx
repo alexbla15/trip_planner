@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useMemo, type MutableRefObject } from "react";
 import { MapContainer, TileLayer, Marker, Tooltip, Circle, Polyline, GeoJSON as GeoJSONLayer, useMap, useMapEvents } from "react-leaflet";
+import type { LatLngBounds } from "leaflet";
 import type { GeoJsonObject } from "geojson";
 import { useAttractionTypes } from "@/hooks";
 import { getCityBoundary, getCountryBoundary } from "@/services";
 import type { TravelMode, RouteLeg } from "@/services";
-import { makeCountryMarkerIcon, makeAttractionMarkerIcon, makeCustomPinIcon } from "@/lib/mapIcons";
+import { makeCountryMarkerIcon, makeAttractionMarkerIcon, makeCustomPinIcon, makeCityMarkerIcon } from "@/lib/mapIcons";
 import { colorForBoundaryIndex } from "@/lib/mapBoundaryColors";
 import { fixLeafletDefaultIcon } from "@/lib/leafletIconFix";
 import { TRAVEL_MODE_COLORS } from "@/lib/travelModeColors";
@@ -17,13 +18,35 @@ import "leaflet/dist/leaflet.css";
 
 const MEASURE_MODE_COLORS = TRAVEL_MODE_COLORS;
 
+// Below this zoom level, country view shows one aggregate pin per city instead of
+// every individual attraction pin. Deliberately close to the city flyTo zoom (13) in
+// MapController rather than merely "above the country flyTo zoom (5)" — for a small
+// country, the visible viewport at zoom ~9-11 still spans nearly the whole country, so
+// crossing the threshold there would dump every attraction in the country onto the map
+// at once (the viewport-bounds filter alone isn't enough if the viewport itself hasn't
+// actually narrowed to a city-sized area yet). At 12, the viewport is close to city
+// scale, so individual pins only appear once they're meaningfully region-scoped.
+const CITY_PIN_ZOOM_THRESHOLD = 12;
+
 // Clicking the map while in measure mode drops/replaces the custom pin — a plain
-// useMapEvents click handler, same pattern already used for zoomend in ZoomWatcher.
+// useMapEvents click handler, same pattern already used for zoomend/moveend in ViewportWatcher.
 function MeasureClickWatcher({ active, onMapClick }: { active: boolean; onMapClick: (lat: number, lng: number) => void }) {
   useMapEvents({
     click: (e) => {
       if (active) onMapClick(e.latlng.lat, e.latlng.lng);
     },
+  });
+  return null;
+}
+
+// Tracks the map's current zoom level and visible bounds — zoom drives the city-pin
+// vs. individual-attraction-pin switch at CITY_PIN_ZOOM_THRESHOLD, and bounds limits
+// the individual pins rendered to the currently visible region instead of every
+// attraction in the whole country (which stays true even after zooming in on one area).
+function ViewportWatcher({ onChange }: { onChange: (zoom: number, bounds: LatLngBounds) => void }) {
+  useMapEvents({
+    zoomend: (e) => onChange(e.target.getZoom(), e.target.getBounds()),
+    moveend: (e) => onChange(e.target.getZoom(), e.target.getBounds()),
   });
   return null;
 }
@@ -61,6 +84,7 @@ interface ExploreMapWidgetProps {
   cities: CityEntry[];
   attractions: Attraction[];
   onCountryClick: (country: CountryEntry) => void;
+  onCityClick: (city: CityEntry) => void;
   onAttractionClick: (attraction: Attraction) => void;
   mapRef: MutableRefObject<MapHandle | null>;
   measureMode: boolean;
@@ -78,6 +102,7 @@ export function ExploreMapWidget({
   cities,
   attractions,
   onCountryClick,
+  onCityClick,
   onAttractionClick,
   mapRef,
   measureMode,
@@ -128,7 +153,26 @@ export function ExploreMapWidget({
     [cities, selectedCity, selectedCountry]
   );
 
+  const citiesInSelectedCountry = useMemo(
+    () => (selectedCountry ? cities.filter((c) => c.country === selectedCountry) : []),
+    [cities, selectedCountry]
+  );
+
+  const [zoom, setZoom] = useState(2);
+  const [bounds, setBounds] = useState<LatLngBounds | null>(null);
+
   const view = selectedCity ? "city" : selectedCountry ? "country" : "world";
+  const showCityPins = view === "country" && zoom < CITY_PIN_ZOOM_THRESHOLD;
+
+  // Once zoomed in (city-pin threshold crossed, or already in city view), only render
+  // attractions actually within the visible map area — not every attraction in the
+  // whole country — so panning/zooming around a region shows just that region's pins.
+  const visibleAttractions = useMemo(() => {
+    if (!bounds) return attractions;
+    return attractions.filter(
+      (a) => a.coordinates && bounds.contains([a.coordinates.lat, a.coordinates.lng])
+    );
+  }, [attractions, bounds]);
 
   return (
     <MapContainer
@@ -144,6 +188,7 @@ export function ExploreMapWidget({
       />
       <MapController mapRef={mapRef} />
       <MeasureClickWatcher active={measureMode} onMapClick={onMeasureMapClick} />
+      <ViewportWatcher onChange={(z, b) => { setZoom(z); setBounds(b); }} />
 
       {/* ── World view: real country polygon (or circle while loading) + pin ── */}
       {view === "world" &&
@@ -259,8 +304,25 @@ export function ExploreMapWidget({
           }}
         />
       )}
-      {(view === "country" || view === "city") &&
-        attractions.map((a) => {
+      {/* ── Country view, zoomed out: one aggregate square pin per city instead of
+          every individual attraction pin — crossing CITY_PIN_ZOOM_THRESHOLD reveals
+          the attraction pins below instead. ── */}
+      {showCityPins &&
+        citiesInSelectedCountry.map((c) => (
+          <Marker
+            key={`city-${c.name}`}
+            position={[c.lat, c.lng]}
+            icon={makeCityMarkerIcon(c.count)}
+            eventHandlers={{ click: () => onCityClick(c) }}
+          >
+            <Tooltip direction="top" offset={[0, -22]}>
+              <strong>{c.name}</strong>
+              {" · "}{c.count} attraction{c.count !== 1 ? "s" : ""}
+            </Tooltip>
+          </Marker>
+        ))}
+      {(view === "city" || (view === "country" && !showCityPins)) &&
+        visibleAttractions.map((a) => {
           if (!a.coordinates) return null;
           const typeRecord = findType(a.types?.[0] ?? "");
           const color    = typeRecord?.color   ?? "#64748B";

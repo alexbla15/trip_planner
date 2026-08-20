@@ -1,6 +1,6 @@
 # Goal: Scheduling, Hours & Map Fixes
 
-Status: in progress
+Status: done
 
 Batch of six fixes/enhancements to itinerary scheduling correctness (opening hours, calendar range, auto-placement), trip access control, and the Explore map's pin density at country zoom.
 
@@ -10,7 +10,7 @@ Batch of six fixes/enhancements to itinerary scheduling correctness (opening hou
 - [x] .claude/tasks/calendar-auto-range-controls.done.md
 - [x] .claude/tasks/attraction-assign-append-to-day.done.md
 - [x] .claude/tasks/trip-detail-edit-readonly-toggle.done.md
-- [ ] .claude/tasks/explore-map-city-zoom-clustering.md
+- [x] .claude/tasks/explore-map-city-zoom-clustering.done.md
 
 ## Plan
 1. **Opening-hours midnight-wraparound fix** — correctness bug in `getClosedAlert`; fix first since it's the most isolated and other hours work builds on the same function.
