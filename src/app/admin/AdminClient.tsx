@@ -4,8 +4,8 @@ import { useState } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Shield, Plus, Pencil, Trash2, Check, X as XIcon,
-  Loader2, ChevronDown, AlertCircle, Tag, Smile, Layers, RefreshCw,
+  Shield, Plus, Pencil, Trash2,
+  Loader2, ChevronDown, Tag, Smile, Layers, RefreshCw,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
@@ -42,6 +42,7 @@ import {
   moodFormFromRecord,
 } from "@/lib";
 import type { AttractionCategoryRecord } from "@/types/attractionCategory";
+import { AdminEntityForm } from "./AdminEntityForm";
 import styles from "./AdminClient.module.css";
 
 // ── Attraction Type form ───────────────────────────────────────────────────────
@@ -66,113 +67,83 @@ function TypeForm({
   onCancel: () => void;
 }) {
   const [form, setForm] = useState<TypeFormState>(initial);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
 
   function set(key: keyof TypeFormState, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  async function handleSave() {
+  function validate(): string | null {
     if (!form.name.trim() || !form.categoryId.trim() || !form.icon.trim()) {
-      setError("Name, category, and icon are required.");
-      return;
+      return "Name, category, and icon are required.";
     }
-    setSaving(true);
-    setError("");
+    return null;
+  }
 
+  async function handleSave() {
     const payload = {
       name:       form.name.trim(),
       categoryId: form.categoryId.trim(),
       icon:       form.icon.trim(),
       subtype:    form.subtype || null,
     };
-    try {
-      if (typeId) await updateAttractionType(typeId, token, payload);
-      else await createAttractionType(token, payload);
-    } catch (err) {
-      const body = err instanceof ApiError ? (err.body as { error?: string } | null) : null;
-      setError(body?.error ?? (typeId ? "Failed to update" : "Failed to create"));
-      setSaving(false);
-      return;
-    }
-
+    if (typeId) await updateAttractionType(typeId, token, payload);
+    else await createAttractionType(token, payload);
     invalidateAttractionTypesCache();
-    onDone();
   }
 
   return (
-    <div className={styles.formCard}>
-      <div className={styles.formGrid}>
-        {/* Name */}
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>Name *</label>
-          <input
-            className={styles.input}
-            value={form.name}
-            onChange={(e) => set("name", e.target.value)}
-            placeholder="e.g. Restaurant"
-          />
-        </div>
-
-        {/* Category */}
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>Category *</label>
-          <div className={styles.selectWrap}>
-            <select
-              className={styles.select}
-              value={form.categoryId}
-              onChange={(e) => set("categoryId", e.target.value)}
-            >
-              <option value="">— select a category —</option>
-              {availableCategories.map((c) => (
-                <option key={c._id} value={c._id}>{c.name}</option>
-              ))}
-            </select>
-            <ChevronDown size={13} className={styles.selectCaret} aria-hidden="true" />
-          </div>
-          {availableCategories.length === 0 && (
-            <p className={styles.fieldHint}>No categories yet — create one in the Categories section first.</p>
-          )}
-        </div>
-
-        {/* Type icon */}
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>Icon *</label>
-          <IconPicker value={form.icon} onChange={(v) => set("icon", v)} />
-        </div>
-
-        {/* Subtype */}
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>Subtype</label>
-          <div className={styles.selectWrap}>
-            <select className={styles.select} value={form.subtype} onChange={(e) => set("subtype", e.target.value)}>
-              <option value="">None</option>
-              <option value="flight">flight</option>
-              <option value="residence">residence</option>
-            </select>
-            <ChevronDown size={13} className={styles.selectCaret} aria-hidden="true" />
-          </div>
-        </div>
-
+    <AdminEntityForm validate={validate} onSave={handleSave} onDone={onDone} onCancel={onCancel} isEditing={!!typeId}>
+      {/* Name */}
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Name *</label>
+        <input
+          className={styles.input}
+          value={form.name}
+          onChange={(e) => set("name", e.target.value)}
+          placeholder="e.g. Restaurant"
+        />
       </div>
 
-      {error && (
-        <p className={styles.formError}>
-          <AlertCircle size={13} aria-hidden="true" /> {error}
-        </p>
-      )}
-
-      <div className={styles.formActions}>
-        <button type="button" className={styles.cancelBtn} onClick={onCancel} disabled={saving}>
-          <XIcon size={14} /> Cancel
-        </button>
-        <button type="button" className={styles.saveBtn} onClick={handleSave} disabled={saving}>
-          {saving ? <Loader2 size={14} className={styles.spin} /> : <Check size={14} />}
-          {typeId ? "Update" : "Create"}
-        </button>
+      {/* Category */}
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Category *</label>
+        <div className={styles.selectWrap}>
+          <select
+            className={styles.select}
+            value={form.categoryId}
+            onChange={(e) => set("categoryId", e.target.value)}
+          >
+            <option value="">— select a category —</option>
+            {availableCategories.map((c) => (
+              <option key={c._id} value={c._id}>{c.name}</option>
+            ))}
+          </select>
+          <ChevronDown size={13} className={styles.selectCaret} aria-hidden="true" />
+        </div>
+        {availableCategories.length === 0 && (
+          <p className={styles.fieldHint}>No categories yet — create one in the Categories section first.</p>
+        )}
       </div>
-    </div>
+
+      {/* Type icon */}
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Icon *</label>
+        <IconPicker value={form.icon} onChange={(v) => set("icon", v)} />
+      </div>
+
+      {/* Subtype */}
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Subtype</label>
+        <div className={styles.selectWrap}>
+          <select className={styles.select} value={form.subtype} onChange={(e) => set("subtype", e.target.value)}>
+            <option value="">None</option>
+            <option value="flight">flight</option>
+            <option value="residence">residence</option>
+          </select>
+          <ChevronDown size={13} className={styles.selectCaret} aria-hidden="true" />
+        </div>
+      </div>
+    </AdminEntityForm>
   );
 }
 
@@ -196,85 +167,55 @@ function CategoryForm({
   onCancel: () => void;
 }) {
   const [form, setForm] = useState<CategoryFormState>(initial);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
 
   function set(key: keyof CategoryFormState, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  async function handleSave() {
+  function validate(): string | null {
     if (!form.name.trim() || !form.icon.trim() || !form.color.trim()) {
-      setError("Name, icon, and color are required.");
-      return;
+      return "Name, icon, and color are required.";
     }
-    setSaving(true);
-    setError("");
+    return null;
+  }
 
+  async function handleSave() {
     const payload = {
       name:  form.name.trim(),
       icon:  form.icon.trim(),
       color: form.color.trim(),
     };
-    try {
-      if (catId) await updateAttractionCategory(catId, token, payload);
-      else await createAttractionCategory(token, payload);
-    } catch (err) {
-      const body = err instanceof ApiError ? (err.body as { error?: string } | null) : null;
-      setError(body?.error ?? (catId ? "Failed to update" : "Failed to create"));
-      setSaving(false);
-      return;
-    }
-
+    if (catId) await updateAttractionCategory(catId, token, payload);
+    else await createAttractionCategory(token, payload);
     invalidateAttractionCategoriesCache();
     invalidateAttractionTypesCache();
-    onDone();
   }
 
   return (
-    <div className={styles.formCard}>
-      <div className={styles.formGrid}>
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>Name *</label>
-          <input
-            className={styles.input}
-            value={form.name}
-            onChange={(e) => set("name", e.target.value)}
-            placeholder="e.g. Food & Drink"
-          />
-        </div>
-
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>Icon *</label>
-          <IconPicker value={form.icon} onChange={(v) => set("icon", v)} />
-        </div>
-
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>Color *</label>
-          <div className={styles.colorRow}>
-            <input type="color" className={styles.colorPicker} value={form.color} onChange={(e) => set("color", e.target.value)} />
-            <input className={styles.input} value={form.color} onChange={(e) => set("color", e.target.value)} placeholder="#F59E0B" />
-          </div>
-        </div>
-
+    <AdminEntityForm validate={validate} onSave={handleSave} onDone={onDone} onCancel={onCancel} isEditing={!!catId}>
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Name *</label>
+        <input
+          className={styles.input}
+          value={form.name}
+          onChange={(e) => set("name", e.target.value)}
+          placeholder="e.g. Food & Drink"
+        />
       </div>
 
-      {error && (
-        <p className={styles.formError}>
-          <AlertCircle size={13} aria-hidden="true" /> {error}
-        </p>
-      )}
-
-      <div className={styles.formActions}>
-        <button type="button" className={styles.cancelBtn} onClick={onCancel} disabled={saving}>
-          <XIcon size={14} /> Cancel
-        </button>
-        <button type="button" className={styles.saveBtn} onClick={handleSave} disabled={saving}>
-          {saving ? <Loader2 size={14} className={styles.spin} /> : <Check size={14} />}
-          {catId ? "Update" : "Create"}
-        </button>
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Icon *</label>
+        <IconPicker value={form.icon} onChange={(v) => set("icon", v)} />
       </div>
-    </div>
+
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Color *</label>
+        <div className={styles.colorRow}>
+          <input type="color" className={styles.colorPicker} value={form.color} onChange={(e) => set("color", e.target.value)} />
+          <input className={styles.input} value={form.color} onChange={(e) => set("color", e.target.value)} placeholder="#F59E0B" />
+        </div>
+      </div>
+    </AdminEntityForm>
   );
 }
 
@@ -296,21 +237,19 @@ function MoodTagForm({
   onCancel: () => void;
 }) {
   const [form, setForm] = useState<MoodTagFormState>(initial);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
 
   function set(key: keyof MoodTagFormState, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  async function handleSave() {
+  function validate(): string | null {
     if (!form.name.trim() || !form.icon.trim()) {
-      setError("Name and icon are required.");
-      return;
+      return "Name and icon are required.";
     }
-    setSaving(true);
-    setError("");
+    return null;
+  }
 
+  async function handleSave() {
     const payload = {
       name: form.name.trim(),
       icon: form.icon.trim(),
@@ -319,88 +258,60 @@ function MoodTagForm({
       darkColor: form.darkColor.trim(),
       darkBgColor: form.darkBgColor.trim(),
     };
-    try {
-      if (tagId) await updateMoodTag(tagId, token, payload);
-      else await createMoodTag(token, payload);
-    } catch (err) {
-      const body = err instanceof ApiError ? (err.body as { error?: string } | null) : null;
-      setError(body?.error ?? (tagId ? "Failed to update" : "Failed to create"));
-      setSaving(false);
-      return;
-    }
-
+    if (tagId) await updateMoodTag(tagId, token, payload);
+    else await createMoodTag(token, payload);
     invalidateMoodTagsCache();
-    onDone();
   }
 
   return (
-    <div className={styles.formCard}>
-      <div className={styles.formGrid}>
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>Name *</label>
-          <input
-            className={styles.input}
-            value={form.name}
-            onChange={(e) => set("name", e.target.value)}
-            placeholder="e.g. Adventure"
-          />
-        </div>
-
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>Icon *</label>
-          <IconPicker value={form.icon} onChange={(v) => set("icon", v)} />
-        </div>
-
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>Text color (light)</label>
-          <div className={styles.colorRow}>
-            <input type="color" className={styles.colorPicker} value={form.color} onChange={(e) => set("color", e.target.value)} />
-            <input className={styles.input} value={form.color} onChange={(e) => set("color", e.target.value)} placeholder="#888888" />
-          </div>
-        </div>
-
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>Background (light)</label>
-          <div className={styles.colorRow}>
-            <input type="color" className={styles.colorPicker} value={form.bgColor} onChange={(e) => set("bgColor", e.target.value)} />
-            <input className={styles.input} value={form.bgColor} onChange={(e) => set("bgColor", e.target.value)} placeholder="#f5f5f5" />
-          </div>
-        </div>
-
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>Text color (dark)</label>
-          <div className={styles.colorRow}>
-            <input type="color" className={styles.colorPicker} value={form.darkColor} onChange={(e) => set("darkColor", e.target.value)} />
-            <input className={styles.input} value={form.darkColor} onChange={(e) => set("darkColor", e.target.value)} placeholder="#cccccc" />
-          </div>
-        </div>
-
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>Background (dark)</label>
-          <div className={styles.colorRow}>
-            <input type="color" className={styles.colorPicker} value={form.darkBgColor} onChange={(e) => set("darkBgColor", e.target.value)} />
-            <input className={styles.input} value={form.darkBgColor} onChange={(e) => set("darkBgColor", e.target.value)} placeholder="#333333" />
-          </div>
-        </div>
-
+    <AdminEntityForm validate={validate} onSave={handleSave} onDone={onDone} onCancel={onCancel} isEditing={!!tagId}>
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Name *</label>
+        <input
+          className={styles.input}
+          value={form.name}
+          onChange={(e) => set("name", e.target.value)}
+          placeholder="e.g. Adventure"
+        />
       </div>
 
-      {error && (
-        <p className={styles.formError}>
-          <AlertCircle size={13} aria-hidden="true" /> {error}
-        </p>
-      )}
-
-      <div className={styles.formActions}>
-        <button type="button" className={styles.cancelBtn} onClick={onCancel} disabled={saving}>
-          <XIcon size={14} /> Cancel
-        </button>
-        <button type="button" className={styles.saveBtn} onClick={handleSave} disabled={saving}>
-          {saving ? <Loader2 size={14} className={styles.spin} /> : <Check size={14} />}
-          {tagId ? "Update" : "Create"}
-        </button>
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Icon *</label>
+        <IconPicker value={form.icon} onChange={(v) => set("icon", v)} />
       </div>
-    </div>
+
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Text color (light)</label>
+        <div className={styles.colorRow}>
+          <input type="color" className={styles.colorPicker} value={form.color} onChange={(e) => set("color", e.target.value)} />
+          <input className={styles.input} value={form.color} onChange={(e) => set("color", e.target.value)} placeholder="#888888" />
+        </div>
+      </div>
+
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Background (light)</label>
+        <div className={styles.colorRow}>
+          <input type="color" className={styles.colorPicker} value={form.bgColor} onChange={(e) => set("bgColor", e.target.value)} />
+          <input className={styles.input} value={form.bgColor} onChange={(e) => set("bgColor", e.target.value)} placeholder="#f5f5f5" />
+        </div>
+      </div>
+
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Text color (dark)</label>
+        <div className={styles.colorRow}>
+          <input type="color" className={styles.colorPicker} value={form.darkColor} onChange={(e) => set("darkColor", e.target.value)} />
+          <input className={styles.input} value={form.darkColor} onChange={(e) => set("darkColor", e.target.value)} placeholder="#cccccc" />
+        </div>
+      </div>
+
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Background (dark)</label>
+        <div className={styles.colorRow}>
+          <input type="color" className={styles.colorPicker} value={form.darkBgColor} onChange={(e) => set("darkBgColor", e.target.value)} />
+          <input className={styles.input} value={form.darkBgColor} onChange={(e) => set("darkBgColor", e.target.value)} placeholder="#333333" />
+        </div>
+      </div>
+    </AdminEntityForm>
   );
 }
 

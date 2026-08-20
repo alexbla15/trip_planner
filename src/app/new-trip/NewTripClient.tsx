@@ -7,32 +7,22 @@ import { useRouter } from "next/navigation";
 import {
   Plane,
   ChevronLeft,
-  PenLine,
-  Globe,
-  Calendar,
-  Clock,
-  DollarSign,
-  Sparkles,
-  FileText,
   ArrowRight,
   AlertCircle,
   Plus,
   Map,
   X,
-  ChevronDown,
 } from "lucide-react";
 import {
   AttractionPickerModal,
-  MoodTagButton,
   renderTypeIcon,
-  COUNTRIES,
   CoverImageField,
   isValidCoverUrl,
-  CurrencySelect,
   TripSharingPanel,
+  TripDetailsForm,
 } from "@/components";
 import type { AttractionFormData } from "@/components";
-import { useAttractionTypes, useMoodTags } from "@/hooks";
+import { useAttractionTypes } from "@/hooks";
 import { useAuth } from "@/contexts/AuthContext";
 import { createTrip, ApiError } from "@/services";
 import { NOTES_MAX, getDurationDays, getDateError, getNotesCountLevel } from "@/lib";
@@ -43,7 +33,6 @@ import styles from "./NewTripClient.module.css";
 export function NewTripClient() {
   const { token } = useAuth();
   const router = useRouter();
-  const { tags: moodTags } = useMoodTags();
   const { findType } = useAttractionTypes();
 
   const [tripName, setTripName] = useState("");
@@ -137,8 +126,6 @@ export function NewTripClient() {
     }
   }
 
-  const showMoodError = touched.moods && moods.length === 0;
-
   return (
     <>
       <main className={styles.page}>
@@ -166,191 +153,30 @@ export function NewTripClient() {
             <div className={styles.formCard}>
               <h2 className={styles.sectionHeading}>Trip Details</h2>
 
-              {/* Trip name */}
-              <div className={styles.field}>
-                <label htmlFor="trip-name" className={styles.label}>
-                  <PenLine size={14} aria-hidden="true" />
-                  Trip name
-                  <span className={styles.required} aria-hidden="true"> *</span>
-                </label>
-                <input
-                  id="trip-name"
-                  type="text"
-                  placeholder="e.g. Paris Summer Adventure"
-                  value={tripName}
-                  onChange={(e) => setTripName(e.target.value)}
-                  onBlur={() => handleBlur("tripName")}
-                  className={`${styles.input} ${touched.tripName && !tripName.trim() ? styles.inputError : ""}`}
-                  aria-required="true"
-                  aria-describedby={touched.tripName && !tripName.trim() ? "error-name" : undefined}
-                />
-                {touched.tripName && !tripName.trim() && (
-                  <p id="error-name" className={styles.errorMsg} role="alert">
-                    <AlertCircle size={12} aria-hidden="true" />
-                    Trip name is required
-                  </p>
-                )}
-              </div>
-
-              {/* Destination */}
-              <div className={styles.field}>
-                <label htmlFor="trip-country" className={styles.label}>
-                  <Globe size={14} aria-hidden="true" />
-                  Destination
-                  <span className={styles.required} aria-hidden="true"> *</span>
-                </label>
-                <div className={styles.selectWrapper}>
-                  <select
-                    id="trip-country"
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                    onBlur={() => handleBlur("country")}
-                    className={`${styles.select} ${touched.country && !country ? styles.inputError : ""}`}
-                    aria-required="true"
-                    aria-describedby={touched.country && !country ? "error-country" : undefined}
-                  >
-                    <option value="">Select a country…</option>
-                    {COUNTRIES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={16} className={styles.selectIcon} aria-hidden="true" />
-                </div>
-                {touched.country && !country && (
-                  <p id="error-country" className={styles.errorMsg} role="alert">
-                    <AlertCircle size={12} aria-hidden="true" />
-                    Destination is required
-                  </p>
-                )}
-              </div>
-
-              {/* Dates */}
-              <div className={styles.field}>
-                <span id="dates-label" className={styles.label}>
-                  <Calendar size={14} aria-hidden="true" />
-                  Dates
-                  <span className={styles.required} aria-hidden="true"> *</span>
-                </span>
-                <div className={styles.dateRow}>
-                  <div>
-                    <span className={styles.dateSubLabel}>Start</span>
-                    <input
-                      id="trip-start-date"
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      onBlur={() => handleBlur("startDate")}
-                      className={`${styles.input} ${touched.startDate && !startDate ? styles.inputError : ""}`}
-                      aria-label="Start date"
-                      aria-required="true"
-                    />
-                  </div>
-                  <div>
-                    <span className={styles.dateSubLabel}>End</span>
-                    <input
-                      id="trip-end-date"
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      onBlur={() => handleBlur("endDate")}
-                      className={`${styles.input} ${(touched.endDate && !endDate) || (touched.endDate && dateError) ? styles.inputError : ""}`}
-                      aria-label="End date"
-                      aria-required="true"
-                    />
-                  </div>
-                </div>
-                {(touched.endDate || touched.startDate) && dateError && (
-                  <p className={styles.errorMsg} role="alert">
-                    <AlertCircle size={12} aria-hidden="true" />
-                    {dateError}
-                  </p>
-                )}
-                <div aria-live="polite">
-                  {durationDays !== null && (
-                    <span className={styles.durationPill}>
-                      <Clock size={13} aria-hidden="true" />
-                      {durationDays} {durationDays === 1 ? "day" : "days"}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Budget */}
-              <div className={styles.field}>
-                <label htmlFor="trip-budget" className={styles.label}>
-                  <DollarSign size={14} aria-hidden="true" />
-                  Budget
-                </label>
-                <div className={styles.currencyRow}>
-                  <CurrencySelect value={currency} onChange={setCurrency} />
-                  <input
-                    id="trip-budget"
-                    type="number"
-                    min="0"
-                    step="1"
-                    placeholder="0"
-                    value={budget}
-                    onChange={(e) => setBudget(e.target.value)}
-                    className={styles.currencyInput}
-                    aria-label="Total budget amount"
-                  />
-                </div>
-              </div>
-
-              {/* Travel mood */}
-              <div className={styles.field}>
-                <span id="mood-label" className={styles.label}>
-                  <Sparkles size={14} aria-hidden="true" />
-                  Travel mood
-                  <span className={styles.required} aria-hidden="true"> *</span>
-                </span>
-                <p className={styles.fieldHint}>Select at least one</p>
-                <div
-                  className={styles.moodGroup}
-                  role="group"
-                  aria-labelledby="mood-label"
-                  aria-describedby={showMoodError ? "error-moods" : undefined}
-                >
-                  {moodTags.map((t) => (
-                    <MoodTagButton
-                      key={t.name}
-                      tag={t.name}
-                      selected={moods.includes(t.name)}
-                      onToggle={handleMoodToggle}
-                    />
-                  ))}
-                </div>
-                {showMoodError && (
-                  <p id="error-moods" className={styles.errorMsg} role="alert">
-                    <AlertCircle size={12} aria-hidden="true" />
-                    Select at least one travel mood
-                  </p>
-                )}
-              </div>
-
-              {/* Notes */}
-              <div className={styles.field}>
-                <label htmlFor="trip-notes" className={styles.label}>
-                  <FileText size={14} aria-hidden="true" />
-                  Notes
-                </label>
-                <textarea
-                  id="trip-notes"
-                  rows={4}
-                  maxLength={NOTES_MAX}
-                  placeholder="Anything special about this trip…"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className={styles.textarea}
-                />
-                <p
-                  className={`${styles.charCount} ${notesLevel === "error" ? styles.charCountError : notesLevel === "warn" ? styles.charCountWarning : ""}`}
-                  aria-live="polite"
-                  aria-atomic="true"
-                >
-                  {notes.length} / {NOTES_MAX}
-                </p>
-              </div>
+              <TripDetailsForm
+                idPrefix="trip"
+                tripName={tripName}
+                onTripNameChange={setTripName}
+                country={country}
+                onCountryChange={setCountry}
+                startDate={startDate}
+                onStartDateChange={setStartDate}
+                endDate={endDate}
+                onEndDateChange={setEndDate}
+                dateError={dateError}
+                durationDays={durationDays}
+                budget={budget}
+                onBudgetChange={setBudget}
+                currency={currency}
+                onCurrencyChange={setCurrency}
+                moods={moods}
+                onMoodToggle={handleMoodToggle}
+                notes={notes}
+                onNotesChange={setNotes}
+                notesLevel={notesLevel}
+                touched={touched}
+                onBlur={handleBlur}
+              />
 
               {/* Cover photo URL */}
               <CoverImageField

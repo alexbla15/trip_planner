@@ -34,12 +34,12 @@ import {
   AttractionDetailModal,
   AttractionSearchModal,
   AttractionFilter,
-  DEFAULT_OPENING_HOURS,
   renderTypeIcon,
   TripTabBar,
   FormErrorBanner,
   ImageWithSkeleton,
   WebsiteLinkButton,
+  attractionToFormData,
 } from "@/components";
 import type {
   ResidenceFormData,
@@ -49,8 +49,6 @@ import type {
   FlightInitialData,
   AttractionFormData,
   AttractionType,
-  DurationUnit,
-  OpeningHours,
 } from "@/components";
 import { FlightsList } from "./FlightsList";
 import { ResidencesList } from "./ResidencesList";
@@ -336,26 +334,6 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     } catch {
       setActionError("Couldn't save the attraction. Please try again.");
     }
-  }
-
-  function attractionToFormData(a: Attraction): AttractionFormData {
-    return {
-      name: a.name,
-      country: a.country,
-      city: a.city ?? "",
-      coordinates: a.coordinates ?? null,
-      types: (a.types ?? []) as AttractionType[],
-      durationValue: a.durationValue ?? "",
-      durationUnit: (a.durationUnit ?? "hours") as DurationUnit,
-      price: a.price ?? null,
-      currency: a.currency ?? "USD",
-      openingHours: (a.openingHours as OpeningHours | undefined)?.Mon
-        ? (a.openingHours as OpeningHours)
-        : structuredClone(DEFAULT_OPENING_HOURS),
-      notes: a.notes ?? "",
-      photoUrl: a.photoUrl ?? "",
-      websiteUrl: a.websiteUrl ?? "",
-    };
   }
 
   async function handleAttractionUpdate(data: AttractionFormData) {

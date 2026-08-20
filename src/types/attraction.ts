@@ -1,3 +1,11 @@
+export interface OpeningHoursDay {
+  closed: boolean;
+  open: string;
+  close: string;
+}
+
+export type OpeningHours = Record<string, OpeningHoursDay>;
+
 export interface Attraction {
   /** Identifies this ROW — for a regular attraction's 2nd+ scheduled instance, this is a
    *  synthetic per-instance id, not the shared document's own id (see `attractionId`). For
@@ -25,7 +33,7 @@ export interface Attraction {
   durationUnit?: "minutes" | "hours";
   price?: number | null;
   currency?: string;
-  openingHours?: Record<string, { closed: boolean; open: string; close: string }>;
+  openingHours?: OpeningHours;
   notes?: string;
   photoUrl?: string;
   /** Official venue website — user-editable, separate from photoUrl. */

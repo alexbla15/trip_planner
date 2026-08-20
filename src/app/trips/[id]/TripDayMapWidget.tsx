@@ -22,18 +22,12 @@ import {
   findRouteNeighbour,
 } from "@/lib";
 import { lookupAirport, getAirportCarCoord, getAirportTransitCoord } from "./airportData";
+import { fixLeafletDefaultIcon } from "@/lib/leafletIconFix";
+import { TRAVEL_MODE_COLORS, PENDING_ROUTE_COLOR } from "@/lib/travelModeColors";
 import styles from "./TripDayMapWidget.module.css";
 import "leaflet/dist/leaflet.css";
 
-// Fix default marker icons broken by webpack asset fingerprinting in Next.js
-/* eslint-disable @typescript-eslint/no-explicit-any */
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-/* eslint-enable @typescript-eslint/no-explicit-any */
-L.Icon.Default.mergeOptions({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
+fixLeafletDefaultIcon();
 
 
 // ── DivIcon marker ────────────────────────────────────────────────────────────
@@ -571,7 +565,7 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
                 [[a.coordinates.lat, a.coordinates.lng], [next.coordinates.lat, next.coordinates.lng]];
               // Use walk color when transit fell back
               const effectiveMode = cached?.transitUnavailable ? "walk" : mode;
-              const color = isPending ? "#94A3B8" : effectiveMode === "transit" ? "#8B5CF6" : effectiveMode === "car" ? "#F59E0B" : "#0EA5E9";
+              const color = isPending ? PENDING_ROUTE_COLOR : TRAVEL_MODE_COLORS[effectiveMode];
               const leg = cached;
               return (
                 <React.Fragment key={`leg-${a._id}-${i}`}>

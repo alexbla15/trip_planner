@@ -12,17 +12,21 @@ import {
 import type { GeoJsonObject } from "geojson";
 import L from "leaflet";
 import { getCityBoundary, getCountryBoundary } from "@/services";
+import { fixLeafletDefaultIcon } from "@/lib/leafletIconFix";
+import {
+  COUNTRY_BOUNDARY_STYLE,
+  CITY_BOUNDARY_STYLE,
+  CITY_MARKER_STYLE,
+  CITY_MARKER_LOADING_STYLE,
+} from "./CitiesMap.constants";
 import "leaflet/dist/leaflet.css";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-/* eslint-enable @typescript-eslint/no-explicit-any */
-L.Icon.Default.mergeOptions({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
+fixLeafletDefaultIcon();
 
+/** One city's aggregate marker/boundary data. `lat`/`lng` are the centroid used for the
+ *  fallback circle marker and map bounds; boundary polygons are fetched separately per
+ *  city and may resolve to `null` (falls back to the circle marker) or a fallback
+ *  municipality shape flagged via `properties.isFallbackBoundary`. */
 export interface CityEntry {
   _id: string;
   count: number;
@@ -33,7 +37,9 @@ export interface CityEntry {
 
 interface CitiesMapProps {
   cities: CityEntry[];
+  /** When set, also fetches and outlines this country's boundary polygon. */
   selectedCountry?: string;
+  /** Singular noun shown in tooltips/labels, e.g. "attraction" → "3 attractions". */
   countLabel?: string;
 }
 
@@ -109,13 +115,7 @@ export function CitiesMap({ cities, selectedCountry, countLabel = "attraction" }
         <GeoJSONLayer
           key={selectedCountry}
           data={countryBoundary}
-          style={() => ({
-            color: "#B45309",
-            fillColor: "#F59E0B",
-            fillOpacity: 0.12,
-            weight: 2.5,
-            opacity: 1,
-          })}
+          style={() => COUNTRY_BOUNDARY_STYLE}
         />
       )}
 
@@ -136,11 +136,7 @@ export function CitiesMap({ cities, selectedCountry, countLabel = "attraction" }
               key={city._id}
               data={boundary}
               style={() => ({
-                color: "#0369A1",
-                fillColor: "#38BDF8",
-                fillOpacity: 0.25,
-                weight: 2.5,
-                opacity: 1,
+                ...CITY_BOUNDARY_STYLE,
                 dashArray: isFallback ? "6 4" : undefined,
               })}
               onEachFeature={(_, layer) =>
@@ -156,11 +152,7 @@ export function CitiesMap({ cities, selectedCountry, countLabel = "attraction" }
               key={city._id}
               center={[city.lat, city.lng]}
               radius={8}
-              pathOptions={
-                isLoading
-                  ? { color: "#94A3B8", fillColor: "#CBD5E1", fillOpacity: 0.5, weight: 1.5 }
-                  : { color: "#0369A1", fillColor: "#38BDF8", fillOpacity: 0.7, weight: 1.5 }
-              }
+              pathOptions={isLoading ? CITY_MARKER_LOADING_STYLE : CITY_MARKER_STYLE}
             >
               <Tooltip>
                 <strong>{city._id}</strong>

@@ -35,6 +35,7 @@ export {
   MapPicker,
   OpeningHoursGrid,
   AttractionTypeChip,
+  attractionToFormData,
 } from "./NewAttractionModal";
 export type {
   AttractionFormData,
@@ -67,6 +68,9 @@ export type { FreeSlotFormData, AddFreeSlotModalProps } from "./AddFreeSlotModal
 
 export { TripSharingPanel } from "./TripSharingPanel";
 export type { TripSharingPanelProps } from "./TripSharingPanel";
+
+export { TripDetailsForm } from "./TripDetailsForm";
+export type { TripDetailsFormProps } from "./TripDetailsForm";
 
 export { CurrencySelect } from "./CurrencySelect";
 export { SearchableSelect } from "./SearchableSelect";

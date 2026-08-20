@@ -6,7 +6,7 @@ import { X, Search, Plus, MapPin, ChevronDown, AlertCircle } from "lucide-react"
 import { useGlobalAttractions } from "@/contexts/AttractionsContext";
 import { NewAttractionModal, COUNTRIES } from "@/components/NewAttractionModal";
 import { renderTypeIcon } from "@/components/IconPicker";
-import { useAttractionTypes } from "@/hooks";
+import { useAttractionTypes, useAttractionCategoryTypeFilter } from "@/hooks";
 import { AttractionFilter } from "@/components/AttractionFilter";
 import type { AttractionFormData } from "@/components/NewAttractionModal";
 import styles from "./AttractionPickerModal.module.css";
@@ -21,10 +21,20 @@ const FOCUSABLE_SELECTORS = [
   "[tabindex]:not([tabindex='-1'])",
 ].join(", ");
 
+function getPickerItemTypes(item: { attraction: AttractionFormData; index: number }): string[] {
+  return item.attraction.types;
+}
+
+/** Props for the modal that lets the user pick from the site-wide attraction catalog
+ *  (with category/type filtering) and create brand-new attractions inline, then
+ *  batch-adds the selection back to the caller — used from the new-trip flow where
+ *  there's no existing trip/country context to scope a live search against yet. */
 interface AttractionPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Receives every attraction added in this session, including newly-created ones. */
   onAdd: (attractions: AttractionFormData[]) => void;
+  /** Attractions already selected/added elsewhere — renders disabled with an "Added" indicator. */
   alreadyAdded?: AttractionFormData[];
 }
 
@@ -35,27 +45,15 @@ export function AttractionPickerModal({
   alreadyAdded = [],
 }: AttractionPickerModalProps) {
   const { globalAttractions, addGlobalAttraction } = useGlobalAttractions();
-  const { types, findType } = useAttractionTypes();
+  const { findType } = useAttractionTypes();
 
   const [countryFilter, setCountryFilter] = useState("");
   const [cityFilter, setCityFilter] = useState("");
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [newAttractionOpen, setNewAttractionOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
-
-  useEffect(() => {
-    if (!isOpen) {
-      setCountryFilter("");
-      setCityFilter("");
-      setSelectedCategories([]);
-      setSelectedTypes([]);
-      setSelectedIndices(new Set());
-    }
-  }, [isOpen]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -94,42 +92,28 @@ export function AttractionPickerModal({
       return matchesCountry && matchesCity;
     });
 
-  const presentCategories = [...new Set(
-    countryCityFiltered.flatMap(({ attraction: a }) =>
-      a.types.map((t) => findType(t)?.category).filter((c): c is string => Boolean(c))
-    )
-  )];
+  const {
+    selectedCategories,
+    selectedTypes,
+    setSelectedTypes,
+    handleCategoriesChange,
+    presentCategories,
+    presentTypes,
+    matches: matchesFilter,
+    reset: resetCategoryTypeFilter,
+  } = useAttractionCategoryTypeFilter(countryCityFiltered, getPickerItemTypes);
 
-  const presentTypes = (() => {
-    const nameSet = new Set(countryCityFiltered.flatMap(({ attraction: a }) => a.types));
-    return types.filter((t) => nameSet.has(t.name));
-  })();
-
-  // Dropping a category also drops any selected types that belong to it — mirrors
-  // ExploreClient.tsx's handleCategoriesChange (see docs/LEARNINGS.md) so a type chip
-  // left selected under a removed category doesn't keep filtering silently.
-  function handleCategoriesChange(next: string[]) {
-    const removed = selectedCategories.filter((c) => !next.includes(c));
-    setSelectedCategories(next);
-    if (removed.length > 0) {
-      setSelectedTypes((prev) => prev.filter((t) => {
-        const cat = findType(t)?.category;
-        return !cat || !removed.includes(cat);
-      }));
+  useEffect(() => {
+    if (!isOpen) {
+      setCountryFilter("");
+      setCityFilter("");
+      resetCategoryTypeFilter();
+      setSelectedIndices(new Set());
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
-  const filteredWithIndex = countryCityFiltered.filter(({ attraction: a }) => {
-    const matchesCategory =
-      selectedCategories.length === 0 ||
-      a.types.some((t) => {
-        const cat = findType(t)?.category;
-        return cat && selectedCategories.includes(cat);
-      });
-    const matchesType =
-      selectedTypes.length === 0 || a.types.some((t) => selectedTypes.includes(t));
-    return matchesCategory && matchesType;
-  });
+  const filteredWithIndex = countryCityFiltered.filter(matchesFilter);
 
   function toggleSelect(index: number) {
     setSelectedIndices((prev) => {

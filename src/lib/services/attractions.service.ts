@@ -6,7 +6,7 @@ import { AttractionType } from "@/models/AttractionType";
 import { Trip, type ITrip, type IScheduleEntry } from "@/models/Trip";
 import { getVisitedIdSet, isAttractionVisited } from "@/lib/services/visited.service";
 import type { JwtPayload } from "@/lib/auth";
-import type { Attraction as AttractionShape } from "@/types/attraction";
+import type { Attraction as AttractionShape, OpeningHours } from "@/types/attraction";
 
 /** Maps a Mongo E11000 duplicate-key error to the same 409 the pre-check already guards
  *  against, in case of a race between the pre-check and the insert. */
@@ -119,8 +119,7 @@ export interface CreateAttractionInput {
   durationUnit?: "minutes" | "hours";
   price?: number | null;
   currency?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  openingHours?: any;
+  openingHours?: OpeningHours;
   notes?: string;
   photoUrl?: string;
   websiteUrl?: string;
@@ -242,8 +241,7 @@ export async function updateAttraction(
   if (body.price !== undefined) attraction.price = body.price as number | null;
   if (body.currency !== undefined) attraction.currency = body.currency as string;
   if (body.openingHours !== undefined) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    attraction.openingHours = body.openingHours as any;
+    attraction.openingHours = body.openingHours as OpeningHours;
   }
   if (body.notes !== undefined) attraction.notes = body.notes as string;
   if (body.photoUrl !== undefined) attraction.photoUrl = body.photoUrl as string;
@@ -445,8 +443,7 @@ export interface AddAttractionToTripInput {
   durationUnit?: "minutes" | "hours";
   price?: number | null;
   currency?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  openingHours?: any;
+  openingHours?: OpeningHours;
   notes?: string;
   photoUrl?: string;
   websiteUrl?: string;

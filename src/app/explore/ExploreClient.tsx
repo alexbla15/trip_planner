@@ -13,9 +13,8 @@ import {
   markAttractionVisited, unmarkAttractionVisited,
 } from "@/services";
 import type { TravelMode, RouteLeg } from "@/services";
-import { AttractionDetailModal, NewAttractionModal, TripPickerModal, Spinner, FormErrorBanner, AttractionFilter } from "@/components";
-import type { AttractionFormData, OpeningHours, DurationUnit } from "@/components";
-import { DEFAULT_OPENING_HOURS } from "@/components";
+import { AttractionDetailModal, NewAttractionModal, TripPickerModal, Spinner, FormErrorBanner, AttractionFilter, attractionToFormData } from "@/components";
+import type { AttractionFormData } from "@/components";
 import type { Attraction } from "@/types/attraction";
 import type { Trip } from "@/types/trip";
 import styles from "./ExploreClient.module.css";
@@ -36,28 +35,6 @@ function measurePointCoord(p: MeasurePoint): { lat: number; lng: number } | null
 
 function measurePointLabel(p: MeasurePoint): string {
   return p.kind === "attraction" ? p.attraction.name : "Dropped pin";
-}
-
-// Mirrors TripDetailClient.tsx's attractionToFormData — kept local since it's a small,
-// self-contained mapping and this is currently the only other caller.
-function attractionToFormData(a: Attraction): AttractionFormData {
-  return {
-    name: a.name,
-    country: a.country,
-    city: a.city ?? "",
-    coordinates: a.coordinates ?? null,
-    types: (a.types ?? []) as AttractionFormData["types"],
-    durationValue: a.durationValue ?? "",
-    durationUnit: (a.durationUnit ?? "hours") as DurationUnit,
-    price: a.price ?? null,
-    currency: a.currency ?? "USD",
-    openingHours: (a.openingHours as OpeningHours | undefined)?.Mon
-      ? (a.openingHours as OpeningHours)
-      : structuredClone(DEFAULT_OPENING_HOURS),
-    notes: a.notes ?? "",
-    photoUrl: a.photoUrl ?? "",
-    websiteUrl: a.websiteUrl ?? "",
-  };
 }
 
 const ExploreMapWidget = dynamic(

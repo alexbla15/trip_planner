@@ -2,6 +2,7 @@ export { NewAttractionModal } from "./NewAttractionModal";
 export { MapPicker } from "./MapPicker";
 export { OpeningHoursGrid } from "./OpeningHoursGrid";
 export { AttractionTypeChip } from "./AttractionTypeChip";
+export { attractionToFormData } from "./attraction.utils";
 export type {
   AttractionType,
   DurationUnit,

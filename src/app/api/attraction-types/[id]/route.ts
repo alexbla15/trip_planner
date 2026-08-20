@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Types } from "mongoose";
 import { dbConnect } from "@/lib/mongoose";
 import { AttractionType, formatAttractionType } from "@/models/AttractionType";
 import "@/models/AttractionCategory"; // register model so populate("categoryId") resolves
@@ -32,7 +33,7 @@ export const PUT = withApiHandler("PUT /api/attraction-types/[id]", async (req: 
   if (!doc) throw notFound("Not found");
 
   if (body.name       !== undefined) doc.name       = body.name.trim();
-  if (body.categoryId !== undefined) doc.categoryId = body.categoryId as unknown as import("mongoose").Types.ObjectId;
+  if (body.categoryId !== undefined) doc.categoryId = new Types.ObjectId(body.categoryId);
   if (body.icon       !== undefined) doc.icon       = body.icon.trim();
   if ("subtype" in body) {
     doc.subtype = (body.subtype as "flight" | "residence" | null) ?? undefined;

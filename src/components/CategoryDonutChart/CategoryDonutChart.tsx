@@ -4,7 +4,8 @@ import { useState, useMemo } from "react";
 import { getIconComponent } from "@/components/IconPicker";
 import { CategoryAttractionsModal } from "@/components/CategoryAttractionsModal";
 import { useAttractionTypes } from "@/hooks";
-import { donutSlicePath, tintColor } from "@/lib";
+import { donutSlicePath } from "@/lib";
+import { aggregateByCategory, buildCategorySlices, buildSubSlices } from "./CategoryDonutChart.utils";
 import styles from "./CategoryDonutChart.module.css";
 
 const CX = 110; const CY = 110;
@@ -35,40 +36,20 @@ export function CategoryDonutChart({
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
 
-  const categoryAggregated = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const { _id, count } of rawTypes) {
-      for (const [cat, catTypes] of Object.entries(byCategory)) {
-        if (catTypes.some((t) => t.name === _id)) {
-          map[cat] = (map[cat] ?? 0) + count;
-          break;
-        }
-      }
-    }
-    return Object.entries(map)
-      .map(([cat, count]) => ({ _id: cat, count }))
-      .sort((a, b) => b.count - a.count);
-  }, [rawTypes, byCategory]);
+  const categoryAggregated = useMemo(
+    () => aggregateByCategory(rawTypes, byCategory),
+    [rawTypes, byCategory],
+  );
 
   const categoryTotal = useMemo(
     () => categoryAggregated.reduce((s, c) => s + c.count, 0),
     [categoryAggregated],
   );
 
-  const slices = useMemo(() => {
-    let cum = 0;
-    return categoryAggregated.map((cat, i) => {
-      const pct = categoryTotal > 0 ? cat.count / categoryTotal : 0;
-      const startAngle = cum;
-      const endAngle = cum + pct * 360;
-      cum = endAngle;
-      const color =
-        colorForCategory(cat._id) !== "#64748B"
-          ? colorForCategory(cat._id)
-          : `hsl(${(i * 47) % 360}, 70%, 80%)`;
-      return { cat, i, startAngle, endAngle, color };
-    });
-  }, [categoryAggregated, categoryTotal, colorForCategory]);
+  const slices = useMemo(
+    () => buildCategorySlices(categoryAggregated, categoryTotal, colorForCategory),
+    [categoryAggregated, categoryTotal, colorForCategory],
+  );
 
   const subChartTypes = useMemo(() => {
     if (!selectedCategory) return [];
@@ -83,19 +64,10 @@ export function CategoryDonutChart({
     [subChartTypes],
   );
 
-  const subSlices = useMemo(() => {
-    if (!selectedCategory || subChartTypes.length === 0) return [];
-    const baseColor = colorForCategory(selectedCategory);
-    let cum = 0;
-    return subChartTypes.map(({ _id, count }, i) => {
-      const pct = subChartTotal > 0 ? count / subChartTotal : 0;
-      const startAngle = cum;
-      const endAngle = cum + pct * 360;
-      cum = endAngle;
-      const opacity = 1.0 - (i / Math.max(subChartTypes.length - 1, 1)) * 0.65;
-      return { _id, count, i, startAngle, endAngle, color: tintColor(baseColor, opacity) };
-    });
-  }, [selectedCategory, subChartTypes, subChartTotal, colorForCategory]);
+  const subSlices = useMemo(
+    () => buildSubSlices(selectedCategory, subChartTypes, subChartTotal, colorForCategory),
+    [selectedCategory, subChartTypes, subChartTotal, colorForCategory],
+  );
 
   function handleSliceClick(catName: string) {
     setSelectedCategory((prev) => (prev === catName ? null : catName));

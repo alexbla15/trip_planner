@@ -14,7 +14,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { login as loginRequest, demoLogin } from "@/services";
+import { login as loginRequest, demoLogin, type AuthResponse } from "@/services";
 import { validateLoginForm, isProduction } from "@/lib";
 import { FormErrorBanner, FormFieldError, Spinner } from "@/components";
 import styles from "./LoginClient.module.css";
@@ -48,14 +48,14 @@ export function LoginClient() {
 
     try {
       const res = await demoLogin(role);
-      const data = await res.json();
+      const data = await res.json() as AuthResponse;
 
       if (!res.ok) {
         setApiError(data.error ?? "Quick login failed. Please try again.");
         return;
       }
 
-      await login(data.token as string);
+      await login(data.token ?? "");
       router.replace("/");
     } catch {
       setApiError("Network error. Please check your connection and try again.");
@@ -79,14 +79,14 @@ export function LoginClient() {
     try {
       const res = await loginRequest(email, password);
 
-      const data = await res.json();
+      const data = await res.json() as AuthResponse;
 
       if (!res.ok) {
         setApiError(data.error ?? "Login failed. Please try again.");
         return;
       }
 
-      await login(data.token as string);
+      await login(data.token ?? "");
       router.replace("/");
     } catch {
       setApiError("Network error. Please check your connection and try again.");

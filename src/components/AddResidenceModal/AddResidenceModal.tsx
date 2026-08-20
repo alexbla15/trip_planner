@@ -6,17 +6,17 @@ import {
   FileText, ChevronDown, AlertCircle, Loader2, Check,
 } from "lucide-react";
 import { CurrencySelect } from "@/components/CurrencySelect";
-import { reverseGeocode } from "@/services";
 import { ModalShell } from "@/components/Modal";
 import { toDateValue } from "@/lib";
 import { MapPicker } from "@/components/NewAttractionModal";
 import type { Coordinates } from "@/components/NewAttractionModal";
 import type { AddResidenceModalProps, ResidenceFormData, ResidenceType } from "./AddResidenceModal.types";
 import { isValidUrl } from "@/lib";
+import { useReverseGeocodeAutofill } from "@/hooks";
+import { RESIDENCE_TYPES } from "./AddResidenceModal.constants";
 import styles from "./AddResidenceModal.module.css";
 
 const HEADING_ID = "add-residence-modal-title";
-const RESIDENCE_TYPES: ResidenceType[] = ["Hotel", "Apartment", "Hostel", "Villa", "Other"];
 
 interface FieldErrors {
   name?: string;
@@ -44,20 +44,13 @@ export function AddResidenceModal({
   const [priceCurrency, setPriceCurrency] = useState(currency ?? "USD");
   const [coordinates, setCoordinates]     = useState<Coordinates | null>(null);
 
-  async function handleCoordinatesChange(coords: Coordinates) {
-    setCoordinates(coords);
-    try {
-      const data = await reverseGeocode(coords.lat, coords.lng) as {
-        name?: string;
-        address?: { city?: string; town?: string; municipality?: string; village?: string };
-      };
-      if (!name.trim() && data.name) setName(data.name);
-      if (!city.trim()) {
-        const resolvedCity = data.address?.city ?? data.address?.town ?? data.address?.municipality ?? data.address?.village ?? "";
-        if (resolvedCity) setCity(resolvedCity);
-      }
-    } catch { /* best-effort */ }
-  }
+  const handleCoordinatesChange = useReverseGeocodeAutofill({
+    name,
+    city,
+    onCoordinates: setCoordinates,
+    onNameResolved: setName,
+    onCityResolved: setCity,
+  });
   const [notes, setNotes]                 = useState("");
   const [websiteUrl, setWebsiteUrl]       = useState("");
   const [errors, setErrors]               = useState<FieldErrors>({});

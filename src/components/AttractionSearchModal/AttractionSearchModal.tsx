@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Search, MapPin, Plus, PenLine, SearchX, Check } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
-import { useAttractionTypes, useDebounce } from "@/hooks";
+import { useAttractionTypes, useDebounce, useAttractionCategoryTypeFilter } from "@/hooks";
 import { searchAttractionsByCountry } from "@/services";
 import { AttractionFilter } from "@/components/AttractionFilter";
 import { ModalShell } from "@/components/Modal";
@@ -30,25 +30,35 @@ export function AttractionSearchModal({
 }: AttractionSearchModalProps) {
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 300);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const existingIdSet = useMemo(() => new Set(existingAttractionIds), [existingAttractionIds]);
-  const { types, findType } = useAttractionTypes();
+  const { findType } = useAttractionTypes();
   const [results, setResults] = useState<Attraction[]>([]);
   const [bodyState, setBodyState] = useState<BodyState>("initial");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const searchRef = useRef<HTMLInputElement>(null);
 
+  const getAttractionTypes = useCallback((a: Attraction) => a.types, []);
+  const {
+    selectedCategories,
+    selectedTypes,
+    setSelectedTypes,
+    handleCategoriesChange,
+    presentCategories,
+    presentTypes,
+    matches: matchesFilter,
+    reset: resetCategoryTypeFilter,
+  } = useAttractionCategoryTypeFilter(results, getAttractionTypes);
+
   // Reset on open
   useEffect(() => {
     if (isOpen) {
       setQuery("");
-      setSelectedCategories([]);
-      setSelectedTypes([]);
+      resetCategoryTypeFilter();
       setResults([]);
       setBodyState("initial");
       setSelectedIds(new Set());
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Fires only once typing pauses for 300ms, avoiding a fetch per keystroke.
@@ -84,46 +94,10 @@ export function AttractionSearchModal({
     }
   }
 
-  // Categories/types actually present in the current search results — only these show
-  // as chips, same pattern as Explore's availableCategories/availableTypes.
-  const presentCategories = useMemo(() => [...new Set(
-    results.flatMap((a) =>
-      a.types.map((t) => findType(t)?.category).filter((c): c is string => Boolean(c))
-    )
-  )], [results, findType]);
-
-  const presentTypes = useMemo(() => {
-    const nameSet = new Set(results.flatMap((a) => a.types));
-    return types.filter((t) => nameSet.has(t.name));
-  }, [results, types]);
-
-  // Dropping a category also drops any selected types that belong to it — mirrors
-  // ExploreClient.tsx's handleCategoriesChange (see docs/LEARNINGS.md) so a type chip
-  // left selected under a removed category doesn't keep filtering silently.
-  function handleCategoriesChange(next: string[]) {
-    const removed = selectedCategories.filter((c) => !next.includes(c));
-    setSelectedCategories(next);
-    if (removed.length > 0) {
-      setSelectedTypes((prev) => prev.filter((t) => {
-        const cat = findType(t)?.category;
-        return !cat || !removed.includes(cat);
-      }));
-    }
-  }
-
-  const filteredResults = useMemo(() => {
-    return results.filter((a) => {
-      const matchesCategory =
-        selectedCategories.length === 0 ||
-        a.types.some((t) => {
-          const cat = findType(t)?.category;
-          return cat && selectedCategories.includes(cat);
-        });
-      const matchesType =
-        selectedTypes.length === 0 || a.types.some((t) => selectedTypes.includes(t));
-      return matchesCategory && matchesType;
-    });
-  }, [results, selectedCategories, selectedTypes, findType]);
+  const filteredResults = useMemo(
+    () => results.filter(matchesFilter),
+    [results, matchesFilter],
+  );
 
   function handleRowClick(attraction: Attraction) {
     // Already-added results stay clickable — selecting one again adds another scheduled
@@ -298,7 +272,7 @@ export function AttractionSearchModal({
             <button
               type="button"
               className={styles.createInlineBtn}
-              onClick={() => { setSelectedCategories([]); setSelectedTypes([]); }}
+              onClick={resetCategoryTypeFilter}
             >
               Show all results
             </button>

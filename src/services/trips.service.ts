@@ -1,5 +1,10 @@
 import { parseOrThrow } from "./http";
 
+/** Error-shape JSON body returned by trip API routes on failure. */
+export interface TripErrorResponse {
+  error?: string;
+}
+
 export async function listTrips(token: string): Promise<unknown[]> {
   const res = await fetch("/api/trips", {
     headers: { Authorization: `Bearer ${token}` },

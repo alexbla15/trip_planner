@@ -2,3 +2,5 @@ export { useAttractionTypes, invalidateAttractionTypesCache } from "./useAttract
 export { useAttractionCategories, invalidateAttractionCategoriesCache } from "./useAttractionCategories";
 export { useMoodTags, getMoodTagStyle, invalidateMoodTagsCache } from "./useMoodTags";
 export { useDebounce } from "./useDebounce";
+export { useReverseGeocodeAutofill } from "./useReverseGeocodeAutofill";
+export { useAttractionCategoryTypeFilter } from "./useAttractionCategoryTypeFilter";

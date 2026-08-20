@@ -3,12 +3,15 @@ export { ApiError, parseOrThrow } from "./http";
 export { login, register, demoLogin, forgotPassword, resetPassword } from "./auth.service";
 export type { MessageResponse } from "./auth.service";
 export type { RegisterResponse } from "./auth.service";
+export type { AuthResponse } from "./auth.service";
+export type { ResetPasswordResponse } from "./auth.service";
 
 export { getCurrentUser, updateCurrentUser, changePassword, searchUsers } from "./users.service";
 
 export { getPersonalAnalytics, getGlobalAnalytics } from "./analytics.service";
 
 export { listTrips, createTrip, getTrip, updateTrip, deleteTrip } from "./trips.service";
+export type { TripErrorResponse } from "./trips.service";
 
 export { addCollaborator, removeCollaborator } from "./collaborators.service";
 

@@ -3,22 +3,19 @@
 import { useEffect, useState, useMemo, type MutableRefObject } from "react";
 import { MapContainer, TileLayer, Marker, Tooltip, Circle, Polyline, GeoJSON as GeoJSONLayer, useMap, useMapEvents } from "react-leaflet";
 import type { GeoJsonObject } from "geojson";
-import L from "leaflet";
 import { useAttractionTypes } from "@/hooks";
 import { getCityBoundary, getCountryBoundary } from "@/services";
 import type { TravelMode, RouteLeg } from "@/services";
 import { makeCountryMarkerIcon, makeAttractionMarkerIcon, makeCustomPinIcon } from "@/lib/mapIcons";
 import { colorForBoundaryIndex } from "@/lib/mapBoundaryColors";
+import { fixLeafletDefaultIcon } from "@/lib/leafletIconFix";
+import { TRAVEL_MODE_COLORS } from "@/lib/travelModeColors";
 import type { Attraction } from "@/types/attraction";
 import type { CityEntry, CountryEntry, MapHandle, MeasurePoint } from "./ExploreClient";
 import styles from "./ExploreMapWidget.module.css";
 import "leaflet/dist/leaflet.css";
 
-const MEASURE_MODE_COLORS: Record<TravelMode, string> = {
-  walk: "#0EA5E9",
-  car: "#F59E0B",
-  transit: "#8B5CF6",
-};
+const MEASURE_MODE_COLORS = TRAVEL_MODE_COLORS;
 
 // Clicking the map while in measure mode drops/replaces the custom pin — a plain
 // useMapEvents click handler, same pattern already used for zoomend in ZoomWatcher.
@@ -31,14 +28,7 @@ function MeasureClickWatcher({ active, onMapClick }: { active: boolean; onMapCli
   return null;
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-/* eslint-enable @typescript-eslint/no-explicit-any */
-L.Icon.Default.mergeOptions({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
+fixLeafletDefaultIcon();
 
 // ── Map controller ────────────────────────────────────────────────────────────
 

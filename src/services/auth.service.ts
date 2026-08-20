@@ -14,6 +14,12 @@ export async function forgotPassword(email: string): Promise<MessageResponse> {
   return parseOrThrow<MessageResponse>(res);
 }
 
+export interface ResetPasswordResponse {
+  message?: string;
+  error?: string;
+  code?: "INVALID_TOKEN";
+}
+
 // Kept as a raw Response: ResetPasswordClient distinguishes an invalid/expired
 // token (INVALID_TOKEN code) from other failures to pick which terminal state to show.
 export function resetPassword(token: string, newPassword: string): Promise<Response> {
@@ -22,6 +28,13 @@ export function resetPassword(token: string, newPassword: string): Promise<Respo
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token, newPassword }),
   });
+}
+
+/** Shape of the `/api/auth/login` and `/api/auth/demo-login` JSON bodies — both
+ *  callers parse the raw `Response` themselves (see comments below) but share this type. */
+export interface AuthResponse {
+  token?: string;
+  error?: string;
 }
 
 // Kept as a raw Response: LoginClient and RegisterClient's auto-login handle a

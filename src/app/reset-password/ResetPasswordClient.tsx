@@ -4,7 +4,7 @@ import { useState, useId } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Plane, Lock, Eye, EyeOff, Check, AlertCircle } from "lucide-react";
-import { resetPassword } from "@/services";
+import { resetPassword, type ResetPasswordResponse } from "@/services";
 import { validateResetPasswordForm } from "@/lib";
 import { FormErrorBanner, FormFieldError, Spinner } from "@/components";
 import styles from "./ResetPasswordClient.module.css";
@@ -43,7 +43,7 @@ export function ResetPasswordClient() {
 
     try {
       const res = await resetPassword(token, newPassword);
-      const data = await res.json();
+      const data = await res.json() as ResetPasswordResponse;
 
       if (!res.ok) {
         if (data.code === "INVALID_TOKEN") {

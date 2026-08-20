@@ -3,6 +3,7 @@
 import {
   useState,
   useEffect,
+  useMemo,
   useRef,
   type ChangeEvent,
 } from "react";
@@ -20,13 +21,15 @@ import {
 } from "./attraction.constants";
 import { CurrencySelect } from "@/components/CurrencySelect";
 import { SearchableSelect } from "@/components/SearchableSelect";
-import { reverseGeocode, getCities } from "@/services";
+import { getCities } from "@/services";
 import { AttractionTypePicker } from "@/components/AttractionTypePicker";
 import { CoverImageField } from "@/components";
 import { ModalShell } from "@/components/Modal";
 import { MapPicker } from "./MapPicker";
 import { OpeningHoursGrid } from "./OpeningHoursGrid";
 import { buildInitialHours, isValidUrl } from "@/lib";
+import { useReverseGeocodeAutofill } from "@/hooks";
+import { filterCityOptions } from "./NewAttractionModal.utils";
 import styles from "./NewAttractionModal.module.css";
 
 const HEADING_ID = "new-attraction-modal-title";
@@ -61,32 +64,18 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
 
   // Only suggest cities within the selected country (once one is chosen) — otherwise
   // every city in the DB would show, which isn't useful once a country is picked.
-  const cityOptions = (() => {
-    const scoped = country
-      ? knownCities.filter((c) => c.country.toLowerCase() === country.toLowerCase())
-      : knownCities;
-    return [...new Set(scoped.map((c) => c.name))].sort((a, b) => a.localeCompare(b));
-  })();
+  const cityOptions = useMemo(
+    () => filterCityOptions(knownCities, country),
+    [knownCities, country],
+  );
 
-  // Reverse-geocode and auto-fill name / city when user picks a map point
-  async function handleCoordinatesChange(coords: Coordinates) {
-    setCoordinates(coords);
-    try {
-      const data = await reverseGeocode(coords.lat, coords.lng) as {
-        name?: string;
-        address?: { city?: string; town?: string; municipality?: string; village?: string; country?: string };
-      };
-      // Fill name only if the field is still empty
-      if (!name.trim() && data.name) setName(data.name);
-      // Fill city only if the field is still empty
-      if (!city.trim()) {
-        const resolvedCity = data.address?.city ?? data.address?.town ?? data.address?.municipality ?? data.address?.village ?? "";
-        if (resolvedCity) setCity(resolvedCity);
-      }
-    } catch {
-      // Reverse geocoding is best-effort — silently ignore failures
-    }
-  }
+  const handleCoordinatesChange = useReverseGeocodeAutofill({
+    name,
+    city,
+    onCoordinates: setCoordinates,
+    onNameResolved: setName,
+    onCityResolved: setCity,
+  });
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [durationValue, setDurationValue] = useState("");
   const [durationUnit, setDurationUnit] = useState<DurationUnit>("hours");

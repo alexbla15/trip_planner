@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
-import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, TriangleAlert, Plus, Coffee } from "lucide-react";
+import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, Plus, Coffee } from "lucide-react";
 import { renderTypeIcon, AttractionDetailModal, AddCustomSlotModal } from "@/components";
 import type { CustomSlotFormData } from "@/components";
 import { useAttractionTypes } from "@/hooks";
@@ -38,6 +38,9 @@ import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
 import { computeAlerts, computeScheduleHourBounds } from "./CalendarSection.utils";
 import type { ScheduleAlert } from "./CalendarSection.utils";
+import { ScheduleAlertList } from "./ScheduleAlertList";
+import { CalendarEmptyState } from "./CalendarEmptyState";
+import { SidebarAttractionCard } from "./SidebarAttractionCard";
 import styles from "./CalendarSection.module.css";
 
 const TripDayMapWidget = dynamic(
@@ -490,12 +493,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
       <>
         <div className={styles.card}>
           <Header {...headerProps} hasPending={false} saving={false} savedOk={false} onSave={() => {}} />
-          <div className={styles.emptyState}>
-            <Calendar size={36} className={styles.emptyIcon} aria-hidden="true" />
-            <p className={styles.emptyText}>
-              {canEdit ? "Add attractions to start planning your itinerary." : "No itinerary scheduled yet."}
-            </p>
-          </div>
+          <CalendarEmptyState canEdit={canEdit} />
         </div>
         {customSlotModal}
       </>
@@ -512,20 +510,10 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
           <p className={styles.pendingHint}>{pending.size} unsaved change{pending.size > 1 ? "s" : ""} — click Save to persist.</p>
         )}
 
-        {visibleAlerts.map((alert) => (
-          <div key={alert.id} className={styles.alertBanner} role="alert">
-            <TriangleAlert size={14} className={styles.alertIcon} aria-hidden="true" />
-            <span className={styles.alertMessage}>{alert.message}</span>
-            <button
-              type="button"
-              className={styles.alertDismiss}
-              onClick={() => setDismissedAlerts((prev) => new Set([...prev, alert.id]))}
-              aria-label="Dismiss warning"
-            >
-              <X size={12} aria-hidden="true" />
-            </button>
-          </div>
-        ))}
+        <ScheduleAlertList
+          alerts={visibleAlerts}
+          onDismiss={(id) => setDismissedAlerts((prev) => new Set([...prev, id]))}
+        />
 
         <div className={styles.calendarBody}>
           {/* ── Sidebar — OWNER ONLY (Fix: read-only mode hides picker) ── */}
@@ -557,139 +545,18 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                 const first = instances[0];
                 const icon = renderTypeIcon(findType(first.types?.[0] ?? "")?.icon ?? "");
                 const color = colorForType(first.types?.[0] ?? "");
-                const anyScheduled = instances.some((i) => !!i.plannedDate);
-                const canDuplicate = instances.length > 0 && instances.every((i) => !!i.attractionId);
-
-                // Single instance (the common case): unchanged markup/behavior from before
-                // this feature existed.
-                if (instances.length === 1) {
-                  const a = first;
-                  const isScheduled = !!a.plannedDate;
-                  return (
-                    <div key={key}
-                      className={`${styles.sidebarCard} ${isScheduled ? styles.sidebarCardScheduled : ""}`}
-                      style={{ ["--type-color" as string]: color }}
-                    >
-                      <div className={styles.cardTopRow}>
-                        <div className={styles.typeIconCircle} aria-hidden="true">{icon}</div>
-                        <span className={styles.cardName}>{a.name}</span>
-                      </div>
-                      {isScheduled && a.plannedDate && (
-                        <span className={styles.dayBadge}>
-                          {formatDayLabel(a.plannedDate)}{a.plannedTime ? ` · ${a.plannedTime}` : ""}
-                        </span>
-                      )}
-                      {a.durationValue && (
-                        <span className={styles.recDuration}>Rec: {a.durationValue} {a.durationUnit}</span>
-                      )}
-                      {canEdit && (
-                        <select className={styles.assignSelect}
-                          value={a.plannedDate ?? ""}
-                          aria-label={`${isScheduled ? "Reassign" : "Assign"} ${a.name}`}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === "__unassign__") handleUnassign(a._id);
-                            else handleAssign(a._id, val);
-                          }}
-                        >
-                          <option value="" disabled={isScheduled}>
-                            {isScheduled ? "Move to day…" : "Assign to day…"}
-                          </option>
-                          {isScheduled && <option value="__unassign__">— Unassign</option>}
-                          {days.map((day) => (
-                            <option key={day} value={day}>{formatDayLabel(day)}</option>
-                          ))}
-                        </select>
-                      )}
-                      {canEdit && isScheduled && a.attractionId && (
-                        <select className={styles.duplicateSelect}
-                          value=""
-                          aria-label={`Schedule ${a.name} again on another day`}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val) handleDuplicateAttraction(a, val);
-                          }}
-                        >
-                          <option value="">+ Schedule again…</option>
-                          {days.map((day) => (
-                            <option key={day} value={day}>{formatDayLabel(day)}</option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-                  );
-                }
-
-                // Multiple instances of the same attraction: one card, one row per
-                // instance — each independently reassignable/unassignable — plus a
-                // single shared "+ Schedule again" control to add yet another.
                 return (
-                  <div key={key}
-                    className={`${styles.sidebarCard} ${anyScheduled ? styles.sidebarCardScheduled : ""}`}
-                    style={{ ["--type-color" as string]: color }}
-                  >
-                    <div className={styles.cardTopRow}>
-                      <div className={styles.typeIconCircle} aria-hidden="true">{icon}</div>
-                      <span className={styles.cardName}>{first.name}</span>
-                    </div>
-                    {first.durationValue && (
-                      <span className={styles.recDuration}>Rec: {first.durationValue} {first.durationUnit}</span>
-                    )}
-                    <div className={styles.instancesList}>
-                      {instances.map((a) => {
-                        const isScheduled = !!a.plannedDate;
-                        return (
-                          <div key={a._id} className={styles.instanceRow}>
-                            {isScheduled && a.plannedDate ? (
-                              <span className={styles.dayBadge}>
-                                {formatDayLabel(a.plannedDate)}{a.plannedTime ? ` · ${a.plannedTime}` : ""}
-                              </span>
-                            ) : (
-                              <span className={styles.dayBadgeMuted}>Unscheduled</span>
-                            )}
-                            {canEdit && (
-                              <select className={styles.assignSelect}
-                                value={a.plannedDate ?? ""}
-                                aria-label={`${isScheduled ? "Reassign" : "Assign"} this instance of ${a.name}`}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  if (val === "__unassign__") handleUnassign(a._id);
-                                  else handleAssign(a._id, val);
-                                }}
-                              >
-                                <option value="" disabled={isScheduled}>
-                                  {isScheduled ? "Move to day…" : "Assign to day…"}
-                                </option>
-                                {isScheduled && (
-                                  <option value="__unassign__">
-                                    {a._id.startsWith("at-") ? "— Remove" : "— Unassign"}
-                                  </option>
-                                )}
-                                {days.map((day) => (
-                                  <option key={day} value={day}>{formatDayLabel(day)}</option>
-                                ))}
-                              </select>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {canEdit && canDuplicate && (
-                      <select className={styles.duplicateSelect}
-                        value=""
-                        aria-label={`Schedule ${first.name} again on another day`}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val) handleDuplicateAttraction(first, val);
-                        }}
-                      >
-                        <option value="">+ Schedule again…</option>
-                        {days.map((day) => (
-                          <option key={day} value={day}>{formatDayLabel(day)}</option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
+                  <SidebarAttractionCard
+                    key={key}
+                    instances={instances}
+                    days={days}
+                    canEdit={canEdit}
+                    icon={icon}
+                    color={color}
+                    onAssign={handleAssign}
+                    onUnassign={handleUnassign}
+                    onDuplicate={handleDuplicateAttraction}
+                  />
                 );
               })}
             </div>
