@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { Search, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { Search, SlidersHorizontal, ChevronDown, X } from "lucide-react";
 import { getIconComponent } from "@/components/IconPicker";
 import { useAttractionTypes } from "@/hooks";
 import type { AttractionFilterProps } from "./AttractionFilter.types";
@@ -63,6 +63,11 @@ export function AttractionFilter({
     );
   }
 
+  function handleClearAll() {
+    if (multiSelect) onCategoriesChange!([]);
+    onTypesChange?.([]);
+  }
+
   return (
     <div className={styles.attractionsToolbar}>
       {!hideSearch && (
@@ -85,9 +90,24 @@ export function AttractionFilter({
       {hasChips && (() => {
         const chips = (
           <>
+            {multiSelect && activeChipCount > 0 && (
+              <div className={styles.clearRow}>
+                <button type="button" className={styles.clearAllBtn} onClick={handleClearAll}>
+                  <X size={12} aria-hidden="true" />
+                  Clear all ({activeChipCount})
+                </button>
+              </div>
+            )}
             {showCategoryChips && (
               <div className={categoryLabel ? styles.filterSection : undefined}>
-                {categoryLabel && <span className={styles.filterSectionLabel}>{categoryLabel}</span>}
+                {categoryLabel && (
+                  <span className={styles.filterSectionLabel}>
+                    {categoryLabel}
+                    {multiSelect && activeCategories.length > 0 && (
+                      <span className={styles.filterSectionCount}>{activeCategories.length}</span>
+                    )}
+                  </span>
+                )}
                 <div className={styles.filterChips} role="group" aria-label="Filter by category">
                   {!multiSelect && (
                     <button
@@ -118,8 +138,15 @@ export function AttractionFilter({
               </div>
             )}
             {showTypeChips && (
-              <div className={typeLabel ? styles.filterSection : undefined}>
-                {typeLabel && <span className={styles.filterSectionLabel}>{typeLabel}</span>}
+              <div className={`${typeLabel ? styles.filterSection : ""} ${showCategoryChips ? styles.filterSectionDivided : ""}`}>
+                {typeLabel && (
+                  <span className={styles.filterSectionLabel}>
+                    {typeLabel}
+                    {selectedTypes.length > 0 && (
+                      <span className={styles.filterSectionCount}>{selectedTypes.length}</span>
+                    )}
+                  </span>
+                )}
                 <div className={styles.filterChips} role="group" aria-label="Filter by type">
                   {types!.map((t) => {
                     const TypeIcon = getIconComponent(t.icon ?? "Globe");
@@ -128,7 +155,7 @@ export function AttractionFilter({
                       <button
                         key={t.name}
                         type="button"
-                        className={`${styles.filterChip} ${active ? styles.filterChipActive : ""}`}
+                        className={`${styles.filterChip} ${styles.filterChipType} ${active ? styles.filterChipActive : ""}`}
                         aria-pressed={active}
                         onClick={() => handleTypeClick(t.name)}
                       >

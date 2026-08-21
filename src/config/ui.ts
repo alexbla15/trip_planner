@@ -6,3 +6,10 @@ export const MIN_BLOCK_WIDTH_PX = 110;        // minimum block width when side-b
 export const MIN_OVERLAP_DURATION_MINS = 30;  // minimum duration assumed when calculating overlap
 export const ATTRACTIONS_PAGE_SIZE = 5;      // attractions per page in the trip detail list
 export const TABLE_PAGE_SIZE = 5;             // max rows per page for any paginated data table
+// Explore's grid view — page size is computed from how many columns actually fit the
+// viewport (see ExploreClient.tsx), not a fixed count, so a wide screen doesn't paginate
+// after only a fraction of a row's worth of unused space. These two must match the
+// `.grid` rule's `minmax(180px, 1fr)` / `gap` in ExploreClient.module.css.
+export const EXPLORE_GRID_CARD_MIN_WIDTH_PX = 180;
+export const EXPLORE_GRID_GAP_PX = 16;
+export const EXPLORE_GRID_ROWS_PER_PAGE = 3;

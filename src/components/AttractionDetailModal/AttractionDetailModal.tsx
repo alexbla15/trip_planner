@@ -87,6 +87,8 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
     ? `${attraction.durationValue} ${attraction.durationUnit ?? "hours"}`
     : null;
 
+  const todayKey = DAY_KEYS[(new Date().getDay() + 6) % 7];
+
   const modal = (
     <div
       className={styles.backdrop}
@@ -200,94 +202,134 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
             {/* ── Residence-specific fields ── */}
             {isResidence && attraction.residenceType && (
               <div className={styles.infoItem}>
-                <span className={styles.infoLabel}><BedDouble size={13} aria-hidden="true" />Type</span>
-                <span className={styles.infoValue}>{attraction.residenceType}</span>
+                <span className={styles.infoIconBubble}><BedDouble size={15} aria-hidden="true" /></span>
+                <span className={styles.infoText}>
+                  <span className={styles.infoLabel}>Type</span>
+                  <span className={styles.infoValue}>{attraction.residenceType}</span>
+                </span>
               </div>
             )}
             {isResidence && attraction.checkInDate && (
               <div className={styles.infoItem}>
-                <span className={styles.infoLabel}><Calendar size={13} aria-hidden="true" />Check-in</span>
-                <span className={styles.infoValue}>{formatDisplayDate(attraction.checkInDate)}</span>
+                <span className={styles.infoIconBubble}><Calendar size={15} aria-hidden="true" /></span>
+                <span className={styles.infoText}>
+                  <span className={styles.infoLabel}>Check-in</span>
+                  <span className={styles.infoValue}>{formatDisplayDate(attraction.checkInDate)}</span>
+                </span>
               </div>
             )}
             {isResidence && attraction.checkOutDate && (
               <div className={styles.infoItem}>
-                <span className={styles.infoLabel}><Calendar size={13} aria-hidden="true" />Check-out</span>
-                <span className={styles.infoValue}>{formatDisplayDate(attraction.checkOutDate)}</span>
+                <span className={styles.infoIconBubble}><Calendar size={15} aria-hidden="true" /></span>
+                <span className={styles.infoText}>
+                  <span className={styles.infoLabel}>Check-out</span>
+                  <span className={styles.infoValue}>{formatDisplayDate(attraction.checkOutDate)}</span>
+                </span>
               </div>
             )}
 
             {/* ── Flight-specific fields ── */}
             {isFlight && attraction.flightNumber && (
               <div className={styles.infoItem}>
-                <span className={styles.infoLabel}><Plane size={13} aria-hidden="true" />Flight</span>
-                <span className={styles.infoValue}>{attraction.flightNumber}</span>
+                <span className={styles.infoIconBubble}><Plane size={15} aria-hidden="true" /></span>
+                <span className={styles.infoText}>
+                  <span className={styles.infoLabel}>Flight</span>
+                  <span className={styles.infoValue}>{attraction.flightNumber}</span>
+                </span>
               </div>
             )}
             {isFlight && attraction.airline && (
               <div className={styles.infoItem}>
-                <span className={styles.infoLabel}><Tag size={13} aria-hidden="true" />Airline</span>
-                <span className={styles.infoValue}>{attraction.airline}</span>
+                <span className={styles.infoIconBubble}><Tag size={15} aria-hidden="true" /></span>
+                <span className={styles.infoText}>
+                  <span className={styles.infoLabel}>Airline</span>
+                  <span className={styles.infoValue}>{attraction.airline}</span>
+                </span>
               </div>
             )}
             {isFlight && attraction.departureAirport && (
               <div className={styles.infoItem}>
-                <span className={styles.infoLabel}><MapPin size={13} aria-hidden="true" />From</span>
-                <span className={styles.infoValue}>
-                  {attraction.departureAirport}
-                  {attraction.departureTime && (
-                    <span className={styles.timeNote}> · {attraction.departureTime.split("T")[1]?.slice(0, 5)}</span>
-                  )}
+                <span className={styles.infoIconBubble}><MapPin size={15} aria-hidden="true" /></span>
+                <span className={styles.infoText}>
+                  <span className={styles.infoLabel}>From</span>
+                  <span className={styles.infoValue}>
+                    {attraction.departureAirport}
+                    {attraction.departureTime && (
+                      <span className={styles.timeNote}> · {attraction.departureTime.split("T")[1]?.slice(0, 5)}</span>
+                    )}
+                  </span>
                 </span>
               </div>
             )}
             {isFlight && attraction.arrivalAirport && (
               <div className={styles.infoItem}>
-                <span className={styles.infoLabel}><MapPin size={13} aria-hidden="true" />To</span>
-                <span className={styles.infoValue}>
-                  {attraction.arrivalAirport}
-                  {attraction.arrivalTime && (
-                    <span className={styles.timeNote}> · {attraction.arrivalTime.split("T")[1]?.slice(0, 5)}</span>
-                  )}
+                <span className={styles.infoIconBubble}><MapPin size={15} aria-hidden="true" /></span>
+                <span className={styles.infoText}>
+                  <span className={styles.infoLabel}>To</span>
+                  <span className={styles.infoValue}>
+                    {attraction.arrivalAirport}
+                    {attraction.arrivalTime && (
+                      <span className={styles.timeNote}> · {attraction.arrivalTime.split("T")[1]?.slice(0, 5)}</span>
+                    )}
+                  </span>
                 </span>
               </div>
             )}
             {isFlight && attraction.gate && (
               <div className={styles.infoItem}>
-                <span className={styles.infoLabel}><MapPin size={13} aria-hidden="true" />Gate</span>
-                <span className={styles.infoValue}>{attraction.gate}</span>
+                <span className={styles.infoIconBubble}><MapPin size={15} aria-hidden="true" /></span>
+                <span className={styles.infoText}>
+                  <span className={styles.infoLabel}>Gate</span>
+                  <span className={styles.infoValue}>{attraction.gate}</span>
+                </span>
               </div>
             )}
             {isFlight && attraction.seat && (
               <div className={styles.infoItem}>
-                <span className={styles.infoLabel}><Tag size={13} aria-hidden="true" />Seat</span>
-                <span className={styles.infoValue}>{attraction.seat}</span>
+                <span className={styles.infoIconBubble}><Tag size={15} aria-hidden="true" /></span>
+                <span className={styles.infoText}>
+                  <span className={styles.infoLabel}>Seat</span>
+                  <span className={styles.infoValue}>{attraction.seat}</span>
+                </span>
               </div>
             )}
 
-            {/* ── Generic fields (city/country shown for everything except flights — flights don't have a single city/country) ── */}
-            {!isFlight && (
+            {/* City/Country: already shown in the map caption below when coordinates exist — only
+                shown here as a fallback so the info isn't lost when there's no map. */}
+            {!isFlight && !attraction.coordinates && (
               <div className={styles.infoItem}>
-                <span className={styles.infoLabel}><Building2 size={13} aria-hidden="true" />City</span>
-                <span className={styles.infoValue}>{attraction.city}</span>
+                <span className={styles.infoIconBubble}><Building2 size={15} aria-hidden="true" /></span>
+                <span className={styles.infoText}>
+                  <span className={styles.infoLabel}>City</span>
+                  <span className={styles.infoValue}>{attraction.city}</span>
+                </span>
               </div>
             )}
-            {!isFlight && (
+            {!isFlight && !attraction.coordinates && (
               <div className={styles.infoItem}>
-                <span className={styles.infoLabel}><Globe size={13} aria-hidden="true" />Country</span>
-                <span className={styles.infoValue}>{attraction.country}</span>
+                <span className={styles.infoIconBubble}><Globe size={15} aria-hidden="true" /></span>
+                <span className={styles.infoText}>
+                  <span className={styles.infoLabel}>Country</span>
+                  <span className={styles.infoValue}>{attraction.country}</span>
+                </span>
               </div>
             )}
             {!isResidence && !isFlight && durationLabel && (
               <div className={styles.infoItem}>
-                <span className={styles.infoLabel}><Clock size={13} aria-hidden="true" />Duration</span>
-                <span className={styles.infoValue}>{durationLabel}</span>
+                <span className={styles.infoIconBubble}><Clock size={15} aria-hidden="true" /></span>
+                <span className={styles.infoText}>
+                  <span className={styles.infoLabel}>Duration</span>
+                  <span className={styles.infoValue}>{durationLabel}</span>
+                </span>
               </div>
             )}
             {attraction.price != null && (
               <div className={styles.infoItem}>
-                <span className={styles.infoLabel}><Wallet size={13} aria-hidden="true" />Price</span>
-                <span className={styles.infoValue}>{formatPrice(attraction.price!, attraction.currency ?? "USD")}</span>
+                <span className={styles.infoIconBubble}><Wallet size={15} aria-hidden="true" /></span>
+                <span className={styles.infoText}>
+                  <span className={styles.infoLabel}>Price</span>
+                  <span className={styles.infoValue}>{formatPrice(attraction.price!, attraction.currency ?? "USD")}</span>
+                </span>
               </div>
             )}
             {/* Coordinates shown in the map caption above — removed from info grid */}
@@ -303,25 +345,33 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
               {isAllDay24h(attraction.openingHours) ? (
                 <span className={styles.open24h}>Open 24/7</span>
               ) : (
-                <table className={styles.hoursTable} aria-label="Opening hours">
-                  <tbody>
-                    {DAY_KEYS.map((day) => {
-                      const row = attraction.openingHours?.[day];
-                      return (
-                        <tr key={day} className={styles.hoursRow}>
-                          <td className={styles.hoursDay}>{day}</td>
-                          <td className={styles.hoursTime}>
-                            {row?.closed || !row?.ranges?.length ? (
-                              <span className={styles.closed}>Closed</span>
-                            ) : (
-                              row.ranges.map((r) => `${r.open} – ${r.close}`).join(", ")
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <div className={styles.hoursCard}>
+                  <table className={styles.hoursTable} aria-label="Opening hours">
+                    <tbody>
+                      {DAY_KEYS.map((day) => {
+                        const row = attraction.openingHours?.[day];
+                        const isToday = day === todayKey;
+                        return (
+                          <tr key={day} className={`${styles.hoursRow} ${isToday ? styles.hoursRowToday : ""}`}>
+                            <td className={styles.hoursDay}>
+                              <span className={styles.hoursDayInner}>
+                                {day}
+                                {isToday && <span className={styles.todayPill}>Today</span>}
+                              </span>
+                            </td>
+                            <td className={styles.hoursTime}>
+                              {row?.closed || !row?.ranges?.length ? (
+                                <span className={styles.closed}>Closed</span>
+                              ) : (
+                                row.ranges.map((r) => `${r.open} – ${r.close}`).join(", ")
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           )}

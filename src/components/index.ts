@@ -22,6 +22,8 @@ export { ExploreCard } from "./ExploreCard";
 export type { ExploreCardProps } from "./ExploreCard";
 export { ExploreSection } from "./ExploreSection";
 export type { ExploreSectionProps } from "./ExploreSection";
+export { AttractionGridCard } from "./AttractionGridCard";
+export type { AttractionGridCardProps } from "./AttractionGridCard";
 
 export { MoodTagChip } from "./MoodTagChip";
 export type { MoodTagChipProps } from "./MoodTagChip";

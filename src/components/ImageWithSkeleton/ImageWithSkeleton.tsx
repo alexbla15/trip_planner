@@ -13,6 +13,7 @@ export function ImageWithSkeleton({ className, wrapperClassName, ...imageProps }
     <span className={`${styles.wrapper}${wrapperClassName ? ` ${wrapperClassName}` : ""}`}>
       {!loaded && <span className={styles.skeleton} aria-hidden="true" />}
       <Image
+        loading="eager"
         {...imageProps}
         className={`${styles.image}${loaded ? ` ${styles.imageLoaded}` : ""}${className ? ` ${className}` : ""}`}
         onLoad={() => setLoaded(true)}

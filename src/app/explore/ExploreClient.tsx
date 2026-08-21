@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Globe, Plus, ChevronLeft, SlidersHorizontal, X, Ruler, Footprints, Car, Bus, Loader2, Search, Check } from "lucide-react";
+import { Globe, Plus, ChevronLeft, SlidersHorizontal, X, Ruler, Footprints, Car, Bus, Loader2, Search, Check, Map as MapIcon, LayoutGrid, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useAttractionTypes } from "@/hooks";
@@ -13,10 +13,11 @@ import {
   markAttractionVisited, unmarkAttractionVisited,
 } from "@/services";
 import type { TravelMode, RouteLeg } from "@/services";
-import { AttractionDetailModal, NewAttractionModal, TripPickerModal, Spinner, FormErrorBanner, AttractionFilter, attractionToFormData } from "@/components";
+import { AttractionDetailModal, NewAttractionModal, TripPickerModal, Spinner, FormErrorBanner, AttractionFilter, AttractionGridCard, attractionToFormData } from "@/components";
 import type { AttractionFormData } from "@/components";
 import type { Attraction } from "@/types/attraction";
 import type { Trip } from "@/types/trip";
+import { EXPLORE_GRID_CARD_MIN_WIDTH_PX, EXPLORE_GRID_GAP_PX, EXPLORE_GRID_ROWS_PER_PAGE } from "@/config/ui";
 import styles from "./ExploreClient.module.css";
 
 interface LocationSearchResult {
@@ -96,6 +97,13 @@ export function ExploreClient() {
   const [tripPickerOpen, setTripPickerOpen] = useState(false);
   const [attractionForTripPicker, setAttractionForTripPicker] = useState<Attraction | null>(null);
   const [sidebarOpen, setSidebarOpen]             = useState(false);
+
+  // Map vs grid view — only meaningful in country/city view (world view has no
+  // individual-attraction list, only aggregated city/country pins).
+  const [viewMode, setViewMode]                   = useState<"map" | "grid">("map");
+  const [gridPage, setGridPage]                   = useState(1);
+  const [gridColumns, setGridColumns]             = useState(4);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   // Filters (only active in city view)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -259,6 +267,51 @@ export function ExploreClient() {
     return countryAttractions.filter((a) => matchesChipFilters(a) && passesVisitedFilter(a));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countryAttractions, selectedCategories, selectedTypes, visitedFilter, byCategory]);
+
+  // Grid view renders from the exact same filtered list the map's pins already use —
+  // no separate fetch, no separate filter logic. Page size is however many cards
+  // actually fit per row (measured) × a fixed number of rows, not a flat constant —
+  // otherwise a wide viewport fits far more than one page's worth per row and paginates
+  // after showing only a sliver of unused space.
+  const gridAttractions = selectedCity ? filteredAttractions : filteredCountryAttractions;
+  const gridPageSize = gridColumns * EXPLORE_GRID_ROWS_PER_PAGE;
+  const gridTotalPages = Math.max(1, Math.ceil(gridAttractions.length / gridPageSize));
+  const paginatedGridAttractions = gridAttractions.slice(
+    (gridPage - 1) * gridPageSize, gridPage * gridPageSize
+  );
+
+  // Recompute how many columns the grid's own measured width actually fits, matching
+  // the CSS `repeat(auto-fill, minmax(...))` math exactly (see EXPLORE_GRID_CARD_MIN_WIDTH_PX/
+  // EXPLORE_GRID_GAP_PX doc comment) — re-measures on resize/sidebar-collapse via ResizeObserver.
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const compute = () => {
+      // .gridArea has 20px horizontal padding on each side (see .gridArea in
+      // ExploreClient.module.css) — subtract it so column math matches the actual
+      // track width available to .grid, not the padded container's own width.
+      const width = el.clientWidth - 40;
+      const cols = Math.max(1, Math.floor(
+        (width + EXPLORE_GRID_GAP_PX) / (EXPLORE_GRID_CARD_MIN_WIDTH_PX + EXPLORE_GRID_GAP_PX)
+      ));
+      setGridColumns(cols);
+    };
+    compute();
+    const observer = new ResizeObserver(compute);
+    observer.observe(el);
+    return () => observer.disconnect();
+    // Only `viewMode` matters here — the grid container only exists in the DOM while
+    // viewMode === "grid" (see the ref-attaching JSX below); `view` isn't referenced
+    // to avoid depending on a value declared later in this component.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode]);
+
+  // Reset to page 1 whenever the underlying filtered set changes shape, so the user
+  // never lands on a stale, now-out-of-range page after narrowing a filter.
+  useEffect(() => { setGridPage(1); }, [selectedCountry, selectedCity, selectedCategories, selectedTypes, visitedFilter]);
+
+  // Also clamp if a resize (column count change) makes the current page out of range.
+  useEffect(() => { setGridPage((p) => Math.min(p, gridTotalPages)); }, [gridTotalPages]);
 
   // Attractions matching only the visited filter, scoped to whichever level is currently
   // selected (country-wide once a country is picked, narrowed to the city once one is
@@ -941,23 +994,87 @@ export function ExploreClient() {
           </div>
         )}
 
-        <ExploreMapWidget
-          countries={countries}
-          selectedCountry={selectedCountry}
-          selectedCity={selectedCity}
-          cities={cities}
-          attractions={view === "country" ? filteredCountryAttractions : filteredAttractions}
-          onCountryClick={handleCountrySelect}
-          onCityClick={handleCitySelect}
-          onAttractionClick={handleAttractionMarkerClick}
-          mapRef={mapRef}
-          measureMode={measureMode}
-          measurePoints={measurePoints}
-          measureLegMode={measureLegMode}
-          measureRoute={measureRoute}
-          onMeasureMapClick={handleMeasureMapClick}
-          onCustomPinClick={handleCustomPinClick}
-        />
+        {/* Map/grid toggle — only meaningful once individual attractions are loaded
+            (country or city view); world view has no such list to switch layouts for. */}
+        {(view === "country" || view === "city") && (
+          <div className={styles.viewModeToggle} role="group" aria-label="Map or grid view">
+            <button
+              type="button"
+              className={`${styles.viewModeBtn} ${viewMode === "map" ? styles.viewModeBtnActive : ""}`}
+              onClick={() => setViewMode("map")}
+              aria-pressed={viewMode === "map"}
+            >
+              <MapIcon size={14} aria-hidden="true" />
+              Map
+            </button>
+            <button
+              type="button"
+              className={`${styles.viewModeBtn} ${viewMode === "grid" ? styles.viewModeBtnActive : ""}`}
+              onClick={() => setViewMode("grid")}
+              aria-pressed={viewMode === "grid"}
+            >
+              <LayoutGrid size={14} aria-hidden="true" />
+              Grid
+            </button>
+          </div>
+        )}
+
+        {viewMode === "map" || view === "world" ? (
+          <ExploreMapWidget
+            countries={countries}
+            selectedCountry={selectedCountry}
+            selectedCity={selectedCity}
+            cities={cities}
+            attractions={view === "country" ? filteredCountryAttractions : filteredAttractions}
+            onCountryClick={handleCountrySelect}
+            onCityClick={handleCitySelect}
+            onAttractionClick={handleAttractionMarkerClick}
+            mapRef={mapRef}
+            measureMode={measureMode}
+            measurePoints={measurePoints}
+            measureLegMode={measureLegMode}
+            measureRoute={measureRoute}
+            onMeasureMapClick={handleMeasureMapClick}
+            onCustomPinClick={handleCustomPinClick}
+          />
+        ) : (
+          <div className={styles.gridArea} ref={gridRef}>
+            {gridAttractions.length === 0 ? (
+              <p className={styles.worldPrompt}>No attractions match the selected filters.</p>
+            ) : (
+              <>
+                <div className={styles.grid}>
+                  {paginatedGridAttractions.map((a) => (
+                    <AttractionGridCard key={a._id} attraction={a} onClick={setSelectedAttraction} />
+                  ))}
+                </div>
+                {gridTotalPages > 1 && (
+                  <div className={styles.gridPagination}>
+                    <button
+                      type="button"
+                      className={styles.paginationBtn}
+                      onClick={() => setGridPage((p) => p - 1)}
+                      disabled={gridPage === 1}
+                      aria-label="Go to previous page"
+                    >
+                      <ChevronLeft size={14} aria-hidden="true" />
+                    </button>
+                    <span className={styles.paginationInfo}>Page {gridPage} of {gridTotalPages}</span>
+                    <button
+                      type="button"
+                      className={styles.paginationBtn}
+                      onClick={() => setGridPage((p) => p + 1)}
+                      disabled={gridPage === gridTotalPages}
+                      aria-label="Go to next page"
+                    >
+                      <ChevronRight size={14} aria-hidden="true" />
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       <AttractionDetailModal
