@@ -329,6 +329,16 @@ components:
             the Attraction document itself, since it's shared across users/trips). Always
             false for an unauthenticated caller. Toggle via PUT/DELETE
             /api/users/me/visited/{attractionId}.
+        usedInTripNames:
+          type: array
+          items: { type: string }
+          default: []
+          description: >
+            Names of the REQUESTING user's own trips that already include this attraction —
+            a private, per-user fact merged onto the response at read time (never stored on
+            the Attraction document itself, since it's shared across users/trips). Always
+            empty for an unauthenticated caller.
+          example: ["Summer in Budapest"]
         ownerId:
           type: string
           example: 65f1234567890abcdef12345

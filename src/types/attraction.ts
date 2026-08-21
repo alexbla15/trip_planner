@@ -25,6 +25,10 @@ export interface Attraction {
    *  per-user, independent of any trip. Always false for custom-slot/flight rows (no
    *  backing document) and for anonymous callers. */
   isVisited?: boolean;
+  /** Names of the CURRENT user's own trips that already include this attraction — private,
+   *  per-user, independent of the trip context (if any) the card is being viewed from.
+   *  Empty/absent for custom-slot/flight rows and for anonymous callers. */
+  usedInTripNames?: string[];
   // no tripId — attractions are global; scheduling lives in Trip.schedules
   ownerId?: string;
   name: string;

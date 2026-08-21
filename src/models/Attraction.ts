@@ -130,12 +130,18 @@ export function formatAttraction(
    *  callers must resolve it themselves (see `src/lib/services/visited.service.ts`)
    *  and never derive it from anything on `doc`. Defaults to false (unauthenticated
    *  callers / callers that haven't resolved visited status). */
-  isVisited?: boolean
+  isVisited?: boolean,
+  /** Names of the requesting user's own trips that already include this attraction —
+   *  per-user, so callers must resolve it themselves (see
+   *  `src/lib/services/usedInTrips.service.ts`) and never derive it from anything on
+   *  `doc`. Defaults to empty (unauthenticated callers / callers that haven't resolved it). */
+  usedInTripNames?: string[]
 ): AttractionShape {
   return {
     _id: idOverride ?? doc._id.toString(),
     attractionId: doc._id.toString(),
     isVisited: isVisited ?? false,
+    usedInTripNames: usedInTripNames ?? [],
     ownerId: doc.ownerId?.toString(),
     name: doc.name,
     country: doc.country,

@@ -1162,6 +1162,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         onClose={() => setNearbyModalOpen(false)}
         tripId={trip._id}
         tripAttractions={regularAttractions}
+        originAttractions={exploreFilteredAttractions}
         token={token ?? ""}
         onAttractionAdded={upsertAttraction}
         onViewAttraction={(a) => setViewingAttraction(a)}

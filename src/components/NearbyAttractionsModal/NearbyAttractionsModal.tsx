@@ -17,7 +17,7 @@ import styles from "./NearbyAttractionsModal.module.css";
 const HEADING_ID = "nearby-attractions-modal-title";
 
 export function NearbyAttractionsModal({
-  isOpen, onClose, tripId, tripAttractions, token, onAttractionAdded, onViewAttraction,
+  isOpen, onClose, tripId, tripAttractions, originAttractions, token, onAttractionAdded, onViewAttraction,
 }: NearbyAttractionsModalProps) {
   const { findType } = useAttractionTypes();
 
@@ -40,7 +40,7 @@ export function NearbyAttractionsModal({
   const [originSearch, setOriginSearch] = useState("");
   const [originPage, setOriginPage]     = useState(1);
 
-  const pickableOrigins = tripAttractions.filter((a) => !!a.coordinates);
+  const pickableOrigins = originAttractions.filter((a) => !!a.coordinates);
   const filteredOrigins = pickableOrigins.filter((a) =>
     !originSearch.trim() || a.name.toLowerCase().includes(originSearch.trim().toLowerCase())
   );

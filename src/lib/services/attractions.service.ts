@@ -5,6 +5,7 @@ import { Attraction, formatAttraction, type IAttraction } from "@/models/Attract
 import { AttractionType } from "@/models/AttractionType";
 import { Trip, type ITrip, type IScheduleEntry } from "@/models/Trip";
 import { getVisitedIdSet, isAttractionVisited } from "@/lib/services/visited.service";
+import { getUsedInTripsMap, getUsedInTripNames } from "@/lib/services/usedInTrips.service";
 import type { JwtPayload } from "@/lib/auth";
 import type { Attraction as AttractionShape, OpeningHours } from "@/types/attraction";
 
@@ -329,6 +330,7 @@ export async function listTripAttractions(
     .exec();
   const docsById = new Map(docs.map((doc) => [doc._id.toString(), doc]));
   const visitedIds = await getVisitedIdSet(userId);
+  const usedInTripsMap = await getUsedInTripsMap(userId);
 
   // Group regular-attraction schedule entries by which real document they reference — a
   // real attraction can have multiple instances (see IScheduleEntry.attractionRef), each
@@ -352,11 +354,12 @@ export async function listTripAttractions(
     const idStr = doc._id.toString();
     const entries = entriesByDocId.get(idStr);
     const isVisited = visitedIds.has(idStr);
+    const usedInTripNames = usedInTripsMap.get(idStr);
     if (!entries || entries.length === 0) {
-      result.push(formatAttraction(doc, null, idStr, isVisited)); // linked but not yet scheduled
+      result.push(formatAttraction(doc, null, idStr, isVisited, usedInTripNames)); // linked but not yet scheduled
     } else {
       for (const [key, entry] of entries) {
-        result.push(formatAttraction(doc, entry, key, isVisited));
+        result.push(formatAttraction(doc, entry, key, isVisited, usedInTripNames));
       }
     }
   }
@@ -674,11 +677,13 @@ export async function addAttractionToTrip(
         $set: { [`schedules.${instanceKey}`]: scheduleEntry },
       });
       await attraction.populate("types");
-      return { status: 201, data: formatAttraction(attraction, scheduleEntry, instanceKey, isVisited) };
+      const usedInTripNames = await getUsedInTripNames(payload.userId, attractionId);
+      return { status: 201, data: formatAttraction(attraction, scheduleEntry, instanceKey, isVisited, usedInTripNames) };
     }
     const schedule = trip.schedules?.get(attractionId);
     await attraction.populate("types");
-    return { status: 200, data: formatAttraction(attraction, schedule ?? null, undefined, isVisited) };
+    const usedInTripNames = await getUsedInTripNames(payload.userId, attractionId);
+    return { status: 200, data: formatAttraction(attraction, schedule ?? null, undefined, isVisited, usedInTripNames) };
   }
 
   trip.attractionIds.push(attraction._id);
@@ -707,7 +712,8 @@ export async function addAttractionToTrip(
   await trip.save();
   await attraction.populate("types");
 
-  return { status: 201, data: formatAttraction(attraction, scheduleEntry, undefined, isVisited) };
+  const usedInTripNames = await getUsedInTripNames(payload.userId, attractionId);
+  return { status: 201, data: formatAttraction(attraction, scheduleEntry, undefined, isVisited, usedInTripNames) };
 }
 
 export interface UpdateTripAttractionScheduleInput {
@@ -880,8 +886,9 @@ export async function updateTripAttractionSchedule(
   const attraction = await Attraction.findById(realAttractionId);
   if (!attraction) throw notFound("Attraction not found");
   const isVisited = await isAttractionVisited(payload.userId, realAttractionId);
+  const usedInTripNames = await getUsedInTripNames(payload.userId, realAttractionId);
 
-  return formatAttraction(attraction, updatedSchedule, attractionId, isVisited);
+  return formatAttraction(attraction, updatedSchedule, attractionId, isVisited, usedInTripNames);
 }
 
 /** Unlink attraction from this trip (or remove a custom time-slot / flight entirely).

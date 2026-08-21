@@ -211,6 +211,21 @@
   color: var(--color-text-secondary);
 }
 
+/* ── Own-trip usage badge ── */
+.usedInTripsBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+  color: var(--color-success);
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0;
+}
+
 /* ── Info grid ── */
 .infoGrid {
   display: grid;

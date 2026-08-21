@@ -22,6 +22,7 @@ import {
   Pencil,
   Plus,
   Check,
+  Luggage,
 } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
@@ -163,6 +164,19 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                 ))}
               </div>
             </div>
+          )}
+
+          {/* Own-trip usage — private per-user signal, not shown to anonymous viewers */}
+          {attraction.usedInTripNames && attraction.usedInTripNames.length > 0 && (
+            <p
+              className={styles.usedInTripsBadge}
+              title={attraction.usedInTripNames.length > 1 ? attraction.usedInTripNames.join(", ") : undefined}
+            >
+              <Luggage size={13} aria-hidden="true" />
+              {attraction.usedInTripNames.length === 1
+                ? `Already in your trip "${attraction.usedInTripNames[0]}"`
+                : `Already in ${attraction.usedInTripNames.length} of your trips`}
+            </p>
           )}
 
           {/* Location map — shown whenever coordinates exist */}

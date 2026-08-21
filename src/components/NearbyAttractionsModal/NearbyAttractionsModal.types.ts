@@ -4,9 +4,15 @@ export interface NearbyAttractionsModalProps {
   isOpen: boolean;
   onClose: () => void;
   tripId: string;
-  /** This trip's own regular attractions (deduped, no flights/residences) — the
-   *  origin-picker list, and also used to exclude already-added attractions from results. */
+  /** This trip's own regular attractions (deduped, no flights/residences) — used to
+   *  exclude already-added attractions from nearby-search results. Always the FULL
+   *  trip list, independent of any Explore tab filters, so a filtered-out attraction
+   *  can't be suggested as "nearby" and re-added as a duplicate. */
   tripAttractions: Attraction[];
+  /** Candidates offered in the origin picker (step 1) — normally the same attractions
+   *  currently visible on the Explore tab (post day/category/type filters), so picking
+   *  an origin only offers what the user is actually looking at. */
+  originAttractions: Attraction[];
   token: string;
   /** Called after a suggestion is successfully added to the trip, so the parent can
    *  merge it into its own attraction list the same way every other add-flow does. */

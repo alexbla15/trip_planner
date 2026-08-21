@@ -5,6 +5,7 @@ import { corsPreflight } from "@/lib/cors";
 import { formatAttraction } from "@/models/Attraction";
 import { searchAttractions, createAttraction } from "@/lib/services/attractions.service";
 import { getVisitedIdSet } from "@/lib/services/visited.service";
+import { getUsedInTripsMap } from "@/lib/services/usedInTrips.service";
 
 export const OPTIONS = corsPreflight;
 
@@ -30,11 +31,14 @@ export const GET = withApiHandler("GET /api/attractions", async (req: Request) =
   });
 
   const visitedIds = await getVisitedIdSet(userId);
+  const usedInTripsMap = await getUsedInTripsMap(userId);
 
   // Response body stays a plain array for backward compatibility with existing callers
   // (src/services/attractions.service.ts) — pagination metadata rides on headers so
   // clients can adopt "load more" incrementally without a breaking body-shape change.
-  return NextResponse.json(items.map((doc) => formatAttraction(doc, null, undefined, visitedIds.has(doc._id.toString()))), {
+  return NextResponse.json(items.map((doc) => formatAttraction(
+    doc, null, undefined, visitedIds.has(doc._id.toString()), usedInTripsMap.get(doc._id.toString())
+  )), {
     headers: {
       "X-Total-Count": String(total),
       "X-Skip": String(skip),
