@@ -10,11 +10,13 @@ import type { JwtPayload } from "@/lib/auth";
 import type { Attraction as AttractionShape, OpeningHours } from "@/types/attraction";
 
 /** Maps a Mongo E11000 duplicate-key error to the same 409 the pre-check already guards
- *  against, in case of a race between the pre-check and the insert. */
+ *  against, in case of a race between the pre-check and the insert/save. The underlying
+ *  unique index is on name+coordinates together (see Attraction model), so a real collision
+ *  here always means the same name at the same location. */
 function throwIfDuplicateKeyError(err: unknown): never {
   const msg = (err as Error)?.message ?? "";
   if (msg.includes("E11000")) {
-    throw conflict("An attraction with this name already exists");
+    throw conflict("An attraction with this name already exists at this location");
   }
   throw err;
 }
@@ -217,13 +219,27 @@ export async function updateAttraction(
   }
 
   if (body.name && (body.name as string).trim().toLowerCase() !== attraction.name.toLowerCase()) {
-    const duplicate = await Attraction.findOne(
-      { name: (body.name as string).trim(), _id: { $ne: attraction._id } },
-      undefined,
-      { collation: { locale: "en", strength: 2 } }
-    );
-    if (duplicate) {
-      throw conflict("An attraction with this name already exists");
+    // A name match only conflicts when the coordinates match too — real-world places can
+    // share a name at different locations (e.g. two "Central Park"s). Without coordinates
+    // on either side, we can't confirm it's actually the same place, so no conflict.
+    const nextCoordinates = body.coordinates !== undefined
+      ? (body.coordinates as { lat: number; lng: number } | null)
+      : attraction.coordinates ?? null;
+
+    if (nextCoordinates?.lat != null && nextCoordinates?.lng != null) {
+      const duplicate = await Attraction.findOne(
+        {
+          name: (body.name as string).trim(),
+          _id: { $ne: attraction._id },
+          "coordinates.lat": nextCoordinates.lat,
+          "coordinates.lng": nextCoordinates.lng,
+        },
+        undefined,
+        { collation: { locale: "en", strength: 2 } }
+      );
+      if (duplicate) {
+        throw conflict("An attraction with this name already exists at this location");
+      }
     }
   }
 
@@ -266,7 +282,11 @@ export async function updateAttraction(
   if (body.gate !== undefined) attraction.gate = body.gate as string;
   if (body.seat !== undefined) attraction.seat = body.seat as string;
 
-  await attraction.save();
+  try {
+    await attraction.save();
+  } catch (err) {
+    throwIfDuplicateKeyError(err);
+  }
   await attraction.populate("types");
   return attraction;
 }

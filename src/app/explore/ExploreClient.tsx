@@ -551,10 +551,19 @@ export function ExploreClient() {
 
   async function handleTripSelect(trip: Trip) {
     if (!token || !attractionForTripPicker) return;
+    const realId = attractionForTripPicker.attractionId ?? attractionForTripPicker._id;
     setTripPickerOpen(false);
     try {
       await addAttractionToTrip(trip._id, token, { existingAttractionId: attractionForTripPicker._id });
       toast.success(`Added to ${trip.name}`);
+
+      const appendTripName = (a: Attraction) =>
+        (a.attractionId ?? a._id) === realId && !(a.usedInTripNames ?? []).includes(trip.name)
+          ? { ...a, usedInTripNames: [...(a.usedInTripNames ?? []), trip.name] }
+          : a;
+      setCityAttractions((prev) => prev.map(appendTripName));
+      setCountryAttractions((prev) => prev.map(appendTripName));
+      setSelectedAttraction((prev) => (prev ? appendTripName(prev) : prev));
     } catch {
       toast.error(`Couldn't add to ${trip.name}. Please try again.`);
     }

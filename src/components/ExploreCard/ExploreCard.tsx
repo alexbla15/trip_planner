@@ -20,6 +20,7 @@ export function ExploreCard({ item }: ExploreCardProps) {
           alt={`${destination} community trip`}
           fill
           className={styles.image}
+          wrapperClassName={styles.imageWrapper}
           sizes="(max-width: 640px) calc(100vw - 32px), (max-width: 1024px) calc(50vw - 28px), calc(33vw - 24px)"
         />
         <div className={styles.tagBadge}>

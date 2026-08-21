@@ -18,8 +18,26 @@
 .imageContainer {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  /* Padding-top percentage, not aspect-ratio — this card's width is responsive, so a
+     fixed height would distort at different widths, but `aspect-ratio` can round its
+     derived height to 0 at certain browser zoom levels in some Chromium versions,
+     making the fill-mode image disappear. Percentage padding computes purely from
+     width and doesn't have that bug. */
+  height: 0;
+  padding-top: 75%; /* 4:3 */
   overflow: hidden;
+}
+
+/* ImageWithSkeleton's own wrapper is a normal-flow element sized via `height: 100%` —
+   against this container's `padding-top` hack (literal `height: 0`), that percentage
+   resolves to 0 and the whole image (skeleton + img) disappears, since percentage
+   heights on a NORMAL-FLOW element resolve against the parent's specified height value,
+   not its padding-inflated rendered box (that rule only applies to absolutely
+   positioned elements). Override it to fill via absolute positioning instead, which
+   correctly resolves against the padding box. */
+.imageWrapper {
+  position: absolute;
+  inset: 0;
 }
 
 .image {

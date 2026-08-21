@@ -1520,6 +1520,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Attraction'
+        '409':
+          description: >
+            Another attraction already has this name at the same coordinates. Renaming to a
+            name already used by an attraction at different coordinates is allowed.
     delete:
       summary: Delete an attraction globally
       tags: [Attractions]

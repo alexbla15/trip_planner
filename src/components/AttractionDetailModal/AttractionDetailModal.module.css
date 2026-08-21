@@ -202,7 +202,11 @@
 .photo {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  /* Fixed height, not aspect-ratio — some Chromium versions round an aspect-ratio-derived
+     height to 0 at certain browser zoom levels (page zoom, not devicePixelRatio) inside a
+     scrolling container, making the fill-mode image disappear. Matches .locationMapContainer
+     below, which uses the same fixed-height approach for the same reason. */
+  height: 220px;
   border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--color-bg-subtle);

@@ -27,6 +27,7 @@ export function AttractionGridCard({ attraction, onClick }: AttractionGridCardPr
             fill
             unoptimized
             className={styles.photoImg}
+            wrapperClassName={styles.photoWrapper}
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 220px"
           />
         ) : (

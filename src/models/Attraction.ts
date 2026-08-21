@@ -113,7 +113,18 @@ const AttractionSchema = new Schema<IAttraction>(
 );
 
 AttractionSchema.index({ ownerId: 1 });
-AttractionSchema.index({ name: 1 }, { unique: true, collation: { locale: "en", strength: 2 } });
+// Real-world places can share a name at different coordinates (e.g. two "Central Park"s),
+// so uniqueness is enforced on name+coordinates together, not name alone. The partial filter
+// only applies once coordinates are actually set — attractions without coordinates never
+// collide with each other on name alone.
+AttractionSchema.index(
+  { name: 1, "coordinates.lat": 1, "coordinates.lng": 1 },
+  {
+    unique: true,
+    collation: { locale: "en", strength: 2 },
+    partialFilterExpression: { "coordinates.lat": { $type: "number" }, "coordinates.lng": { $type: "number" } },
+  }
+);
 
 export const Attraction =
   (mongoose.models.Attraction as mongoose.Model<IAttraction>) ||

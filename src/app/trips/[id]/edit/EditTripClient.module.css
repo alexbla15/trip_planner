@@ -275,7 +275,13 @@
 
 .previewThumbnail {
   width: 100%;
-  aspect-ratio: 16 / 9;
+  /* Padding-top percentage, not aspect-ratio — this card's width is responsive, so a
+     fixed height would distort at different widths, but `aspect-ratio` can round its
+     derived height to 0 at certain browser zoom levels in some Chromium versions,
+     making the fill-mode image disappear. Percentage padding computes purely from
+     width and doesn't have that bug. */
+  height: 0;
+  padding-top: 56.25%; /* 16:9 */
   border-radius: var(--radius-md);
   overflow: hidden;
   position: relative;
