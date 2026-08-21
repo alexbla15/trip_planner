@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Globe, Plus, ChevronLeft, SlidersHorizontal, X, Ruler, Footprints, Car, Bus, Loader2, Search, Check, Map as MapIcon, LayoutGrid, ChevronRight } from "lucide-react";
+import { Globe, Plus, ChevronLeft, SlidersHorizontal, X, Ruler, Footprints, Car, Bus, Loader2, Search, Check, Map as MapIcon, LayoutGrid, ChevronRight, Luggage } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useAttractionTypes } from "@/hooks";
@@ -56,6 +56,10 @@ export interface CityEntry {
    *  0 for an anonymous/unauthenticated request. */
   visitedCount: number;
   unvisitedCount: number;
+  /** How many of this city's attractions already appear in one of the requesting
+   *  user's own trips. 0 for an anonymous/unauthenticated request. */
+  usedInTripCount: number;
+  notUsedInTripCount: number;
 }
 
 export interface CountryEntry {
@@ -109,6 +113,7 @@ export function ExploreClient() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes]           = useState<string[]>([]);
   const [visitedFilter, setVisitedFilter]           = useState<"all" | "visited" | "unvisited">("all");
+  const [tripUsageFilter, setTripUsageFilter]       = useState<"all" | "used" | "unused">("all");
 
   // Measure-distance tool (available once a country is selected — see view guard below)
   const [measureMode, setMeasureMode]               = useState(false);
@@ -179,21 +184,27 @@ export function ExploreClient() {
       .finally(() => setAttractionsLoading(false));
   }, [selectedCountry, selectedCity, token]);
 
-  // Cities matching the visited filter — a country/city only stays listed if at least
-  // one of its attractions matches (e.g. "Unvisited" hides a city where every attraction
-  // is already marked visited). Applies across the whole Explore experience (world →
-  // country → city), driven by the single header picker, not just the selected city's list.
+  // Cities matching the visited + trip-usage filters — a country/city only stays listed
+  // if at least one of its attractions matches (e.g. "Unvisited" hides a city where every
+  // attraction is already marked visited). Applies across the whole Explore experience
+  // (world → country → city), driven by the single header picker, not just the selected
+  // city's list.
   const visibleCities = useMemo(() => {
-    if (visitedFilter === "all") return cities;
-    return cities.filter((c) => (visitedFilter === "visited" ? c.visitedCount > 0 : c.unvisitedCount > 0));
-  }, [cities, visitedFilter]);
+    return cities
+      .filter((c) => visitedFilter === "all" || (visitedFilter === "visited" ? c.visitedCount > 0 : c.unvisitedCount > 0))
+      .filter((c) => tripUsageFilter === "all" || (tripUsageFilter === "used" ? c.usedInTripCount > 0 : c.notUsedInTripCount > 0));
+  }, [cities, visitedFilter, tripUsageFilter]);
 
-  // The number to display for a city/country pill under the active visited filter — the
+  // The number to display for a city/country pill under whichever filter is active — the
   // total attraction count is misleading once filtered (e.g. showing "12" under "Unvisited"
   // when only 4 of those 12 are actually unvisited), so show whichever count matches what
-  // drilling into that city would actually reveal.
-  function countFor(entry: { count: number; visitedCount: number; unvisitedCount: number }): number {
-    return visitedFilter === "all" ? entry.count : visitedFilter === "visited" ? entry.visitedCount : entry.unvisitedCount;
+  // drilling into that city would actually reveal. When both filters are active there's no
+  // tracked intersection count, so the visited filter (checked first) takes priority — an
+  // approximation, but still closer than the unfiltered total.
+  function countFor(entry: { count: number; visitedCount: number; unvisitedCount: number; usedInTripCount: number; notUsedInTripCount: number }): number {
+    if (visitedFilter !== "all") return visitedFilter === "visited" ? entry.visitedCount : entry.unvisitedCount;
+    if (tripUsageFilter !== "all") return tripUsageFilter === "used" ? entry.usedInTripCount : entry.notUsedInTripCount;
+    return entry.count;
   }
 
   // Derive unique countries with centroid + radius
@@ -226,7 +237,7 @@ export function ExploreClient() {
       })
       .sort((a, b) => b.count - a.count);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleCities, visitedFilter]);
+  }, [visibleCities, visitedFilter, tripUsageFilter]);
 
   const citiesInCountry = useMemo(
     () => (selectedCountry ? visibleCities.filter((c) => c.country === selectedCountry) : []),
@@ -237,9 +248,15 @@ export function ExploreClient() {
     return visitedFilter === "all" || (visitedFilter === "visited" ? !!a.isVisited : !a.isVisited);
   }
 
+  function passesTripUsageFilter(a: Attraction): boolean {
+    const used = !!a.usedInTripNames && a.usedInTripNames.length > 0;
+    return tripUsageFilter === "all" || (tripUsageFilter === "used" ? used : !used);
+  }
+
   // Shared by both city- and country-scoped attraction lists: does this attraction match
-  // the currently selected category/type chips? (Visited status is checked separately via
-  // passesVisitedFilter — the two are independent filters combined by each caller.)
+  // the currently selected category/type chips? (Visited/trip-usage status is checked
+  // separately via passesVisitedFilter/passesTripUsageFilter — independent filters
+  // combined by each caller.)
   function matchesChipFilters(a: Attraction): boolean {
     const typeNames = a.types ?? [];
     const passCategory =
@@ -257,16 +274,16 @@ export function ExploreClient() {
 
   // Client-side filtering of city attractions
   const filteredAttractions = useMemo(() => {
-    return cityAttractions.filter((a) => matchesChipFilters(a) && passesVisitedFilter(a));
+    return cityAttractions.filter((a) => matchesChipFilters(a) && passesVisitedFilter(a) && passesTripUsageFilter(a));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cityAttractions, selectedCategories, selectedTypes, visitedFilter, byCategory]);
+  }, [cityAttractions, selectedCategories, selectedTypes, visitedFilter, tripUsageFilter, byCategory]);
 
-  // Country-view attraction pins — same category/type + visited filtering as city view,
-  // so selecting a type in country view narrows the map pins too, not just a list.
+  // Country-view attraction pins — same category/type + visited/trip-usage filtering as
+  // city view, so selecting a type in country view narrows the map pins too, not just a list.
   const filteredCountryAttractions = useMemo(() => {
-    return countryAttractions.filter((a) => matchesChipFilters(a) && passesVisitedFilter(a));
+    return countryAttractions.filter((a) => matchesChipFilters(a) && passesVisitedFilter(a) && passesTripUsageFilter(a));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [countryAttractions, selectedCategories, selectedTypes, visitedFilter, byCategory]);
+  }, [countryAttractions, selectedCategories, selectedTypes, visitedFilter, tripUsageFilter, byCategory]);
 
   // Grid view renders from the exact same filtered list the map's pins already use —
   // no separate fetch, no separate filter logic. Page size is however many cards
@@ -308,21 +325,21 @@ export function ExploreClient() {
 
   // Reset to page 1 whenever the underlying filtered set changes shape, so the user
   // never lands on a stale, now-out-of-range page after narrowing a filter.
-  useEffect(() => { setGridPage(1); }, [selectedCountry, selectedCity, selectedCategories, selectedTypes, visitedFilter]);
+  useEffect(() => { setGridPage(1); }, [selectedCountry, selectedCity, selectedCategories, selectedTypes, visitedFilter, tripUsageFilter]);
 
   // Also clamp if a resize (column count change) makes the current page out of range.
   useEffect(() => { setGridPage((p) => Math.min(p, gridTotalPages)); }, [gridTotalPages]);
 
-  // Attractions matching only the visited filter, scoped to whichever level is currently
-  // selected (country-wide once a country is picked, narrowed to the city once one is
-  // picked) — the base set for computing which category/type chips are worth showing, so
-  // e.g. "Unvisited" doesn't leave a category chip visible that would produce zero results
-  // if also selected (every match already visited).
+  // Attractions matching only the visited/trip-usage filters, scoped to whichever level
+  // is currently selected (country-wide once a country is picked, narrowed to the city
+  // once one is picked) — the base set for computing which category/type chips are worth
+  // showing, so e.g. "Unvisited" doesn't leave a category chip visible that would produce
+  // zero results if also selected (every match already visited).
   const chipScopedAttractions = useMemo(() => {
     const pool = selectedCity ? cityAttractions : countryAttractions;
-    return pool.filter(passesVisitedFilter);
+    return pool.filter((a) => passesVisitedFilter(a) && passesTripUsageFilter(a));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCity, cityAttractions, countryAttractions, visitedFilter]);
+  }, [selectedCity, cityAttractions, countryAttractions, visitedFilter, tripUsageFilter]);
 
   // Categories present in the current scope (honoring the visited filter)
   const availableCategories = useMemo(() => {
@@ -346,8 +363,8 @@ export function ExploreClient() {
     });
   }, [types, byCategory, chipScopedAttractions, selectedCategories]);
 
-  const hasActiveFilters = selectedCategories.length > 0 || selectedTypes.length > 0 || visitedFilter !== "all";
-  const activeFilterCount = selectedCategories.length + selectedTypes.length + (visitedFilter !== "all" ? 1 : 0);
+  const hasActiveFilters = selectedCategories.length > 0 || selectedTypes.length > 0 || visitedFilter !== "all" || tripUsageFilter !== "all";
+  const activeFilterCount = selectedCategories.length + selectedTypes.length + (visitedFilter !== "all" ? 1 : 0) + (tripUsageFilter !== "all" ? 1 : 0);
 
   // Note: visitedFilter is deliberately NOT reset by any of these — it's a page-level
   // filter (applies to which countries/cities are even listed, via visibleCities), not a
@@ -705,6 +722,43 @@ export function ExploreClient() {
               </button>
             </div>
           )}
+
+          {/* Same scope/pattern as the visited-status filter above — "used in trip" is
+              also a private per-user fact (Trip.attractionIds for the user's own trips),
+              hidden entirely for anonymous visitors. */}
+          {user && (
+            <div className={styles.chipGroup} role="radiogroup" aria-label="Filter by trip usage">
+              <button
+                type="button"
+                className={`${styles.chip} ${tripUsageFilter === "all" ? styles.chipActive : ""}`}
+                role="radio"
+                aria-checked={tripUsageFilter === "all"}
+                onClick={() => setTripUsageFilter("all")}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                className={`${styles.chip} ${tripUsageFilter === "used" ? styles.chipActive : ""}`}
+                role="radio"
+                aria-checked={tripUsageFilter === "used"}
+                onClick={() => setTripUsageFilter("used")}
+              >
+                <Luggage size={12} aria-hidden="true" />
+                In my trips
+              </button>
+              <button
+                type="button"
+                className={`${styles.chip} ${tripUsageFilter === "unused" ? styles.chipActive : ""}`}
+                role="radio"
+                aria-checked={tripUsageFilter === "unused"}
+                onClick={() => setTripUsageFilter("unused")}
+              >
+                <X size={12} aria-hidden="true" />
+                Not in my trips
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ── Scrollable content area ── */}
@@ -735,7 +789,7 @@ export function ExploreClient() {
                 </p>
               ) : !citiesLoading && countries.length === 0 ? (
                 <p className={styles.worldPrompt}>
-                  No destinations match the {visitedFilter} filter.
+                  No destinations match the selected filters.
                   <br />
                   Try a different one above.
                 </p>
@@ -962,7 +1016,7 @@ export function ExploreClient() {
               <button
                 type="button"
                 className={styles.clearBtn}
-                onClick={() => { setSelectedCategories([]); setSelectedTypes([]); setVisitedFilter("all"); }}
+                onClick={() => { setSelectedCategories([]); setSelectedTypes([]); setVisitedFilter("all"); setTripUsageFilter("all"); }}
               >
                 Clear filters
               </button>

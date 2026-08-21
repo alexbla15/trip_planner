@@ -49,7 +49,10 @@ export function AttractionGridCard({ attraction, onClick }: AttractionGridCardPr
       </div>
 
       <div className={styles.body}>
-        <span className={styles.name}>{attraction.name}</span>
+        <span className={styles.nameRow}>
+          <span className={styles.typeIcon} aria-hidden="true">{icon}</span>
+          <span className={styles.name}>{attraction.name}</span>
+        </span>
         {attraction.city && (
           <span className={styles.meta}>
             <MapPin size={11} aria-hidden="true" />

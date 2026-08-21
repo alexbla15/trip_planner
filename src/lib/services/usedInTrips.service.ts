@@ -20,6 +20,14 @@ export async function getUsedInTripsMap(userId: string | null): Promise<Map<stri
   return map;
 }
 
+/** Real doc ids of attractions used in any of this user's own trips — for merging
+ *  `usedInTrip` onto a list/aggregate in one query when only membership (not which
+ *  trip) is needed, mirroring `getVisitedIdSet` in `visited.service.ts`. */
+export async function getUsedInTripIdSet(userId: string | null): Promise<Set<string>> {
+  const map = await getUsedInTripsMap(userId);
+  return new Set(map.keys());
+}
+
 /** Trip names for a single attraction — cheaper than `getUsedInTripsMap` when only
  *  one doc's status is needed (e.g. after a PUT/create), mirroring
  *  `isAttractionVisited` in `visited.service.ts`. */

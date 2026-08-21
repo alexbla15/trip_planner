@@ -100,7 +100,24 @@
   min-width: 0;
 }
 
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.typeIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+.typeIcon svg { width: 13px; height: 13px; }
+
 .name {
+  min-width: 0;
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text-primary);

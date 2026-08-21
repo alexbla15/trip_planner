@@ -6,18 +6,24 @@ import { withApiHandler } from "@/lib/withApiHandler";
 import { corsPreflight } from "@/lib/cors";
 import { getUserFromRequest } from "@/lib/auth";
 import { getVisitedIdSet } from "@/lib/services/visited.service";
+import { getUsedInTripIdSet } from "@/lib/services/usedInTrips.service";
 
 export const OPTIONS = corsPreflight;
 
 export const GET = withApiHandler("GET /api/attractions/cities", async (req: Request) => {
-  // Optional auth — used to compute per-city visitedCount/unvisitedCount for the
-  // requesting user, same optional pattern as GET /api/attractions.
+  // Optional auth — used to compute per-city visitedCount/unvisitedCount and
+  // usedInTripCount/notUsedInTripCount for the requesting user, same optional pattern
+  // as GET /api/attractions.
   let userId: string | null = null;
   try { userId = getUserFromRequest(req).userId; } catch { /* unauthenticated */ }
 
   await dbConnect();
-  const visitedIds = await getVisitedIdSet(userId);
+  const [visitedIds, usedInTripIds] = await Promise.all([
+    getVisitedIdSet(userId),
+    getUsedInTripIdSet(userId),
+  ]);
   const visitedObjectIds = [...visitedIds].map((id) => new Types.ObjectId(id));
+  const usedInTripObjectIds = [...usedInTripIds].map((id) => new Types.ObjectId(id));
 
   const result = await Attraction.aggregate([
     {
@@ -26,7 +32,12 @@ export const GET = withApiHandler("GET /api/attractions/cities", async (req: Req
         "coordinates.lng": { $exists: true, $ne: null },
       },
     },
-    { $addFields: { isVisited: { $in: ["$_id", visitedObjectIds] } } },
+    {
+      $addFields: {
+        isVisited: { $in: ["$_id", visitedObjectIds] },
+        isUsedInTrip: { $in: ["$_id", usedInTripObjectIds] },
+      },
+    },
     {
       $group: {
         _id: { city: "$city", country: "$country" },
@@ -34,6 +45,7 @@ export const GET = withApiHandler("GET /api/attractions/cities", async (req: Req
         lng:   { $avg: "$coordinates.lng" },
         count: { $sum: 1 },
         visitedCount: { $sum: { $cond: ["$isVisited", 1, 0] } },
+        usedInTripCount: { $sum: { $cond: ["$isUsedInTrip", 1, 0] } },
       },
     },
     {
@@ -46,6 +58,8 @@ export const GET = withApiHandler("GET /api/attractions/cities", async (req: Req
         count: 1,
         visitedCount: 1,
         unvisitedCount: { $subtract: ["$count", "$visitedCount"] },
+        usedInTripCount: 1,
+        notUsedInTripCount: { $subtract: ["$count", "$usedInTripCount"] },
       },
     },
     { $sort: { count: -1 } },
