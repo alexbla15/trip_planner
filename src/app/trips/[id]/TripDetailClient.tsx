@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
   ChevronLeft,
@@ -25,6 +26,7 @@ import {
   SearchX,
   Check,
   Eye,
+  Compass,
 } from "lucide-react";
 import {
   MoodTagChip,
@@ -67,7 +69,7 @@ import {
   markAttractionVisited,
   unmarkAttractionVisited,
 } from "@/services";
-import { formatDisplayDate, currencySymbol, formatPrice } from "@/lib";
+import { formatDisplayDate, currencySymbol, formatPrice, getTripDays, formatDayLabel } from "@/lib";
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
@@ -78,10 +80,25 @@ const TRIP_TABS = [
   { id: "attractions", label: "Attractions", Icon: MapPin          },
   { id: "flights",     label: "Flights",     Icon: Plane           },
   { id: "residences",  label: "Residences",  Icon: BedDouble       },
+  { id: "explore",     label: "Explore",     Icon: Compass         },
 ] as const;
 
 type TripTabId = typeof TRIP_TABS[number]["id"];
 const VALID_TAB_IDS = new Set<string>(TRIP_TABS.map((t) => t.id));
+
+const UNSCHEDULED_DAY_KEY = "unscheduled";
+
+const TripExploreMapWidget = dynamic(
+  () => import("./TripExploreMapWidget").then((m) => ({ default: m.TripExploreMapWidget })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className={styles.exploreMapLoading}>
+        <Loader2 size={20} className={styles.loadingIcon} aria-hidden="true" />
+      </div>
+    ),
+  }
+);
 
 interface TripDetailClientProps {
   tripId: string;
@@ -140,6 +157,14 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   const [searchQuery, setSearchQuery]             = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes]         = useState<string[]>([]);
+
+  // Explore tab — filter state kept separate from the Attractions tab's own
+  // selectedCategories/selectedTypes above so the two tabs don't affect each other.
+  const [exploreCategories, setExploreCategories] = useState<string[]>([]);
+  const [exploreTypes, setExploreTypes]           = useState<string[]>([]);
+  // Selected day keys (ISO date strings, plus UNSCHEDULED_DAY_KEY) — null means
+  // "not yet initialized"; initialized to every day + unscheduled once the trip loads.
+  const [exploreSelectedDays, setExploreSelectedDays] = useState<Set<string> | null>(null);
 
   // Fetch trip — waits for auth to settle so token-less unauthenticated users
   // aren't confused with still-loading authenticated users
@@ -603,6 +628,52 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   const totalPages = Math.ceil(filteredAttractions.length / ATTRACTIONS_PAGE_SIZE);
   const paginatedAttractions = filteredAttractions.slice((page - 1) * ATTRACTIONS_PAGE_SIZE, page * ATTRACTIONS_PAGE_SIZE);
 
+  // Explore tab — one chip per trip day plus "Unscheduled"; selected-days state
+  // defaults to "everything selected" the first time it's read (can't default a
+  // useState to a value that depends on `trip` since this runs after the early
+  // return above, so the default is applied here rather than in useState()).
+  const exploreDays = getTripDays(startDate, endDate);
+  const allExploreDayKeys = [...exploreDays, UNSCHEDULED_DAY_KEY];
+  const activeExploreDays = exploreSelectedDays ?? new Set(allExploreDayKeys);
+  const allExploreDaysActive = allExploreDayKeys.every((k) => activeExploreDays.has(k));
+
+  function toggleExploreDay(key: string) {
+    const next = new Set(activeExploreDays);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    setExploreSelectedDays(next);
+  }
+
+  // Toggles between "everything selected" and "nothing selected" — mirrors a
+  // standard select-all checkbox rather than being a one-way reset button.
+  function toggleAllExploreDays() {
+    setExploreSelectedDays(allExploreDaysActive ? new Set() : new Set(allExploreDayKeys));
+  }
+
+  function handleExploreCategoriesChange(next: string[]) {
+    const removed = exploreCategories.filter((c) => !next.includes(c));
+    setExploreCategories(next);
+    if (removed.length > 0) {
+      setExploreTypes((prev) => prev.filter((t) => {
+        const cat = findType(t)?.category;
+        return !cat || !removed.includes(cat);
+      }));
+    }
+  }
+
+  const exploreFilteredAttractions = regularAttractions.filter((a) => {
+    const dayKey = a.plannedDate ?? UNSCHEDULED_DAY_KEY;
+    const matchesDay = activeExploreDays.has(dayKey);
+    const matchesCategory =
+      exploreCategories.length === 0 ||
+      a.types.some((t) => {
+        const cat = findType(t)?.category;
+        return cat && exploreCategories.includes(cat);
+      });
+    const matchesType =
+      exploreTypes.length === 0 || a.types.some((t) => exploreTypes.includes(t));
+    return matchesDay && matchesCategory && matchesType;
+  });
+
   return (
     <>
       <main className={styles.page}>
@@ -985,6 +1056,64 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                 </div>
 
               </>
+            )}
+
+            {activeTab === "explore" && (
+              <div className={styles.card}>
+                <div className={styles.attractionsHeader}>
+                  <h2 className={styles.sectionHeading}>Explore</h2>
+                </div>
+
+                <div className={styles.exploreDayChips} role="group" aria-label="Filter by day">
+                  <button
+                    type="button"
+                    aria-pressed={allExploreDaysActive}
+                    className={`${styles.exploreDayChip} ${styles.exploreDayChipAll} ${allExploreDaysActive ? styles.exploreDayChipActive : ""}`}
+                    onClick={toggleAllExploreDays}
+                  >
+                    All days
+                  </button>
+                  {exploreDays.map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      aria-pressed={activeExploreDays.has(d)}
+                      className={`${styles.exploreDayChip} ${activeExploreDays.has(d) ? styles.exploreDayChipActive : ""}`}
+                      onClick={() => toggleExploreDay(d)}
+                    >
+                      {formatDayLabel(d)}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    aria-pressed={activeExploreDays.has(UNSCHEDULED_DAY_KEY)}
+                    className={`${styles.exploreDayChip} ${activeExploreDays.has(UNSCHEDULED_DAY_KEY) ? styles.exploreDayChipActive : ""}`}
+                    onClick={() => toggleExploreDay(UNSCHEDULED_DAY_KEY)}
+                  >
+                    Unscheduled
+                  </button>
+                </div>
+
+                <AttractionFilter
+                  hideSearch
+                  collapsible
+                  categories={presentCategories}
+                  selectedCategories={exploreCategories}
+                  onCategoriesChange={handleExploreCategoriesChange}
+                  categoryLabel="Categories"
+                  types={presentTypes}
+                  selectedTypes={exploreTypes}
+                  onTypesChange={setExploreTypes}
+                  typeLabel="Types"
+                />
+
+                <div className={styles.exploreMapWrapper}>
+                  <TripExploreMapWidget
+                    attractions={exploreFilteredAttractions}
+                    onAttractionClick={(a) => setViewingAttraction(a)}
+                  />
+                </div>
+              </div>
             )}
           </div>
         </div>

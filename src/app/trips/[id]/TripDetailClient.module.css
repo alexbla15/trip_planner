@@ -499,6 +499,71 @@
   border-radius: var(--radius-sm);
 }
 
+/* ── Explore tab ── */
+.exploreDayChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 14px 0 10px;
+}
+
+.exploreDayChip {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--duration-fast) var(--easing-out);
+}
+
+/* "All days" is a select-all action distinct from the individual day chips it
+   sits beside — a dashed border keeps it visually separate at a glance. */
+.exploreDayChipAll {
+  border-style: dashed;
+  font-weight: 600;
+}
+
+.exploreDayChip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.exploreDayChipActive {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.exploreDayChip:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.exploreMapWrapper {
+  margin-top: 14px;
+}
+
+.exploreMapLoading {
+  height: 480px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-subtle);
+}
+
+@media (max-width: 768px) {
+  .exploreMapLoading { height: 320px; }
+}
+
 .addBtn {
   display: inline-flex;
   align-items: center;
