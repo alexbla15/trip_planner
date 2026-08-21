@@ -42,8 +42,12 @@
    heights on a NORMAL-FLOW element resolve against the parent's specified height value,
    not its padding-inflated rendered box (that rule only applies to absolutely
    positioned elements). Override it to fill via absolute positioning instead, which
-   correctly resolves against the padding box. */
-.photoWrapper {
+   correctly resolves against the padding box.
+   The class is doubled (`.photoWrapper.photoWrapper`) to outrank ImageWithSkeleton's
+   own `.wrapper` rule on specificity (0-2-0 vs 0-1-0) — both are single-class selectors
+   otherwise, so which one wins would depend on CSS bundle concatenation order, which
+   differs between dev and production builds and isn't safe to rely on. */
+.photoWrapper.photoWrapper {
   position: absolute;
   inset: 0;
 }
