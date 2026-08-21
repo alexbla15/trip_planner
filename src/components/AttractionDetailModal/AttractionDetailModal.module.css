@@ -207,6 +207,10 @@
      scrolling container, making the fill-mode image disappear. Matches .locationMapContainer
      below, which uses the same fixed-height approach for the same reason. */
   height: 220px;
+  /* .body is a flex column — without this, flexbox's default flex-shrink:1 silently
+     compresses this below its specified height whenever the modal's content doesn't
+     fit the viewport, which also crushes the fill-mode image inside it. */
+  flex-shrink: 0;
   border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--color-bg-subtle);
@@ -322,6 +326,9 @@
   flex-direction: column;
   gap: 6px;
   margin-bottom: 4px;
+  /* .body is a flex column — without this, flexbox's default flex-shrink:1 can
+     compress this (and the fixed-height map inside it) below its intrinsic size. */
+  flex-shrink: 0;
 }
 
 .locationMapContainer {
