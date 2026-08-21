@@ -546,6 +546,27 @@
   outline-offset: 2px;
 }
 
+/* Per-day coloring (multi-day trip, more than one day selected) — each real/unscheduled
+   day chip gets its own color instead of the generic primary-blue active state, so it
+   reads consistently with the same day's map markers. */
+.exploreDayChipColored {
+  border-color: var(--day-color);
+  color: var(--day-color);
+}
+
+.exploreDayChipColored:hover {
+  border-color: var(--day-color);
+  color: var(--day-color);
+  opacity: 0.8;
+}
+
+.exploreDayChipColored.exploreDayChipActive {
+  background: var(--day-color);
+  border-color: var(--day-color);
+  color: var(--color-text-inverse);
+  opacity: 1;
+}
+
 .exploreMapWrapper {
   margin-top: 14px;
 }

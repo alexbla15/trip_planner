@@ -6,18 +6,18 @@ import { renderTypeIcon } from "@/components/IconPicker";
 import { AttractionFilter } from "@/components/AttractionFilter";
 import { ModalShell } from "@/components/Modal";
 import { useAttractionTypes } from "@/hooks";
-import { addAttractionToTrip, getAttractionsByCity, formatStepDuration } from "@/services";
+import { addAttractionToTrip, getAttractionsByCountry, formatStepDuration } from "@/services";
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
 import type { Attraction } from "@/types/attraction";
 import type { NearbyAttractionsModalProps, NearbySuggestion, NearbyStep } from "./NearbyAttractionsModal.types";
-import { prefilterCandidates, findNearbySuggestions } from "./NearbyAttractionsModal.utils";
+import { prefilterCandidates, findNearbySuggestions, formatMaxMinutesLabel } from "./NearbyAttractionsModal.utils";
 import { DEFAULT_MAX_MINUTES, MAX_MINUTES_PRESETS } from "./NearbyAttractionsModal.constants";
 import styles from "./NearbyAttractionsModal.module.css";
 
 const HEADING_ID = "nearby-attractions-modal-title";
 
 export function NearbyAttractionsModal({
-  isOpen, onClose, tripId, tripAttractions, token, onAttractionAdded,
+  isOpen, onClose, tripId, tripAttractions, token, onAttractionAdded, onViewAttraction,
 }: NearbyAttractionsModalProps) {
   const { findType } = useAttractionTypes();
 
@@ -68,11 +68,11 @@ export function NearbyAttractionsModal({
   }
 
   async function runSearch(originAttraction: Attraction, minutes: number) {
-    if (!originAttraction.city || !originAttraction.coordinates) return;
+    if (!originAttraction.country || !originAttraction.coordinates) return;
     setLoading(true);
     setLoadError(null);
     try {
-      const candidates = (await getAttractionsByCity(originAttraction.city, token)) as Attraction[];
+      const candidates = (await getAttractionsByCountry(originAttraction.country, token)) as Attraction[];
       const excludeIds = new Set(tripAttractions.map((a) => a.attractionId ?? a._id));
       const shortlist = prefilterCandidates(originAttraction, candidates, excludeIds, minutes);
       const { suggestions: results, failedCount: failed } = await findNearbySuggestions(originAttraction, shortlist, minutes);
@@ -257,7 +257,7 @@ export function NearbyAttractionsModal({
                   className={`${styles.minutesChip} ${maxMinutes === m ? styles.minutesChipActive : ""}`}
                   onClick={() => handleMaxMinutesChange(m)}
                 >
-                  {m} min
+                  {formatMaxMinutesLabel(m)}
                 </button>
               ))}
             </div>
@@ -304,7 +304,7 @@ export function NearbyAttractionsModal({
           )}
 
           {!loading && !loadError && filteredSuggestions.length === 0 && (
-            <p className={styles.emptyText}>No attractions found within {maxMinutes} min of {origin?.name}.</p>
+            <p className={styles.emptyText}>No attractions found within {formatMaxMinutesLabel(maxMinutes)} of {origin?.name}.</p>
           )}
 
           {!loading && !loadError && filteredSuggestions.length > 0 && (
@@ -316,14 +316,22 @@ export function NearbyAttractionsModal({
                   const icon = renderTypeIcon(findType(a.types?.[0] ?? "")?.icon ?? "");
                   return (
                     <li key={id} className={styles.resultRow}>
-                      <span className={styles.resultIcon} aria-hidden="true">{icon}</span>
-                      <div className={styles.resultInfo}>
-                        <span className={styles.resultName}>{a.name}</span>
-                        <span className={styles.resultMeta}>
-                          {formatStepDuration(durationSec)} drive
-                          {a.city ? ` · ${a.city}` : ""}
-                        </span>
-                      </div>
+                      <button
+                        type="button"
+                        className={styles.resultInfoBtn}
+                        onClick={() => onViewAttraction?.(a)}
+                        disabled={!onViewAttraction}
+                        aria-label={`View details for ${a.name}`}
+                      >
+                        <span className={styles.resultIcon} aria-hidden="true">{icon}</span>
+                        <div className={styles.resultInfo}>
+                          <span className={styles.resultName}>{a.name}</span>
+                          <span className={styles.resultMeta}>
+                            {formatStepDuration(durationSec)} drive
+                            {a.city ? ` · ${a.city}` : ""}
+                          </span>
+                        </div>
+                      </button>
                       <button
                         type="button"
                         className={`${styles.addBtn} ${isAdded ? styles.addBtnDone : ""}`}

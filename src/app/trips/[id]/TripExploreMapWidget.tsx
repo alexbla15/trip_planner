@@ -14,6 +14,10 @@ fixLeafletDefaultIcon();
 interface TripExploreMapWidgetProps {
   attractions: Attraction[];
   onAttractionClick: (attraction: Attraction) => void;
+  /** Maps a plannedDate key to a color; undefined falls back to type-based coloring
+   *  (single-day trip, or the day filter has been narrowed to one day). */
+  dayColors?: Record<string, string>;
+  unscheduledColor?: string;
 }
 
 // Re-fits the map to the current pin set whenever the filtered attraction list changes,
@@ -38,7 +42,7 @@ function BoundsFitter({ attractions }: { attractions: Attraction[] }) {
   return null;
 }
 
-export function TripExploreMapWidget({ attractions, onAttractionClick }: TripExploreMapWidgetProps) {
+export function TripExploreMapWidget({ attractions, onAttractionClick, dayColors, unscheduledColor }: TripExploreMapWidgetProps) {
   const { findType } = useAttractionTypes();
   const withCoords = attractions.filter((a) => !!a.coordinates);
   const initialCenter = useRef<[number, number]>(
@@ -63,8 +67,10 @@ export function TripExploreMapWidget({ attractions, onAttractionClick }: TripExp
         <BoundsFitter attractions={withCoords} />
         {withCoords.map((a) => {
           const typeRecord = findType(a.types?.[0] ?? "");
-          const color    = typeRecord?.color ?? "#64748B";
-          const iconName = typeRecord?.icon  ?? "MapPin";
+          const color = dayColors
+            ? dayColors[a.plannedDate ?? ""] ?? unscheduledColor ?? "#64748B"
+            : typeRecord?.color ?? "#64748B";
+          const iconName = typeRecord?.icon ?? "MapPin";
           return (
             <Marker
               key={a._id}

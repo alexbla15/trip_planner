@@ -87,6 +87,32 @@ async function fetchValhallhaLeg(from: Coord, to: Coord, mode: "walk" | "car"): 
   }
 }
 
+// Fetches drive/walk duration from one origin to many destinations in a single
+// upstream request via OSRM's Table service, instead of one /route call per
+// destination — used by the nearby-attractions planner to avoid N slow, rate-
+// limited routing calls. Returns durations in the same order as `destinations`;
+// an entry is null if that destination was unreachable.
+export async function fetchRouteMatrix(
+  origin: Coord,
+  destinations: Coord[],
+  mode: "walk" | "car"
+): Promise<(number | null)[]> {
+  if (destinations.length === 0) return [];
+  const params =
+    `originLat=${origin.lat}&originLng=${origin.lng}` +
+    `&destinations=${destinations.map((d) => `${d.lat},${d.lng}`).join(";")}` +
+    `&mode=${mode}`;
+  try {
+    const res = await timedFetch(`/api/route/matrix?${params}`, {}, 12000);
+    if (!res.ok) return destinations.map(() => null);
+    const data = await res.json() as { code?: string; durations?: (number | null)[][] };
+    if (data.code !== "Ok" || !data.durations?.[0]) return destinations.map(() => null);
+    return data.durations[0];
+  } catch {
+    return destinations.map(() => null);
+  }
+}
+
 // ── Transitous — public transit (OTP2 / MOTIS format, free, no key) ──────────
 
 interface OtpLeg {

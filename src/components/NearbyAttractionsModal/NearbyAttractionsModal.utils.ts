@@ -1,12 +1,11 @@
 import type { Attraction } from "@/types/attraction";
 import { haversineKm } from "@/lib";
-import { fetchRouteLeg } from "@/services";
+import { fetchRouteMatrix } from "@/services";
 import type { NearbySuggestion } from "./NearbyAttractionsModal.types";
 import {
   ASSUMED_URBAN_SPEED_KMH,
   PREFILTER_SAFETY_FACTOR,
   MAX_ROUTING_CANDIDATES,
-  ROUTING_CONCURRENCY,
 } from "./NearbyAttractionsModal.constants";
 
 /** Generous straight-line radius a real drive of `maxMinutes` could plausibly stay
@@ -44,26 +43,14 @@ export function prefilterCandidates(
     .slice(0, MAX_ROUTING_CANDIDATES);
 }
 
-/** Runs `task` over `items` with at most `limit` in flight at once — the public
- *  Valhalla routing instance this app uses rate-limits (429s) an unthrottled
- *  Promise.all across even a modest candidate list. */
-async function runWithConcurrencyLimit<T, R>(
-  items: T[],
-  limit: number,
-  task: (item: T) => Promise<R>
-): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let next = 0;
-
-  async function worker() {
-    while (next < items.length) {
-      const i = next++;
-      results[i] = await task(items[i]);
-    }
+/** Formats a max-drive-time preset value for chip labels — minute presets read as
+ *  "10 min", but an even-hour preset (e.g. 60) reads better as "1 hr". */
+export function formatMaxMinutesLabel(minutes: number): string {
+  if (minutes % 60 === 0) {
+    const hours = minutes / 60;
+    return `${hours} hr`;
   }
-
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
-  return results;
+  return `${minutes} min`;
 }
 
 export interface NearbySearchResult {
@@ -74,8 +61,9 @@ export interface NearbySearchResult {
   failedCount: number;
 }
 
-/** Routes the origin to every shortlisted candidate (throttled, not all at once),
- *  keeping only those within `maxMinutes` by actual drive time, sorted nearest-first. */
+/** Routes the origin to every shortlisted candidate in a single matrix request
+ *  (OSRM Table service), keeping only those within `maxMinutes` by actual drive
+ *  time, sorted nearest-first. */
 export async function findNearbySuggestions(
   origin: Attraction,
   shortlist: Attraction[],
@@ -84,20 +72,20 @@ export async function findNearbySuggestions(
   if (!origin.coordinates) return { suggestions: [], failedCount: 0 };
   const originCoords = origin.coordinates;
 
-  const legs = await runWithConcurrencyLimit(shortlist, ROUTING_CONCURRENCY, async (attraction) => {
-    if (!attraction.coordinates) return null;
-    try {
-      const leg = await fetchRouteLeg(originCoords, attraction.coordinates, "car");
-      return leg ? { attraction, durationSec: leg.durationSec } : null;
-    } catch {
-      return null;
-    }
-  });
+  const routable = shortlist.filter((a): a is Attraction & { coordinates: NonNullable<Attraction["coordinates"]> } => !!a.coordinates);
+  const durations = await fetchRouteMatrix(originCoords, routable.map((a) => a.coordinates), "car");
 
-  const suggestions = legs
-    .filter((s): s is NearbySuggestion => s != null && s.durationSec <= maxMinutes * 60)
-    .sort((a, b) => a.durationSec - b.durationSec);
-  const failedCount = legs.filter((s) => s == null).length;
+  const suggestions: NearbySuggestion[] = [];
+  let failedCount = 0;
+  routable.forEach((attraction, i) => {
+    const durationSec = durations[i];
+    if (durationSec == null) {
+      failedCount++;
+      return;
+    }
+    if (durationSec <= maxMinutes * 60) suggestions.push({ attraction, durationSec });
+  });
+  suggestions.sort((a, b) => a.durationSec - b.durationSec);
 
   return { suggestions, failedCount };
 }

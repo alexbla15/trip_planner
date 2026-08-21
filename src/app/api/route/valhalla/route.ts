@@ -31,7 +31,12 @@ export const GET = withApiHandler("GET /api/route/valhalla", async (req: Request
 
   let upstream: Response;
   try {
-    upstream = await fetch(url, { signal: ctrl.signal });
+    // FOSSGIS's usage policy (routing.openstreetmap.de) penalizes requests with no
+    // descriptive User-Agent more heavily under its rate limiter — see /api/route/transit.
+    upstream = await fetch(url, {
+      signal: ctrl.signal,
+      headers: { "User-Agent": "TripPlanner/1.0 (+https://trip-planner-beta-dusky.vercel.app)" },
+    });
   } catch {
     throw new ApiError(503, "Routing service unavailable", "SERVICE_UNAVAILABLE");
   } finally {

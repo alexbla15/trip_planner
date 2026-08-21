@@ -4,7 +4,11 @@
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.6);
-  z-index: 200;
+  /* Leaflet's own controls/panes default to z-index up to 1000 (see leaflet.css) and
+     this modal opens from a tab that renders a Leaflet map — 200 (the plain modal
+     template's value) sits well below that. Match AttractionDetailModal's precedent
+     (also used alongside a Leaflet map on the Explore page) so this stays above it. */
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -322,6 +326,25 @@
   border-radius: var(--radius-md);
   background: var(--color-bg-subtle);
 }
+
+.resultInfoBtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.resultInfoBtn:hover .resultName { color: var(--color-primary); }
+.resultInfoBtn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.resultInfoBtn:disabled { cursor: default; }
 
 .resultIcon {
   display: flex;

@@ -64,6 +64,7 @@ export { reverseGeocode, searchLocation } from "./geocoding.service";
 export {
   fetchRouteLeg,
   fetchAirportLeg,
+  fetchRouteMatrix,
   formatLegDuration,
   formatStepDuration,
 } from "./routeTransit.service";

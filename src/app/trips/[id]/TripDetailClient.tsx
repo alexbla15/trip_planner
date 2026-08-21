@@ -70,7 +70,7 @@ import {
   markAttractionVisited,
   unmarkAttractionVisited,
 } from "@/services";
-import { formatDisplayDate, currencySymbol, formatPrice, getTripDays, formatDayLabel } from "@/lib";
+import { formatDisplayDate, currencySymbol, formatPrice, getTripDays, formatDayLabel, buildDayColorMap, UNSCHEDULED_DAY_COLOR } from "@/lib";
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
@@ -630,14 +630,23 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   const totalPages = Math.ceil(filteredAttractions.length / ATTRACTIONS_PAGE_SIZE);
   const paginatedAttractions = filteredAttractions.slice((page - 1) * ATTRACTIONS_PAGE_SIZE, page * ATTRACTIONS_PAGE_SIZE);
 
-  // Explore tab — one chip per trip day plus "Unscheduled"; selected-days state
-  // defaults to "everything selected" the first time it's read (can't default a
-  // useState to a value that depends on `trip` since this runs after the early
-  // return above, so the default is applied here rather than in useState()).
-  const exploreDays = getTripDays(startDate, endDate);
+  // Explore tab — one chip per trip day that actually has a scheduled attraction, plus
+  // "Unscheduled"; empty days would just be dead chips no filter click could ever
+  // populate. Selected-days state defaults to "everything selected" the first time
+  // it's read (can't default a useState to a value that depends on `trip` since this
+  // runs after the early return above, so the default is applied here rather than in
+  // useState()).
+  const exploreAllDays = getTripDays(startDate, endDate);
+  const exploreDays = exploreAllDays.filter((d) => regularAttractions.some((a) => a.plannedDate === d));
   const allExploreDayKeys = [...exploreDays, UNSCHEDULED_DAY_KEY];
   const activeExploreDays = exploreSelectedDays ?? new Set(allExploreDayKeys);
   const allExploreDaysActive = allExploreDayKeys.every((k) => activeExploreDays.has(k));
+
+  // Per-day marker/chip colors — only worth it when there's more than one day to tell
+  // apart and the user hasn't already narrowed the view down to a single day, in which
+  // case every visible chip/pin would be the same color anyway.
+  const exploreUseDayColors = exploreDays.length > 1 && activeExploreDays.size > 1;
+  const exploreDayColors = buildDayColorMap(exploreDays);
 
   function toggleExploreDay(key: string) {
     const next = new Set(activeExploreDays);
@@ -1090,20 +1099,24 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                       key={d}
                       type="button"
                       aria-pressed={activeExploreDays.has(d)}
-                      className={`${styles.exploreDayChip} ${activeExploreDays.has(d) ? styles.exploreDayChipActive : ""}`}
+                      className={`${styles.exploreDayChip} ${exploreUseDayColors ? styles.exploreDayChipColored : ""} ${activeExploreDays.has(d) ? styles.exploreDayChipActive : ""}`}
+                      style={exploreUseDayColors ? { ["--day-color" as string]: exploreDayColors[d] } : undefined}
                       onClick={() => toggleExploreDay(d)}
                     >
                       {formatDayLabel(d)}
                     </button>
                   ))}
-                  <button
-                    type="button"
-                    aria-pressed={activeExploreDays.has(UNSCHEDULED_DAY_KEY)}
-                    className={`${styles.exploreDayChip} ${activeExploreDays.has(UNSCHEDULED_DAY_KEY) ? styles.exploreDayChipActive : ""}`}
-                    onClick={() => toggleExploreDay(UNSCHEDULED_DAY_KEY)}
-                  >
-                    Unscheduled
-                  </button>
+                  {regularAttractions.some((a) => !a.plannedDate) && (
+                    <button
+                      type="button"
+                      aria-pressed={activeExploreDays.has(UNSCHEDULED_DAY_KEY)}
+                      className={`${styles.exploreDayChip} ${exploreUseDayColors ? styles.exploreDayChipColored : ""} ${activeExploreDays.has(UNSCHEDULED_DAY_KEY) ? styles.exploreDayChipActive : ""}`}
+                      style={exploreUseDayColors ? { ["--day-color" as string]: UNSCHEDULED_DAY_COLOR } : undefined}
+                      onClick={() => toggleExploreDay(UNSCHEDULED_DAY_KEY)}
+                    >
+                      Unscheduled
+                    </button>
+                  )}
                 </div>
 
                 <AttractionFilter
@@ -1123,6 +1136,8 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                   <TripExploreMapWidget
                     attractions={exploreFilteredAttractions}
                     onAttractionClick={(a) => setViewingAttraction(a)}
+                    dayColors={exploreUseDayColors ? exploreDayColors : undefined}
+                    unscheduledColor={UNSCHEDULED_DAY_COLOR}
                   />
                 </div>
               </div>
@@ -1149,6 +1164,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         tripAttractions={regularAttractions}
         token={token ?? ""}
         onAttractionAdded={upsertAttraction}
+        onViewAttraction={(a) => setViewingAttraction(a)}
       />
 
       <NewAttractionModal

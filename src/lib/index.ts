@@ -65,3 +65,5 @@ export { residenceMeta, flightMeta } from "./attractionDisplay";
 export { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h } from "./openingHours";
 
 export { haversineKm } from "./geo";
+
+export { DAY_COLOR_PALETTE, UNSCHEDULED_DAY_COLOR, buildDayColorMap } from "./dayColors";
