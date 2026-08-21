@@ -63,3 +63,5 @@ export { typeFormFromRecord, catFormFromRecord, moodFormFromRecord } from "./adm
 export { residenceMeta, flightMeta } from "./attractionDisplay";
 
 export { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h } from "./openingHours";
+
+export { haversineKm } from "./geo";

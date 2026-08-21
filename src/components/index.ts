@@ -51,6 +51,8 @@ export { AttractionPickerModal } from "./AttractionPickerModal";
 export { AttractionDetailModal } from "./AttractionDetailModal";
 export { AttractionSearchModal } from "./AttractionSearchModal";
 export type { AttractionSearchModalProps } from "./AttractionSearchModal";
+export { NearbyAttractionsModal } from "./NearbyAttractionsModal";
+export type { NearbyAttractionsModalProps } from "./NearbyAttractionsModal";
 export { CategoryAttractionsModal } from "./CategoryAttractionsModal";
 export type { CategoryAttractionsModalProps } from "./CategoryAttractionsModal";
 export { AttractionFilter } from "./AttractionFilter";

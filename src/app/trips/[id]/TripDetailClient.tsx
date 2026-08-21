@@ -36,6 +36,7 @@ import {
   AddFlightModal,
   AttractionDetailModal,
   AttractionSearchModal,
+  NearbyAttractionsModal,
   AttractionFilter,
   renderTypeIcon,
   TripTabBar,
@@ -165,6 +166,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   // Selected day keys (ISO date strings, plus UNSCHEDULED_DAY_KEY) — null means
   // "not yet initialized"; initialized to every day + unscheduled once the trip loads.
   const [exploreSelectedDays, setExploreSelectedDays] = useState<Set<string> | null>(null);
+  const [nearbyModalOpen, setNearbyModalOpen] = useState(false);
 
   // Fetch trip — waits for auth to settle so token-less unauthenticated users
   // aren't confused with still-loading authenticated users
@@ -1062,6 +1064,16 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
               <div className={styles.card}>
                 <div className={styles.attractionsHeader}>
                   <h2 className={styles.sectionHeading}>Explore</h2>
+                  {effectiveCanEdit && regularAttractions.some((a) => !!a.coordinates) && (
+                    <button
+                      type="button"
+                      className={styles.addBtn}
+                      onClick={() => setNearbyModalOpen(true)}
+                    >
+                      <Compass size={14} aria-hidden="true" />
+                      Discover Nearby
+                    </button>
+                  )}
                 </div>
 
                 <div className={styles.exploreDayChips} role="group" aria-label="Filter by day">
@@ -1128,6 +1140,15 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         token={token}
         existingAttractionIds={attractions.map((a) => a.attractionId ?? a._id)}
         multiSelect
+      />
+
+      <NearbyAttractionsModal
+        isOpen={nearbyModalOpen}
+        onClose={() => setNearbyModalOpen(false)}
+        tripId={trip._id}
+        tripAttractions={regularAttractions}
+        token={token ?? ""}
+        onAttractionAdded={upsertAttraction}
       />
 
       <NewAttractionModal

@@ -85,3 +85,6 @@ Next.js web app, CSS Modules, `react-leaflet`. No new visual tokens needed — t
 - Added an "All days" chip (dashed border to read as a distinct select-all action, not just another day) that toggles between selecting every day+Unscheduled and clearing the selection entirely — `allExploreDayKeys`/`allExploreDaysActive`/`toggleAllExploreDays` in `TripDetailClient.tsx`.
 - Changed `.exploreDayChips` from horizontal-scroll (`overflow-x: auto`) to `flex-wrap: wrap` so a trip with many days doesn't require scrolling to see/reach every day chip.
 - Re-verified live: "All days" toggles correctly (fully-active → clears to 0 markers; clicking again from a partial selection re-selects all 48), and the chip row wraps.
+
+## Completion Summary
+Added a 5th "Explore" tab to trips/[id] with a map of the trip's own attractions, filterable by day (with an "All days" select-all, wrapping chip row), category, and type — reusing the existing shared filter component and attraction detail modal. Confirmed by the user and closed 2026-08-21.
