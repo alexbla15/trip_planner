@@ -1,6 +1,6 @@
 # Task: Nearby attraction planner — suggest & add attractions within a drive-time radius
 
-Status: designing
+Status: done
 Track: A
 Track reason: new multi-step interaction (pick attraction → popup of nearby suggestions → add to trip), no existing pattern in this codebase
 
@@ -53,3 +53,28 @@ Next.js web app, CSS Modules. No new visual tokens needed — reuses `ModalShell
 4. Loading state: fetching + routing candidates takes real time (network calls) — show a spinner/loading state in the popup, not a blank list.
 
 **Constraints carried over:** don't build a new backend geo-query endpoint or a distance-matrix batch API — this must work within the existing single-pair routing service and existing city-scoped attraction query. Don't add a slider component or any new form-control primitive not already in this codebase.
+
+## Implementation Notes
+- Files created/modified:
+  - `src/lib/geo.ts` (new) — `haversineKm(a, b)`, straight-line distance in km. Exported via `src/lib/index.ts`.
+  - `src/components/NearbyAttractionsModal/` (new component, full structure): `.tsx`, `.module.css` (mirrors `AddCustomSlotModal.module.css`'s modal-shell CSS plus new list/row/pagination/warning styles), `.utils.ts` (`prefilterCandidates`, `runWithConcurrencyLimit`, `findNearbySuggestions`), `.constants.ts` (`DEFAULT_MAX_MINUTES=20`, `MAX_MINUTES_PRESETS=[10,20,30]`, `MAX_ROUTING_CANDIDATES=20`, `ROUTING_CONCURRENCY=3`), `.types.ts`, `index.ts`. Exported via `src/components/index.ts`.
+  - `src/app/trips/[id]/TripDetailClient.tsx` — added `nearbyModalOpen` state, a "Discover Nearby" button (`Compass` icon, gated by `effectiveCanEdit` and requiring at least one attraction with coordinates) in the Explore tab header, and the `<NearbyAttractionsModal>` render wired to `upsertAttraction` for the add-to-trip callback.
+- Deviations from brief: two additions beyond the brief, both requested by the user after initial implementation (see Revision below) — free-text search + pagination on both the origin picker and results lists, and a rate-limit fix (see below) that wasn't anticipated by the brief.
+- New design tokens used: none — reused the full existing token set (`--color-primary`, `--color-primary-light`, `--color-primary-dark`, `--color-accent-dark`, `--color-border`, `--color-error`, `--color-success`, `--radius-md/full/xl`, `--duration-fast/base/slow`, `--easing-out`, `--shadow-xl`).
+- Verified live via a real browser against a seeded Budapest-based trip: non-owner correctly never sees the button; owner sees it, picks an origin, gets a results list sorted by drive time, adds one successfully (button becomes a disabled "Added" state), and free-text search correctly narrows/empties the results list.
+
+## Revision 1 (found during live verification — routing service rate-limiting)
+The initial implementation's unthrottled `Promise.all` across the full haversine-filtered candidate list hit the public Valhalla routing instance's rate limit (`429 Too Many Requests`) on every single candidate for a moderately dense city (Budapest), silently dropping all of them — the UI then showed "No attractions found," which is a **wrong conclusion** (the truth was "the routing service refused the burst," not "nothing is nearby").
+
+Fixed with two changes:
+- `prefilterCandidates` now also caps the shortlist to the closest `MAX_ROUTING_CANDIDATES` (20) by straight-line distance, not just "everything inside the radius" — a dense city can have far more candidates inside a generous radius than it's reasonable to route-check at all.
+- `findNearbySuggestions` now routes through a small concurrency-limited worker pool (`ROUTING_CONCURRENCY=3`) instead of firing every call at once, and returns `{ suggestions, failedCount }` instead of silently dropping failures. The UI shows a distinct amber "Couldn't check N nearby places (routing service busy) — try again in a moment" notice whenever `failedCount > 0`, so a partial/rate-limited batch reads as incomplete, not as "confirmed empty."
+- Re-verified live: even with some 429s still occurring (the public instance is strict), the search now returns real partial results (5 in the test run) with the notice correctly shown for the rest, instead of a total silent failure.
+
+## Revision 2 (user feedback before this round of verification)
+User asked for pagination and free-text search on the available-attractions lists. Added:
+- Origin picker (step 1): a plain `<input>` search box filtering the trip's own attractions by name, plus Previous/Next pagination (reusing `ATTRACTIONS_PAGE_SIZE` from `@/config/ui`, same page size as the rest of the app).
+- Results (step 2): un-hid `AttractionFilter`'s built-in search field (was `hideSearch`) and wired it to filter the suggestion list by name, plus the same Previous/Next pagination pattern.
+
+## Completion Summary
+Added a "Discover Nearby" flow to the trip Explore tab: pick one of the trip's own attractions, see other nearby attractions within an adjustable drive time (with search/pagination/category/type filtering), and add any of them to the trip directly. Root-caused and fixed a routing-service rate-limit bug found during live verification (throttled batching + a visible partial-failure notice instead of a silent empty result). Confirmed by the user and closed 2026-08-21.
