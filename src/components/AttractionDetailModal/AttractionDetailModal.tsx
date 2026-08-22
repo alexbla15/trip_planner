@@ -20,6 +20,7 @@ import {
   Plane,
   Tag,
   Pencil,
+  Trash2,
   Plus,
   Check,
   Luggage,
@@ -46,13 +47,17 @@ interface AttractionDetailModalProps {
   canEdit?: boolean;
   onEdit?: () => void;
   onAddToTrip?: () => void;
+  /** Present only when the attraction being viewed is already part of the current trip's
+   *  itinerary and the caller can edit it — unlinks it from the trip (every scheduled
+   *  instance), same as the "Remove" action elsewhere in the trip's Attractions tab. */
+  onRemoveFromTrip?: () => void;
   /** Present only for a logged-in user viewing a real (non custom-slot/flight)
    *  attraction — toggling marks/unmarks it as personally visited. */
   onToggleVisited?: () => void;
   isVisited?: boolean;
 }
 
-export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit, onEdit, onAddToTrip, onToggleVisited, isVisited }: AttractionDetailModalProps) {
+export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit, onEdit, onAddToTrip, onRemoveFromTrip, onToggleVisited, isVisited }: AttractionDetailModalProps) {
   const { findType } = useAttractionTypes();
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -399,7 +404,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
           )}
         </div>
 
-        {(onEditTime || (canEdit && onEdit) || onAddToTrip) && (
+        {(onEditTime || (canEdit && onEdit) || onAddToTrip || onRemoveFromTrip) && (
           <div className={styles.footer}>
             {onAddToTrip && (
               <button
@@ -429,6 +434,16 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
               >
                 <Timer size={14} aria-hidden="true" />
                 Edit time &amp; duration
+              </button>
+            )}
+            {onRemoveFromTrip && (
+              <button
+                type="button"
+                className={styles.removeBtn}
+                onClick={() => { onRemoveFromTrip(); onClose(); }}
+              >
+                <Trash2 size={14} aria-hidden="true" />
+                Remove from trip
               </button>
             )}
           </div>

@@ -624,6 +624,13 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   const canEdit        = isOwner || isCollaborator;
   const effectiveCanEdit = canEdit && viewMode === "edit";
 
+  // The shared AttractionDetailModal (viewingAttraction) is also opened for attractions
+  // NOT on this trip yet (e.g. NearbyAttractionsModal's suggestions) — only offer
+  // "Remove from trip" when the attraction being viewed is actually one of this trip's own.
+  const viewingAttractionInTrip = !!viewingAttraction && regularAttractions.some(
+    (a) => (a.attractionId ?? a._id) === (viewingAttraction.attractionId ?? viewingAttraction._id)
+  );
+
   const flightAttractions    = attractions.filter((a) => a.subtype === "flight"    || a.types?.[0] === "Flight");
   const residenceAttractions = attractions.filter((a) => a.subtype === "residence");
 
@@ -1183,6 +1190,11 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         onToggleVisited={
           token && viewingAttraction?.attractionId
             ? () => handleToggleVisited(viewingAttraction)
+            : undefined
+        }
+        onRemoveFromTrip={
+          effectiveCanEdit && viewingAttractionInTrip && viewingAttraction
+            ? () => handleRemoveAttraction(viewingAttraction._id)
             : undefined
         }
       />
