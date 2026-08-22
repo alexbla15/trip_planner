@@ -299,7 +299,17 @@ export function ExploreClient() {
 
   // Recompute how many columns the grid's own measured width actually fits, matching
   // the CSS `repeat(auto-fill, minmax(...))` math exactly (see EXPLORE_GRID_CARD_MIN_WIDTH_PX/
-  // EXPLORE_GRID_GAP_PX doc comment) — re-measures on resize/sidebar-collapse via ResizeObserver.
+  // EXPLORE_GRID_GAP_PX doc comment) — re-measures on resize/browser-zoom via ResizeObserver.
+  //
+  // Changing the column count changes gridPageSize, which means "page 3" no longer refers
+  // to the same slice of the list — keeping the same page NUMBER after a resize silently
+  // jumps to a different (often already-seen) set of items, which is exactly what looked
+  // like "the same attractions keep showing up" when zooming in/out mid-browse. Instead,
+  // preserve the READING POSITION: recompute which page now contains the first item that
+  // was visible before the resize, using the previous page size (tracked in a ref so the
+  // ResizeObserver callback always compares against the size that was actually in effect,
+  // not a stale closure value).
+  const prevGridPageSizeRef = useRef(gridPageSize);
   useEffect(() => {
     const el = gridRef.current;
     if (!el) return;
@@ -311,6 +321,12 @@ export function ExploreClient() {
       const cols = Math.max(1, Math.floor(
         (width + EXPLORE_GRID_GAP_PX) / (EXPLORE_GRID_CARD_MIN_WIDTH_PX + EXPLORE_GRID_GAP_PX)
       ));
+      const newPageSize = cols * EXPLORE_GRID_ROWS_PER_PAGE;
+      const oldPageSize = prevGridPageSizeRef.current;
+      if (newPageSize !== oldPageSize) {
+        setGridPage((prevPage) => Math.floor(((prevPage - 1) * oldPageSize) / newPageSize) + 1);
+        prevGridPageSizeRef.current = newPageSize;
+      }
       setGridColumns(cols);
     };
     compute();
@@ -327,7 +343,9 @@ export function ExploreClient() {
   // never lands on a stale, now-out-of-range page after narrowing a filter.
   useEffect(() => { setGridPage(1); }, [selectedCountry, selectedCity, selectedCategories, selectedTypes, visitedFilter, tripUsageFilter]);
 
-  // Also clamp if a resize (column count change) makes the current page out of range.
+  // Safety clamp for cases the position-preserving resize logic above doesn't cover
+  // (e.g. the filtered item count itself shrinks) — never a no-op relative to it since
+  // a position-preserved page number is always within the new total already.
   useEffect(() => { setGridPage((p) => Math.min(p, gridTotalPages)); }, [gridTotalPages]);
 
   // Attractions matching only the visited/trip-usage filters, scoped to whichever level

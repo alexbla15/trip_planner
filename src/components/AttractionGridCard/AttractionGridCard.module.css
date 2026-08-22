@@ -126,13 +126,19 @@
   white-space: nowrap;
 }
 
+/* Bumped up from a muted caption to a near-primary label — when many cards share an
+   identical name (e.g. a chain with several branches), the city is the only thing that
+   tells them apart at a glance, so it needs to actually stand out, not read as
+   secondary metadata. */
 .meta {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
-  color: var(--color-text-tertiary);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.meta svg { width: 12px; height: 12px; flex-shrink: 0; }

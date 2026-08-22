@@ -104,8 +104,14 @@ export async function searchAttractions(
   const skip = Math.max(0, params.skip ?? 0);
   const limit = Math.min(Math.max(1, params.limit ?? cap), cap);
 
+  // Secondary sort on _id: name alone isn't unique (e.g. a chain with several branches
+  // all sharing the same name) — without a tiebreaker, MongoDB doesn't guarantee a
+  // stable order among tied documents across separate skip/limit calls, so paginating
+  // through a name-sorted list can return the same document on more than one page while
+  // silently skipping another (found via a real 17-branch "Anni's Black Forest Secret"
+  // repeating for many consecutive pages in the Explore grid).
   const [items, total] = await Promise.all([
-    Attraction.find(filter).populate("types").sort({ name: 1 }).skip(skip).limit(limit),
+    Attraction.find(filter).populate("types").sort({ name: 1, _id: 1 }).skip(skip).limit(limit),
     Attraction.countDocuments(filter),
   ]);
 
