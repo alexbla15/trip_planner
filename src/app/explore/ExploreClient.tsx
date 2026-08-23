@@ -7,10 +7,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useAttractionTypes } from "@/hooks";
 import {
-  getCities, getAttractionsByCity, getAttractionsByCountry, createAttraction, updateAttraction,
+  getCities, getAttractionsByCity, getAttractionsByCountry, createAttraction, updateAttraction, deleteAttraction,
   fetchRouteLeg, formatLegDuration, formatStepDuration,
   searchLocation, addAttractionToTrip,
   markAttractionVisited, unmarkAttractionVisited,
+  ApiError,
 } from "@/services";
 import type { TravelMode, RouteLeg } from "@/services";
 import { AttractionDetailModal, NewAttractionModal, TripPickerModal, Spinner, FormErrorBanner, AttractionFilter, AttractionGridCard, attractionToFormData } from "@/components";
@@ -479,6 +480,30 @@ export function ExploreClient() {
     // showing stale data (e.g. the old photo) until the country/city is re-fetched.
     setCountryAttractions((prev) => prev.map((a) => (a._id === updated._id ? updated : a)));
     toast.success("Attraction updated");
+  }
+
+  // Permanently deletes the shared Attraction document (owner-only, enforced server-side) —
+  // distinct from removing it from a trip's itinerary. Blocked server-side (409) if the
+  // attraction still has nested child attractions; surfaces that message directly since
+  // it tells the user exactly what to do next.
+  async function handleDeleteAttraction(attraction: Attraction) {
+    if (!token) return;
+    if (!window.confirm(`Delete "${attraction.name}" permanently? This removes it everywhere, including any trips that reference it. This cannot be undone.`)) {
+      return;
+    }
+    try {
+      await deleteAttraction(attraction._id, token);
+    } catch (err) {
+      const message = err instanceof ApiError && typeof err.body === "object" && err.body && "error" in err.body
+        ? String((err.body as { error: unknown }).error)
+        : "Couldn't delete the attraction. Please try again.";
+      toast.error(message);
+      return;
+    }
+    setSelectedAttraction(null);
+    setCityAttractions((prev) => prev.filter((a) => a._id !== attraction._id));
+    setCountryAttractions((prev) => prev.filter((a) => a._id !== attraction._id));
+    toast.success("Attraction deleted");
   }
 
   // "Visited" is a per-user fact about the shared attraction document — flip it on
@@ -1163,6 +1188,7 @@ export function ExploreClient() {
         onClose={() => setSelectedAttraction(null)}
         canEdit={!!user && selectedAttraction?.ownerId === user._id}
         onEdit={() => setEditingAttraction(selectedAttraction)}
+        onDelete={selectedAttraction ? () => handleDeleteAttraction(selectedAttraction) : undefined}
         onAddToTrip={user ? () => {
           setAttractionForTripPicker(selectedAttraction);
           setTripPickerOpen(true);

@@ -88,6 +88,16 @@ export async function updateAttraction(id: string, token: string, data: unknown)
   return parseOrThrow<unknown>(res);
 }
 
+// Deletes the shared Attraction document globally (owner-only, enforced server-side) — not
+// to be confused with removeAttractionFromTrip, which only unlinks it from one trip.
+export async function deleteAttraction(id: string, token: string): Promise<unknown> {
+  const res = await fetch(`/api/attractions/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return parseOrThrow<unknown>(res);
+}
+
 export async function getTripAttractions(tripId: string, token?: string | null): Promise<unknown[]> {
   const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
   const res = await fetch(`/api/trips/${tripId}/attractions`, { headers });

@@ -26,6 +26,7 @@ export {
   searchAttractionsByType,
   createAttraction,
   updateAttraction,
+  deleteAttraction,
   getTripAttractions,
   addAttractionToTrip,
   updateTripAttractionSchedule,

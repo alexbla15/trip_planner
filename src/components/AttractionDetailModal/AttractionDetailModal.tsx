@@ -51,13 +51,17 @@ interface AttractionDetailModalProps {
    *  itinerary and the caller can edit it — unlinks it from the trip (every scheduled
    *  instance), same as the "Remove" action elsewhere in the trip's Attractions tab. */
   onRemoveFromTrip?: () => void;
+  /** Present only when `canEdit` is true — permanently deletes the shared Attraction
+   *  document from the database (not just unlinking it from one trip). The caller is
+   *  responsible for confirming this destructive action before invoking it. */
+  onDelete?: () => void;
   /** Present only for a logged-in user viewing a real (non custom-slot/flight)
    *  attraction — toggling marks/unmarks it as personally visited. */
   onToggleVisited?: () => void;
   isVisited?: boolean;
 }
 
-export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit, onEdit, onAddToTrip, onRemoveFromTrip, onToggleVisited, isVisited }: AttractionDetailModalProps) {
+export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit, onEdit, onAddToTrip, onRemoveFromTrip, onDelete, onToggleVisited, isVisited }: AttractionDetailModalProps) {
   const { findType } = useAttractionTypes();
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -404,7 +408,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
           )}
         </div>
 
-        {(onEditTime || (canEdit && onEdit) || onAddToTrip || onRemoveFromTrip) && (
+        {(onEditTime || (canEdit && onEdit) || onAddToTrip || onRemoveFromTrip || (canEdit && onDelete)) && (
           <div className={styles.footer}>
             {onAddToTrip && (
               <button
@@ -444,6 +448,16 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
               >
                 <Trash2 size={14} aria-hidden="true" />
                 Remove from trip
+              </button>
+            )}
+            {canEdit && onDelete && (
+              <button
+                type="button"
+                className={styles.removeBtn}
+                onClick={() => { onDelete(); onClose(); }}
+              >
+                <Trash2 size={14} aria-hidden="true" />
+                Delete attraction
               </button>
             )}
           </div>
