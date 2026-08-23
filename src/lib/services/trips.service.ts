@@ -188,6 +188,37 @@ export async function reorderTripAttractions(payload: JwtPayload, tripId: string
   await Trip.findByIdAndUpdate(tripId, { attractionIds });
 }
 
+/** Swaps everything scheduled on two days — every schedule entry (regular attraction
+ *  instances, custom time-slots, flights) with plannedDate === dayA moves to dayB and
+ *  vice versa; plannedTime and every other field on each entry are untouched, so the
+ *  same times of day just apply to the other date. Entries on neither day are untouched.
+ *  Uses findByIdAndUpdate + $set, not trip.save() — trip.schedules is a Map-typed field
+ *  and .save() can silently no-op on Map mutations (see docs/LEARNINGS.md). */
+export async function swapTripDays(payload: JwtPayload, tripId: string, dayA: unknown, dayB: unknown): Promise<void> {
+  await dbConnect();
+  const trip = await Trip.findOne({
+    _id: tripId,
+    $or: [{ ownerId: payload.userId }, { "collaborators.userId": payload.userId }],
+  });
+  if (!trip) throw notFound("Trip not found");
+
+  if (typeof dayA !== "string" || !dayA.trim() || typeof dayB !== "string" || !dayB.trim()) {
+    throw badRequest("dayA and dayB are required");
+  }
+  if (dayA === dayB) {
+    throw badRequest("dayA and dayB must be different days");
+  }
+
+  const set: Record<string, string> = {};
+  for (const [key, entry] of trip.schedules?.entries() ?? []) {
+    if (entry?.plannedDate === dayA) set[`schedules.${key}.plannedDate`] = dayB;
+    else if (entry?.plannedDate === dayB) set[`schedules.${key}.plannedDate`] = dayA;
+  }
+  if (Object.keys(set).length === 0) return; // nothing scheduled on either day — no-op
+
+  await Trip.findByIdAndUpdate(tripId, { $set: set });
+}
+
 /** Owner-only: invites a user (by email) as a collaborator. */
 export async function addCollaborator(payload: JwtPayload, tripId: string, email: string | undefined): Promise<ITrip> {
   await dbConnect();

@@ -5,7 +5,7 @@ Status: in progress
 Lets an attraction (e.g. a restaurant, a shop) be marked as located inside another attraction (e.g. a mall, a zoo) — child inherits the parent's coordinates/city/country, is independently viewable/searchable/schedulable, but never renders as its own separate map pin.
 
 ## Tasks
-- [ ] .claude/tasks/nested-attractions-data-model.md
+- [x] .claude/tasks/nested-attractions-data-model.done.md
 - [ ] .claude/tasks/nested-attractions-create-edit-ui.md
 - [ ] .claude/tasks/nested-attractions-detail-display.md
 - [ ] .claude/tasks/nested-attractions-map-dedup.md

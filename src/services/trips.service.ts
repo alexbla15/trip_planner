@@ -58,3 +58,14 @@ export async function deleteTrip(tripId: string, token: string): Promise<void> {
   });
   await parseOrThrow<unknown>(res);
 }
+
+// Swaps everything scheduled on two days (dayA/dayB as "YYYY-MM-DD") — see
+// swapTripDays in src/lib/services/trips.service.ts for the exact semantics.
+export async function swapTripDays(tripId: string, token: string, dayA: string, dayB: string): Promise<void> {
+  const res = await fetch(`/api/trips/${tripId}/swap-days`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ dayA, dayB }),
+  });
+  await parseOrThrow<unknown>(res);
+}

@@ -1635,6 +1635,46 @@ paths:
         200:
           description: Order updated successfully
 
+  /api/trips/{id}/swap-days:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Swaps everything scheduled between two days of a trip
+      description: >
+        Every schedule entry (regular attraction instances, custom time-slots, flights)
+        with plannedDate === dayA moves to dayB and vice versa — plannedTime and every
+        other field on each entry are untouched, so the same times of day just apply to
+        the other date. Entries on neither day are untouched. A no-op (still 200) if
+        nothing is scheduled on either day.
+      tags: [Trips]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dayA, dayB]
+              properties:
+                dayA:
+                  type: string
+                  format: date
+                  example: "2026-06-01"
+                dayB:
+                  type: string
+                  format: date
+                  example: "2026-06-03"
+      responses:
+        200:
+          description: Days swapped
+        '400':
+          description: dayA/dayB missing or identical
+        '404':
+          description: Trip not found (or caller lacks access)
+
   # ==========================================
   # 🌍 Explore
   # ==========================================

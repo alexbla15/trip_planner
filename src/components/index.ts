@@ -67,6 +67,8 @@ export { AddFlightModal } from "./AddFlightModal";
 export type { FlightFormData, AddFlightModalProps, FlightInitialData } from "./AddFlightModal";
 export { AddCustomSlotModal } from "./AddCustomSlotModal";
 export type { CustomSlotFormData, AddCustomSlotModalProps } from "./AddCustomSlotModal";
+export { SwapDaysModal } from "./SwapDaysModal";
+export type { SwapDaysModalProps } from "./SwapDaysModal";
 export { AddFreeSlotModal } from "./AddFreeSlotModal";
 export type { FreeSlotFormData, AddFreeSlotModalProps } from "./AddFreeSlotModal";
 

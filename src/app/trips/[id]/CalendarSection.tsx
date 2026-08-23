@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
-import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, Plus, Coffee } from "lucide-react";
-import { renderTypeIcon, AttractionDetailModal, AddCustomSlotModal } from "@/components";
+import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, Plus, Coffee, ArrowLeftRight } from "lucide-react";
+import { renderTypeIcon, AttractionDetailModal, AddCustomSlotModal, SwapDaysModal } from "@/components";
 import type { CustomSlotFormData } from "@/components";
 import { useAttractionTypes } from "@/hooks";
 import { useToast } from "@/contexts/ToastContext";
@@ -12,6 +12,7 @@ import {
   addAttractionToTrip,
   updateTripAttractionSchedule,
   removeAttractionFromTrip,
+  swapTripDays,
 } from "@/services";
 import {
   formatPrice,
@@ -94,6 +95,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   const [viewingAttraction, setViewingAttraction] = useState<Attraction | null>(null);
   const [customSlotModalOpen, setCustomSlotModalOpen] = useState(false);
   const [editingCustomSlot, setEditingCustomSlot]     = useState<Attraction | null>(null);
+  const [swapDaysModalOpen, setSwapDaysModalOpen]     = useState(false);
 
   // Sidebar
   const [filter, setFilter]       = useState<SidebarFilter>("unscheduled");
@@ -410,6 +412,29 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
     }
   }
 
+  // Swaps everything scheduled on two days — an immediate server call (not staged into
+  // `pending`, which only tracks single-field assign/unassign edits), so any unsaved
+  // pending changes must be saved first: the swap reads and rewrites current SERVER
+  // state, which would silently drop/ignore not-yet-persisted local edits otherwise.
+  async function handleSwapDays(dayA: string, dayB: string) {
+    if (!token) return;
+    if (pending.size > 0) {
+      toast.error("Save your pending changes first, then swap days.");
+      return;
+    }
+    try {
+      await swapTripDays(trip._id, token, dayA, dayB);
+      applyLocal(local.map((a) => {
+        if (a.plannedDate === dayA) return { ...a, plannedDate: dayB };
+        if (a.plannedDate === dayB) return { ...a, plannedDate: dayA };
+        return a;
+      }));
+      toast.success("Days swapped");
+    } catch {
+      toast.error("Couldn't swap those days. Please try again.");
+    }
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   const hasPending = pending.size > 0;
@@ -417,10 +442,11 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   const headerProps = {
     totalSpend, trip, canEdit,
     hasPending, saving, savedOk,
-    showMap,
+    showMap, canSwapDays: days.length > 1,
     onSave: handleSaveAll,
     onToggleMap: () => setShowMap((v) => !v),
     onAddCustomSlot: () => setCustomSlotModalOpen(true),
+    onSwapDays: () => setSwapDaysModalOpen(true),
   };
 
   // Shared modal — must be rendered in BOTH branches so the modal works even
@@ -447,6 +473,15 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
     />
   );
 
+  const swapDaysModal = (
+    <SwapDaysModal
+      isOpen={swapDaysModalOpen}
+      onClose={() => setSwapDaysModalOpen(false)}
+      days={days}
+      onSwap={handleSwapDays}
+    />
+  );
+
   if (attractions.length === 0) {
     return (
       <>
@@ -455,6 +490,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
           <CalendarEmptyState canEdit={canEdit} />
         </div>
         {customSlotModal}
+        {swapDaysModal}
       </>
     );
   }
@@ -824,6 +860,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
       />
 
       {customSlotModal}
+      {swapDaysModal}
     </>
   );
 }
@@ -838,16 +875,18 @@ interface HeaderProps {
   saving: boolean;
   savedOk: boolean;
   showMap: boolean;
+  canSwapDays: boolean;
   onSave: () => void;
   onToggleMap: () => void;
   onAddCustomSlot: () => void;
+  onSwapDays: () => void;
 }
 
 function Header({
   totalSpend, trip, canEdit,
   hasPending, saving, savedOk,
-  showMap,
-  onSave, onToggleMap, onAddCustomSlot,
+  showMap, canSwapDays,
+  onSave, onToggleMap, onAddCustomSlot, onSwapDays,
 }: HeaderProps) {
   return (
     <div className={styles.sectionHeadingRow}>
@@ -855,6 +894,12 @@ function Header({
       <h2 className={styles.sectionHeading}>Trip Itinerary</h2>
 
       <div className={styles.summaryBadges}>
+        {canEdit && canSwapDays && (
+          <button type="button" className={styles.addFreeSlotBtn} onClick={onSwapDays}>
+            <ArrowLeftRight size={13} aria-hidden="true" />
+            Swap Days
+          </button>
+        )}
         {canEdit && (
           <button type="button" className={styles.addFreeSlotBtn} onClick={onAddCustomSlot}>
             <Plus size={13} aria-hidden="true" />

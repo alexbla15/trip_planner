@@ -10,7 +10,7 @@ export { getCurrentUser, updateCurrentUser, changePassword, searchUsers } from "
 
 export { getPersonalAnalytics, getGlobalAnalytics } from "./analytics.service";
 
-export { listTrips, createTrip, getTrip, updateTrip, deleteTrip } from "./trips.service";
+export { listTrips, createTrip, getTrip, updateTrip, deleteTrip, swapTripDays } from "./trips.service";
 export type { TripErrorResponse } from "./trips.service";
 
 export { addCollaborator, removeCollaborator } from "./collaborators.service";

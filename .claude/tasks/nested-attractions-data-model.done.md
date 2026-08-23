@@ -1,6 +1,6 @@
 # Task: Nested attractions — data model & backend
 
-Status: intake
+Status: done
 Track: B
 Track reason: schema + API/service logic, no UI surface of its own (the UI tasks that consume this ride on later tasks in the same goal).
 
@@ -32,3 +32,17 @@ An `Attraction` document can optionally reference a parent `Attraction` (one lev
 - `AttractionDetailModal`/grid-card "Part of X" / "Contains N" display (next task in this goal).
 - Excluding children from map pins (last task in this goal).
 - Multi-level nesting (explicitly rejected per the confirmed decision).
+
+## Implementation Notes
+- Files created/modified:
+  - `src/models/Attraction.ts` -- parentAttractionId field + index; formatAttraction takes parentAttractionName/childAttractionCount trailing params.
+  - `src/types/attraction.ts` -- parentAttractionId/parentAttractionName/childAttractionCount on the shared Attraction shape.
+  - `src/lib/services/nestedAttractions.service.ts` (new) -- getParentNameMap/getParentName, getChildCountMap/getChildCount (batched-Map pattern matching visited.service.ts/usedInTrips.service.ts), resolveParentLink (validation: exists, same-country if specified, one-level-only).
+  - `src/lib/services/attractions.service.ts` -- createAttraction (parent inheritance of coordinates/city/country, relaxed country/city requirement when a parent is given), updateAttraction (set/clear parent, re-derive inherited fields, blocks nesting an attraction that already has children), deleteAttraction (blocks with 409 if children exist), all 6 formatAttraction call sites threaded with the new fields.
+  - `src/app/api/attractions/route.ts`, `src/app/api/attractions/[id]/route.ts` -- same threading for GET/POST/PUT responses.
+  - `swagger.yaml` -- documented the new field, request field, and 400/409 error cases.
+- Deviations from brief: none.
+- Verified live end-to-end after a required dev-server restart (Mongoose schema change): parent/child creation, coordinate/city/country inheritance, parentAttractionName/childAttractionCount on responses, one-level-nesting rejection (400), and delete-blocked-while-has-children (409) all confirmed against the real dev server and DB.
+
+## Completion Summary
+Backend support for nested (parent/child) attractions shipped: an attraction can reference a parent, inherits its coordinates/city/country, is capped at one level of nesting, and every attraction API response now carries parentAttractionId/parentAttractionName/childAttractionCount. Confirmed by the user 2026-08-23, committed and pushed to production. Remaining goal tasks (create/edit parent-picker UI, detail-card display, map-pin deduplication) are still open in `.claude/tasks/goals/nested-attractions.md`.
