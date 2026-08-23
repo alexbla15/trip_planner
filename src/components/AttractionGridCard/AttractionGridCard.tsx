@@ -1,16 +1,26 @@
 "use client";
 
-import { Check, Luggage, MapPin } from "lucide-react";
+import { Check, Luggage, MapPin, Plus, Pencil, Trash2 } from "lucide-react";
 import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { useAttractionTypes } from "@/hooks";
 import styles from "./AttractionGridCard.module.css";
 import type { AttractionGridCardProps } from "./AttractionGridCard.types";
 
-export function AttractionGridCard({ attraction, onClick }: AttractionGridCardProps) {
+export function AttractionGridCard({ attraction, onClick, currentUserId, onAddToTrip, onEdit, onDelete }: AttractionGridCardProps) {
   const { findType } = useAttractionTypes();
   const hasPhoto = !!attraction.photoUrl?.startsWith("http");
   const icon = renderTypeIcon(findType(attraction.types?.[0] ?? "")?.icon ?? "Globe");
+  const canEdit = !!currentUserId && attraction.ownerId === currentUserId;
+
+  function stopAnd(handler: (attraction: typeof attraction) => void) {
+    return (e: React.MouseEvent) => {
+      e.stopPropagation();
+      handler(attraction);
+    };
+  }
+
+  const showActions = !!onAddToTrip || (canEdit && (!!onEdit || !!onDelete));
 
   return (
     <button
@@ -46,6 +56,44 @@ export function AttractionGridCard({ attraction, onClick }: AttractionGridCardPr
             </span>
           )}
         </div>
+
+        {showActions && (
+          <div className={styles.actions}>
+            {onAddToTrip && (
+              <button
+                type="button"
+                className={`${styles.actionBtn} ${styles.actionBtnAdd}`}
+                onClick={stopAnd(onAddToTrip)}
+                title="Add to my trip"
+                aria-label={`Add ${attraction.name} to a trip`}
+              >
+                <Plus size={13} aria-hidden="true" />
+              </button>
+            )}
+            {canEdit && onEdit && (
+              <button
+                type="button"
+                className={styles.actionBtn}
+                onClick={stopAnd(onEdit)}
+                title="Edit attraction"
+                aria-label={`Edit ${attraction.name}`}
+              >
+                <Pencil size={13} aria-hidden="true" />
+              </button>
+            )}
+            {canEdit && onDelete && (
+              <button
+                type="button"
+                className={`${styles.actionBtn} ${styles.actionBtnDelete}`}
+                onClick={stopAnd(onDelete)}
+                title="Delete attraction"
+                aria-label={`Delete ${attraction.name}`}
+              >
+                <Trash2 size={13} aria-hidden="true" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className={styles.body}>

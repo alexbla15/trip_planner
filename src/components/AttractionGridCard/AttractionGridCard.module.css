@@ -92,6 +92,58 @@
   background: var(--color-primary);
 }
 
+/* Action buttons (add to trip / edit / delete) — mirror the status badges' corner
+   placement on the opposite side, but stay hidden until hover/focus so the photo
+   reads clean at rest; keyboard users still reach them via focus-within since
+   opacity (not display) is what's toggled. */
+.actions {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity var(--duration-fast) var(--easing-out), transform var(--duration-fast) var(--easing-out);
+}
+.card:hover .actions,
+.card:focus-within .actions {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.actionBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: rgba(17, 17, 17, 0.65);
+  backdrop-filter: blur(3px);
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--easing-out), transform var(--duration-fast) var(--easing-out);
+}
+.actionBtn:hover {
+  background: var(--color-primary);
+  transform: scale(1.08);
+}
+.actionBtn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+}
+
+.actionBtnAdd:hover {
+  background: var(--color-primary);
+}
+
+.actionBtnDelete:hover {
+  background: var(--color-error);
+}
+
 .body {
   display: flex;
   flex-direction: column;

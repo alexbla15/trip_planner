@@ -1151,7 +1151,18 @@ export function ExploreClient() {
               <>
                 <div className={styles.grid}>
                   {paginatedGridAttractions.map((a) => (
-                    <AttractionGridCard key={a._id} attraction={a} onClick={setSelectedAttraction} />
+                    <AttractionGridCard
+                      key={a._id}
+                      attraction={a}
+                      onClick={setSelectedAttraction}
+                      currentUserId={user?._id}
+                      onAddToTrip={user ? (attr) => {
+                        setAttractionForTripPicker(attr);
+                        setTripPickerOpen(true);
+                      } : undefined}
+                      onEdit={setEditingAttraction}
+                      onDelete={handleDeleteAttraction}
+                    />
                   ))}
                 </div>
                 {gridTotalPages > 1 && (
