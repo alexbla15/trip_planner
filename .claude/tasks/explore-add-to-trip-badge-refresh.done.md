@@ -1,6 +1,6 @@
 # Task: Refresh "used in trip" badge on /explore after adding an attraction to a trip
 
-Status: reviewing
+Status: done
 Track: B
 Track reason: bug fix — stale client state after a successful mutation, no new UI surface. Fixes `handleTripSelect` in `src/app/explore/ExploreClient.tsx:552-561`.
 
@@ -29,3 +29,6 @@ Immediately after a successful `addAttractionToTrip` call from `/explore`, the a
 - Deviations from task requirements: none. `usedInTripNames` is typed optional (`string[] | undefined`) on `Attraction`, so the update guards with `?? []` before `.includes`/spread to avoid a runtime crash on an attraction that hasn't had it populated — not called out explicitly in the task but required for correctness.
 - New design tokens used: none (no UI change).
 - Verified: `tsc --noEmit` and `eslint` clean for the changed lines — `eslint` on the full file surfaces 4 pre-existing errors (useEffect setState-in-effect at lines 306-314, an aria-expanded warning at 861) unrelated to and untouched by this diff (confirmed via `git diff --stat`, 9 lines added, none near those locations).
+
+## Completion Summary
+Adding an attraction to a trip from /explore now updates its "used in trip" badge immediately across the map, detail modal, and grid view, without a reload -- handleTripSelect syncs usedInTripNames onto every local state array holding that attraction's record, mirroring the existing handleToggleVisited pattern. Confirmed by the user 2026-08-22.

@@ -1,6 +1,6 @@
 # Task: Grid view for /explore (map view alternative)
 
-Status: reviewing
+Status: done
 Track: A
 Track reason: new UI surface (attraction grid card, pagination, view-mode toggle) with no existing design-system precedent for a grid-of-attraction-cards layout.
 
@@ -43,3 +43,7 @@ Within country/city view on `/explore`, the user can toggle between the existing
 - Deviations from brief: none.
 - New design tokens used: none — reused `--color-success`/`--color-primary` (badges), existing radius/shadow/spacing tokens.
 - Verified live: toggle absent at world view, present at country/city view; grid renders 12/page with correct total-page count; card click opens `AttractionDetailModal`; visited attraction shows green check badge, an attraction added to a trip shows blue luggage badge (confirmed on two different real attractions via screenshots, cleaned up after).
+
+
+## Completion Summary
+Grid view for /explore shipped and evolved through several follow-up rounds: dynamic page sizing (measured columns x fixed rows, replacing the original flat page-size constant, with position-preserving pagination across browser zoom/resize), attraction type icons in the card body, black-bordered badges, more prominent (bold/colored) city labels to distinguish same-named chain locations, and a backend pagination-stability fix (secondary _id sort key) for attractions sharing an identical name. Confirmed by the user 2026-08-22.
