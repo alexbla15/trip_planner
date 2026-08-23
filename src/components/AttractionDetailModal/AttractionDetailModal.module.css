@@ -484,19 +484,20 @@
   flex-shrink: 0;
 }
 
+/* Icon-only — footer actions are common/repeatable enough (a modal a user opens often)
+   that a labelled icon (title tooltip + aria-label) reads faster than a text button, and
+   keeps the row compact when several actions are present at once. */
 .editTimeBtn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  width: 36px;
   height: 36px;
-  padding: 0 16px;
+  padding: 0;
   border-radius: var(--radius-md);
   border: 1.5px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 600;
-  font-family: inherit;
   cursor: pointer;
   transition: border-color var(--duration-fast) var(--easing-out),
               color var(--duration-fast) var(--easing-out);
@@ -515,16 +516,14 @@
 .removeBtn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  width: 36px;
   height: 36px;
-  padding: 0 16px;
+  padding: 0;
   border-radius: var(--radius-md);
   border: 1.5px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-error);
-  font-size: 13px;
-  font-weight: 600;
-  font-family: inherit;
   cursor: pointer;
   transition: border-color var(--duration-fast) var(--easing-out),
               background var(--duration-fast) var(--easing-out);

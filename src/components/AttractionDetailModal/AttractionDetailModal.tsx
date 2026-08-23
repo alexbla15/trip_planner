@@ -415,9 +415,10 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                 type="button"
                 className={styles.editTimeBtn}
                 onClick={() => { onAddToTrip(); onClose(); }}
+                title="Add to my trip"
+                aria-label={`Add ${attraction.name} to my trip`}
               >
-                <Plus size={14} aria-hidden="true" />
-                Add to my trip
+                <Plus size={16} aria-hidden="true" />
               </button>
             )}
             {canEdit && onEdit && (
@@ -425,9 +426,10 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                 type="button"
                 className={styles.editTimeBtn}
                 onClick={() => { onEdit(); onClose(); }}
+                title="Edit attraction"
+                aria-label={`Edit ${attraction.name}`}
               >
-                <Pencil size={14} aria-hidden="true" />
-                Edit attraction
+                <Pencil size={16} aria-hidden="true" />
               </button>
             )}
             {onEditTime && (
@@ -435,9 +437,10 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                 type="button"
                 className={styles.editTimeBtn}
                 onClick={() => { onEditTime(); onClose(); }}
+                title="Edit time & duration"
+                aria-label={`Edit time and duration for ${attraction.name}`}
               >
-                <Timer size={14} aria-hidden="true" />
-                Edit time &amp; duration
+                <Timer size={16} aria-hidden="true" />
               </button>
             )}
             {onRemoveFromTrip && (
@@ -445,9 +448,10 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                 type="button"
                 className={styles.removeBtn}
                 onClick={() => { onRemoveFromTrip(); onClose(); }}
+                title="Remove from trip"
+                aria-label={`Remove ${attraction.name} from trip`}
               >
-                <Trash2 size={14} aria-hidden="true" />
-                Remove from trip
+                <Trash2 size={16} aria-hidden="true" />
               </button>
             )}
             {canEdit && onDelete && (
@@ -455,9 +459,10 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                 type="button"
                 className={styles.removeBtn}
                 onClick={() => { onDelete(); onClose(); }}
+                title="Delete attraction"
+                aria-label={`Delete ${attraction.name}`}
               >
-                <Trash2 size={14} aria-hidden="true" />
-                Delete attraction
+                <Trash2 size={16} aria-hidden="true" />
               </button>
             )}
           </div>
