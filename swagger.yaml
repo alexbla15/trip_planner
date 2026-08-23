@@ -339,6 +339,25 @@ components:
             the Attraction document itself, since it's shared across users/trips). Always
             empty for an unauthenticated caller.
           example: ["Summer in Budapest"]
+        parentAttractionId:
+          type: string
+          nullable: true
+          description: >
+            The shared Attraction document this one is nested inside (e.g. a restaurant
+            inside a mall) — one level of nesting only, a child can never itself be a
+            parent. null/absent means this attraction isn't nested inside anything. When
+            set, coordinates/city/country are inherited from the parent, not independently
+            editable via this attraction's own PUT.
+          example: 65f1234567890abcdef123cc
+        parentAttractionName:
+          type: string
+          description: The parent's name — present only when parentAttractionId is set.
+          example: Westfield Mall
+        childAttractionCount:
+          type: integer
+          default: 0
+          description: How many other attractions are nested inside this one.
+          example: 3
         ownerId:
           type: string
           example: 65f1234567890abcdef12345
@@ -515,6 +534,16 @@ components:
           properties:
             lat: { type: number }
             lng: { type: number }
+        parentAttractionId:
+          type: string
+          nullable: true
+          description: >
+            Nests this attraction inside another (e.g. a restaurant inside a mall) — one
+            level of nesting only (400 if the chosen parent is itself already a child).
+            When set, country/city are NOT required in this same request (inherited from
+            the parent) — if sent anyway, coordinates/city/country are silently overridden
+            by the parent's own values, not rejected. 400 if the parent doesn't exist, or
+            if country is also sent in this request and doesn't match the parent's country.
         types:
           type: array
           items: { type: string }
@@ -1516,6 +1545,11 @@ paths:
           type: string
     put:
       summary: Update an attraction's specific details
+      description: >
+        parentAttractionId: omit the key to leave the existing parent link untouched, send
+        null to clear it (last-inherited coordinates/city/country are left in place), or
+        send an id to (re)set it — same inheritance/validation as POST. Rejects with 400 if
+        this attraction already has its own children (would create two levels of nesting).
       tags: [Attractions]
       requestBody:
         required: true
@@ -1529,6 +1563,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Attraction'
+        '400':
+          description: >
+            Invalid parentAttractionId (not found, country mismatch, chosen parent is
+            itself a child, or this attraction already has its own children).
         '409':
           description: >
             Another attraction already has this name at the same coordinates. Renaming to a
@@ -1539,6 +1577,10 @@ paths:
       responses:
         200:
           description: Attraction deleted
+        '409':
+          description: >
+            This attraction still has one or more children nested inside it — remove or
+            reassign them first.
 
   /api/trips/{id}/attractions/{attractionId}:
     parameters:

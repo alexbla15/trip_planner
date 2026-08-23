@@ -29,6 +29,17 @@ export interface Attraction {
    *  per-user, independent of the trip context (if any) the card is being viewed from.
    *  Empty/absent for custom-slot/flight rows and for anonymous callers. */
   usedInTripNames?: string[];
+  /** The shared Attraction document this one is nested inside (e.g. a restaurant inside a
+   *  mall) — one level of nesting only, a child can never itself be a parent. `null`/absent
+   *  means this attraction isn't nested inside anything. When set, `coordinates`/`city`/
+   *  `country` are inherited from the parent, not independently editable. */
+  parentAttractionId?: string | null;
+  /** The parent's name — set only when `parentAttractionId` is set, resolved server-side
+   *  so consumers can render "Part of {name}" without a second lookup. */
+  parentAttractionName?: string;
+  /** How many other attractions are nested inside this one. 0 for a child (nesting is one
+   *  level only) or a leaf attraction with no children. */
+  childAttractionCount?: number;
   // no tripId — attractions are global; scheduling lives in Trip.schedules
   ownerId?: string;
   name: string;

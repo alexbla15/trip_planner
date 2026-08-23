@@ -6,6 +6,7 @@ import { AttractionType } from "@/models/AttractionType";
 import { Trip, type ITrip, type IScheduleEntry } from "@/models/Trip";
 import { getVisitedIdSet, isAttractionVisited } from "@/lib/services/visited.service";
 import { getUsedInTripsMap, getUsedInTripNames } from "@/lib/services/usedInTrips.service";
+import { getParentNameMap, getParentName, getChildCountMap, getChildCount, resolveParentLink } from "@/lib/services/nestedAttractions.service";
 import type { JwtPayload } from "@/lib/auth";
 import type { Attraction as AttractionShape, OpeningHours } from "@/types/attraction";
 
@@ -104,14 +105,16 @@ export async function searchAttractions(
   const skip = Math.max(0, params.skip ?? 0);
   const limit = Math.min(Math.max(1, params.limit ?? cap), cap);
 
-  // Secondary sort on _id: name alone isn't unique (e.g. a chain with several branches
-  // all sharing the same name) — without a tiebreaker, MongoDB doesn't guarantee a
-  // stable order among tied documents across separate skip/limit calls, so paginating
-  // through a name-sorted list can return the same document on more than one page while
+  // Ordered by city, then name — groups a country-wide list (e.g. Explore's grid view)
+  // by destination instead of interleaving cities alphabetically by attraction name.
+  // Final _id tiebreaker: city+name alone isn't guaranteed unique (e.g. a chain with
+  // several same-named branches even within one city) — without a tiebreaker, MongoDB
+  // doesn't guarantee a stable order among tied documents across separate skip/limit
+  // calls, so paginating can return the same document on more than one page while
   // silently skipping another (found via a real 17-branch "Anni's Black Forest Secret"
   // repeating for many consecutive pages in the Explore grid).
   const [items, total] = await Promise.all([
-    Attraction.find(filter).populate("types").sort({ name: 1, _id: 1 }).skip(skip).limit(limit),
+    Attraction.find(filter).populate("types").sort({ city: 1, name: 1, _id: 1 }).skip(skip).limit(limit),
     Attraction.countDocuments(filter),
   ]);
 
@@ -123,6 +126,11 @@ export interface CreateAttractionInput {
   country?: string;
   city?: string;
   coordinates?: { lat: number; lng: number } | null;
+  /** Nests this attraction inside another (e.g. a restaurant inside a mall) — when set,
+   *  `coordinates`/`city`/`country` are inherited from the parent and any client-sent
+   *  values for those fields are ignored (silently overridden), not rejected — a child's
+   *  location is defined by its parent, not by the caller. */
+  parentAttractionId?: string | null;
   types?: string[];
   durationValue?: string;
   durationUnit?: "minutes" | "hours";
@@ -135,10 +143,12 @@ export interface CreateAttractionInput {
 }
 
 export async function createAttraction(payload: JwtPayload, body: CreateAttractionInput): Promise<IAttraction> {
-  const { name, country, city, coordinates, types, durationValue, durationUnit,
+  const { name, country, city, coordinates, parentAttractionId, types, durationValue, durationUnit,
     price, currency, openingHours, notes, photoUrl, websiteUrl } = body;
 
-  if (!name?.trim() || !country?.trim() || !city?.trim()) {
+  if (!name?.trim() || (!parentAttractionId && (!country?.trim() || !city?.trim()))) {
+    // A child's country/city are inherited from its parent — only required directly when
+    // there's no parent to inherit them from.
     throw badRequest("name, country, and city are required");
   }
 
@@ -157,13 +167,21 @@ export async function createAttraction(payload: JwtPayload, body: CreateAttracti
     ? (await AttractionType.find({ name: { $in: types } }).select("_id")).map((d) => d._id)
     : [];
 
+  // A child's coordinates/city/country are inherited from the parent, not client-supplied —
+  // silently overridden rather than rejected, since the location is defined by the parent.
+  const parent = parentAttractionId ? await resolveParentLink(parentAttractionId, country) : null;
+  const resolvedCountry = parent?.country ?? country!.trim();
+  const resolvedCity = parent?.city ?? city!.trim();
+  const resolvedCoordinates = parent ? parent.coordinates ?? null : coordinates ?? null;
+
   try {
     const attraction = await Attraction.create({
       ownerId: payload.userId,
       name: name.trim(),
-      country: country.trim(),
-      city: city.trim(),
-      coordinates: coordinates ?? null,
+      country: resolvedCountry,
+      city: resolvedCity,
+      coordinates: resolvedCoordinates,
+      parentAttractionId: parent?._id ?? null,
       types: typeIds,
       durationValue: durationValue || undefined,
       durationUnit: durationUnit || undefined,
@@ -249,11 +267,37 @@ export async function updateAttraction(
     }
   }
 
-  // Core fields
+  // Nesting: setting a parent inherits its coordinates/city/country (overriding any
+  // country/city/coordinates also present in this same request — a child's location is
+  // defined by its parent, not independently). `null` explicitly clears the link; the
+  // last-inherited coordinates/city/country are left in place (the place didn't physically
+  // move just because its "part of X" link was removed) — `undefined` (key absent) leaves
+  // the existing link untouched entirely.
+  let parentJustSet: IAttraction | null = null;
+  if (body.parentAttractionId !== undefined) {
+    if (body.parentAttractionId === null) {
+      attraction.parentAttractionId = null;
+    } else {
+      const existingChildCount = await getChildCount(id);
+      if (existingChildCount > 0) {
+        throw badRequest("Cannot nest an attraction that already has its own children — only one level of nesting is allowed");
+      }
+      parentJustSet = await resolveParentLink(body.parentAttractionId as string, body.country as string | undefined);
+      attraction.parentAttractionId = parentJustSet._id as IAttraction["parentAttractionId"];
+      attraction.country = parentJustSet.country;
+      attraction.city = parentJustSet.city;
+      attraction.coordinates = parentJustSet.coordinates ?? null;
+    }
+  }
+
+  // Core fields — country/city/coordinates only apply here when a parent wasn't just set
+  // above (which already resolved and applied them from the parent).
   if (body.name) attraction.name = body.name as string;
-  if (body.country) attraction.country = body.country as string;
-  if (body.city) attraction.city = body.city as string;
-  if (body.coordinates !== undefined) attraction.coordinates = body.coordinates as { lat: number; lng: number } | null;
+  if (!parentJustSet) {
+    if (body.country) attraction.country = body.country as string;
+    if (body.city) attraction.city = body.city as string;
+    if (body.coordinates !== undefined) attraction.coordinates = body.coordinates as { lat: number; lng: number } | null;
+  }
   if (body.types) {
     const names = body.types as string[];
     const typeDocs = await AttractionType.find({ name: { $in: names } }).select("_id");
@@ -307,6 +351,13 @@ export async function deleteAttraction(payload: JwtPayload, id: string): Promise
     throw notFound("Attraction not found");
   }
 
+  // Block rather than silently orphan children's parentAttractionId — matches how
+  // destructive actions are generally guarded elsewhere in this app.
+  const childCount = await getChildCount(id);
+  if (childCount > 0) {
+    throw conflict(`Cannot delete — ${childCount} attraction${childCount === 1 ? "" : "s"} still nested inside this one. Remove or reassign them first.`);
+  }
+
   await attraction.deleteOne();
 }
 
@@ -357,6 +408,8 @@ export async function listTripAttractions(
   const docsById = new Map(docs.map((doc) => [doc._id.toString(), doc]));
   const visitedIds = await getVisitedIdSet(userId);
   const usedInTripsMap = await getUsedInTripsMap(userId);
+  const parentNameMap = await getParentNameMap(docs.map((doc) => doc.parentAttractionId?.toString()));
+  const childCountMap = await getChildCountMap(docs.map((doc) => doc._id.toString()));
 
   // Group regular-attraction schedule entries by which real document they reference — a
   // real attraction can have multiple instances (see IScheduleEntry.attractionRef), each
@@ -381,11 +434,13 @@ export async function listTripAttractions(
     const entries = entriesByDocId.get(idStr);
     const isVisited = visitedIds.has(idStr);
     const usedInTripNames = usedInTripsMap.get(idStr);
+    const parentAttractionName = doc.parentAttractionId ? parentNameMap.get(doc.parentAttractionId.toString()) : undefined;
+    const childAttractionCount = childCountMap.get(idStr) ?? 0;
     if (!entries || entries.length === 0) {
-      result.push(formatAttraction(doc, null, idStr, isVisited, usedInTripNames)); // linked but not yet scheduled
+      result.push(formatAttraction(doc, null, idStr, isVisited, usedInTripNames, parentAttractionName, childAttractionCount)); // linked but not yet scheduled
     } else {
       for (const [key, entry] of entries) {
-        result.push(formatAttraction(doc, entry, key, isVisited, usedInTripNames));
+        result.push(formatAttraction(doc, entry, key, isVisited, usedInTripNames, parentAttractionName, childAttractionCount));
       }
     }
   }
@@ -676,6 +731,8 @@ export async function addAttractionToTrip(
 
   const attractionId = attraction._id.toString();
   const isVisited = await isAttractionVisited(payload.userId, attractionId);
+  const parentAttractionName = await getParentName(attraction.parentAttractionId?.toString());
+  const childAttractionCount = await getChildCount(attractionId);
 
   const alreadyLinked = trip.attractionIds.some(
     (id) => id.toString() === attractionId
@@ -704,12 +761,12 @@ export async function addAttractionToTrip(
       });
       await attraction.populate("types");
       const usedInTripNames = await getUsedInTripNames(payload.userId, attractionId);
-      return { status: 201, data: formatAttraction(attraction, scheduleEntry, instanceKey, isVisited, usedInTripNames) };
+      return { status: 201, data: formatAttraction(attraction, scheduleEntry, instanceKey, isVisited, usedInTripNames, parentAttractionName, childAttractionCount) };
     }
     const schedule = trip.schedules?.get(attractionId);
     await attraction.populate("types");
     const usedInTripNames = await getUsedInTripNames(payload.userId, attractionId);
-    return { status: 200, data: formatAttraction(attraction, schedule ?? null, undefined, isVisited, usedInTripNames) };
+    return { status: 200, data: formatAttraction(attraction, schedule ?? null, undefined, isVisited, usedInTripNames, parentAttractionName, childAttractionCount) };
   }
 
   trip.attractionIds.push(attraction._id);
@@ -739,7 +796,7 @@ export async function addAttractionToTrip(
   await attraction.populate("types");
 
   const usedInTripNames = await getUsedInTripNames(payload.userId, attractionId);
-  return { status: 201, data: formatAttraction(attraction, scheduleEntry, undefined, isVisited, usedInTripNames) };
+  return { status: 201, data: formatAttraction(attraction, scheduleEntry, undefined, isVisited, usedInTripNames, parentAttractionName, childAttractionCount) };
 }
 
 export interface UpdateTripAttractionScheduleInput {
@@ -913,8 +970,10 @@ export async function updateTripAttractionSchedule(
   if (!attraction) throw notFound("Attraction not found");
   const isVisited = await isAttractionVisited(payload.userId, realAttractionId);
   const usedInTripNames = await getUsedInTripNames(payload.userId, realAttractionId);
+  const parentAttractionName = await getParentName(attraction.parentAttractionId?.toString());
+  const childAttractionCount = await getChildCount(realAttractionId);
 
-  return formatAttraction(attraction, updatedSchedule, attractionId, isVisited, usedInTripNames);
+  return formatAttraction(attraction, updatedSchedule, attractionId, isVisited, usedInTripNames, parentAttractionName, childAttractionCount);
 }
 
 /** Unlink attraction from this trip (or remove a custom time-slot / flight entirely).

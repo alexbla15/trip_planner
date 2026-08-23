@@ -20,6 +20,11 @@ export interface IAttraction extends Document {
   /** Required for all subtypes except "flight" (see schema `required` function). */
   city?: string;
   coordinates?: { lat: number; lng: number } | null;
+  /** The Attraction this one is nested inside (e.g. a restaurant inside a mall) — one
+   *  level of nesting only, enforced in the service layer (see nestedAttractions.service.ts).
+   *  When set, coordinates/city/country are inherited from the parent at write time, not
+   *  independently editable. */
+  parentAttractionId?: Types.ObjectId | null;
   types: Types.ObjectId[];
   durationValue?: string;
   durationUnit?: "minutes" | "hours";
@@ -76,6 +81,7 @@ const AttractionSchema = new Schema<IAttraction>(
       type: new Schema({ lat: Number, lng: Number }, { _id: false }),
       default: null,
     },
+    parentAttractionId: { type: Schema.Types.ObjectId, ref: "Attraction", default: null },
     types: [{ type: Schema.Types.ObjectId, ref: "AttractionType" }],
     durationValue: { type: String },
     durationUnit: { type: String, enum: ["minutes", "hours"] },
@@ -113,6 +119,7 @@ const AttractionSchema = new Schema<IAttraction>(
 );
 
 AttractionSchema.index({ ownerId: 1 });
+AttractionSchema.index({ parentAttractionId: 1 });
 // Real-world places can share a name at different coordinates (e.g. two "Central Park"s),
 // so uniqueness is enforced on name+coordinates together, not name alone. The partial filter
 // only applies once coordinates are actually set — attractions without coordinates never
@@ -146,13 +153,24 @@ export function formatAttraction(
    *  per-user, so callers must resolve it themselves (see
    *  `src/lib/services/usedInTrips.service.ts`) and never derive it from anything on
    *  `doc`. Defaults to empty (unauthenticated callers / callers that haven't resolved it). */
-  usedInTripNames?: string[]
+  usedInTripNames?: string[],
+  /** This attraction's parent's name — set only when `doc.parentAttractionId` is set;
+   *  resolved by callers via getParentName/getParentNameMap (see
+   *  `src/lib/services/nestedAttractions.service.ts`) since the schema only stores the
+   *  parent's id, not a denormalized name. */
+  parentAttractionName?: string,
+  /** How many other attractions reference this one as their parent — resolved by callers
+   *  via getChildCount/getChildCountMap. Defaults to 0. */
+  childAttractionCount?: number
 ): AttractionShape {
   return {
     _id: idOverride ?? doc._id.toString(),
     attractionId: doc._id.toString(),
     isVisited: isVisited ?? false,
     usedInTripNames: usedInTripNames ?? [],
+    parentAttractionId: doc.parentAttractionId ? doc.parentAttractionId.toString() : null,
+    parentAttractionName,
+    childAttractionCount: childAttractionCount ?? 0,
     ownerId: doc.ownerId?.toString(),
     name: doc.name,
     country: doc.country,
