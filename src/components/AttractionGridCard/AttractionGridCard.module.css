@@ -144,6 +144,28 @@
   background: var(--color-error);
 }
 
+/* Overrides WebsiteLinkButton's own `.compact` look (32px, light background/border) to
+   match this row's dark-glass 24px icon family instead. Doubled class
+   (`.actionBtnLink.actionBtnLink`) to outrank `.compact` on specificity regardless of
+   CSS bundle concatenation order — same fix needed for ImageWithSkeleton's `.wrapper`
+   override above, since dev and production builds order stylesheets differently. */
+.actionBtnLink.actionBtnLink {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: rgba(17, 17, 17, 0.65);
+  backdrop-filter: blur(3px);
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+.actionBtnLink.actionBtnLink:hover {
+  background: var(--color-primary);
+}
+.actionBtnLink.actionBtnLink:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+}
+
 .body {
   display: flex;
   flex-direction: column;

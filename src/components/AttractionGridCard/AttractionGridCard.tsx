@@ -3,6 +3,7 @@
 import { Check, Luggage, MapPin, Plus, Pencil, Trash2 } from "lucide-react";
 import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
 import { renderTypeIcon } from "@/components/IconPicker";
+import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
 import { useAttractionTypes } from "@/hooks";
 import type { Attraction } from "@/types/attraction";
 import styles from "./AttractionGridCard.module.css";
@@ -21,7 +22,7 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, onAddTo
     };
   }
 
-  const showActions = !!onAddToTrip || (canEdit && (!!onEdit || !!onDelete));
+  const showActions = !!onAddToTrip || (canEdit && (!!onEdit || !!onDelete)) || !!attraction.websiteUrl;
 
   return (
     <button
@@ -60,6 +61,11 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, onAddTo
 
         {showActions && (
           <div className={styles.actions}>
+            <WebsiteLinkButton
+              url={attraction.websiteUrl}
+              variant="compact"
+              className={styles.actionBtnLink}
+            />
             {onAddToTrip && (
               <button
                 type="button"
