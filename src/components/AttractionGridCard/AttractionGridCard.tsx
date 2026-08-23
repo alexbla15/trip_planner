@@ -4,6 +4,7 @@ import { Check, Luggage, MapPin, Plus, Pencil, Trash2 } from "lucide-react";
 import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { useAttractionTypes } from "@/hooks";
+import type { Attraction } from "@/types/attraction";
 import styles from "./AttractionGridCard.module.css";
 import type { AttractionGridCardProps } from "./AttractionGridCard.types";
 
@@ -13,7 +14,7 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, onAddTo
   const icon = renderTypeIcon(findType(attraction.types?.[0] ?? "")?.icon ?? "Globe");
   const canEdit = !!currentUserId && attraction.ownerId === currentUserId;
 
-  function stopAnd(handler: (attraction: typeof attraction) => void) {
+  function stopAnd(handler: (attraction: Attraction) => void) {
     return (e: React.MouseEvent) => {
       e.stopPropagation();
       handler(attraction);
