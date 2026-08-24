@@ -10,6 +10,9 @@ import {
   ATTRACTION_MARKER_SIZE_PX,
   CUSTOM_PIN_SIZE_PX,
   CITY_MARKER_SIZE_PX,
+  CLUSTER_MARKER_COLOR,
+  CLUSTER_MARKER_BASE_SIZE_PX,
+  CLUSTER_MARKER_MAX_SIZE_PX,
 } from "./mapIcons.constants";
 
 export function makeAttractionMarkerIcon(color: string, iconName: string, selected = false, isVisited = false): L.DivIcon {
@@ -45,6 +48,21 @@ export function makeCityMarkerIcon(count: number): L.DivIcon {
     html: `<div style="position:relative;width:${CITY_MARKER_SIZE_PX}px;height:${CITY_MARKER_SIZE_PX}px;border-radius:6px;background:${COUNTRY_MARKER_COLOR};border:2.5px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.22);display:flex;align-items:center;justify-content:center;cursor:pointer">${svg}<div style="position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 3px;border-radius:50%;background:#fff;color:${COUNTRY_MARKER_COLOR};font-size:10px;font-weight:700;font-family:inherit;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.3)">${count}</div></div>`,
     iconSize: [CITY_MARKER_SIZE_PX, CITY_MARKER_SIZE_PX] as [number, number],
     iconAnchor: [CITY_MARKER_SIZE_PX / 2, CITY_MARKER_SIZE_PX / 2] as [number, number],
+    className: "",
+  });
+}
+
+// Replaces a group of city pins that would otherwise visually overlap at the current
+// zoom (see CityPinsLayer in ExploreMapWidget.tsx) — circular and a distinct color/size
+// from a single city pin so it reads as "zoom in for more" rather than one more place.
+// Grows slightly with city count (capped) so a 12-city cluster doesn't look identical
+// to a 2-city one.
+export function makeCityClusterIcon(cityCount: number, totalAttractions: number): L.DivIcon {
+  const size = Math.min(CLUSTER_MARKER_MAX_SIZE_PX, CLUSTER_MARKER_BASE_SIZE_PX + cityCount * 2);
+  return L.divIcon({
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${CLUSTER_MARKER_COLOR};border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.28);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:${MARKER_ICON_WHITE};font-family:inherit"><div style="font-size:${Math.round(size * 0.34)}px;font-weight:700;line-height:1">${cityCount}</div><div style="font-size:${Math.round(size * 0.16)}px;font-weight:600;line-height:1;opacity:0.9;margin-top:2px">cities</div></div>`,
+    iconSize: [size, size] as [number, number],
+    iconAnchor: [size / 2, size / 2] as [number, number],
     className: "",
   });
 }

@@ -1,6 +1,6 @@
 # Task: Refresh Explore's current view after editing an attraction
 
-Status: reviewing
+Status: done
 
 Track: B
 Track reason: state-reconciliation bug fix in existing Explore logic (which arrays get updated/filtered after a save) — no new UI surface, no visual change.
@@ -35,4 +35,4 @@ After saving an edit to an attraction in Explore, the current view (world/countr
 - Observed but not investigated: a `Cannot read properties of undefined (reading '_leaflet_pos')` console error surfaced during the verification run's map/grid view switching. It didn't affect correctness (data shown was accurate throughout) and reproduces during ordinary view-toggling unrelated to this fix's code path (marker mount/unmount is handled by react-leaflet's own reconciliation, not touched by this change) — most likely a pre-existing Leaflet/react-leaflet timing quirk. Flagging for awareness, not fixing here (out of scope for this task).
 
 ## Completion Summary
-Fixed `ExploreClient.handleEditSave` so editing an attraction's city/country now correctly updates whichever Explore view (city/country list, map, grid) the edit happened in — including removing the attraction from the current view when it no longer belongs there, and refreshing the world-view city/country counts. Verified live end-to-end. Closed 2026-08-24.
+Fixed `ExploreClient.handleEditSave` so editing an attraction's city/country now correctly updates whichever Explore view (city/country list, map, grid) the edit happened in — including removing the attraction from the current view when it no longer belongs there, and refreshing the world-view city/country counts. Verified live end-to-end. Confirmed by user. Closed 2026-08-24.

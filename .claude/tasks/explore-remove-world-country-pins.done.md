@@ -1,6 +1,6 @@
 # Task: Remove redundant country pins from Explore's world view
 
-Status: reviewing
+Status: done
 
 Track: B
 Track reason: pure removal of an existing, redundant layer — no new visual pattern, nothing left to design.
@@ -34,4 +34,4 @@ World view shows only the colored country boundaries/circles (as it already does
 - Verified live via Playwright: world view shows 0 marker-pane icons (confirmed via `.leaflet-marker-pane` element count) — only the colored boundaries — and clicking a country's boundary still navigates into it correctly (Germany → country view). `tsc --noEmit` clean.
 
 ## Completion Summary
-Removed the redundant per-country pin markers from Explore's world view — countries were rendering twice (colored boundary + a separate pin on top); now only the colored boundary/circle remains, as requested. Verified live. Closed 2026-08-24.
+Removed the redundant per-country pin markers from Explore's world view — countries were rendering twice (colored boundary + a separate pin on top); now only the colored boundary/circle remains, as requested. Verified live. Confirmed by user. Closed 2026-08-24.

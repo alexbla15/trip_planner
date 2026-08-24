@@ -7,7 +7,8 @@ import type { GeoJsonObject } from "geojson";
 import { useAttractionTypes } from "@/hooks";
 import { getCityBoundary, getCountryBoundary } from "@/services";
 import type { TravelMode, RouteLeg } from "@/services";
-import { makeAttractionMarkerIcon, makeCustomPinIcon, makeCityMarkerIcon } from "@/lib/mapIcons";
+import { makeAttractionMarkerIcon, makeCustomPinIcon, makeCityMarkerIcon, makeCityClusterIcon } from "@/lib/mapIcons";
+import { CLUSTER_MARKER_BASE_SIZE_PX, CLUSTER_MARKER_MAX_SIZE_PX } from "@/lib/mapIcons.constants";
 import { colorForBoundaryIndex } from "@/lib/mapBoundaryColors";
 import { fixLeafletDefaultIcon } from "@/lib/leafletIconFix";
 import { TRAVEL_MODE_COLORS } from "@/lib/travelModeColors";
@@ -65,6 +66,95 @@ function MapController({ mapRef }: { mapRef: MutableRefObject<MapHandle | null> 
     };
   }, [map, mapRef]);
   return null;
+}
+
+// Pixel distance under which two city pins would visually overlap/crowd — grouped into
+// one cluster marker instead of stacking (see the "messy" country-view complaint this
+// solves, e.g. several cities close together near Munich in Germany).
+const CLUSTER_PIXEL_RADIUS = 45;
+
+/** Greedy single-link clustering over on-screen pixel distance — cheap and good enough
+ *  for the small number of cities in one country (dozens, not thousands), no need for a
+ *  spatial index. Needs `useMap()` for pixel-accurate projection (`latLngToContainerPoint`),
+ *  so it has to live in its own component rendered inside `<MapContainer>`, same as
+ *  `MapController`/`ViewportWatcher` above. Only re-clusters on zoom, not on pan — the
+ *  pixel distance between two fixed lat/lngs only changes with zoom, not with panning. */
+function CityPinsLayer({ cities, zoom, onCityClick }: { cities: CityEntry[]; zoom: number; onCityClick: (city: CityEntry) => void }) {
+  const map = useMap();
+
+  const clusters = useMemo(() => {
+    const points = cities.map((city) => ({ city, pt: map.latLngToContainerPoint([city.lat, city.lng]) }));
+    const used = new Array(points.length).fill(false);
+    const groups: (typeof points)[] = [];
+    for (let i = 0; i < points.length; i++) {
+      if (used[i]) continue;
+      const group = [points[i]];
+      used[i] = true;
+      for (let j = i + 1; j < points.length; j++) {
+        if (used[j]) continue;
+        const dx = points[i].pt.x - points[j].pt.x;
+        const dy = points[i].pt.y - points[j].pt.y;
+        if (Math.sqrt(dx * dx + dy * dy) < CLUSTER_PIXEL_RADIUS) {
+          group.push(points[j]);
+          used[j] = true;
+        }
+      }
+      groups.push(group);
+    }
+    return groups;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cities, zoom]);
+
+  return (
+    <>
+      {clusters.map((group) => {
+        if (group.length === 1) {
+          const c = group[0].city;
+          return (
+            <Marker key={`city-${c.name}`} position={[c.lat, c.lng]} icon={makeCityMarkerIcon(c.count)} eventHandlers={{ click: () => onCityClick(c) }}>
+              <Tooltip direction="top" offset={[0, -22]}>
+                <strong>{c.name}</strong>
+                {" · "}{c.count} attraction{c.count !== 1 ? "s" : ""}
+              </Tooltip>
+            </Marker>
+          );
+        }
+        const lat = group.reduce((sum, g) => sum + g.city.lat, 0) / group.length;
+        const lng = group.reduce((sum, g) => sum + g.city.lng, 0) / group.length;
+        const totalAttractions = group.reduce((sum, g) => sum + g.city.count, 0);
+        const key = group.map((g) => g.city.name).sort().join("-");
+        return (
+          <Marker
+            key={`cluster-${key}`}
+            position={[lat, lng]}
+            icon={makeCityClusterIcon(group.length, totalAttractions)}
+            eventHandlers={{
+              // Zoom/pan to fit the cluster's member cities — splits it apart into
+              // individual (or smaller) clusters, standard "click to zoom" cluster UX.
+              click: () => map.flyToBounds(group.map((g): [number, number] => [g.city.lat, g.city.lng]), {
+                padding: [60, 60],
+                maxZoom: CITY_PIN_ZOOM_THRESHOLD - 0.5,
+                duration: 0.8,
+              }),
+            }}
+          >
+            <Tooltip direction="top" offset={[0, -clusterIconSize(group.length) / 2 - 6]}>
+              <strong>{group.length} cities</strong>
+              {" · "}{totalAttractions} attraction{totalAttractions !== 1 ? "s" : ""}
+              <br />
+              {group.map((g) => g.city.name).sort().join(", ")}
+            </Tooltip>
+          </Marker>
+        );
+      })}
+    </>
+  );
+}
+
+/** Mirrors the sizing formula in `makeCityClusterIcon` — kept in sync so the tooltip
+ *  offset matches the marker's actual rendered size instead of drifting from it. */
+function clusterIconSize(cityCount: number): number {
+  return Math.min(CLUSTER_MARKER_MAX_SIZE_PX, CLUSTER_MARKER_BASE_SIZE_PX + cityCount * 2);
 }
 
 /** True when a boundary is the enclosing-municipality fallback (`src/app/api/geo/city/route.ts`)
@@ -291,21 +381,9 @@ export function ExploreMapWidget({
       )}
       {/* ── Country view, zoomed out: one aggregate square pin per city instead of
           every individual attraction pin — crossing CITY_PIN_ZOOM_THRESHOLD reveals
-          the attraction pins below instead. ── */}
-      {showCityPins &&
-        citiesInSelectedCountry.map((c) => (
-          <Marker
-            key={`city-${c.name}`}
-            position={[c.lat, c.lng]}
-            icon={makeCityMarkerIcon(c.count)}
-            eventHandlers={{ click: () => onCityClick(c) }}
-          >
-            <Tooltip direction="top" offset={[0, -22]}>
-              <strong>{c.name}</strong>
-              {" · "}{c.count} attraction{c.count !== 1 ? "s" : ""}
-            </Tooltip>
-          </Marker>
-        ))}
+          the attraction pins below instead. Pins that would visually overlap/crowd at
+          the current zoom merge into a cluster marker (CityPinsLayer). ── */}
+      {showCityPins && <CityPinsLayer cities={citiesInSelectedCountry} zoom={zoom} onCityClick={onCityClick} />}
       {(view === "city" || (view === "country" && !showCityPins)) &&
         visibleAttractions.map((a) => {
           if (!a.coordinates) return null;
