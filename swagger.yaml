@@ -562,6 +562,24 @@ components:
           example: EUR
         openingHours:
           type: object
+          properties:
+            Mon: { $ref: '#/components/schemas/OpeningHoursDay' }
+            Tue: { $ref: '#/components/schemas/OpeningHoursDay' }
+            Wed: { $ref: '#/components/schemas/OpeningHoursDay' }
+            Thu: { $ref: '#/components/schemas/OpeningHoursDay' }
+            Fri: { $ref: '#/components/schemas/OpeningHoursDay' }
+            Sat: { $ref: '#/components/schemas/OpeningHoursDay' }
+            Sun: { $ref: '#/components/schemas/OpeningHoursDay' }
+        notes:
+          type: string
+          nullable: true
+        photoUrl:
+          type: string
+          nullable: true
+        websiteUrl:
+          type: string
+          nullable: true
+          description: Official venue website. Omit when no real official site exists for the place — never fabricate one.
         existingAttractionId:
           type: string
           description: >

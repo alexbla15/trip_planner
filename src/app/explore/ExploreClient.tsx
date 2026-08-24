@@ -1227,6 +1227,7 @@ export function ExploreClient() {
           onSave={handleAddSave}
           prefillCountry={selectedCountry ?? undefined}
           prefillCity={selectedCity ?? undefined}
+          token={token}
         />
       )}
 
@@ -1236,6 +1237,8 @@ export function ExploreClient() {
           initialData={attractionToFormData(editingAttraction)}
           onClose={() => setEditingAttraction(null)}
           onSave={handleEditSave}
+          editingAttractionId={editingAttraction._id}
+          token={token}
         />
       )}
 
@@ -1245,6 +1248,7 @@ export function ExploreClient() {
           initialCoordinates={pinToAttractionCoords}
           onClose={() => setPinToAttractionCoords(null)}
           onSave={handlePinAttractionSave}
+          token={token}
         />
       )}
     </div>

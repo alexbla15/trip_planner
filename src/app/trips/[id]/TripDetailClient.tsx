@@ -1181,6 +1181,8 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         onSave={editingAttraction ? handleAttractionUpdate : handleAttractionSave}
         defaultCountry={trip.country}
         initialData={editingAttraction ? attractionToFormData(editingAttraction) : undefined}
+        editingAttractionId={editingAttraction ? (editingAttraction.attractionId ?? editingAttraction._id) : undefined}
+        token={token}
       />
 
       <AttractionDetailModal

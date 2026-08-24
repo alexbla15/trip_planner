@@ -74,6 +74,11 @@ export interface AttractionFormData {
   notes: string;
   photoUrl: string;
   websiteUrl: string;
+  /** Id of the attraction this one is located inside (e.g. a restaurant inside a mall), or
+   *  null when it's not nested. Display-only `parentAttractionName` rides alongside it so
+   *  edit mode can show the picked parent without an extra fetch — never sent to the API. */
+  parentAttractionId: string | null;
+  parentAttractionName?: string | null;
 }
 
 export interface NewAttractionModalProps {
@@ -94,4 +99,11 @@ export interface NewAttractionModalProps {
    *  dropped map pin — while keeping the modal in create mode ("New Attraction"). Triggers
    *  the same reverse-geocode auto-fill (name/city) as a user-driven map click. */
   initialCoordinates?: Coordinates | null;
+  /** Id of the attraction being edited — used only to exclude itself from the "located
+   *  inside" parent-picker search results. Omit in create mode. */
+  editingAttractionId?: string;
+  /** Auth token, forwarded to the parent-picker's search request. The "Located inside"
+   *  field only renders when this is supplied — callers with no DB-backed country context
+   *  yet (e.g. the new-trip inline picker) simply omit it and the field stays hidden. */
+  token?: string | null;
 }

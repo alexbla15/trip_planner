@@ -7,7 +7,7 @@ import {
   useRef,
   type ChangeEvent,
 } from "react";
-import { MapPin, Clock, ChevronDown, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check, FileText, X } from "lucide-react";
+import { MapPin, Clock, ChevronDown, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check, FileText, X, Building2, Search } from "lucide-react";
 import type {
   AttractionFormData,
   Coordinates,
@@ -27,9 +27,11 @@ import { CoverImageField } from "@/components";
 import { ModalShell } from "@/components/Modal";
 import { MapPicker } from "./MapPicker";
 import { OpeningHoursGrid } from "./OpeningHoursGrid";
+import { ParentAttractionPicker } from "./ParentAttractionPicker";
 import { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h, isValidUrl } from "@/lib";
 import { useReverseGeocodeAutofill } from "@/hooks";
 import { filterCityOptions } from "./NewAttractionModal.utils";
+import type { Attraction } from "@/types/attraction";
 import styles from "./NewAttractionModal.module.css";
 
 const HEADING_ID = "new-attraction-modal-title";
@@ -41,13 +43,16 @@ interface FieldErrors {
   websiteUrl?: string;
 }
 
-export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, prefillCountry, prefillCity, initialData, initialCoordinates }: NewAttractionModalProps) {
+export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, prefillCountry, prefillCity, initialData, initialCoordinates, editingAttractionId, token }: NewAttractionModalProps) {
   const isEditMode = Boolean(initialData);
 
   const [name, setName] = useState("");
   const [country, setCountry] = useState(defaultCountry ?? "");
   const [city, setCity] = useState("");
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
+  const [parentAttractionId, setParentAttractionId] = useState<string | null>(null);
+  const [parentAttractionName, setParentAttractionName] = useState<string | null>(null);
+  const [parentPickerOpen, setParentPickerOpen] = useState(false);
   const [knownCities, setKnownCities] = useState<{ name: string; country: string }[]>([]);
   const [citiesLoading, setCitiesLoading] = useState(false);
 
@@ -100,6 +105,8 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setCountry(initialData?.country ?? defaultCountry ?? prefillCountry ?? "");
     setCity(initialData?.city ?? prefillCity ?? "");
     setCoordinates(initialData?.coordinates ?? null);
+    setParentAttractionId(initialData?.parentAttractionId ?? null);
+    setParentAttractionName(initialData?.parentAttractionName ?? null);
     setSelectedTypes(initialData?.types ?? []);
     setDurationValue(initialData?.durationValue ?? "");
     setDurationUnit(initialData?.durationUnit ?? "hours");
@@ -142,10 +149,22 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   function validate(): FieldErrors {
     const errs: FieldErrors = {};
     if (!name.trim()) errs.name = "Attraction name is required";
-    if (!country) errs.country = "Country is required";
+    // A child inherits country/city/coordinates from its parent — only required directly
+    // when there's no parent to inherit them from (mirrors the backend rule).
+    if (!country && !parentAttractionId) errs.country = "Country is required";
     if (selectedTypes.length === 0) errs.types = "Select at least one type";
     if (!isValidUrl(websiteUrl)) errs.websiteUrl = "Enter a valid URL (e.g. https://example.com)";
     return errs;
+  }
+
+  function handleSelectParent(attraction: Attraction) {
+    setParentAttractionId(attraction._id);
+    setParentAttractionName(attraction.name);
+  }
+
+  function handleClearParent() {
+    setParentAttractionId(null);
+    setParentAttractionName(null);
   }
 
   function handleBlur(field: keyof FieldErrors) {
@@ -182,6 +201,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       notes,
       photoUrl,
       websiteUrl: websiteUrl.trim(),
+      parentAttractionId,
     };
     await Promise.resolve(onSave(data));
     setSaving(false);
@@ -194,6 +214,8 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setCountry(defaultCountry ?? "");
     setCity("");
     setCoordinates(null);
+    setParentAttractionId(null);
+    setParentAttractionName(null);
     setSelectedTypes([]);
     setDurationValue("");
     setDurationUnit("hours");
@@ -215,6 +237,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   const formIsValid = Object.keys(validate()).length === 0;
 
   return (
+    <>
     <ModalShell
       isOpen={isOpen}
       onClose={handleClose}
@@ -286,60 +309,100 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
         )}
       </div>
 
-      {/* Country */}
-      <div className={styles.field}>
-        <label htmlFor="attraction-country" className={styles.labelWithIcon}>
-          <Globe size={14} aria-hidden="true" />
-          Country{" "}
-          {!defaultCountry && <span className={styles.required} aria-hidden="true">*</span>}
-        </label>
-        {defaultCountry ? (
-          <div
-            className={styles.readOnlyField}
-            aria-label={`Country: ${defaultCountry} (locked to trip destination)`}
-          >
-            {defaultCountry}
-          </div>
-        ) : (
-          <SearchableSelect
-            id="attraction-country"
-            value={country}
-            onChange={setCountry}
-            onBlur={() => handleBlur("country")}
-            options={COUNTRIES}
-            placeholder="Search country…"
-            error={touched.country && !!errors.country}
-            ariaRequired
-            ariaLabel="Country"
-            ariaDescribedBy={touched.country && errors.country ? "error-country" : undefined}
-          />
-        )}
-        {touched.country && errors.country && (
-          <p id="error-country" className={styles.errorMsg} role="alert">
-            <AlertCircle size={12} aria-hidden="true" />
-            {errors.country}
-          </p>
-        )}
-      </div>
+      {/* Located inside (parent attraction) — only offered when there's a token to search
+          with (e.g. not the new-trip inline picker, which has no DB-backed country context). */}
+      {token && (
+        <div className={styles.field}>
+          <label className={styles.labelWithIcon}>
+            <Building2 size={14} aria-hidden="true" />
+            Located inside (optional)
+          </label>
+          {parentAttractionId && parentAttractionName ? (
+            <div className={styles.parentChip}>
+              <Building2 size={14} aria-hidden="true" />
+              <span className={styles.parentChipName}>{parentAttractionName}</span>
+              <button type="button" className={styles.parentChipBtn} onClick={() => setParentPickerOpen(true)}>
+                Change
+              </button>
+              <button type="button" className={styles.parentChipBtn} onClick={handleClearParent}>
+                Remove
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className={styles.pickParentBtn}
+              onClick={() => setParentPickerOpen(true)}
+              disabled={!country && !defaultCountry}
+              title={!country && !defaultCountry ? "Choose a country first" : undefined}
+            >
+              <Search size={14} aria-hidden="true" />
+              Choose existing attraction…
+            </button>
+          )}
+        </div>
+      )}
 
-      {/* City */}
-      <div className={styles.field}>
-        <label htmlFor="attraction-city" className={styles.labelWithIcon}>
-          <Building size={14} aria-hidden="true" />
-          City
-        </label>
-        <SearchableSelect
-          id="attraction-city"
-          value={city}
-          onChange={setCity}
-          options={cityOptions}
-          loading={citiesLoading}
-          allowFreeText
-          placeholder="e.g. Paris"
-          ariaLabel="City"
-          emptyMessage="No existing cities match — type to add a new one"
-        />
-      </div>
+      {/* Country/City/Location are inherited from the parent once one is picked — a
+          nested attraction's place is defined by its parent, not independently. */}
+      {!parentAttractionId && (
+        <>
+          {/* Country */}
+          <div className={styles.field}>
+            <label htmlFor="attraction-country" className={styles.labelWithIcon}>
+              <Globe size={14} aria-hidden="true" />
+              Country{" "}
+              {!defaultCountry && <span className={styles.required} aria-hidden="true">*</span>}
+            </label>
+            {defaultCountry ? (
+              <div
+                className={styles.readOnlyField}
+                aria-label={`Country: ${defaultCountry} (locked to trip destination)`}
+              >
+                {defaultCountry}
+              </div>
+            ) : (
+              <SearchableSelect
+                id="attraction-country"
+                value={country}
+                onChange={setCountry}
+                onBlur={() => handleBlur("country")}
+                options={COUNTRIES}
+                placeholder="Search country…"
+                error={touched.country && !!errors.country}
+                ariaRequired
+                ariaLabel="Country"
+                ariaDescribedBy={touched.country && errors.country ? "error-country" : undefined}
+              />
+            )}
+            {touched.country && errors.country && (
+              <p id="error-country" className={styles.errorMsg} role="alert">
+                <AlertCircle size={12} aria-hidden="true" />
+                {errors.country}
+              </p>
+            )}
+          </div>
+
+          {/* City */}
+          <div className={styles.field}>
+            <label htmlFor="attraction-city" className={styles.labelWithIcon}>
+              <Building size={14} aria-hidden="true" />
+              City
+            </label>
+            <SearchableSelect
+              id="attraction-city"
+              value={city}
+              onChange={setCity}
+              options={cityOptions}
+              loading={citiesLoading}
+              allowFreeText
+              placeholder="e.g. Paris"
+              ariaLabel="City"
+              emptyMessage="No existing cities match — type to add a new one"
+            />
+          </div>
+        </>
+      )}
 
       {/* Type */}
       <div className={styles.field}>
@@ -365,17 +428,20 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
         )}
       </div>
 
-      {/* Location */}
-      <div className={styles.field}>
-        <span className={styles.labelWithIcon}>
-          <MapPin size={14} aria-hidden="true" />
-          Location
-        </span>
-        <MapPicker
-          coordinates={coordinates}
-          onChange={handleCoordinatesChange}
-        />
-      </div>
+      {/* Location — inherited from the parent once one is picked, so there's nothing
+          independent to place on a map. */}
+      {!parentAttractionId && (
+        <div className={styles.field}>
+          <span className={styles.labelWithIcon}>
+            <MapPin size={14} aria-hidden="true" />
+            Location
+          </span>
+          <MapPicker
+            coordinates={coordinates}
+            onChange={handleCoordinatesChange}
+          />
+        </div>
+      )}
 
       {/* Duration */}
       <div className={styles.field}>
@@ -505,5 +571,17 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
         )}
       </div>
     </ModalShell>
+
+    {token && (
+      <ParentAttractionPicker
+        isOpen={parentPickerOpen}
+        onClose={() => setParentPickerOpen(false)}
+        country={defaultCountry || country}
+        token={token}
+        excludeAttractionId={editingAttractionId}
+        onSelect={handleSelectParent}
+      />
+    )}
+    </>
   );
 }

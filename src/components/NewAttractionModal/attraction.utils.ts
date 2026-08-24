@@ -21,5 +21,7 @@ export function attractionToFormData(a: Attraction): AttractionFormData {
     notes: a.notes ?? "",
     photoUrl: a.photoUrl ?? "",
     websiteUrl: a.websiteUrl ?? "",
+    parentAttractionId: a.parentAttractionId ?? null,
+    parentAttractionName: a.parentAttractionName ?? null,
   };
 }
