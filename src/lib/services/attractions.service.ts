@@ -101,7 +101,11 @@ export async function searchAttractions(
 
   // Page size defaults to (and is capped at) the pre-existing per-query-shape limit —
   // pagination narrows the page, it never returns more than the app already allowed.
-  const cap = city?.trim() ? 100 : type?.trim() ? 200 : 20;
+  // A bare country query with no `q` is Explore's country-view map/grid listing, which
+  // wants every attraction in one or two round trips, not a typeahead-sized trickle — a
+  // country query WITH `q` is still the search-modal typeahead (AttractionSearchModal),
+  // which keeps the low 20 cap on purpose.
+  const cap = city?.trim() ? 100 : type?.trim() ? 200 : q?.trim() ? 20 : 300;
   const skip = Math.max(0, params.skip ?? 0);
   const limit = Math.min(Math.max(1, params.limit ?? cap), cap);
 

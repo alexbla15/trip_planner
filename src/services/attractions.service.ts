@@ -27,16 +27,16 @@ export async function getAttractionsByCity(city: string, token?: string | null):
   return parseOrThrow<unknown[]>(res);
 }
 
-// A country-only search (no city, no type) is capped at 20 results per page server-side
-// (see searchAttractions in src/lib/services/attractions.service.ts — deliberately low,
-// tuned for a search-modal typeahead). A country-level map view needs every attraction,
-// not just the first page, so this paginates through all of them using the X-Total-Count/
-// X-Limit headers the route already returns.
+// A bare country-only search is capped at 300 results per page server-side (see
+// searchAttractions in src/lib/services/attractions.service.ts). A country-level map view
+// needs every attraction, not just the first page, so this paginates through all of them
+// using the X-Total-Count/X-Limit headers the route already returns — but fires every page
+// after the first IN PARALLEL (their skip/limit values are all known upfront once the first
+// response reports the total), rather than awaiting one page at a time. A country that fits
+// in a single page (the common case, now that the cap is 300) makes exactly one request.
 export async function getAttractionsByCountry(country: string, token?: string | null): Promise<unknown[]> {
   const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
-  const all: unknown[] = [];
-  let skip = 0;
-  for (;;) {
+  const fetchPage = async (skip: number) => {
     const res = await fetch(
       `/api/attractions?country=${encodeURIComponent(country)}&includeHidden=true&skip=${skip}`,
       { headers }
@@ -44,11 +44,17 @@ export async function getAttractionsByCountry(country: string, token?: string | 
     const total = Number(res.headers.get("X-Total-Count") ?? "0");
     const limit = Number(res.headers.get("X-Limit") ?? "0") || 20;
     const page = await parseOrThrow<unknown[]>(res);
-    all.push(...page);
-    skip += limit;
-    if (page.length === 0 || skip >= total) break;
-  }
-  return all;
+    return { page, total, limit };
+  };
+
+  const first = await fetchPage(0);
+  if (first.page.length === 0 || first.limit >= first.total) return first.page;
+
+  const remainingSkips: number[] = [];
+  for (let skip = first.limit; skip < first.total; skip += first.limit) remainingSkips.push(skip);
+
+  const rest = await Promise.all(remainingSkips.map((skip) => fetchPage(skip)));
+  return [...first.page, ...rest.flatMap((r) => r.page)];
 }
 
 export async function searchAttractionsByCountry(country: string, query: string, token?: string | null): Promise<unknown[]> {

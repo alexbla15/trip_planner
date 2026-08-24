@@ -120,6 +120,10 @@ const AttractionSchema = new Schema<IAttraction>(
 
 AttractionSchema.index({ ownerId: 1 });
 AttractionSchema.index({ parentAttractionId: 1 });
+// Backs searchAttractions' country/city filter (Explore's country + city views) and its
+// `{ city: 1, name: 1 }` sort — without this, both the filtered `find` and the paired
+// `countDocuments` fall back to a full collection scan plus an in-memory sort.
+AttractionSchema.index({ country: 1, city: 1, name: 1 });
 // Real-world places can share a name at different coordinates (e.g. two "Central Park"s),
 // so uniqueness is enforced on name+coordinates together, not name alone. The partial filter
 // only applies once coordinates are actually set — attractions without coordinates never
