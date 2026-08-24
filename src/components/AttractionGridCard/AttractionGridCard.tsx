@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Luggage, MapPin, Plus, Pencil, Trash2 } from "lucide-react";
+import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, Building2 } from "lucide-react";
 import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
@@ -55,6 +55,14 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, onAddTo
           {attraction.usedInTripNames && attraction.usedInTripNames.length > 0 && (
             <span className={`${styles.badge} ${styles.badgeTrip}`} title="Already in one of your trips">
               <Luggage size={12} aria-hidden="true" />
+            </span>
+          )}
+          {!!attraction.childAttractionCount && attraction.childAttractionCount > 0 && (
+            <span
+              className={`${styles.badge} ${styles.badgeChildren}`}
+              title={`Contains ${attraction.childAttractionCount} place${attraction.childAttractionCount === 1 ? "" : "s"}`}
+            >
+              <Layers size={12} aria-hidden="true" />
             </span>
           )}
         </div>
@@ -112,6 +120,12 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, onAddTo
           <span className={styles.meta}>
             <MapPin size={11} aria-hidden="true" />
             {attraction.city}
+          </span>
+        )}
+        {attraction.parentAttractionId && attraction.parentAttractionName && (
+          <span className={styles.parentLine} title={`Part of "${attraction.parentAttractionName}"`}>
+            <Building2 size={11} aria-hidden="true" />
+            {attraction.parentAttractionName}
           </span>
         )}
       </div>

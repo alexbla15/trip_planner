@@ -24,6 +24,7 @@ import {
   Plus,
   Check,
   Luggage,
+  Layers,
 } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
@@ -187,6 +188,21 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
               {attraction.usedInTripNames.length === 1
                 ? `Already in your trip "${attraction.usedInTripNames[0]}"`
                 : `Already in ${attraction.usedInTripNames.length} of your trips`}
+            </p>
+          )}
+
+          {/* Nesting — structural facts about the attraction itself (not per-user, unlike
+              the visited/used-in-trip signals above), so shown to every viewer. */}
+          {attraction.parentAttractionId && attraction.parentAttractionName && (
+            <p className={styles.parentBadge}>
+              <Building2 size={13} aria-hidden="true" />
+              Part of &quot;{attraction.parentAttractionName}&quot;
+            </p>
+          )}
+          {!!attraction.childAttractionCount && attraction.childAttractionCount > 0 && (
+            <p className={styles.childCountBadge}>
+              <Layers size={13} aria-hidden="true" />
+              Contains {attraction.childAttractionCount} place{attraction.childAttractionCount === 1 ? "" : "s"}
             </p>
           )}
 

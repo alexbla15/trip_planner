@@ -7,7 +7,7 @@ Lets an attraction (e.g. a restaurant, a shop) be marked as located inside anoth
 ## Tasks
 - [x] .claude/tasks/nested-attractions-data-model.done.md
 - [ ] .claude/tasks/nested-attractions-create-edit-ui.md
-- [ ] .claude/tasks/nested-attractions-detail-display.md
+- [x] .claude/tasks/nested-attractions-detail-display.done.md
 - [ ] .claude/tasks/nested-attractions-map-dedup.md
 
 ## Plan

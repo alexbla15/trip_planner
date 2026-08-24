@@ -92,6 +92,10 @@
   background: var(--color-primary);
 }
 
+.badgeChildren {
+  background: var(--color-accent);
+}
+
 /* Action buttons (add to trip / edit / delete) — mirror the status badges' corner
    placement on the opposite side, but stay hidden until hover/focus so the photo
    reads clean at rest; keyboard users still reach them via focus-within since
@@ -211,6 +215,21 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* "Part of {parent}" — a distinct color from .meta (city) above so the two don't read
+   as the same kind of fact; matches the accent color used for the same "nesting"
+   concept in AttractionDetailModal's childCountBadge. */
+.parentLine {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-accent-dark);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

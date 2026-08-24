@@ -258,6 +258,37 @@
   margin: 0;
 }
 
+/* Structural nesting facts (not per-user, unlike .usedInTripsBadge above) — distinct
+   colors from that badge and from each other so "part of" vs "contains" read as
+   different kinds of fact, not variations of the same one. */
+.parentBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.childCountBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  color: var(--color-accent-dark);
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0;
+}
+
 /* ── Info grid ── */
 .infoGrid {
   display: grid;
