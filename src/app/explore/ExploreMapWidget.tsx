@@ -7,7 +7,7 @@ import type { GeoJsonObject } from "geojson";
 import { useAttractionTypes } from "@/hooks";
 import { getCityBoundary, getCountryBoundary } from "@/services";
 import type { TravelMode, RouteLeg } from "@/services";
-import { makeCountryMarkerIcon, makeAttractionMarkerIcon, makeCustomPinIcon, makeCityMarkerIcon } from "@/lib/mapIcons";
+import { makeAttractionMarkerIcon, makeCustomPinIcon, makeCityMarkerIcon } from "@/lib/mapIcons";
 import { colorForBoundaryIndex } from "@/lib/mapBoundaryColors";
 import { fixLeafletDefaultIcon } from "@/lib/leafletIconFix";
 import { TRAVEL_MODE_COLORS } from "@/lib/travelModeColors";
@@ -231,21 +231,6 @@ export function ExploreMapWidget({
             </Circle>
           );
         })}
-      {view === "world" &&
-        countries.map((country) => (
-          <Marker
-            key={`pin-${country.name}`}
-            position={[country.lat, country.lng]}
-            icon={makeCountryMarkerIcon()}
-            eventHandlers={{ click: () => onCountryClick(country) }}
-          >
-            <Tooltip direction="top" offset={[0, -22]}>
-              <strong>{country.name}</strong>
-              {" · "}{country.count} attraction{country.count !== 1 ? "s" : ""}
-            </Tooltip>
-          </Marker>
-        ))}
-
       {/* ── Country view: real boundary or circle fallback — individual attraction pins
           render below, shared with city view (no separate per-city breakdown here). ── */}
       {view === "country" && (() => {
