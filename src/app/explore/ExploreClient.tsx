@@ -474,11 +474,30 @@ export function ExploreClient() {
     }
     setEditingAttraction(null);
     setSelectedAttraction(null);
-    setCityAttractions((prev) => prev.map((a) => (a._id === updated._id ? updated : a)));
-    // Country view renders from this separate array (fetched via getAttractionsByCountry),
-    // not cityAttractions — without this, editing at the country level leaves the marker
-    // showing stale data (e.g. the old photo) until the country/city is re-fetched.
-    setCountryAttractions((prev) => prev.map((a) => (a._id === updated._id ? updated : a)));
+
+    // City/country view arrays are scoped by a filter (selectedCity/selectedCountry) —
+    // an in-place map alone leaves a stale entry behind when the edit moves the
+    // attraction out of the view it was edited from (e.g. changing its city). Drop it
+    // from a scoped array it no longer matches, update it in place otherwise.
+    setCityAttractions((prev) =>
+      selectedCity && updated.city !== selectedCity
+        ? prev.filter((a) => a._id !== updated._id)
+        : prev.map((a) => (a._id === updated._id ? updated : a))
+    );
+    setCountryAttractions((prev) =>
+      selectedCountry && updated.country !== selectedCountry
+        ? prev.filter((a) => a._id !== updated._id)
+        : prev.map((a) => (a._id === updated._id ? updated : a))
+    );
+
+    // The world-view city/country list (names + per-city counts) is a separate fetch
+    // (getCities) that an in-place array update can't keep in sync — re-fetch it
+    // whenever the edit could have changed which city/country an attraction counts
+    // toward (a city gaining/losing an attraction, or a brand-new city appearing).
+    if (updated.city !== editingAttraction.city || updated.country !== editingAttraction.country) {
+      setCitiesReloadKey((k) => k + 1);
+    }
+
     toast.success("Attraction updated");
   }
 
