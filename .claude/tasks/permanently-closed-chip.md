@@ -11,14 +11,14 @@ An attraction can have every day of the week marked `closed: true` in `openingHo
 An attraction whose `openingHours` has every day closed shows a "Permanently closed" chip on its card, so users don't plan visits to it.
 
 ## Requirements
-- Add a helper (likely in `src/lib/openingHours.ts`, alongside `isAllDay24h`) that detects "all 7 days closed" — e.g. `isPermanentlyClosed(openingHours)`.
-- Render a "Permanently closed" chip in `src/components/AttractionGridCard/AttractionGridCard.tsx` when this helper returns true — **not** inside the existing icon badge row (`styles.badges`, used for visited/used-in-trips/children-count). This chip belongs in a distinct status-chips grouping alongside the existing (currently misplaced) "24/7" indicator; see [[consolidate-attraction-card-chips]] for that section's structure. If that task hasn't shipped yet, create a minimal dedicated wrapper (not the `.badges` row) for this chip now, so the consolidation task can absorb it later without moving it out of the wrong place first.
-- Follow the existing badge visual pattern (icon + label) — per `docs/LEARNINGS.md`, interactive/informational chips need an icon paired with the label.
+- [[consolidate-attraction-card-chips]] has already shipped and established the pattern to follow exactly: add a helper (likely in `src/lib/openingHours.ts`, alongside `isAllDay24h`) that detects "all 7 days closed" — e.g. `isPermanentlyClosed(openingHours)`.
+- Add a new condition to `getStatusChips()` in `src/lib/attractionStatusChips.ts` that pushes a `{ key: "permanently-closed", icon, label: "Permanently closed" }` descriptor when `isPermanentlyClosed` is true. This is the *only* wiring needed — `AttractionDetailModal.tsx` already renders whatever `getStatusChips()` returns inline in the Types/category chip row (styled via the existing `.statusChip` class), and already skips the "Opening Hours" heading/table whenever `getStatusChips()` is non-empty. Do not add any new rendering call sites.
+- Per the same shipped precedent: **do not** touch `AttractionGridCard.tsx` (the compact grid tile) at all — it intentionally carries no chip/badge representation of status info. This chip only ever appears in `AttractionDetailModal.tsx`.
 - This chip should not appear if some but not all days are closed (that's just normal partial hours).
+- Chip precedence: if an attraction is both "24/7" and "permanently closed" (contradictory in practice, but check `getStatusChips()`'s existing chip-ordering logic), permanently-closed should take precedence — don't show both.
 
 ## Constraints
 - Reuse `normalizeOpeningHours` from `src/lib/openingHours.ts` rather than reading raw `openingHours` fields directly, for consistency with existing normalization.
-- Coordinate visually with the [[consolidate-attraction-card-chips]] task — this chip and the future "year-round"/24/7 chips should end up grouped in one dedicated status-chips section, separate from the `.badges` icon row — but this task can ship independently; the consolidation task will reorganize the section afterward.
 
 ## Out of scope
 - Any UI to explicitly mark an attraction "closed forever" independent of its weekly hours (e.g. a permanent-closure toggle) — this task only derives the state from existing per-day `closed` flags.

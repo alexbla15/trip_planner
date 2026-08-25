@@ -243,6 +243,16 @@
   color: var(--color-text-secondary);
 }
 
+/* Status chips (24/7, and later year-round/permanently-closed) — same shape as a
+   type chip but in the primary color, so they read as a distinct "fact" among the
+   type chips they sit alongside. */
+.statusChip {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
 /* ── Own-trip usage badge ── */
 .usedInTripsBadge {
   display: inline-flex;
@@ -478,18 +488,6 @@
   font-weight: 500;
 }
 
-.open24h {
-  display: inline-flex;
-  align-items: center;
-  height: 26px;
-  padding: 0 10px;
-  border-radius: var(--radius-full);
-  border: 1.5px solid var(--color-primary);
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  font-size: 12px;
-  font-weight: 600;
-}
 
 .timeNote {
   color: var(--color-text-secondary);

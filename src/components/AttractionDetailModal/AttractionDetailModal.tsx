@@ -36,7 +36,7 @@ const LocationViewMap = dynamic(
 );
 import type { AttractionType } from "@/components/NewAttractionModal";
 import type { Attraction } from "@/types/attraction";
-import { formatDisplayDate, formatPrice, isAllDay24h } from "@/lib";
+import { formatDisplayDate, formatPrice, getStatusChips } from "@/lib";
 import styles from "./AttractionDetailModal.module.css";
 
 const DAY_KEYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
@@ -87,6 +87,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
 
   const isResidence = attraction.subtype === "residence";
   const isFlight    = attraction.subtype === "flight";
+  const statusChips = getStatusChips(attraction.openingHours);
 
   const firstType = attraction.types?.[0] as AttractionType | undefined;
   const typeIcon = isResidence && !firstType
@@ -164,14 +165,22 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
             </div>
           )}
 
-          {/* Types */}
-          {attraction.types?.length > 0 && (
+          {/* Types + status chips (24/7, and later year-round/permanently-closed) —
+              rendered together in one row since they're both "chip" facts about the
+              attraction, not two separate concepts needing their own sections. */}
+          {(attraction.types?.length > 0 || statusChips.length > 0) && (
             <div className={styles.section}>
               <div className={styles.chips}>
-                {attraction.types.map((t) => (
+                {attraction.types?.map((t) => (
                   <span key={t} className={styles.chip}>
                     {renderTypeIcon(findType(t)?.icon ?? "Globe")}
                     {t}
+                  </span>
+                ))}
+                {statusChips.map(({ key, icon: Icon, label }) => (
+                  <span key={key} className={`${styles.chip} ${styles.statusChip}`}>
+                    <Icon size={14} aria-hidden="true" />
+                    {label}
                   </span>
                 ))}
               </div>
@@ -360,44 +369,43 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
             {/* Coordinates shown in the map caption above — removed from info grid */}
           </div>
 
-          {/* Opening hours — not shown for subtypes */}
-          {!isResidence && !isFlight && attraction.openingHours && (
+          {/* Opening hours — not shown for subtypes. When a status chip (24/7, and
+              later permanently-closed) already covers the situation — shown up in the
+              Types row instead — the day-by-day table and its heading would be
+              redundant, so this section is skipped entirely. */}
+          {!isResidence && !isFlight && attraction.openingHours && statusChips.length === 0 && (
             <div className={styles.section}>
               <h3 className={styles.sectionTitle}>
                 <Clock size={14} aria-hidden="true" />
                 Opening Hours
               </h3>
-              {isAllDay24h(attraction.openingHours) ? (
-                <span className={styles.open24h}>Open 24/7</span>
-              ) : (
-                <div className={styles.hoursCard}>
-                  <table className={styles.hoursTable} aria-label="Opening hours">
-                    <tbody>
-                      {DAY_KEYS.map((day) => {
-                        const row = attraction.openingHours?.[day];
-                        const isToday = day === todayKey;
-                        return (
-                          <tr key={day} className={`${styles.hoursRow} ${isToday ? styles.hoursRowToday : ""}`}>
-                            <td className={styles.hoursDay}>
-                              <span className={styles.hoursDayInner}>
-                                {day}
-                                {isToday && <span className={styles.todayPill}>Today</span>}
-                              </span>
-                            </td>
-                            <td className={styles.hoursTime}>
-                              {row?.closed || !row?.ranges?.length ? (
-                                <span className={styles.closed}>Closed</span>
-                              ) : (
-                                row.ranges.map((r) => `${r.open} – ${r.close}`).join(", ")
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              <div className={styles.hoursCard}>
+                <table className={styles.hoursTable} aria-label="Opening hours">
+                  <tbody>
+                    {DAY_KEYS.map((day) => {
+                      const row = attraction.openingHours?.[day];
+                      const isToday = day === todayKey;
+                      return (
+                        <tr key={day} className={`${styles.hoursRow} ${isToday ? styles.hoursRowToday : ""}`}>
+                          <td className={styles.hoursDay}>
+                            <span className={styles.hoursDayInner}>
+                              {day}
+                              {isToday && <span className={styles.todayPill}>Today</span>}
+                            </span>
+                          </td>
+                          <td className={styles.hoursTime}>
+                            {row?.closed || !row?.ranges?.length ? (
+                              <span className={styles.closed}>Closed</span>
+                            ) : (
+                              row.ranges.map((r) => `${r.open} – ${r.close}`).join(", ")
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
