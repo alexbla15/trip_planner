@@ -177,8 +177,11 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                     {t}
                   </span>
                 ))}
-                {statusChips.map(({ key, icon: Icon, label }) => (
-                  <span key={key} className={`${styles.chip} ${styles.statusChip}`}>
+                {statusChips.map(({ key, icon: Icon, label, tone }) => (
+                  <span
+                    key={key}
+                    className={`${styles.chip} ${tone === "danger" ? styles.statusChipDanger : styles.statusChip}`}
+                  >
                     <Icon size={14} aria-hidden="true" />
                     {label}
                   </span>

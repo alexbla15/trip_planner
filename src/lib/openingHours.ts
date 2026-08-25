@@ -60,3 +60,9 @@ export function isAllDay24h(hours: Record<string, OpeningHoursDay>): boolean {
     return !!d && !d.closed && d.ranges.length === 1 && d.ranges[0].open === "00:00" && d.ranges[0].close === "23:59";
   });
 }
+
+/** True when every day of the week is marked closed — the attraction is permanently
+ *  closed, as opposed to just having some days closed (normal partial hours). */
+export function isPermanentlyClosed(hours: Record<string, OpeningHoursDay>): boolean {
+  return DAY_KEYS.every((day) => !!hours[day]?.closed);
+}

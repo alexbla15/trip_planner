@@ -62,7 +62,7 @@ export { typeFormFromRecord, catFormFromRecord, moodFormFromRecord } from "./adm
 
 export { residenceMeta, flightMeta } from "./attractionDisplay";
 
-export { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h } from "./openingHours";
+export { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h, isPermanentlyClosed } from "./openingHours";
 
 export type { StatusChipDescriptor } from "./attractionStatusChips";
 export { getStatusChips } from "./attractionStatusChips";

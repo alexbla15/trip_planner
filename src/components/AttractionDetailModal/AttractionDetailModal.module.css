@@ -253,6 +253,15 @@
   font-weight: 600;
 }
 
+/* Danger-toned status chip variant (permanently closed) — same shape, red instead of
+   primary, matching the existing error-surface pattern used by FormErrorBanner. */
+.statusChipDanger {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: var(--color-error);
+  font-weight: 600;
+}
+
 /* ── Own-trip usage badge ── */
 .usedInTripsBadge {
   display: inline-flex;
