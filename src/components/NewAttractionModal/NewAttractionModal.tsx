@@ -7,7 +7,7 @@ import {
   useRef,
   type ChangeEvent,
 } from "react";
-import { MapPin, Clock, ChevronDown, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check, FileText, X, Building2, Search } from "lucide-react";
+import { MapPin, Clock, Calendar, ChevronDown, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check, FileText, X, Building2, Search } from "lucide-react";
 import type {
   AttractionFormData,
   Coordinates,
@@ -27,8 +27,9 @@ import { CoverImageField } from "@/components";
 import { ModalShell } from "@/components/Modal";
 import { MapPicker } from "./MapPicker";
 import { OpeningHoursGrid } from "./OpeningHoursGrid";
+import { MonthsGrid } from "./MonthsGrid";
 import { ParentAttractionPicker } from "./ParentAttractionPicker";
-import { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h, isValidUrl } from "@/lib";
+import { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h, isValidUrl, isYearRound, ALL_MONTHS } from "@/lib";
 import { useReverseGeocodeAutofill } from "@/hooks";
 import { filterCityOptions } from "./NewAttractionModal.utils";
 import type { Attraction } from "@/types/attraction";
@@ -88,6 +89,8 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   const [currency, setCurrency] = useState("USD");
   const [openingHours, setOpeningHours] = useState<OpeningHours>(buildInitialHours);
   const [is24h, setIs24h]               = useState(false);
+  const [openingMonths, setOpeningMonths] = useState<number[]>(ALL_MONTHS);
+  const [yearRound, setYearRound]         = useState(true);
   const [notes, setNotes] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
@@ -116,6 +119,9 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       ? normalizeOpeningHours(initialData?.openingHours)
       : buildInitialHours();
     setOpeningHours(loadedHours);
+    const loadedMonths = initialData?.openingMonths?.length ? initialData.openingMonths : ALL_MONTHS;
+    setOpeningMonths(loadedMonths);
+    setYearRound(isYearRound(initialData?.openingMonths));
     setNotes(initialData?.notes ?? "");
     setPhotoUrl(initialData?.photoUrl ?? "");
     setWebsiteUrl(initialData?.websiteUrl ?? "");
@@ -198,6 +204,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       price,
       currency,
       openingHours,
+      openingMonths: yearRound ? undefined : openingMonths,
       notes,
       photoUrl,
       websiteUrl: websiteUrl.trim(),
@@ -222,6 +229,8 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setPrice(null);
     setCurrency("USD");
     setOpeningHours(buildInitialHours());
+    setOpeningMonths(ALL_MONTHS);
+    setYearRound(true);
     setNotes("");
     setPhotoUrl("");
     setWebsiteUrl("");
@@ -521,6 +530,26 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           </button>
         </div>
         {!is24h && <OpeningHoursGrid value={openingHours} onChange={handleHoursChange} />}
+      </div>
+
+      {/* Opening Months */}
+      <div className={styles.field}>
+        <div className={styles.labelRow}>
+          <span className={styles.labelWithIcon}>
+            <Calendar size={14} aria-hidden="true" />
+            Opening Months
+          </span>
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={yearRound}
+            className={`${styles.toggle24h} ${yearRound ? styles.toggle24hActive : ""}`}
+            onClick={() => setYearRound(!yearRound)}
+          >
+            Year-round
+          </button>
+        </div>
+        {!yearRound && <MonthsGrid value={openingMonths} onChange={setOpeningMonths} />}
       </div>
 
       {/* Notes / Comments */}

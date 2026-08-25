@@ -31,6 +31,8 @@ export interface IAttraction extends Document {
   price?: number | null;
   currency?: string;
   openingHours?: Record<string, IOpeningHoursDay>;
+  /** Months (1–12) this attraction is open in. Absent/empty means open year-round. */
+  openingMonths?: number[];
   notes?: string;
   photoUrl?: string;
   /** Official venue website — user-editable, separate from photoUrl. Never fabricated on
@@ -99,6 +101,7 @@ const AttractionSchema = new Schema<IAttraction>(
       Sat: { type: OpeningHoursDaySchema },
       Sun: { type: OpeningHoursDaySchema },
     },
+    openingMonths: [{ type: Number, min: 1, max: 12 }],
     // Subtype discriminator
     subtype: { type: String, enum: ["residence", "flight"] },
     // Residence fields
@@ -192,6 +195,7 @@ export function formatAttraction(
     price: schedule?.price ?? doc.price ?? null,
     currency: schedule?.currency ?? doc.currency ?? "USD",
     openingHours: doc.openingHours as AttractionShape["openingHours"],
+    openingMonths: doc.openingMonths,
     notes: schedule?.notes ?? doc.notes,
     photoUrl: doc.photoUrl,
     websiteUrl: doc.websiteUrl,

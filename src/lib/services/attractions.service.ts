@@ -141,6 +141,7 @@ export interface CreateAttractionInput {
   price?: number | null;
   currency?: string;
   openingHours?: OpeningHours;
+  openingMonths?: number[];
   notes?: string;
   photoUrl?: string;
   websiteUrl?: string;
@@ -148,7 +149,7 @@ export interface CreateAttractionInput {
 
 export async function createAttraction(payload: JwtPayload, body: CreateAttractionInput): Promise<IAttraction> {
   const { name, country, city, coordinates, parentAttractionId, types, durationValue, durationUnit,
-    price, currency, openingHours, notes, photoUrl, websiteUrl } = body;
+    price, currency, openingHours, openingMonths, notes, photoUrl, websiteUrl } = body;
 
   if (!name?.trim() || (!parentAttractionId && (!country?.trim() || !city?.trim()))) {
     // A child's country/city are inherited from its parent — only required directly when
@@ -192,6 +193,7 @@ export async function createAttraction(payload: JwtPayload, body: CreateAttracti
       price: price ?? null,
       currency: currency || "USD",
       openingHours: openingHours ?? undefined,
+      openingMonths: openingMonths?.length ? openingMonths : undefined,
       notes: notes || undefined,
       photoUrl: photoUrl || undefined,
       websiteUrl: websiteUrl || undefined,
@@ -313,6 +315,9 @@ export async function updateAttraction(
   if (body.currency !== undefined) attraction.currency = body.currency as string;
   if (body.openingHours !== undefined) {
     attraction.openingHours = body.openingHours as OpeningHours;
+  }
+  if (body.openingMonths !== undefined) {
+    attraction.openingMonths = body.openingMonths as number[];
   }
   if (body.notes !== undefined) attraction.notes = body.notes as string;
   if (body.photoUrl !== undefined) attraction.photoUrl = body.photoUrl as string;
@@ -532,6 +537,7 @@ export interface AddAttractionToTripInput {
   price?: number | null;
   currency?: string;
   openingHours?: OpeningHours;
+  openingMonths?: number[];
   notes?: string;
   photoUrl?: string;
   websiteUrl?: string;
@@ -569,7 +575,7 @@ export async function addAttractionToTrip(
   const trip = await getAuthedTrip(payload, tripId);
 
   const { existingAttractionId, allowDuplicate, name, country, city, coordinates, types, durationValue, durationUnit,
-    price, currency, openingHours, notes, photoUrl, websiteUrl,
+    price, currency, openingHours, openingMonths, notes, photoUrl, websiteUrl,
     subtype, residenceType, checkInDate, checkOutDate,
     flightNumber, airline, departureAirport, arrivalAirport, departureTime, arrivalTime, gate, seat,
     plannedDate, plannedTime, actualDurationValue, actualDurationUnit } = body;
@@ -721,6 +727,7 @@ export async function addAttractionToTrip(
           price: isResidence ? null : (price ?? null),
           currency: currency || "USD",
           openingHours: openingHours ?? undefined,
+          openingMonths: openingMonths?.length ? openingMonths : undefined,
           notes: isResidence ? undefined : (notes || undefined),
           photoUrl: photoUrl || undefined,
           websiteUrl: websiteUrl || undefined,

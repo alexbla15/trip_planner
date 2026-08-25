@@ -1,6 +1,6 @@
 # Task: Opening months (seasonal availability) on attractions
 
-Status: intake
+Status: reviewing
 Track: A
 Track reason: New data model field plus a new form UI (month selector) with no existing equivalent pattern in the design system — needs a design pass before implementation.
 
@@ -24,3 +24,40 @@ An attraction can optionally specify which months of the year it's open (default
 ## Out of scope
 - Multi-range seasonal patterns (e.g. "open March–May and Sept–Nov" is fine to support via a simple month-set; no need for a separate "ranges" UI beyond a flat set of selected months).
 - Retroactively backfilling existing attractions with real seasonal data — this task only adds the capability.
+
+## Design Brief
+
+The codebase already has two directly-reusable precedents for this exact UI shape — don't invent new visual language, mirror them:
+
+1. **The "24/7" toggle next to the Opening Hours label** (`NewAttractionModal.tsx` ~line 506–524, `.labelRow`/`.labelWithIcon`/`.toggle24h`/`.toggle24hActive` in `NewAttractionModal.module.css`) — a section header with an icon+label on the left and a pill toggle on the right that shows/hides the detail grid below it.
+2. **`AttractionTypeChip`** (`src/components/NewAttractionModal/AttractionTypeChip.tsx` + `.module.css`) — a `role="checkbox"` pill button with `.chip`/`.chipSelected` states (unselected: `var(--color-border)` border, `var(--color-bg-subtle)` bg, `var(--color-text-secondary)` text; selected: `var(--color-primary)` border, `var(--color-primary-light)` bg, `var(--color-primary)` text, weight 600), 32px tall, `--radius-full`.
+
+**New section: "Opening Months"**, placed immediately after the existing "Opening Hours" `.field` block (after line ~524):
+
+- Header row (reuse `.field` > `.labelRow` exactly): left side `.labelWithIcon` with a `Calendar` (lucide) icon + "Opening Months" label; right side a toggle pill styled identically to `.toggle24h`/`.toggle24hActive` (either reuse the class directly or duplicate it 1:1 — do not invent new toggle styling), labeled "Year-round".
+- **Year-round ON (default for new attractions)**: the month grid is hidden — exact same show/hide relationship as `is24h`/`OpeningHoursGrid`.
+- **Year-round OFF**: reveals a new `MonthsGrid` component (new file, sibling to `OpeningHoursGrid.tsx` in the same folder — `MonthsGrid.tsx` + `.module.css`), a `role="group" aria-label="Opening months"` wrapper containing 12 chips (Jan–Dec, 3-letter labels), each a `role="checkbox" aria-checked={selected}` button styled exactly like `AttractionTypeChip`'s `.chip`/`.chipSelected` (either import/reuse that component generically with a `label`/`selected`/`onToggle` prop shape, or duplicate its CSS 1:1 into `MonthsGrid.module.css` — prefer reusing the component if its props generalize cleanly without forcing type-specific icon logic in).
+- Grid layout: `display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;` (4×3 on desktop), collapsing to `repeat(3, 1fr)` under the existing 480px breakpoint (match `OpeningHoursGrid.module.css`'s `@media (max-width: 480px)` pattern).
+- Toggling "Year-round" OFF then back ON must NOT clear the previously selected months (same non-destructive precedent as [[hide-hour-pickers-when-day-closed]] — state is preserved, only the UI visibility toggles).
+- No new color tokens, spacing values, or shadow styles — every value above already exists in `docs/DESIGN_SYSTEM.md`/the existing component CSS. This keeps the task on the fast track in spirit even though it's classified Track A only because the *component* (MonthsGrid) is new, not because any new design language is needed.
+
+Handing off to `/developer` now — implement per the Requirements above plus this Design Brief, then invoke `/product` to report completion.
+
+## Implementation Notes
+- Files created/modified:
+  - `src/types/attraction.ts`, `src/models/Attraction.ts` (`IAttraction` + Mongoose schema `openingMonths: [{ type: Number, min: 1, max: 12 }]` + `formatAttraction`) — additive `openingMonths?: number[]` field, following the exact three-location convention used for every other field.
+  - `src/lib/services/attractions.service.ts` — `CreateAttractionInput`/`createAttraction`, `updateAttraction` (permissive body, explicit `if (body.openingMonths !== undefined)` line), and `AddAttractionToTripInput`/`addAttractionToTrip`'s "create new attraction" branch all thread `openingMonths` through. Grepped every writer of Attraction fields (not just `NewAttractionModal.tsx`'s direct save path) since `addAttractionToTrip` is a second, separate code path that creates brand-new Attraction documents (used when adding a new attraction directly from within a trip) — would have silently dropped the field otherwise.
+  - `src/lib/openingMonths.ts` (new) — `ALL_MONTHS`, `isYearRound(openingMonths)` (absent/empty/all-12 → true), `formatOpeningMonthsLabel(openingMonths)` (e.g. "Mar–Oct" for a contiguous run, comma list otherwise).
+  - `src/lib/attractionStatusChips.ts` — `getStatusChips` widened to `(openingHours, openingMonths?)`. Permanently-closed still short-circuits everything; 24/7 and a new "seasonal" chip are independent and can both apply.
+  - `src/components/AttractionDetailModal/AttractionDetailModal.tsx` — single call site updated to pass `attraction.openingMonths` through; no other changes needed (confirms the extensibility seam from [[consolidate-attraction-card-chips]] worked as designed).
+  - `src/app/trips/[id]/CalendarSection.utils.ts` — new `getOutOfSeasonAlert()`, wired into `computeAlerts()` alongside the existing `getClosedAlert()`. Added `"season"` to the `AlertType` union (confirmed `ScheduleAlertList.tsx` renders generically off `id`/`message` and doesn't switch on `type`, so no rendering changes needed there).
+  - `src/components/NewAttractionModal/attraction.types.ts`, `attraction.constants.ts` (`MONTH_LABELS`), `attraction.utils.ts` (`attractionToFormData` passthrough), `index.ts` (barrel) — form-side plumbing.
+  - `src/components/NewAttractionModal/MonthsGrid.tsx` + `.module.css` (new) — 12-chip grid per the Design Brief, styled after `AttractionTypeChip`.
+  - `src/components/NewAttractionModal/NewAttractionModal.tsx` — `openingMonths`/`yearRound` state, sync effect (edit mode), save payload (`yearRound ? undefined : openingMonths`), reset, and the new "Opening Months" section mirroring the "Opening Hours"/24-7 toggle exactly, per the Design Brief.
+  - `swagger.yaml` — added `openingMonths` to both the `Attraction` response schema and the `AttractionInput` request schema (array of 1–12 integers, nullable).
+- Deviations from brief: **the "Year-round" chip never renders.** The brief (and the original task requirement) said an attraction with all 12 months open should show "no chip" — but also called for a "Year-round" chip elsewhere. Those two statements are contradictory if taken literally (a chip literally named "Year-round" would only ever need to appear in the one state that's defined to show no chip). Resolved by showing a chip only for the *exception* — a genuine seasonal restriction — labeled with the actual open months (e.g. "Open Mar–Oct"), matching the same "chip = deviation from the default" pattern already established by "Permanently closed". This seemed like the only self-consistent reading; flagging it explicitly here per the brief's own instruction to document precedence/judgement calls.
+- New design tokens used: none — `MonthsGrid` reuses `AttractionTypeChip`'s exact chip spec; the "Year-round" toggle reuses `.toggle24h`/`.toggle24hActive` styling as instructed.
+
+**Manual verification note:** this adds a new Mongoose schema field — the dev server must be restarted before `openingMonths` will actually persist on save (existing project learnings on this exact pitfall). Please restart `next dev` before testing in the browser.
+
+Verified with `npx tsc --noEmit` (clean) and `npx eslint` across all changed files (clean). Skipped a full `next build` verification pass since a `next dev` process was detected running — per project learnings, running a production build alongside a live dev server corrupts its route manifest, and a restart is needed anyway for the schema change to take effect.

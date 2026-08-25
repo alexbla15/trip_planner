@@ -411,6 +411,15 @@ components:
             Fri: { $ref: '#/components/schemas/OpeningHoursDay' }
             Sat: { $ref: '#/components/schemas/OpeningHoursDay' }
             Sun: { $ref: '#/components/schemas/OpeningHoursDay' }
+        openingMonths:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+            maximum: 12
+          nullable: true
+          description: Months (1-12) this attraction is open in. Absent/empty means open year-round.
+          example: [3, 4, 5, 6, 7, 8, 9]
         notes:
           type: string
           nullable: true
@@ -570,6 +579,15 @@ components:
             Fri: { $ref: '#/components/schemas/OpeningHoursDay' }
             Sat: { $ref: '#/components/schemas/OpeningHoursDay' }
             Sun: { $ref: '#/components/schemas/OpeningHoursDay' }
+        openingMonths:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+            maximum: 12
+          nullable: true
+          description: Months (1-12) this attraction is open in. Absent/empty means open year-round.
+          example: [3, 4, 5, 6, 7, 8, 9]
         notes:
           type: string
           nullable: true

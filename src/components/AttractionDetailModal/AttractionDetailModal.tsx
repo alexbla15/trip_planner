@@ -87,7 +87,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
 
   const isResidence = attraction.subtype === "residence";
   const isFlight    = attraction.subtype === "flight";
-  const statusChips = getStatusChips(attraction.openingHours);
+  const statusChips = getStatusChips(attraction.openingHours, attraction.openingMonths);
 
   const firstType = attraction.types?.[0] as AttractionType | undefined;
   const typeIcon = isResidence && !firstType

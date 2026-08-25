@@ -1,9 +1,9 @@
 import type { Attraction } from "@/types/attraction";
-import { timeToMins } from "@/lib";
+import { timeToMins, isYearRound, formatOpeningMonthsLabel } from "@/lib";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type AlertType = "closed" | "conflict" | "overflow";
+export type AlertType = "closed" | "conflict" | "overflow" | "season";
 
 export interface ScheduleAlert {
   id:      string;
@@ -65,6 +65,21 @@ function getClosedAlert(a: Attraction): ScheduleAlert | null {
   }
 
   return null;
+}
+
+// ── Condition A2: venue out of season at planned date ─────────────────────────
+
+function getOutOfSeasonAlert(a: Attraction): ScheduleAlert | null {
+  if (!a.plannedDate || isYearRound(a.openingMonths)) return null;
+
+  const month = new Date(a.plannedDate).getUTCMonth() + 1; // 1–12
+  if (a.openingMonths!.includes(month)) return null;
+
+  return {
+    id:      `season-${a._id}`,
+    type:    "season",
+    message: `"${a.name}" is scheduled on ${a.plannedDate} but is only open ${formatOpeningMonthsLabel(a.openingMonths!)}.`,
+  };
 }
 
 // ── Condition B: parallel time conflicts ──────────────────────────────────────
@@ -177,6 +192,8 @@ export function computeAlerts(
   for (const a of local) {
     const closed = getClosedAlert(a);
     if (closed) alerts.push(closed);
+    const outOfSeason = getOutOfSeasonAlert(a);
+    if (outOfSeason) alerts.push(outOfSeason);
   }
 
   alerts.push(...getConflictAlerts(local));

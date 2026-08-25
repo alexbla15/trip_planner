@@ -67,6 +67,8 @@ export { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay
 export type { StatusChipDescriptor } from "./attractionStatusChips";
 export { getStatusChips } from "./attractionStatusChips";
 
+export { ALL_MONTHS, isYearRound, formatOpeningMonthsLabel } from "./openingMonths";
+
 export { haversineKm } from "./geo";
 
 export { DAY_COLOR_PALETTE, UNSCHEDULED_DAY_COLOR, buildDayColorMap } from "./dayColors";

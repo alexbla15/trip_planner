@@ -1,6 +1,7 @@
 export { NewAttractionModal } from "./NewAttractionModal";
 export { MapPicker } from "./MapPicker";
 export { OpeningHoursGrid } from "./OpeningHoursGrid";
+export { MonthsGrid } from "./MonthsGrid";
 export { AttractionTypeChip } from "./AttractionTypeChip";
 export { attractionToFormData } from "./attraction.utils";
 export type {
@@ -20,5 +21,6 @@ export {
   CATEGORY_COLORS,
   DAY_KEYS,
   DEFAULT_OPENING_HOURS,
+  MONTH_LABELS,
   COUNTRIES,
 } from "./attraction.constants";

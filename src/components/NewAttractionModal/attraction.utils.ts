@@ -18,6 +18,7 @@ export function attractionToFormData(a: Attraction): AttractionFormData {
     openingHours: hasOpeningHoursData(a.openingHours)
       ? normalizeOpeningHours(a.openingHours)
       : buildInitialHours(),
+    openingMonths: a.openingMonths,
     notes: a.notes ?? "",
     photoUrl: a.photoUrl ?? "",
     websiteUrl: a.websiteUrl ?? "",

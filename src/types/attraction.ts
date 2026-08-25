@@ -53,6 +53,9 @@ export interface Attraction {
   price?: number | null;
   currency?: string;
   openingHours?: OpeningHours;
+  /** Months (1–12) this attraction is open in. Absent/empty means open year-round —
+   *  never persisted for the common case, only when it's genuinely seasonal. */
+  openingMonths?: number[];
   notes?: string;
   photoUrl?: string;
   /** Official venue website — user-editable, separate from photoUrl. */

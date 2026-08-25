@@ -71,6 +71,8 @@ export interface AttractionFormData {
   price: number | null;
   currency: string;
   openingHours: OpeningHours;
+  /** Months (1–12) this attraction is open in. Undefined means open year-round. */
+  openingMonths?: number[];
   notes: string;
   photoUrl: string;
   websiteUrl: string;
