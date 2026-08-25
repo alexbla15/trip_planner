@@ -84,11 +84,6 @@
   transition: opacity var(--duration-fast) var(--easing-out);
 }
 
-.rangeListDisabled {
-  opacity: 0.38;
-  pointer-events: none;
-}
-
 .timeInputs {
   display: flex;
   align-items: center;
@@ -111,21 +106,17 @@
   transition: color var(--duration-fast) var(--easing-out);
 }
 
-.rangeButton:hover:not(:disabled) {
+.rangeButton:hover {
   color: var(--color-primary);
 }
 
-.removeRangeButton:hover:not(:disabled) {
+.removeRangeButton:hover {
   color: var(--color-error);
 }
 
 .rangeButton:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-}
-
-.rangeButton:disabled {
-  cursor: not-allowed;
 }
 
 .timeInput {
@@ -146,10 +137,6 @@
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-light);
-}
-
-.timeInput:disabled {
-  cursor: not-allowed;
 }
 
 .timeSeparator {

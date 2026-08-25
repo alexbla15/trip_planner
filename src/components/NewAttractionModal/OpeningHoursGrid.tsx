@@ -56,56 +56,54 @@ function DayRow({
         </span>
       </div>
 
-      <div className={`${styles.rangeList} ${closed ? styles.rangeListDisabled : ""}`}>
-        {ranges.map((range, i) => {
-          const isLast = i === ranges.length - 1;
-          return (
-            <div key={i} className={styles.timeInputs}>
-              <input
-                type="time"
-                value={range.open}
-                onChange={(e) => onRangeChange(i, "open", e.target.value)}
-                disabled={closed}
-                aria-label={`${day} opening time${ranges.length > 1 ? ` (range ${i + 1})` : ""}`}
-                className={styles.timeInput}
-              />
-              <span className={styles.timeSeparator} aria-hidden="true">
-                –
-              </span>
-              <input
-                type="time"
-                value={range.close}
-                onChange={(e) => onRangeChange(i, "close", e.target.value)}
-                disabled={closed}
-                aria-label={`${day} closing time${ranges.length > 1 ? ` (range ${i + 1})` : ""}`}
-                className={styles.timeInput}
-              />
-              {i > 0 && (
-                <button
-                  type="button"
-                  disabled={closed}
-                  onClick={() => onRemoveRange(i)}
-                  aria-label={`Remove this opening-hours range for ${day}`}
-                  className={`${styles.rangeButton} ${styles.removeRangeButton}`}
-                >
-                  <X size={14} />
-                </button>
-              )}
-              {isLast && (
-                <button
-                  type="button"
-                  disabled={closed}
-                  onClick={onAddRange}
-                  aria-label={`Add another opening-hours range for ${day}`}
-                  className={styles.rangeButton}
-                >
-                  <Plus size={14} />
-                </button>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {!closed && (
+        <div className={styles.rangeList}>
+          {ranges.map((range, i) => {
+            const isLast = i === ranges.length - 1;
+            return (
+              <div key={i} className={styles.timeInputs}>
+                <input
+                  type="time"
+                  value={range.open}
+                  onChange={(e) => onRangeChange(i, "open", e.target.value)}
+                  aria-label={`${day} opening time${ranges.length > 1 ? ` (range ${i + 1})` : ""}`}
+                  className={styles.timeInput}
+                />
+                <span className={styles.timeSeparator} aria-hidden="true">
+                  –
+                </span>
+                <input
+                  type="time"
+                  value={range.close}
+                  onChange={(e) => onRangeChange(i, "close", e.target.value)}
+                  aria-label={`${day} closing time${ranges.length > 1 ? ` (range ${i + 1})` : ""}`}
+                  className={styles.timeInput}
+                />
+                {i > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => onRemoveRange(i)}
+                    aria-label={`Remove this opening-hours range for ${day}`}
+                    className={`${styles.rangeButton} ${styles.removeRangeButton}`}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+                {isLast && (
+                  <button
+                    type="button"
+                    onClick={onAddRange}
+                    aria-label={`Add another opening-hours range for ${day}`}
+                    className={styles.rangeButton}
+                  >
+                    <Plus size={14} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
