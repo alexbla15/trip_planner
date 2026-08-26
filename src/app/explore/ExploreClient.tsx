@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useAttractionTypes } from "@/hooks";
 import {
-  getCities, getAttractionsByCity, getAttractionsByCountry, createAttraction, updateAttraction, deleteAttraction,
+  getCities, getAttractionsByCity, getAttractionsByCountry, getAttraction, createAttraction, updateAttraction, deleteAttraction,
   fetchRouteLeg, formatLegDuration, formatStepDuration,
   searchLocation, addAttractionToTrip,
   markAttractionVisited, unmarkAttractionVisited,
@@ -464,6 +464,16 @@ export function ExploreClient() {
     if (selectedCity && newAttraction.city === selectedCity) {
       setCityAttractions((prev) => [...prev, newAttraction]);
     }
+    if (newAttraction.parentAttractionId) {
+      const parentId = newAttraction.parentAttractionId;
+      getAttraction(parentId, token)
+        .then((fresh) => {
+          const freshParent = fresh as Attraction;
+          setCityAttractions((prev) => prev.map((a) => (a._id === freshParent._id ? freshParent : a)));
+          setCountryAttractions((prev) => prev.map((a) => (a._id === freshParent._id ? freshParent : a)));
+        })
+        .catch(() => {});
+    }
   }
 
   async function handleEditSave(data: AttractionFormData) {
@@ -503,6 +513,24 @@ export function ExploreClient() {
       setCitiesReloadKey((k) => k + 1);
     }
 
+    // Setting/clearing/changing a parent link bumps that parent's childAttractionCount,
+    // but the parent's own card (if already loaded in one of these lists) still holds its
+    // stale count — the update above only refreshed the edited attraction itself. Refetch
+    // whichever parent(s) actually changed and patch them into any list that has them.
+    if (updated.parentAttractionId !== editingAttraction.parentAttractionId) {
+      const affectedParentIds = [editingAttraction.parentAttractionId, updated.parentAttractionId]
+        .filter((pid): pid is string => !!pid);
+      for (const parentId of affectedParentIds) {
+        getAttraction(parentId, token)
+          .then((fresh) => {
+            const freshParent = fresh as Attraction;
+            setCityAttractions((prev) => prev.map((a) => (a._id === freshParent._id ? freshParent : a)));
+            setCountryAttractions((prev) => prev.map((a) => (a._id === freshParent._id ? freshParent : a)));
+          })
+          .catch(() => {});
+      }
+    }
+
     toast.success("Attraction updated");
   }
 
@@ -527,6 +555,16 @@ export function ExploreClient() {
     setSelectedAttraction(null);
     setCityAttractions((prev) => prev.filter((a) => a._id !== attraction._id));
     setCountryAttractions((prev) => prev.filter((a) => a._id !== attraction._id));
+    if (attraction.parentAttractionId) {
+      const parentId = attraction.parentAttractionId;
+      getAttraction(parentId, token)
+        .then((fresh) => {
+          const freshParent = fresh as Attraction;
+          setCityAttractions((prev) => prev.map((a) => (a._id === freshParent._id ? freshParent : a)));
+          setCountryAttractions((prev) => prev.map((a) => (a._id === freshParent._id ? freshParent : a)));
+        })
+        .catch(() => {});
+    }
     toast.success("Attraction deleted");
   }
 

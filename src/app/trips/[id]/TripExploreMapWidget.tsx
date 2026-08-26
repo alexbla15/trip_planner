@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Marker, Tooltip, useMap } from "react-leaflet"
 import { useAttractionTypes } from "@/hooks";
 import { makeAttractionMarkerIcon } from "@/lib/mapIcons";
 import { fixLeafletDefaultIcon } from "@/lib/leafletIconFix";
+import { filterTopLevelMapPins } from "@/lib";
 import type { Attraction } from "@/types/attraction";
 import styles from "./TripExploreMapWidget.module.css";
 import "leaflet/dist/leaflet.css";
@@ -65,7 +66,7 @@ export function TripExploreMapWidget({ attractions, onAttractionClick, dayColors
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
         <BoundsFitter attractions={withCoords} />
-        {withCoords.map((a) => {
+        {filterTopLevelMapPins(withCoords).map((a) => {
           const typeRecord = findType(a.types?.[0] ?? "");
           const color = dayColors
             ? dayColors[a.plannedDate ?? ""] ?? unscheduledColor ?? "#64748B"

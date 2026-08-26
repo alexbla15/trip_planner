@@ -13,7 +13,7 @@ A batch of 14 fixes and enhancements across Analytics, Explore, Trip detail, and
 - [x] .claude/tasks/analytics-country-map-coloring-fix.done.md
 - [x] .claude/tasks/explore-cities-order-by-attraction-count.done.md
 - [x] .claude/tasks/nested-attractions-multi-level.done.md
-- [ ] .claude/tasks/nested-attractions-map-dedup-v2.md
+- [x] .claude/tasks/nested-attractions-map-dedup-v2.done.md
 - [ ] .claude/tasks/analytics-category-picker-search-sort.md
 - [ ] .claude/tasks/explore-visited-trips-picker-collapsible.md
 - [ ] .claude/tasks/trip-scheduler-mobile-date-picker.md

@@ -12,6 +12,7 @@ import { CLUSTER_MARKER_BASE_SIZE_PX, CLUSTER_MARKER_MAX_SIZE_PX } from "@/lib/m
 import { colorForBoundaryIndex } from "@/lib/mapBoundaryColors";
 import { fixLeafletDefaultIcon } from "@/lib/leafletIconFix";
 import { TRAVEL_MODE_COLORS } from "@/lib/travelModeColors";
+import { filterTopLevelMapPins } from "@/lib";
 import type { Attraction } from "@/types/attraction";
 import type { CityEntry, CountryEntry, MapHandle, MeasurePoint } from "./ExploreClient";
 import styles from "./ExploreMapWidget.module.css";
@@ -258,10 +259,10 @@ export function ExploreMapWidget({
   // attractions actually within the visible map area — not every attraction in the
   // whole country — so panning/zooming around a region shows just that region's pins.
   const visibleAttractions = useMemo(() => {
-    if (!bounds) return attractions;
-    return attractions.filter(
-      (a) => a.coordinates && bounds.contains([a.coordinates.lat, a.coordinates.lng])
-    );
+    const inBounds = !bounds
+      ? attractions
+      : attractions.filter((a) => a.coordinates && bounds.contains([a.coordinates.lat, a.coordinates.lng]));
+    return filterTopLevelMapPins(inBounds);
   }, [attractions, bounds]);
 
   return (

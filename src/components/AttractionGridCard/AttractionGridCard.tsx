@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, Building2, Calendar, Wallet } from "lucide-react";
+import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, ArrowUpRight, Calendar, Wallet } from "lucide-react";
 import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
@@ -159,6 +159,18 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
           <span className={styles.typeIcon} aria-hidden="true">{icon}</span>
           <span className={styles.name}>{attraction.name}</span>
         </span>
+        {attraction.parentAttractionId && attraction.parentAttractionName && (
+          <button
+            type="button"
+            className={styles.parentLine}
+            onClick={handleOpenParent}
+            title={`View "${attraction.parentAttractionName}"`}
+            aria-label={`View details for ${attraction.parentAttractionName}, which ${attraction.name} is part of`}
+          >
+            <ArrowUpRight size={11} aria-hidden="true" />
+            ({attraction.parentAttractionName})
+          </button>
+        )}
         {attraction.city && (
           <span className={styles.meta}>
             <MapPin size={11} aria-hidden="true" />
@@ -189,18 +201,6 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
             )}
           </div>
         )}
-        {attraction.parentAttractionId && attraction.parentAttractionName && (
-          <button
-            type="button"
-            className={styles.parentLine}
-            onClick={handleOpenParent}
-            title={`View "${attraction.parentAttractionName}"`}
-            aria-label={`View details for ${attraction.parentAttractionName}, which ${attraction.name} is part of`}
-          >
-            <Building2 size={11} aria-hidden="true" />
-            {attraction.parentAttractionName}
-          </button>
-        )}
       </div>
 
       {childrenExpanded && (
@@ -225,7 +225,6 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
                 >
                   <span className={styles.childRowIcon} aria-hidden="true">{childIcon}</span>
                   <span className={styles.childRowName}>{child.name}</span>
-                  {child.city && <span className={styles.childRowCity}>{child.city}</span>}
                 </button>
               );
             })

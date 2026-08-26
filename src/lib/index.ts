@@ -74,4 +74,6 @@ export { ALL_MONTHS, isYearRound, formatOpeningMonthsLabel } from "./openingMont
 
 export { haversineKm } from "./geo";
 
+export { filterTopLevelMapPins } from "./mapPinDedup";
+
 export { DAY_COLOR_PALETTE, UNSCHEDULED_DAY_COLOR, buildDayColorMap } from "./dayColors";
