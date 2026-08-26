@@ -1,6 +1,6 @@
 # Task: Collapse identical daily hours into one summary line
 
-Status: reviewing
+Status: done
 Track: B
 Track reason: Pure display/formatting logic change on existing read-only hours output — no new visual pattern, reuses existing text style.
 
@@ -27,8 +27,11 @@ When an attraction is open every day of the week with the exact same ranges, the
   - `src/lib/openingHours.ts` — added `getUniformHoursLabel(hours)`: returns `"Every day: 9:00 – 17:00"`-style string when all 7 days are open (not closed) with identical range arrays, else `null`. Reuses the existing `${r.open} – ${r.close}` join format already used by the per-day table.
   - `src/lib/index.ts` — barrel export.
   - `src/components/AttractionDetailModal/AttractionDetailModal.tsx` + `.module.css` — the only reader of the per-day breakdown (confirmed via grep for `hoursTable`/`hoursRow` across `src/`). Branches on `getUniformHoursLabel(attraction.openingHours)`: renders the condensed line (new `.uniformHours` style, inside the existing `.hoursCard` bordered container for visual consistency) when non-null, the original day-by-day table otherwise.
-  - `OpeningHoursGrid.tsx` (edit form) — untouched, as required; still shows all 7 day rows for editing.
-- Deviations from task requirements: none.
-- New design tokens used: none — `.uniformHours` reuses the existing `.notes` paragraph's font-size/color/line-height convention.
+  - `OpeningHoursGrid.tsx` + `.module.css` — post-review addition per user request: each day row now has a "copy to all days" icon button (`Copy` lucide icon, styled identically to the existing `.rangeButton` icon buttons) that copies that day's `{closed, ranges}` onto every other day, so a user can fill in one day and propagate it instead of re-entering identical hours 7 times — a natural companion to this task's read-only collapsing.
+- Deviations from task requirements: the `OpeningHoursGrid.tsx` "untouched" requirement above was superseded by an explicit user follow-up request during review, scoped narrowly to adding this one convenience action (no change to the day-row layout or existing edit behavior otherwise).
+- New design tokens used: none — `.uniformHours` reuses the existing `.notes` paragraph's font-size/color/line-height convention; `.copyButton` reuses `.rangeButton`'s exact spec.
 
-Verified with `npx tsc --noEmit` (clean) and `npx eslint` on all changed files (clean).
+Verified with `npx tsc --noEmit` (clean) and `npx eslint` on all changed files (clean), including the copy-to-all-days addition.
+
+## Completion Summary
+An attraction's detail card now shows one condensed "Every day: 9:00 – 17:00"-style line instead of a repetitive 7-row table when all days share identical hours. In the edit form, each day row also gained a "copy to all days" button to fill in the whole week from one day's entry, added per user request during review. Confirmed working by user on 2026-08-26.
