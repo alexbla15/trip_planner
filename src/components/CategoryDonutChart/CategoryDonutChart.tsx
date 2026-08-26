@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { getIconComponent } from "@/components/IconPicker";
-import { CategoryAttractionsModal } from "@/components/CategoryAttractionsModal";
+import { CategoryAttractionsPanel } from "@/components/CategoryAttractionsPanel";
 import { useAttractionTypes } from "@/hooks";
 import { donutSlicePath } from "@/lib";
 import { aggregateByCategory, buildCategorySlices, buildSubSlices } from "./CategoryDonutChart.utils";
@@ -242,8 +242,7 @@ export function CategoryDonutChart({
       )}
 
       {selectedType && (
-        <CategoryAttractionsModal
-          isOpen={!!selectedType}
+        <CategoryAttractionsPanel
           onClose={() => setSelectedType(null)}
           typeName={selectedType}
           ownerId={ownerId}

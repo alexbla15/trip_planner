@@ -1,6 +1,5 @@
-/** Props for the dialog that lists attractions belonging to one attraction type ("sub-category"). */
-export interface CategoryAttractionsModalProps {
-  isOpen: boolean;
+/** Props for the inline panel that lists attractions belonging to one attraction type ("sub-category"). */
+export interface CategoryAttractionsPanelProps {
   onClose: () => void;
   /** Attraction type name to list (e.g. "Restaurant") — matches CategoryDonutChart's sub-slice `_id`. */
   typeName: string;
