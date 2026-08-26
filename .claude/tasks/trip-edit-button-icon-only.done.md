@@ -1,6 +1,6 @@
 # Task: Make "Edit trip" button icon-only on trips/[id]
 
-Status: intake
+Status: done
 Track: B
 Track reason: shrinking an existing button to icon-only, no new visual pattern — existing icon-only buttons already exist elsewhere in the app to match.
 
@@ -21,3 +21,11 @@ The "Edit trip" control on `trips/[id]` renders as an icon-only button (its exis
 
 ## Out of scope
 - Changing any other buttons on the page.
+
+## Implementation Notes
+- Files created/modified: `src/app/trips/[id]/TripDetailClient.tsx` — removed the "Edit trip" text label from the `.cardEditLink`, added `aria-label="Edit trip"`, kept the `PenLine` icon.
+- Deviations from task requirements: no CSS changes needed — `.cardEditLink` was already a plain inline-flex link with `gap`/`flex-shrink: 0`, so it collapses cleanly to icon-only without adjustment.
+- New design tokens used: none.
+
+## Completion Summary
+"Edit trip" on trips/[id] is now icon-only (PenLine icon) with an accessible label, same click behavior and edit-mode gating as before. Closed 2026-08-26.

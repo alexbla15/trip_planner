@@ -128,7 +128,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   // Lets an owner/collaborator preview the trip as a read-only viewer would see it,
   // without changing the underlying role check (`canEdit` below) — session-only, no
   // persistence. Rendered only when `canEdit` is true; non-editors have no toggle.
-  const [viewMode, setViewMode] = useState<"edit" | "readonly">("edit");
+  const [viewMode, setViewMode] = useState<"edit" | "readonly">("readonly");
 
   const [activeTab, setActiveTab] = useState<TripTabId>("overview");
 
@@ -767,9 +767,8 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                   <div className={styles.attractionsHeader}>
                     <h2 className={styles.sectionHeading}>Trip Overview</h2>
                     {effectiveCanEdit && (
-                      <Link href={`/trips/${trip._id}/edit`} className={styles.cardEditLink}>
+                      <Link href={`/trips/${trip._id}/edit`} className={styles.cardEditLink} aria-label="Edit trip">
                         <PenLine size={13} aria-hidden="true" />
-                        Edit trip
                       </Link>
                     )}
                   </div>

@@ -1,6 +1,6 @@
 # Task: Default Explore to grid view
 
-Status: intake
+Status: done
 Track: B
 Track reason: flips an existing toggle's default state, no new UI or design decision (grid view itself already shipped in `explore-grid-view.done.md`).
 
@@ -21,3 +21,11 @@ Track reason: flips an existing toggle's default state, no new UI or design deci
 ## Out of scope
 - Persisting the user's last-chosen view mode across sessions.
 - Any change to grid/map view behavior itself.
+
+## Implementation Notes
+- Files created/modified: `src/app/explore/ExploreClient.tsx` — changed `useState<"map" | "grid">("map")` to `useState<"map" | "grid">("grid")` for `viewMode`.
+- Deviations from task requirements: none. World view still forces the map (`viewMode === "map" || view === "world"` at the render gate), unaffected by this default change, as required.
+- New design tokens used: none.
+
+## Completion Summary
+Explore now opens in grid view by default for country/city view; world view is unaffected (always map). Closed 2026-08-26.

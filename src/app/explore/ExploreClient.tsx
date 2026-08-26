@@ -105,7 +105,7 @@ export function ExploreClient() {
 
   // Map vs grid view — only meaningful in country/city view (world view has no
   // individual-attraction list, only aggregated city/country pins).
-  const [viewMode, setViewMode]                   = useState<"map" | "grid">("map");
+  const [viewMode, setViewMode]                   = useState<"map" | "grid">("grid");
   const [gridPage, setGridPage]                   = useState(1);
   const [gridColumns, setGridColumns]             = useState(4);
   const gridRef = useRef<HTMLDivElement>(null);

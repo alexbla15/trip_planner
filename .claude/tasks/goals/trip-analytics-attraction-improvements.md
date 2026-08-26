@@ -5,10 +5,10 @@ Status: in progress
 A batch of 14 fixes and enhancements across Analytics, Explore, Trip detail, and the Attraction data model, requested together on 2026-08-26.
 
 ## Tasks
-- [ ] .claude/tasks/explore-default-grid-view.md
-- [ ] .claude/tasks/trip-detail-default-readonly.md
-- [ ] .claude/tasks/trip-edit-button-icon-only.md
-- [ ] .claude/tasks/attraction-card-title-wrap-mobile.md
+- [x] .claude/tasks/explore-default-grid-view.done.md
+- [x] .claude/tasks/trip-detail-default-readonly.done.md
+- [x] .claude/tasks/trip-edit-button-icon-only.done.md
+- [x] .claude/tasks/attraction-card-title-wrap-mobile.done.md
 - [ ] .claude/tasks/analytics-top-explorers-mobile-fix.md
 - [ ] .claude/tasks/analytics-country-map-coloring-fix.md
 - [ ] .claude/tasks/explore-cities-order-by-attraction-count.md
