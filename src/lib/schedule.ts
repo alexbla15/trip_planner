@@ -38,6 +38,14 @@ export function legKey(fromId: string, toId: string, mode: TravelMode): string {
   return `${mode}__${fromId}__${toId}`;
 }
 
+// Nested (parent/child) attractions inherit their ancestor's coordinates exactly, so a
+// "travel leg" between two attractions at the same coordinates is meaningless — there's
+// nowhere to travel to/from.
+export function sameCoordinates(a: Attraction, b: Attraction): boolean {
+  if (!a.coordinates || !b.coordinates) return false;
+  return a.coordinates.lat === b.coordinates.lat && a.coordinates.lng === b.coordinates.lng;
+}
+
 export interface ConflictGroup {
   key: string;
   attractions: Attraction[];

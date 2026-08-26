@@ -18,6 +18,7 @@ import {
   formatDayLabel,
   timeToMins,
   legKey,
+  sameCoordinates,
   detectConflicts,
   findRouteNeighbour,
 } from "@/lib";
@@ -342,6 +343,7 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
         const from = fullRoute[i];
         const to   = fullRoute[i + 1];
         if (!from.coordinates || !to.coordinates) continue;
+        if (sameCoordinates(from, to)) continue; // nested parent/child — nowhere to travel to
         const mode = modeForLeg(from._id, to._id);
         const key  = legKey(from._id, to._id, mode);
         if (routeCache[key] !== undefined || loadingKeysRef.current.has(key)) continue;
@@ -557,6 +559,7 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
               if (a === fullRoute[i + 1]) return null; // skip degenerate same-point legs
               const next = fullRoute[i + 1];
               if (!a.coordinates || !next.coordinates) return null;
+              if (sameCoordinates(a, next)) return null; // nested parent/child — same location
               const mode = modeForLeg(a._id, next._id);
               const cacheKey = legKey(a._id, next._id, mode);
               const cached    = routeCache[cacheKey] ?? null;
@@ -611,6 +614,7 @@ export function TripDayMapWidget({ trip, attractions }: TripDayMapWidgetProps) {
             const next = fullRoute[i + 1];
             if (a === next) return null;
             if (!a.coordinates || !next.coordinates) return null;
+            if (sameCoordinates(a, next)) return null; // nested parent/child — same location
             const mode     = modeForLeg(a._id, next._id);
             const cacheKey = legKey(a._id, next._id, mode);
             const cached    = routeCache[cacheKey] ?? null;

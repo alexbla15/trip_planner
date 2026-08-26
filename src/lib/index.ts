@@ -34,6 +34,7 @@ export {
   timeToMins,
   attractionEndMins,
   legKey,
+  sameCoordinates,
   detectConflicts,
   findRouteNeighbour,
   layoutTimed,
