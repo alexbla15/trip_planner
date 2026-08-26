@@ -1,6 +1,6 @@
 # Task: "Used in my trips" chip should count trips where the user is a contributor, not just owner
 
-Status: intake
+Status: done
 Track: B
 Track reason: Backend query-logic change (widen an existing `Trip.find` filter) — no new UI, reuses the existing badge that already renders from this data.
 
@@ -20,3 +20,14 @@ The "used in my trips" badge (rendered in `AttractionGridCard.tsx` via `usedInTr
 
 ## Out of scope
 - Any change to who can edit/remove an attraction from a trip (permissions elsewhere are unaffected).
+
+## Implementation Notes
+- Files created/modified:
+  - `src/lib/services/usedInTrips.service.ts` — `getUsedInTripsMap` and `getUsedInTripNames` both widened from `{ ownerId: userId, ... }` to `{ $or: [{ ownerId: userId }, { "collaborators.userId": userId }], ... }`, matching the exact pattern already used elsewhere for owner-or-collaborator trip access. `getUsedInTripIdSet` needed no change (derives from `getUsedInTripsMap`).
+- Deviations from task requirements: none.
+- New design tokens used: none — no UI changes, per the task's own scope.
+
+Verified with `npx tsc --noEmit` (clean) and `npx eslint` on the changed file (clean).
+
+## Completion Summary
+The "used in my trips" badge now also lights up for trips where the user is a collaborator, not just an owner — a small backend query widening reusing the existing owner-or-collaborator access pattern. No UI changes. Confirmed by user on 2026-08-26.
