@@ -28,6 +28,8 @@ import {
 } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
+import { Spinner } from "@/components/Spinner";
+import { getAttraction, getChildAttractions } from "@/services";
 import { useAttractionTypes } from "@/hooks";
 
 const LocationViewMap = dynamic(
@@ -60,14 +62,33 @@ interface AttractionDetailModalProps {
    *  attraction — toggling marks/unmarks it as personally visited. */
   onToggleVisited?: () => void;
   isVisited?: boolean;
+  /** Switches the modal to display a different attraction — e.g. clicking a child row
+   *  in the "Contains N places" list, or the "Part of X" parent chip. Callers wire this
+   *  to the same state setter used to originally open the modal. Omit to disable this
+   *  cross-navigation (the chips/rows still render, just non-interactive). */
+  onNavigateToAttraction?: (attraction: Attraction) => void;
 }
 
-export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit, onEdit, onAddToTrip, onRemoveFromTrip, onDelete, onToggleVisited, isVisited }: AttractionDetailModalProps) {
+export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit, onEdit, onAddToTrip, onRemoveFromTrip, onDelete, onToggleVisited, isVisited, onNavigateToAttraction }: AttractionDetailModalProps) {
   const { findType } = useAttractionTypes();
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const [childrenExpanded, setChildrenExpanded] = useState(false);
+  const [childrenLoading, setChildrenLoading] = useState(false);
+  const [children, setChildren] = useState<Attraction[] | null>(null);
+  const [parentLoading, setParentLoading] = useState(false);
+
   useEffect(() => { setMounted(true); }, []);
+
+  // Reset the children expansion whenever a different attraction is shown — otherwise
+  // reopening the modal for a new attraction would briefly show the previous one's
+  // cached children list.
+  useEffect(() => {
+    setChildrenExpanded(false);
+    setChildrenLoading(false);
+    setChildren(null);
+  }, [attraction?._id]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === "Escape") onClose();
@@ -89,6 +110,27 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   const isFlight    = attraction.subtype === "flight";
   const statusChips = getStatusChips(attraction.openingHours, attraction.openingMonths);
   const uniformHoursLabel = attraction.openingHours ? getUniformHoursLabel(attraction.openingHours) : null;
+
+  function handleToggleChildren(e: React.MouseEvent) {
+    e.stopPropagation();
+    setChildrenExpanded((prev) => !prev);
+    if (children === null && !childrenLoading) {
+      setChildrenLoading(true);
+      getChildAttractions(attraction._id)
+        .then((data) => setChildren(data as Attraction[]))
+        .catch(() => setChildren([]))
+        .finally(() => setChildrenLoading(false));
+    }
+  }
+
+  function handleOpenParent(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!attraction.parentAttractionId || !onNavigateToAttraction || parentLoading) return;
+    setParentLoading(true);
+    getAttraction(attraction.parentAttractionId)
+      .then((parent) => onNavigateToAttraction(parent as Attraction))
+      .finally(() => setParentLoading(false));
+  }
 
   const firstType = attraction.types?.[0] as AttractionType | undefined;
   const typeIcon = isResidence && !firstType
@@ -207,16 +249,73 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
           {/* Nesting — structural facts about the attraction itself (not per-user, unlike
               the visited/used-in-trip signals above), so shown to every viewer. */}
           {attraction.parentAttractionId && attraction.parentAttractionName && (
-            <p className={styles.parentBadge}>
-              <Building2 size={13} aria-hidden="true" />
-              Part of &quot;{attraction.parentAttractionName}&quot;
-            </p>
+            onNavigateToAttraction ? (
+              <button
+                type="button"
+                className={`${styles.parentBadge} ${styles.parentBadgeButton}`}
+                onClick={handleOpenParent}
+                title={`View "${attraction.parentAttractionName}"`}
+              >
+                <Building2 size={13} aria-hidden="true" />
+                Part of &quot;{attraction.parentAttractionName}&quot;
+              </button>
+            ) : (
+              <p className={styles.parentBadge}>
+                <Building2 size={13} aria-hidden="true" />
+                Part of &quot;{attraction.parentAttractionName}&quot;
+              </p>
+            )
           )}
           {!!attraction.childAttractionCount && attraction.childAttractionCount > 0 && (
-            <p className={styles.childCountBadge}>
-              <Layers size={13} aria-hidden="true" />
-              Contains {attraction.childAttractionCount} place{attraction.childAttractionCount === 1 ? "" : "s"}
-            </p>
+            <div className={styles.childrenSection}>
+              <button
+                type="button"
+                className={styles.childCountBadge}
+                onClick={handleToggleChildren}
+                aria-expanded={childrenExpanded}
+              >
+                <Layers size={13} aria-hidden="true" />
+                Contains {attraction.childAttractionCount} place{attraction.childAttractionCount === 1 ? "" : "s"}
+              </button>
+              {childrenExpanded && (
+                <div className={styles.childrenList}>
+                  {childrenLoading ? (
+                    <div className={styles.childrenLoading}>
+                      <Spinner variant="icon" iconSize={14} />
+                    </div>
+                  ) : (
+                    children?.map((child) => {
+                      const childIcon = renderTypeIcon(findType(child.types?.[0] ?? "")?.icon ?? "Globe");
+                      const rowContent = (
+                        <>
+                          <span className={styles.childRowIcon} aria-hidden="true">{childIcon}</span>
+                          <span className={styles.childRowName}>{child.name}</span>
+                          {child.city && <span className={styles.childRowCity}>{child.city}</span>}
+                        </>
+                      );
+                      return onNavigateToAttraction ? (
+                        <button
+                          type="button"
+                          key={child._id}
+                          className={`${styles.childRow} ${styles.childRowButton}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onNavigateToAttraction(child);
+                          }}
+                          aria-label={`View details for ${child.name}`}
+                        >
+                          {rowContent}
+                        </button>
+                      ) : (
+                        <div key={child._id} className={styles.childRow}>
+                          {rowContent}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
           )}
 
           {/* Location map — shown whenever coordinates exist */}

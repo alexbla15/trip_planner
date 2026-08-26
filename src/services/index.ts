@@ -20,8 +20,10 @@ export { getFxRate } from "./fx.service";
 export {
   getCities,
   getExploreItems,
+  getAttraction,
   getAttractionsByCity,
   getAttractionsByCountry,
+  getChildAttractions,
   searchAttractionsByCountry,
   searchAttractionsByType,
   createAttraction,

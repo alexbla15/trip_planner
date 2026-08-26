@@ -109,6 +109,7 @@ export function CategoryAttractionsModal({
       <AttractionDetailModal
         attraction={viewingAttraction}
         onClose={() => setViewingAttraction(null)}
+        onNavigateToAttraction={setViewingAttraction}
       />
     </ModalShell>
   );

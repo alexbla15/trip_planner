@@ -1188,6 +1188,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
       <AttractionDetailModal
         attraction={viewingAttraction}
         onClose={() => setViewingAttraction(null)}
+        onNavigateToAttraction={setViewingAttraction}
         isVisited={viewingAttraction?.isVisited}
         onToggleVisited={
           token && viewingAttraction?.attractionId

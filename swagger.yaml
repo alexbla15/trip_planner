@@ -1429,7 +1429,7 @@ paths:
 
   /api/attractions:
     get:
-      summary: Search public attractions by country, city, or attraction type
+      summary: Search public attractions by country, city, attraction type, or parent attraction
       tags: [Attractions]
       security: []
       parameters:
@@ -1463,6 +1463,12 @@ paths:
           schema:
             type: string
           description: Scope results to attractions created by this user (and exclude flights), matching the personal category-distribution analytics for that user.
+        - name: parentAttractionId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter to the direct children of this attraction (one level of nesting only). Satisfies the country/city/type requirement on its own.
         - name: skip
           in: query
           required: false
@@ -1579,6 +1585,22 @@ paths:
         required: true
         schema:
           type: string
+    get:
+      summary: Fetch a single attraction by id
+      description: >
+        Used for cross-navigation between related attractions (e.g. opening a parent
+        attraction's own detail view from a child's "Part of X" chip). No visibility
+        filtering — public discovery data, same access model as PUT/DELETE below.
+      tags: [Attractions]
+      security: []
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attraction'
+        '404':
+          description: Attraction not found.
     put:
       summary: Update an attraction's specific details
       description: >

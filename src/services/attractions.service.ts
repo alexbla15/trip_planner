@@ -57,6 +57,25 @@ export async function getAttractionsByCountry(country: string, token?: string | 
   return [...first.page, ...rest.flatMap((r) => r.page)];
 }
 
+/** Fetches one attraction by id — used to open a parent attraction's own detail view
+ *  from a child's "Part of X" chip, where only the id/name is on hand. */
+export async function getAttraction(id: string, token?: string | null): Promise<unknown> {
+  const res = await fetch(`/api/attractions/${id}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  return parseOrThrow<unknown>(res);
+}
+
+/** Direct children of the given attraction (one level of nesting only, see
+ *  `nestedAttractions.service.ts`). Used by `AttractionGridCard`'s child-count badge
+ *  expansion. */
+export async function getChildAttractions(parentAttractionId: string, token?: string | null): Promise<unknown[]> {
+  const res = await fetch(`/api/attractions?parentAttractionId=${encodeURIComponent(parentAttractionId)}&includeHidden=true`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  return parseOrThrow<unknown[]>(res);
+}
+
 export async function searchAttractionsByCountry(country: string, query: string, token?: string | null): Promise<unknown[]> {
   const params = new URLSearchParams({ country });
   if (query.trim()) params.set("q", query.trim());

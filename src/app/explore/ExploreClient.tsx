@@ -1216,6 +1216,7 @@ export function ExploreClient() {
       <AttractionDetailModal
         attraction={selectedAttraction}
         onClose={() => setSelectedAttraction(null)}
+        onNavigateToAttraction={setSelectedAttraction}
         canEdit={!!user && selectedAttraction?.ownerId === user._id}
         onEdit={() => setEditingAttraction(selectedAttraction)}
         onDelete={selectedAttraction ? () => handleDeleteAttraction(selectedAttraction) : undefined}

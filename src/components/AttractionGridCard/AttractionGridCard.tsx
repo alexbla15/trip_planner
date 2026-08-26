@@ -1,25 +1,54 @@
 "use client";
 
+import { useState } from "react";
 import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, Building2 } from "lucide-react";
 import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
+import { Spinner } from "@/components/Spinner";
+import { getAttraction, getChildAttractions } from "@/services";
 import { useAttractionTypes } from "@/hooks";
 import type { Attraction } from "@/types/attraction";
 import styles from "./AttractionGridCard.module.css";
 import type { AttractionGridCardProps } from "./AttractionGridCard.types";
 
-export function AttractionGridCard({ attraction, onClick, currentUserId, onAddToTrip, onEdit, onDelete }: AttractionGridCardProps) {
+export function AttractionGridCard({ attraction, onClick, currentUserId, token, onAddToTrip, onEdit, onDelete }: AttractionGridCardProps) {
   const { findType } = useAttractionTypes();
   const hasPhoto = !!attraction.photoUrl?.startsWith("http");
   const icon = renderTypeIcon(findType(attraction.types?.[0] ?? "")?.icon ?? "Globe");
   const canEdit = !!currentUserId && attraction.ownerId === currentUserId;
+
+  const [childrenExpanded, setChildrenExpanded] = useState(false);
+  const [childrenLoading, setChildrenLoading] = useState(false);
+  const [children, setChildren] = useState<Attraction[] | null>(null);
+  const [parentLoading, setParentLoading] = useState(false);
 
   function stopAnd(handler: (attraction: Attraction) => void) {
     return (e: React.MouseEvent) => {
       e.stopPropagation();
       handler(attraction);
     };
+  }
+
+  function handleOpenParent(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!attraction.parentAttractionId || parentLoading) return;
+    setParentLoading(true);
+    getAttraction(attraction.parentAttractionId, token)
+      .then((parent) => onClick(parent as Attraction))
+      .finally(() => setParentLoading(false));
+  }
+
+  function handleToggleChildren(e: React.MouseEvent) {
+    e.stopPropagation();
+    setChildrenExpanded((prev) => !prev);
+    if (children === null && !childrenLoading) {
+      setChildrenLoading(true);
+      getChildAttractions(attraction._id, token)
+        .then((data) => setChildren(data as Attraction[]))
+        .catch(() => setChildren([]))
+        .finally(() => setChildrenLoading(false));
+    }
   }
 
   const showActions = !!onAddToTrip || (canEdit && (!!onEdit || !!onDelete)) || !!attraction.websiteUrl;
@@ -65,12 +94,16 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, onAddTo
             </span>
           )}
           {!!attraction.childAttractionCount && attraction.childAttractionCount > 0 && (
-            <span
-              className={`${styles.badge} ${styles.badgeChildren}`}
-              title={`Contains ${attraction.childAttractionCount} place${attraction.childAttractionCount === 1 ? "" : "s"}`}
+            <button
+              type="button"
+              className={`${styles.badge} ${styles.badgeChildren} ${styles.badgeChildrenButton}`}
+              onClick={handleToggleChildren}
+              aria-expanded={childrenExpanded}
+              title={`Contains ${attraction.childAttractionCount} place${attraction.childAttractionCount === 1 ? "" : "s"} — click to ${childrenExpanded ? "hide" : "view"}`}
+              aria-label={`${childrenExpanded ? "Hide" : "View"} the ${attraction.childAttractionCount} place${attraction.childAttractionCount === 1 ? "" : "s"} inside ${attraction.name}`}
             >
               <Layers size={12} aria-hidden="true" />
-            </span>
+            </button>
           )}
         </div>
 
@@ -130,12 +163,48 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, onAddTo
           </span>
         )}
         {attraction.parentAttractionId && attraction.parentAttractionName && (
-          <span className={styles.parentLine} title={`Part of "${attraction.parentAttractionName}"`}>
+          <button
+            type="button"
+            className={styles.parentLine}
+            onClick={handleOpenParent}
+            title={`View "${attraction.parentAttractionName}"`}
+            aria-label={`View details for ${attraction.parentAttractionName}, which ${attraction.name} is part of`}
+          >
             <Building2 size={11} aria-hidden="true" />
             {attraction.parentAttractionName}
-          </span>
+          </button>
         )}
       </div>
+
+      {childrenExpanded && (
+        <div className={styles.childrenSection}>
+          {childrenLoading ? (
+            <div className={styles.childrenLoading}>
+              <Spinner variant="icon" iconSize={14} />
+            </div>
+          ) : (
+            children?.map((child) => {
+              const childIcon = renderTypeIcon(findType(child.types?.[0] ?? "")?.icon ?? "Globe");
+              return (
+                <button
+                  type="button"
+                  key={child._id}
+                  className={styles.childRow}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClick(child);
+                  }}
+                  aria-label={`View details for ${child.name}`}
+                >
+                  <span className={styles.childRowIcon} aria-hidden="true">{childIcon}</span>
+                  <span className={styles.childRowName}>{child.name}</span>
+                  {child.city && <span className={styles.childRowCity}>{child.city}</span>}
+                </button>
+              );
+            })
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { getUserFromRequest } from "@/lib/auth";
 import { withApiHandler } from "@/lib/withApiHandler";
 import { corsPreflight } from "@/lib/cors";
 import { formatAttraction } from "@/models/Attraction";
-import { updateAttraction, deleteAttraction } from "@/lib/services/attractions.service";
+import { getAttractionById, updateAttraction, deleteAttraction } from "@/lib/services/attractions.service";
 import { isAttractionVisited } from "@/lib/services/visited.service";
 import { getUsedInTripNames } from "@/lib/services/usedInTrips.service";
 import { getParentName, getChildCount } from "@/lib/services/nestedAttractions.service";
@@ -13,6 +13,22 @@ interface RouteContext {
 }
 
 export const OPTIONS = corsPreflight;
+
+export const GET = withApiHandler<RouteContext>("GET /api/attractions/[id]", async (req, { params }) => {
+  const { id } = await params;
+
+  // Optional auth — mirrors GET /api/attractions, so isVisited/usedInTripNames resolve
+  // for a logged-in caller but the fetch still works for an anonymous one.
+  let userId: string | null = null;
+  try { userId = getUserFromRequest(req).userId; } catch { /* unauthenticated */ }
+
+  const attraction = await getAttractionById(id);
+  const isVisited = await isAttractionVisited(userId, attraction._id.toString());
+  const usedInTripNames = await getUsedInTripNames(userId, attraction._id.toString());
+  const parentAttractionName = await getParentName(attraction.parentAttractionId?.toString());
+  const childAttractionCount = await getChildCount(attraction._id.toString());
+  return NextResponse.json(formatAttraction(attraction, null, undefined, isVisited, usedInTripNames, parentAttractionName, childAttractionCount));
+});
 
 export const PUT = withApiHandler<RouteContext>("PUT /api/attractions/[id]", async (req, { params }) => {
   const { id } = await params;

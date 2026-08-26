@@ -28,6 +28,10 @@ export interface SearchAttractionsParams {
   q?: string | null;
   type?: string | null;
   ownerId?: string | null;
+  /** Restricts results to the direct children of this attraction (see
+   *  `nestedAttractions.service.ts` — one level of nesting only). Satisfies the "at
+   *  least one filter" gate on its own, same as country/city/type. */
+  parentAttractionId?: string | null;
   /** Pagination — skip/limit. limit is capped at the per-query-shape default cap below,
    *  so pagination narrows the page size, never exceeds the pre-existing result cap. */
   skip?: number | null;
@@ -56,10 +60,10 @@ export async function searchAttractions(
   userId: string | null,
   params: SearchAttractionsParams
 ): Promise<SearchAttractionsResult> {
-  const { country, city, q, type, ownerId, includeHidden } = params;
+  const { country, city, q, type, ownerId, parentAttractionId, includeHidden } = params;
 
-  if (!country?.trim() && !city?.trim() && !type?.trim()) {
-    throw badRequest("country, city, or type param is required");
+  if (!country?.trim() && !city?.trim() && !type?.trim() && !parentAttractionId?.trim()) {
+    throw badRequest("country, city, type, or parentAttractionId param is required");
   }
 
   await dbConnect();
@@ -97,6 +101,7 @@ export async function searchAttractions(
     filter.ownerId = ownerId.trim();
     filter.subtype = { $ne: "flight" };
   }
+  if (parentAttractionId?.trim()) filter.parentAttractionId = parentAttractionId.trim();
   if (hiddenIds.length > 0) filter._id = { $nin: hiddenIds };
 
   // Page size defaults to (and is capped at) the pre-existing per-query-shape limit —
@@ -123,6 +128,18 @@ export async function searchAttractions(
   ]);
 
   return { items, total, skip, limit };
+}
+
+/** Fetches one attraction by id — used for cross-navigation (e.g. opening a parent
+ *  attraction's own detail view from a child's "Part of X" chip), where only the id/name
+ *  is on hand and the full record is needed. No visibility filtering (unlike
+ *  `searchAttractions`) — matches the existing PUT/DELETE handlers' access model,
+ *  since this is public discovery data, not a private trip-planning detail. */
+export async function getAttractionById(id: string): Promise<IAttraction> {
+  await dbConnect();
+  const attraction = await Attraction.findById(id).populate("types");
+  if (!attraction) throw notFound("Attraction not found");
+  return attraction;
 }
 
 export interface CreateAttractionInput {
