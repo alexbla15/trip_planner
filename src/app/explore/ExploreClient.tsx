@@ -1,8 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Globe, Plus, ChevronLeft, SlidersHorizontal, X, Ruler, Footprints, Car, Bus, Loader2, Search, Check, Map as MapIcon, LayoutGrid, ChevronRight, Luggage } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback, useRef, useId } from "react";
+import { Globe, Plus, ChevronLeft, ChevronDown, SlidersHorizontal, X, Ruler, Footprints, Car, Bus, Loader2, Search, Check, Map as MapIcon, LayoutGrid, ChevronRight, Luggage } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useAttractionTypes } from "@/hooks";
@@ -115,6 +115,9 @@ export function ExploreClient() {
   const [selectedTypes, setSelectedTypes]           = useState<string[]>([]);
   const [visitedFilter, setVisitedFilter]           = useState<"all" | "visited" | "unvisited">("all");
   const [tripUsageFilter, setTripUsageFilter]       = useState<"all" | "used" | "unused">("all");
+  // Default open only if a filter is already active — never hide active filter state
+  // from the user, but otherwise keep the sidebar compact by default.
+  const [visitedPickerOpen, setVisitedPickerOpen]   = useState(false);
 
   // Measure-distance tool (available once a country is selected — see view guard below)
   const [measureMode, setMeasureMode]               = useState(false);
@@ -132,6 +135,7 @@ export function ExploreClient() {
   const measureSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const mapRef = useRef<MapHandle | null>(null);
+  const visitedPickerCollapseId = useId();
 
   // Fetch the route between the two selected measure points whenever either the
   // points or the travel mode change — mirrors TripDayMapWidget.tsx's leg-fetch effect.
@@ -791,77 +795,103 @@ export function ExploreClient() {
             </button>
           </div>
 
-          {/* Applies across the whole Explore experience (world/country/city), not just
-              a single city's attraction list — visited status is personal to the
-              logged-in user, hidden entirely for anonymous visitors. */}
+          {/* Visited status + "used in my trips" are both private per-user facts, hidden
+              entirely for anonymous visitors. Collapsible so the sidebar stays compact
+              when not in use — matching AttractionFilter's collapsible chip pattern
+              (chipFilterToggle/chipFilterCollapse) — but defaults open whenever a filter
+              is already active, so active state is never hidden from the user. */}
           {user && (
-            <div className={styles.chipGroup} role="radiogroup" aria-label="Filter by visited status">
+            <div>
               <button
                 type="button"
-                className={`${styles.chip} ${visitedFilter === "all" ? styles.chipActive : ""}`}
-                role="radio"
-                aria-checked={visitedFilter === "all"}
-                onClick={() => setVisitedFilter("all")}
+                className={styles.chipFilterToggle}
+                onClick={() => setVisitedPickerOpen((v) => !v)}
+                aria-expanded={visitedPickerOpen}
+                aria-controls={visitedPickerCollapseId}
               >
-                All
+                <SlidersHorizontal size={14} aria-hidden="true" />
+                Visited &amp; trip status
+                {(visitedFilter !== "all" || tripUsageFilter !== "all") && (
+                  <span className={styles.chipFilterBadge}>
+                    {(visitedFilter !== "all" ? 1 : 0) + (tripUsageFilter !== "all" ? 1 : 0)}
+                  </span>
+                )}
+                <ChevronDown
+                  size={14}
+                  aria-hidden="true"
+                  className={`${styles.chipFilterChevron} ${visitedPickerOpen ? styles.chipFilterChevronOpen : ""}`}
+                />
               </button>
-              <button
-                type="button"
-                className={`${styles.chip} ${visitedFilter === "visited" ? styles.chipActive : ""}`}
-                role="radio"
-                aria-checked={visitedFilter === "visited"}
-                onClick={() => setVisitedFilter("visited")}
+              <div
+                id={visitedPickerCollapseId}
+                className={`${styles.chipFilterCollapse} ${visitedPickerOpen ? styles.chipFilterCollapseOpen : ""}`}
               >
-                <Check size={12} aria-hidden="true" />
-                Visited
-              </button>
-              <button
-                type="button"
-                className={`${styles.chip} ${visitedFilter === "unvisited" ? styles.chipActive : ""}`}
-                role="radio"
-                aria-checked={visitedFilter === "unvisited"}
-                onClick={() => setVisitedFilter("unvisited")}
-              >
-                <X size={12} aria-hidden="true" />
-                Unvisited
-              </button>
-            </div>
-          )}
+                <div className={styles.chipFilterInner}>
+                  <div className={styles.chipGroup} role="radiogroup" aria-label="Filter by visited status">
+                    <button
+                      type="button"
+                      className={`${styles.chip} ${visitedFilter === "all" ? styles.chipActive : ""}`}
+                      role="radio"
+                      aria-checked={visitedFilter === "all"}
+                      onClick={() => setVisitedFilter("all")}
+                    >
+                      All
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.chip} ${visitedFilter === "visited" ? styles.chipActive : ""}`}
+                      role="radio"
+                      aria-checked={visitedFilter === "visited"}
+                      onClick={() => setVisitedFilter("visited")}
+                    >
+                      <Check size={12} aria-hidden="true" />
+                      Visited
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.chip} ${visitedFilter === "unvisited" ? styles.chipActive : ""}`}
+                      role="radio"
+                      aria-checked={visitedFilter === "unvisited"}
+                      onClick={() => setVisitedFilter("unvisited")}
+                    >
+                      <X size={12} aria-hidden="true" />
+                      Unvisited
+                    </button>
+                  </div>
 
-          {/* Same scope/pattern as the visited-status filter above — "used in trip" is
-              also a private per-user fact (Trip.attractionIds for the user's own trips),
-              hidden entirely for anonymous visitors. */}
-          {user && (
-            <div className={styles.chipGroup} role="radiogroup" aria-label="Filter by trip usage">
-              <button
-                type="button"
-                className={`${styles.chip} ${tripUsageFilter === "all" ? styles.chipActive : ""}`}
-                role="radio"
-                aria-checked={tripUsageFilter === "all"}
-                onClick={() => setTripUsageFilter("all")}
-              >
-                All
-              </button>
-              <button
-                type="button"
-                className={`${styles.chip} ${tripUsageFilter === "used" ? styles.chipActive : ""}`}
-                role="radio"
-                aria-checked={tripUsageFilter === "used"}
-                onClick={() => setTripUsageFilter("used")}
-              >
-                <Luggage size={12} aria-hidden="true" />
-                In my trips
-              </button>
-              <button
-                type="button"
-                className={`${styles.chip} ${tripUsageFilter === "unused" ? styles.chipActive : ""}`}
-                role="radio"
-                aria-checked={tripUsageFilter === "unused"}
-                onClick={() => setTripUsageFilter("unused")}
-              >
-                <X size={12} aria-hidden="true" />
-                Not in my trips
-              </button>
+                  <div className={styles.chipGroup} role="radiogroup" aria-label="Filter by trip usage">
+                    <button
+                      type="button"
+                      className={`${styles.chip} ${tripUsageFilter === "all" ? styles.chipActive : ""}`}
+                      role="radio"
+                      aria-checked={tripUsageFilter === "all"}
+                      onClick={() => setTripUsageFilter("all")}
+                    >
+                      All
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.chip} ${tripUsageFilter === "used" ? styles.chipActive : ""}`}
+                      role="radio"
+                      aria-checked={tripUsageFilter === "used"}
+                      onClick={() => setTripUsageFilter("used")}
+                    >
+                      <Luggage size={12} aria-hidden="true" />
+                      In my trips
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.chip} ${tripUsageFilter === "unused" ? styles.chipActive : ""}`}
+                      role="radio"
+                      aria-checked={tripUsageFilter === "unused"}
+                      onClick={() => setTripUsageFilter("unused")}
+                    >
+                      <X size={12} aria-hidden="true" />
+                      Not in my trips
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
