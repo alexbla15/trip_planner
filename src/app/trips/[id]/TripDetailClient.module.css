@@ -480,17 +480,26 @@
 .cardEditLink {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   color: var(--color-primary);
+  background: var(--color-primary-light);
+  border-radius: var(--radius-md);
   text-decoration: none;
   flex-shrink: 0;
-  transition: color var(--duration-fast) var(--easing-out);
+  transition: color var(--duration-fast) var(--easing-out),
+    background var(--duration-fast) var(--easing-out);
+}
+
+.cardEditLink svg {
+  width: 18px;
+  height: 18px;
 }
 
 .cardEditLink:hover {
-  color: var(--color-primary-dark);
+  color: #fff;
+  background: var(--color-primary);
 }
 
 .cardEditLink:focus-visible {
@@ -676,7 +685,7 @@
 
 .attractionItem {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   padding: 12px;
   border: 1px solid var(--color-border);
@@ -721,9 +730,8 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .attractionMeta {

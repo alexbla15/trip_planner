@@ -768,7 +768,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                     <h2 className={styles.sectionHeading}>Trip Overview</h2>
                     {effectiveCanEdit && (
                       <Link href={`/trips/${trip._id}/edit`} className={styles.cardEditLink} aria-label="Edit trip">
-                        <PenLine size={13} aria-hidden="true" />
+                        <PenLine size={18} aria-hidden="true" />
                       </Link>
                     )}
                   </div>
