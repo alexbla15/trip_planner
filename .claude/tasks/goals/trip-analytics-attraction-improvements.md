@@ -9,8 +9,8 @@ A batch of 14 fixes and enhancements across Analytics, Explore, Trip detail, and
 - [x] .claude/tasks/trip-detail-default-readonly.done.md
 - [x] .claude/tasks/trip-edit-button-icon-only.done.md
 - [x] .claude/tasks/attraction-card-title-wrap-mobile.done.md
-- [ ] .claude/tasks/analytics-top-explorers-mobile-fix.md
-- [ ] .claude/tasks/analytics-country-map-coloring-fix.md
+- [x] .claude/tasks/analytics-top-explorers-mobile-fix.done.md
+- [x] .claude/tasks/analytics-country-map-coloring-fix.done.md
 - [ ] .claude/tasks/explore-cities-order-by-attraction-count.md
 - [ ] .claude/tasks/nested-attractions-multi-level.md
 - [ ] .claude/tasks/nested-attractions-map-dedup-v2.md

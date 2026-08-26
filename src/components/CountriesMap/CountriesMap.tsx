@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import L from "leaflet";
 import { getWorldCountriesGeoJson } from "@/services";
+import { colorForBoundaryIndex } from "@/lib/mapBoundaryColors";
 import "leaflet/dist/leaflet.css";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -54,6 +55,18 @@ export function CountriesMap({ countries, countLabel = "attraction" }: Countries
     return map;
   }, [countries]);
 
+  // Same categorical palette + per-country assignment convention as Explore's world map
+  // (colorForBoundaryIndex, assigned by position in the countries list) instead of a
+  // single-hue intensity scale, so the two maps read consistently across the app.
+  const countryIndexMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    countries.forEach((c, i) => {
+      const key = c._id.toLowerCase();
+      map[COUNTRY_NAME_ALIASES[key] ?? key] = i;
+    });
+    return map;
+  }, [countries]);
+
   const maxCount = useMemo(
     () => Math.max(1, ...countries.map((c) => c.count)),
     [countries],
@@ -61,10 +74,12 @@ export function CountriesMap({ countries, countLabel = "attraction" }: Countries
 
   function getStyle(feature: GeoJSON.Feature | undefined): L.PathOptions {
     const name = (feature?.properties?.name ?? "") as string;
-    const count = countMap[name.toLowerCase()];
+    const key = name.toLowerCase();
+    const count = countMap[key];
     if (count) {
-      const opacity = 0.25 + (count / maxCount) * 0.55;
-      return { fillColor: "#0EA5E9", fillOpacity: opacity, color: "#ffffff", weight: 0.5, opacity: 0.6 };
+      const fillColor = colorForBoundaryIndex(countryIndexMap[key] ?? 0);
+      const fillOpacity = 0.35 + (count / maxCount) * 0.45;
+      return { fillColor, fillOpacity, color: "#ffffff", weight: 0.5, opacity: 0.6 };
     }
     return { fillColor: "#E2E8F0", fillOpacity: 0.6, color: "#CBD5E1", weight: 0.5, opacity: 0.5 };
   }

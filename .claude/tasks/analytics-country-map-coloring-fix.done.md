@@ -1,6 +1,6 @@
 # Task: Match Analytics countries map coloring to Explore
 
-Status: intake
+Status: done
 Track: B
 Track reason: visual consistency fix reusing an already-established coloring pattern from Explore — no new design decision.
 
@@ -20,3 +20,12 @@ The Analytics countries map uses the same coloring convention (color scale, per-
 
 ## Out of scope
 - Changing what metric the Analytics map visualizes.
+
+## Implementation Notes
+- Files created/modified: `src/components/CountriesMap/CountriesMap.tsx` — replaced the single-hue (`#0EA5E9` blue, opacity-only) fill scale with Explore's existing categorical palette (`colorForBoundaryIndex` from `src/lib/mapBoundaryColors.ts`), assigning each country a color by its position in the `countries` prop array (same "assign by index" convention Explore's world map already uses). Kept a count-based opacity ramp (`0.35 + (count/maxCount) * 0.45`) so relative attraction counts are still visually legible, unlike Explore's world view which uses fixed opacity — Analytics genuinely needs that intensity signal (it's the point of the map), so this is a deliberate adaptation of the reused convention rather than a 1:1 copy.
+- Deviations from brief: none — reused the existing shared palette/function rather than duplicating or reinventing color logic.
+- New design tokens used: none.
+- Verified: `next build` succeeds; confirmed `CountriesMap` is indeed the component Analytics renders (`AnalyticsClient.tsx` dynamic import) so this single change covers Analytics' countries map.
+
+## Completion Summary
+Analytics' countries map now uses the same categorical color palette as Explore's world map (assigned per-country by list position) instead of a single blue intensity scale, while keeping a count-based opacity ramp so the metric it visualizes stays legible. Closed 2026-08-26.

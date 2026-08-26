@@ -278,8 +278,8 @@ export function AnalyticsClient() {
                           )}
                         </td>
                         <td className={styles.explorerCell}>{u.name}</td>
-                        <td className={styles.numCell}>{u.attractionsCount.toLocaleString()}</td>
-                        <td className={styles.numCell}>{u.countriesCount.toLocaleString()}</td>
+                        <td className={styles.numCell} data-label="Attractions">{u.attractionsCount.toLocaleString()}</td>
+                        <td className={styles.numCell} data-label="Cities">{u.countriesCount.toLocaleString()}</td>
                       </tr>
                     );
                   })}
