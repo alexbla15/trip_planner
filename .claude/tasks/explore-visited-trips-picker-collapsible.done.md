@@ -33,3 +33,10 @@ The visited / "in my trips" picker in Explore can be collapsed to a compact head
 
 ## Completion Summary
 Explore's visited-status and trip-usage filters now collapse under one "Visited & trip status" toggle with an active-count badge, reusing AttractionFilter's exact collapse pattern; defaults collapsed since both filters start inactive. Closed 2026-08-26.
+
+## Revision (post-close user feedback)
+User asked to also move the existing "Category/Type" filter (`AttractionFilter` with `collapsible`) to sit directly under the new "Visited & trip status" toggle, and style its foldable header consistently:
+- Deduplicated the `AttractionFilter` instance — it was previously rendered twice (once inside the country-view block, once inside city-view), both driven by the same view-agnostic `availableCategories`/`availableTypes` memos. Hoisted to a single instance in `sidebarHeader`, right after the visited/trip-status toggle, removing both duplicates.
+- Set `collapsibleLabel="Category & type"` to match the "X & Y" phrasing of the new "Visited & trip status" label — both toggles now share identical CSS classes, icon, chevron, and badge behavior.
+- Fixed a padding/alignment mismatch: the `AttractionFilter` was wrapped in `.filterSection` (its own `12px 16px 16px` padding + top border), double-applying padding on top of `sidebarHeader`'s own `20px 16px 12px` + `10px` flex gap that already spaces out the visited/trip-status block. Removed the `.filterSection` wrapper so both toggles align identically.
+Verified via `next build` after each change.

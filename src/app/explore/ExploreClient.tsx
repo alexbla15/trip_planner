@@ -894,6 +894,26 @@ export function ExploreClient() {
               </div>
             </div>
           )}
+
+          {/* Category/type filter chips — scoped to the current country/city selection
+              (empty categories/types hide it automatically at world view). Rendered once
+              here, right under the visited/trip-status picker, instead of duplicated
+              inside both the country- and city-view blocks below. */}
+          {(availableCategories.length > 0 || availableTypes.length > 0) && (
+            <AttractionFilter
+              hideSearch
+              collapsible
+              collapsibleLabel="Category & type"
+              categories={availableCategories}
+              selectedCategories={selectedCategories}
+              onCategoriesChange={handleCategoriesChange}
+              categoryLabel="Categories"
+              types={availableTypes}
+              selectedTypes={selectedTypes}
+              onTypesChange={setSelectedTypes}
+              typeLabel="Types"
+            />
+          )}
         </div>
 
         {/* ── Scrollable content area ── */}
@@ -971,23 +991,6 @@ export function ExploreClient() {
                 </p>
               )}
 
-              {(availableCategories.length > 0 || availableTypes.length > 0) && (
-                <div className={styles.filterSection}>
-                  <AttractionFilter
-                    hideSearch
-                    collapsible
-                    categories={availableCategories}
-                    selectedCategories={selectedCategories}
-                    onCategoriesChange={handleCategoriesChange}
-                    categoryLabel="Categories"
-                    types={availableTypes}
-                    selectedTypes={selectedTypes}
-                    onTypesChange={setSelectedTypes}
-                    typeLabel="Types"
-                  />
-                </div>
-              )}
-
               <div className={styles.cityList}>
                 <span className={styles.cityListLabel}>Cities</span>
                 {citiesInCountry.map((c) => (
@@ -1017,23 +1020,6 @@ export function ExploreClient() {
                 {filteredAttractions.length} of {cityAttractions.length} attraction
                 {cityAttractions.length !== 1 ? "s" : ""}
               </p>
-
-              {(availableCategories.length > 0 || availableTypes.length > 0) && (
-                <div className={styles.filterSection}>
-                  <AttractionFilter
-                    hideSearch
-                    collapsible
-                    categories={availableCategories}
-                    selectedCategories={selectedCategories}
-                    onCategoriesChange={handleCategoriesChange}
-                    categoryLabel="Categories"
-                    types={availableTypes}
-                    selectedTypes={selectedTypes}
-                    onTypesChange={setSelectedTypes}
-                    typeLabel="Types"
-                  />
-                </div>
-              )}
 
               {filteredAttractions.length === 0 && cityAttractions.length > 0 && (
                 <p className={styles.worldPrompt}>No attractions match the selected filters.</p>
