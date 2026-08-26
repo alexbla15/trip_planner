@@ -241,7 +241,12 @@ export function ExploreClient() {
   }, [visibleCities, visitedFilter, tripUsageFilter]);
 
   const citiesInCountry = useMemo(
-    () => (selectedCountry ? visibleCities.filter((c) => c.country === selectedCountry) : []),
+    () =>
+      selectedCountry
+        ? visibleCities
+            .filter((c) => c.country === selectedCountry)
+            .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+        : [],
     [visibleCities, selectedCountry]
   );
 

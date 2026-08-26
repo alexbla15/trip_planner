@@ -1,6 +1,6 @@
 # Task: Order cities in Explore by attraction count, then name
 
-Status: intake
+Status: done
 Track: B
 Track reason: pure sort-order logic change, no visual change.
 
@@ -20,3 +20,12 @@ Wherever cities are listed in `/explore` (e.g. the country view's city picker/li
 
 ## Out of scope
 - Changing how attraction counts are computed or displayed elsewhere.
+
+## Implementation Notes
+- Files created/modified: `src/app/explore/ExploreClient.tsx` — `citiesInCountry` now sorts by `count` descending, tie-broken by `name.localeCompare` ascending, instead of preserving whatever order `visibleCities` returned in.
+- Deviations from task requirements: none — `CityEntry.count` (already computed server-side and used for the city-count badge) is reused directly, no new count computation.
+- New design tokens used: none.
+- Verified: `next build` succeeds.
+
+## Completion Summary
+Cities under a selected country in Explore are now ordered by attraction count descending, then alphabetically. Closed 2026-08-26.
