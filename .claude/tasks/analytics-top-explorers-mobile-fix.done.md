@@ -31,3 +31,6 @@ The top explorers view on Analytics renders correctly and is fully usable on pho
 
 ## Completion Summary
 Top Explorers on Analytics now renders as a stacked, labeled card list per row on phone-width viewports (≤480px) instead of forcing a cramped horizontal-scrolling table. Desktop/tablet table layout is unchanged. Closed 2026-08-26.
+
+## Revision (post-close user feedback)
+User reported rank and name rendered squished together with no gap ("1Alex Blahman"). Root cause: a CSS specificity bug in the original fix — `.table, .table tbody, .table tr { display: block }` (a 2-class compound selector on the `tr`) had *higher* specificity than `.row { display: flex }` (1 class, also applied to the `tr`), so the `tr` never actually became a flex container despite `.row`'s rule — the `gap` never applied. Fixed by removing `tr` from the compound `display: block` selector (only `.table`/`.table tbody` need it) so `.row`'s own `display: flex` takes effect uncontested. Verified via `next build`.
