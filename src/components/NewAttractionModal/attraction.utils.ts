@@ -24,5 +24,6 @@ export function attractionToFormData(a: Attraction): AttractionFormData {
     websiteUrl: a.websiteUrl ?? "",
     parentAttractionId: a.parentAttractionId ?? null,
     parentAttractionName: a.parentAttractionName ?? null,
+    subtype: a.subtype,
   };
 }

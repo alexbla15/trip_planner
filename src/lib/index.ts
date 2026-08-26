@@ -60,7 +60,9 @@ export {
 export type { TypeFormState, CategoryFormState, MoodTagFormState } from "./adminForms";
 export { typeFormFromRecord, catFormFromRecord, moodFormFromRecord } from "./adminForms";
 
-export { residenceMeta, flightMeta } from "./attractionDisplay";
+export { flightMeta } from "./attractionDisplay";
+
+export { getNightsCount } from "./residence";
 
 export { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h, isPermanentlyClosed, getUniformHoursLabel } from "./openingHours";
 

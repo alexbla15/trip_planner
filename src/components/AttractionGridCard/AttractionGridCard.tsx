@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, Building2 } from "lucide-react";
+import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, Building2, Calendar, Wallet } from "lucide-react";
 import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
 import { Spinner } from "@/components/Spinner";
 import { getAttraction, getChildAttractions } from "@/services";
 import { useAttractionTypes } from "@/hooks";
+import { formatDisplayDate, formatPrice, getNightsCount } from "@/lib";
 import type { Attraction } from "@/types/attraction";
 import styles from "./AttractionGridCard.module.css";
 import type { AttractionGridCardProps } from "./AttractionGridCard.types";
@@ -17,6 +18,8 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
   const hasPhoto = !!attraction.photoUrl?.startsWith("http");
   const icon = renderTypeIcon(findType(attraction.types?.[0] ?? "")?.icon ?? "Globe");
   const canEdit = !!currentUserId && attraction.ownerId === currentUserId;
+  const isResidence = attraction.subtype === "residence";
+  const nights = isResidence ? getNightsCount(attraction.checkInDate, attraction.checkOutDate) : null;
 
   const [childrenExpanded, setChildrenExpanded] = useState(false);
   const [childrenLoading, setChildrenLoading] = useState(false);
@@ -161,6 +164,30 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
             <MapPin size={11} aria-hidden="true" />
             {attraction.city}
           </span>
+        )}
+        {isResidence && (
+          <div className={styles.residenceBlock}>
+            {attraction.residenceType && (
+              <span className={styles.residenceTypeChip}>{attraction.residenceType}</span>
+            )}
+            {(attraction.checkInDate || attraction.checkOutDate) && (
+              <span className={styles.residenceDates}>
+                <Calendar size={11} aria-hidden="true" />
+                {attraction.checkInDate && attraction.checkOutDate
+                  ? `${formatDisplayDate(attraction.checkInDate)} → ${formatDisplayDate(attraction.checkOutDate)}`
+                  : formatDisplayDate(attraction.checkInDate ?? attraction.checkOutDate!)}
+                {nights != null && nights > 0 && (
+                  <span className={styles.residenceNights}>{nights}n</span>
+                )}
+              </span>
+            )}
+            {attraction.price != null && (
+              <span className={styles.residencePrice}>
+                <Wallet size={11} aria-hidden="true" />
+                {formatPrice(attraction.price, attraction.currency ?? "USD")}
+              </span>
+            )}
+          </div>
         )}
         {attraction.parentAttractionId && attraction.parentAttractionName && (
           <button

@@ -37,6 +37,12 @@ import styles from "./NewAttractionModal.module.css";
 
 const HEADING_ID = "new-attraction-modal-title";
 
+function build24hHours(): OpeningHours {
+  return Object.fromEntries(
+    DAY_KEYS.map((d) => [d, { closed: false, ranges: [{ open: "00:00", close: "23:59" }] }])
+  ) as OpeningHours;
+}
+
 interface FieldErrors {
   name?: string;
   country?: string;
@@ -46,6 +52,13 @@ interface FieldErrors {
 
 export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, prefillCountry, prefillCity, initialData, initialCoordinates, editingAttractionId, token }: NewAttractionModalProps) {
   const isEditMode = Boolean(initialData);
+  // Residences are always treated as open 24/7 — hotels/apartments aren't meaningfully
+  // "closed" the way a museum is, so there's no reason to expose hour/month pickers for
+  // them. Price and duration are also per-trip concerns for a residence (see
+  // AddResidenceModal/IScheduleEntry), not shared-document ones, so this generic edit
+  // form (reached e.g. via Explore's "Edit" button on any attraction, including a
+  // residence someone else added) hides them rather than risk editing the wrong thing.
+  const isEditingResidence = initialData?.subtype === "residence";
 
   const [name, setName] = useState("");
   const [country, setCountry] = useState(defaultCountry ?? "");
@@ -115,19 +128,22 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setDurationUnit(initialData?.durationUnit ?? "hours");
     setPrice(initialData?.price ?? null);
     setCurrency(initialData?.currency ?? "USD");
-    const loadedHours = hasOpeningHoursData(initialData?.openingHours)
-      ? normalizeOpeningHours(initialData?.openingHours)
-      : buildInitialHours();
+    const isResidence = initialData?.subtype === "residence";
+    const loadedHours = isResidence
+      ? build24hHours() // residences are always "open" — no per-day pickers for them
+      : hasOpeningHoursData(initialData?.openingHours)
+        ? normalizeOpeningHours(initialData?.openingHours)
+        : buildInitialHours();
     setOpeningHours(loadedHours);
     const loadedMonths = initialData?.openingMonths?.length ? initialData.openingMonths : ALL_MONTHS;
     setOpeningMonths(loadedMonths);
-    setYearRound(isYearRound(initialData?.openingMonths));
+    setYearRound(isResidence ? true : isYearRound(initialData?.openingMonths));
     setNotes(initialData?.notes ?? "");
     setPhotoUrl(initialData?.photoUrl ?? "");
     setWebsiteUrl(initialData?.websiteUrl ?? "");
     setErrors({});
     setTouched({});
-    setIs24h(isAllDay24h(loadedHours));
+    setIs24h(isResidence ? true : isAllDay24h(loadedHours));
     // Pre-fill just the location (e.g. from a dropped map pin) without entering edit
     // mode — reuses the same reverse-geocode auto-fill as a user-driven map click.
     if (!initialData && initialCoordinates) {
@@ -138,13 +154,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
 
   function handle24hToggle(checked: boolean) {
     setIs24h(checked);
-    if (checked) {
-      setOpeningHours(
-        Object.fromEntries(
-          DAY_KEYS.map((d) => [d, { closed: false, ranges: [{ open: "00:00", close: "23:59" }] }])
-        ) as OpeningHours
-      );
-    }
+    if (checked) setOpeningHours(build24hHours());
   }
 
   function handleHoursChange(hours: OpeningHours) {
@@ -452,105 +462,116 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
         </div>
       )}
 
-      {/* Duration */}
-      <div className={styles.field}>
-        <label className={styles.labelWithIcon}>
-          <Timer size={14} aria-hidden="true" />
-          Duration
-        </label>
-        <div className={styles.durationRow}>
-          <input
-            id="attraction-duration"
-            type="number"
-            min="1"
-            placeholder="e.g. 2"
-            value={durationValue}
-            onChange={(e) => setDurationValue(e.target.value)}
-            className={styles.durationInput}
-            aria-label="Duration value"
-          />
-          <div className={styles.selectWrapper}>
-            <select
-              value={durationUnit}
-              onChange={(e) => setDurationUnit(e.target.value as DurationUnit)}
-              className={styles.durationSelect}
-              aria-label="Duration unit"
-            >
-              <option value="minutes">minutes</option>
-              <option value="hours">hours</option>
-            </select>
-            <ChevronDown
-              size={16}
-              className={styles.selectIcon}
-              aria-hidden="true"
+      {/* Duration — omitted for a residence: duration is a per-trip stay concern
+          (see AddResidenceModal/IScheduleEntry), not a shared-document one. */}
+      {!isEditingResidence && (
+        <div className={styles.field}>
+          <label className={styles.labelWithIcon}>
+            <Timer size={14} aria-hidden="true" />
+            Duration
+          </label>
+          <div className={styles.durationRow}>
+            <input
+              id="attraction-duration"
+              type="number"
+              min="1"
+              placeholder="e.g. 2"
+              value={durationValue}
+              onChange={(e) => setDurationValue(e.target.value)}
+              className={styles.durationInput}
+              aria-label="Duration value"
+            />
+            <div className={styles.selectWrapper}>
+              <select
+                value={durationUnit}
+                onChange={(e) => setDurationUnit(e.target.value as DurationUnit)}
+                className={styles.durationSelect}
+                aria-label="Duration unit"
+              >
+                <option value="minutes">minutes</option>
+                <option value="hours">hours</option>
+              </select>
+              <ChevronDown
+                size={16}
+                className={styles.selectIcon}
+                aria-hidden="true"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Price — omitted for a residence: price is a per-trip stay concern, edited via
+          AddResidenceModal within the trip, not here. */}
+      {!isEditingResidence && (
+        <div className={styles.field}>
+          <label htmlFor="attraction-price" className={styles.labelWithIcon}>
+            <Wallet size={14} aria-hidden="true" />
+            Price
+          </label>
+          <div className={styles.priceRow}>
+            <CurrencySelect value={currency} onChange={setCurrency} />
+            <input
+              id="attraction-price"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              value={price ?? ""}
+              onChange={(e) =>
+                setPrice(e.target.value === "" ? null : parseFloat(e.target.value))
+              }
+              className={styles.priceInput}
+              aria-label="Price amount"
             />
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Price */}
-      <div className={styles.field}>
-        <label htmlFor="attraction-price" className={styles.labelWithIcon}>
-          <Wallet size={14} aria-hidden="true" />
-          Price
-        </label>
-        <div className={styles.priceRow}>
-          <CurrencySelect value={currency} onChange={setCurrency} />
-          <input
-            id="attraction-price"
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="0.00"
-            value={price ?? ""}
-            onChange={(e) =>
-              setPrice(e.target.value === "" ? null : parseFloat(e.target.value))
-            }
-            className={styles.priceInput}
-            aria-label="Price amount"
-          />
+      {/* Opening Hours — omitted for a residence: always treated as open 24/7, no
+          per-day pickers needed. */}
+      {!isEditingResidence && (
+        <div className={styles.field}>
+          <div className={styles.labelRow}>
+            <span className={styles.labelWithIcon}>
+              <Clock size={14} aria-hidden="true" />
+              Opening Hours
+            </span>
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={is24h}
+              className={`${styles.toggle24h} ${is24h ? styles.toggle24hActive : ""}`}
+              onClick={() => handle24hToggle(!is24h)}
+            >
+              24/7
+            </button>
+          </div>
+          {!is24h && <OpeningHoursGrid value={openingHours} onChange={handleHoursChange} />}
         </div>
-      </div>
+      )}
 
-      {/* Opening Hours */}
-      <div className={styles.field}>
-        <div className={styles.labelRow}>
-          <span className={styles.labelWithIcon}>
-            <Clock size={14} aria-hidden="true" />
-            Opening Hours
-          </span>
-          <button
-            type="button"
-            role="checkbox"
-            aria-checked={is24h}
-            className={`${styles.toggle24h} ${is24h ? styles.toggle24hActive : ""}`}
-            onClick={() => handle24hToggle(!is24h)}
-          >
-            24/7
-          </button>
+      {/* Opening Months — omitted for a residence: always treated as year-round. */}
+      {!isEditingResidence && (
+        <div className={styles.field}>
+          <div className={styles.labelRow}>
+            <span className={styles.labelWithIcon}>
+              <Calendar size={14} aria-hidden="true" />
+              Opening Months
+            </span>
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={yearRound}
+              className={`${styles.toggle24h} ${yearRound ? styles.toggle24hActive : ""}`}
+              onClick={() => setYearRound(!yearRound)}
+            >
+              Year-round
+            </button>
+          </div>
+          {!yearRound && <MonthsGrid value={openingMonths} onChange={setOpeningMonths} />}
         </div>
-        {!is24h && <OpeningHoursGrid value={openingHours} onChange={handleHoursChange} />}
-      </div>
-
-      {/* Opening Months */}
-      <div className={styles.field}>
-        <div className={styles.labelRow}>
-          <span className={styles.labelWithIcon}>
-            <Calendar size={14} aria-hidden="true" />
-            Opening Months
-          </span>
-          <button
-            type="button"
-            role="checkbox"
-            aria-checked={yearRound}
-            className={`${styles.toggle24h} ${yearRound ? styles.toggle24hActive : ""}`}
-            onClick={() => setYearRound(!yearRound)}
-          >
-            Year-round
-          </button>
-        </div>
-        {!yearRound && <MonthsGrid value={openingMonths} onChange={setOpeningMonths} />}
-      </div>
+      )}
 
       {/* Notes / Comments */}
       <div className={styles.field}>

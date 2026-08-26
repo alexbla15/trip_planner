@@ -1,14 +1,5 @@
 import { formatDisplayDate } from "./formatDate";
-import { formatPrice } from "./currencies";
 import type { Attraction } from "@/types/attraction";
-
-export function residenceMeta(a: Attraction): string {
-  const checkIn  = a.checkInDate  ? formatDisplayDate(a.checkInDate)  : "";
-  const checkOut = a.checkOutDate ? formatDisplayDate(a.checkOutDate) : "";
-  const dates    = checkIn && checkOut ? `${checkIn} → ${checkOut}` : checkIn || checkOut;
-  const price    = a.price != null ? formatPrice(a.price, a.currency ?? "USD") : "";
-  return [a.residenceType, dates, a.city, price].filter(Boolean).join(" · ");
-}
 
 export function flightMeta(a: Attraction): string {
   const route = [a.departureAirport, a.arrivalAirport].filter(Boolean).join(" → ");

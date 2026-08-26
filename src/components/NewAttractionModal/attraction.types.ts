@@ -81,6 +81,12 @@ export interface AttractionFormData {
    *  edit mode can show the picked parent without an extra fetch — never sent to the API. */
   parentAttractionId: string | null;
   parentAttractionName?: string | null;
+  /** Display-only, like parentAttractionName — never edited/sent by this form. Used to
+   *  detect "this attraction is a residence" so the form can hide fields that are
+   *  meaningless on the shared document for a residence (opening hours/months are
+   *  always-24/7 by convention; price/duration are per-trip, not shared-document,
+   *  concerns for a residence). */
+  subtype?: "residence" | "flight" | "custom-slot";
 }
 
 export interface NewAttractionModalProps {

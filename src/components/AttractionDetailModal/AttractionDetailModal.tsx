@@ -337,15 +337,9 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
           {/* Info grid */}
           <div className={styles.infoGrid}>
             {/* ── Residence-specific fields ── */}
-            {isResidence && attraction.residenceType && (
-              <div className={styles.infoItem}>
-                <span className={styles.infoIconBubble}><BedDouble size={15} aria-hidden="true" /></span>
-                <span className={styles.infoText}>
-                  <span className={styles.infoLabel}>Type</span>
-                  <span className={styles.infoValue}>{attraction.residenceType}</span>
-                </span>
-              </div>
-            )}
+            {/* residenceType is deliberately not repeated here — it's already shown as
+                a type chip in the Types row above (types=[residenceType] for residences),
+                so a second "Type" info item here would just duplicate it. */}
             {isResidence && attraction.checkInDate && (
               <div className={styles.infoItem}>
                 <span className={styles.infoIconBubble}><Calendar size={15} aria-hidden="true" /></span>
