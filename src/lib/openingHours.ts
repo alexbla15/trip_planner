@@ -66,3 +66,22 @@ export function isAllDay24h(hours: Record<string, OpeningHoursDay>): boolean {
 export function isPermanentlyClosed(hours: Record<string, OpeningHoursDay>): boolean {
   return DAY_KEYS.every((day) => !!hours[day]?.closed);
 }
+
+/** When every day of the week is open with the exact same ranges, returns a single
+ *  condensed summary (e.g. "Every day: 9:00 – 17:00") for read-only display instead of
+ *  repeating an identical line 7 times. Returns null for any other case (some days
+ *  closed, or days with different ranges) — callers fall back to the full per-day list.
+ *  A partial match (e.g. 6 of 7 days identical) still returns null; only an exact 7/7
+ *  match collapses. */
+export function getUniformHoursLabel(hours: Record<string, OpeningHoursDay>): string | null {
+  const days = DAY_KEYS.map((day) => hours[day]);
+  if (days.some((d) => !d || d.closed || !d.ranges?.length)) return null;
+
+  const [first, ...rest] = days as OpeningHoursDay[];
+  const sameRanges = (a: OpeningHoursRange[], b: OpeningHoursRange[]) =>
+    a.length === b.length && a.every((r, i) => r.open === b[i].open && r.close === b[i].close);
+  if (!rest.every((d) => sameRanges(d.ranges, first.ranges))) return null;
+
+  const rangesLabel = first.ranges.map((r) => `${r.open} – ${r.close}`).join(", ");
+  return `Every day: ${rangesLabel}`;
+}

@@ -1,6 +1,6 @@
 # Task: Collapse identical daily hours into one summary line
 
-Status: intake
+Status: reviewing
 Track: B
 Track reason: Pure display/formatting logic change on existing read-only hours output — no new visual pattern, reuses existing text style.
 
@@ -21,3 +21,14 @@ When an attraction is open every day of the week with the exact same ranges, the
 
 ## Out of scope
 - Collapsing partial groupings (e.g. "Mon–Fri: 9–17, Sat–Sun: 10–14") — only the fully-uniform 7/7 case is required by this task.
+
+## Implementation Notes
+- Files created/modified:
+  - `src/lib/openingHours.ts` — added `getUniformHoursLabel(hours)`: returns `"Every day: 9:00 – 17:00"`-style string when all 7 days are open (not closed) with identical range arrays, else `null`. Reuses the existing `${r.open} – ${r.close}` join format already used by the per-day table.
+  - `src/lib/index.ts` — barrel export.
+  - `src/components/AttractionDetailModal/AttractionDetailModal.tsx` + `.module.css` — the only reader of the per-day breakdown (confirmed via grep for `hoursTable`/`hoursRow` across `src/`). Branches on `getUniformHoursLabel(attraction.openingHours)`: renders the condensed line (new `.uniformHours` style, inside the existing `.hoursCard` bordered container for visual consistency) when non-null, the original day-by-day table otherwise.
+  - `OpeningHoursGrid.tsx` (edit form) — untouched, as required; still shows all 7 day rows for editing.
+- Deviations from task requirements: none.
+- New design tokens used: none — `.uniformHours` reuses the existing `.notes` paragraph's font-size/color/line-height convention.
+
+Verified with `npx tsc --noEmit` (clean) and `npx eslint` on all changed files (clean).

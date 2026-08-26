@@ -25,6 +25,31 @@
   color: var(--color-text-primary);
 }
 
+.copyButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--duration-fast) var(--easing-out);
+}
+
+.copyButton:hover {
+  color: var(--color-primary);
+}
+
+.copyButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .closedControl {
   display: flex;
   align-items: center;

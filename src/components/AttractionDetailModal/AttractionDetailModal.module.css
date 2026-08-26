@@ -437,6 +437,14 @@
   overflow: hidden;
 }
 
+.uniformHours {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin: 0;
+  padding: 10px 12px;
+}
+
 .hoursTable {
   width: 100%;
   border-collapse: collapse;

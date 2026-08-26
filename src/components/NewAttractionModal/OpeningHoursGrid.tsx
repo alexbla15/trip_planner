@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, X } from "lucide-react";
+import { Copy, Plus, X } from "lucide-react";
 import type { DayKey, OpeningHours, OpeningHoursRange } from "./attraction.types";
 import { DAY_KEYS } from "./attraction.constants";
 import styles from "./OpeningHoursGrid.module.css";
@@ -19,6 +19,7 @@ interface DayRowProps {
   onRangeChange: (rangeIndex: number, field: "open" | "close", val: string) => void;
   onAddRange: () => void;
   onRemoveRange: (rangeIndex: number) => void;
+  onCopyToAllDays: () => void;
 }
 
 function DayRow({
@@ -30,6 +31,7 @@ function DayRow({
   onRangeChange,
   onAddRange,
   onRemoveRange,
+  onCopyToAllDays,
 }: DayRowProps) {
   const toggleId = `hours-closed-${day}`;
 
@@ -38,6 +40,16 @@ function DayRow({
       <span className={styles.dayLabel} aria-label={day}>
         {day}
       </span>
+
+      <button
+        type="button"
+        onClick={onCopyToAllDays}
+        aria-label={`Apply ${day}'s hours to every day`}
+        title={`Apply ${day}'s hours to every day`}
+        className={styles.copyButton}
+      >
+        <Copy size={13} />
+      </button>
 
       <div className={styles.closedControl}>
         <button
@@ -135,6 +147,17 @@ export function OpeningHoursGrid({ value, onChange }: OpeningHoursGridProps) {
     });
   }
 
+  /** Copies one day's closed/ranges onto every day — a shortcut for the common "same
+   *  hours every day" case, so the user doesn't have to re-enter identical ranges 7 times. */
+  function handleCopyToAllDays(day: DayKey) {
+    const source = value[day];
+    onChange(
+      Object.fromEntries(
+        DAY_KEYS.map((d) => [d, { closed: source.closed, ranges: structuredClone(source.ranges) }])
+      ) as OpeningHours
+    );
+  }
+
   return (
     <div className={styles.grid} role="group" aria-label="Opening hours by day">
       {DAY_KEYS.map((day, i) => (
@@ -148,6 +171,7 @@ export function OpeningHoursGrid({ value, onChange }: OpeningHoursGridProps) {
           onRangeChange={(rangeIndex, field, val) => handleRangeChange(day, rangeIndex, field, val)}
           onAddRange={() => handleAddRange(day)}
           onRemoveRange={(rangeIndex) => handleRemoveRange(day, rangeIndex)}
+          onCopyToAllDays={() => handleCopyToAllDays(day)}
         />
       ))}
     </div>

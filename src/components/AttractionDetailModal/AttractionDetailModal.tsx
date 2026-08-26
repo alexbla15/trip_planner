@@ -36,7 +36,7 @@ const LocationViewMap = dynamic(
 );
 import type { AttractionType } from "@/components/NewAttractionModal";
 import type { Attraction } from "@/types/attraction";
-import { formatDisplayDate, formatPrice, getStatusChips } from "@/lib";
+import { formatDisplayDate, formatPrice, getStatusChips, getUniformHoursLabel } from "@/lib";
 import styles from "./AttractionDetailModal.module.css";
 
 const DAY_KEYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
@@ -88,6 +88,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   const isResidence = attraction.subtype === "residence";
   const isFlight    = attraction.subtype === "flight";
   const statusChips = getStatusChips(attraction.openingHours, attraction.openingMonths);
+  const uniformHoursLabel = attraction.openingHours ? getUniformHoursLabel(attraction.openingHours) : null;
 
   const firstType = attraction.types?.[0] as AttractionType | undefined;
   const typeIcon = isResidence && !firstType
@@ -382,33 +383,39 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                 <Clock size={14} aria-hidden="true" />
                 Opening Hours
               </h3>
-              <div className={styles.hoursCard}>
-                <table className={styles.hoursTable} aria-label="Opening hours">
-                  <tbody>
-                    {DAY_KEYS.map((day) => {
-                      const row = attraction.openingHours?.[day];
-                      const isToday = day === todayKey;
-                      return (
-                        <tr key={day} className={`${styles.hoursRow} ${isToday ? styles.hoursRowToday : ""}`}>
-                          <td className={styles.hoursDay}>
-                            <span className={styles.hoursDayInner}>
-                              {day}
-                              {isToday && <span className={styles.todayPill}>Today</span>}
-                            </span>
-                          </td>
-                          <td className={styles.hoursTime}>
-                            {row?.closed || !row?.ranges?.length ? (
-                              <span className={styles.closed}>Closed</span>
-                            ) : (
-                              row.ranges.map((r) => `${r.open} – ${r.close}`).join(", ")
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              {uniformHoursLabel ? (
+                <div className={styles.hoursCard}>
+                  <p className={styles.uniformHours}>{uniformHoursLabel}</p>
+                </div>
+              ) : (
+                <div className={styles.hoursCard}>
+                  <table className={styles.hoursTable} aria-label="Opening hours">
+                    <tbody>
+                      {DAY_KEYS.map((day) => {
+                        const row = attraction.openingHours?.[day];
+                        const isToday = day === todayKey;
+                        return (
+                          <tr key={day} className={`${styles.hoursRow} ${isToday ? styles.hoursRowToday : ""}`}>
+                            <td className={styles.hoursDay}>
+                              <span className={styles.hoursDayInner}>
+                                {day}
+                                {isToday && <span className={styles.todayPill}>Today</span>}
+                              </span>
+                            </td>
+                            <td className={styles.hoursTime}>
+                              {row?.closed || !row?.ranges?.length ? (
+                                <span className={styles.closed}>Closed</span>
+                              ) : (
+                                row.ranges.map((r) => `${r.open} – ${r.close}`).join(", ")
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 
