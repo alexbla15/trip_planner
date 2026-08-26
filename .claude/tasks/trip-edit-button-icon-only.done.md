@@ -29,3 +29,6 @@ The "Edit trip" control on `trips/[id]` renders as an icon-only button (its exis
 
 ## Completion Summary
 "Edit trip" on trips/[id] is now icon-only (PenLine icon) with an accessible label, same click behavior and edit-mode gating as before. Closed 2026-08-26.
+
+## Revision (post-close user feedback)
+User reported the icon was too small/unnoticeable. Gave `.cardEditLink` explicit button chrome instead of a bare inline icon: fixed 32x32px hit area, `var(--color-primary-light)` background, `var(--radius-md)` corners, hover inverts to solid `var(--color-primary)` background with white icon (matching the `.editBtn` hover pattern already used for per-row edit buttons elsewhere in this file). Bumped the `PenLine` icon itself from `size={13}` to `size={18}`. Verified via `next build`.

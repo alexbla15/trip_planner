@@ -40,7 +40,7 @@
   padding: 18px 20px 14px;
   border-bottom: 1px solid var(--color-border-subtle);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   z-index: 1;
@@ -48,7 +48,7 @@
 
 .headerTitle {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   min-width: 0;
 }
@@ -71,9 +71,8 @@
   font-weight: 700;
   color: var(--color-text-primary);
   margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .headerActions {

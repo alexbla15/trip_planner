@@ -29,3 +29,9 @@ Attraction card titles wrap cleanly onto multiple lines on mobile instead of bei
 
 ## Completion Summary
 Attraction grid card titles now wrap to 2 lines on mobile (sub-640px) instead of truncating with an ellipsis, with the type icon aligned to the top of the wrapped text. Closed 2026-08-26.
+
+## Revision (post-close user feedback)
+User corrected two things: (1) the grid-card fix should apply at every viewport width, not just mobile — removed the `@media (max-width: 639px)` gate entirely, `.name` now always wraps to a 2-line clamp and `.nameRow` always uses `align-items: flex-start`; (2) other attraction "card" surfaces were also affected, not just the grid card:
+- `src/app/trips/[id]/TripDetailClient.module.css` — `.attractionName` (trip detail Attractions-tab list rows) switched from single-line ellipsis to `white-space: normal; overflow-wrap: break-word;` (no line clamp — full wrap); `.attractionItem` switched from `align-items: center` to `flex-start` so the icon circle aligns to the top of a wrapped title.
+- `src/components/AttractionDetailModal/AttractionDetailModal.module.css` — `.title` switched from single-line ellipsis to `white-space: normal; overflow-wrap: break-word;`; `.header`/`.headerTitle` switched from `align-items: center` to `flex-start` so the header icon and close button stay top-aligned against a wrapped 2-line title.
+Verified via `next build` after each change (no visual browser check performed for this revision — CSS-only, low-risk change to already-tested layouts).
