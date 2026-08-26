@@ -113,6 +113,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
 
   function handleToggleChildren(e: React.MouseEvent) {
     e.stopPropagation();
+    if (!attraction) return;
     setChildrenExpanded((prev) => !prev);
     if (children === null && !childrenLoading) {
       setChildrenLoading(true);
@@ -125,7 +126,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
 
   function handleOpenParent(e: React.MouseEvent) {
     e.stopPropagation();
-    if (!attraction.parentAttractionId || !onNavigateToAttraction || parentLoading) return;
+    if (!attraction || !attraction.parentAttractionId || !onNavigateToAttraction || parentLoading) return;
     setParentLoading(true);
     getAttraction(attraction.parentAttractionId)
       .then((parent) => onNavigateToAttraction(parent as Attraction))
