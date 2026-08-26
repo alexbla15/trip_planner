@@ -301,11 +301,7 @@ export async function updateAttraction(
     if (body.parentAttractionId === null) {
       attraction.parentAttractionId = null;
     } else {
-      const existingChildCount = await getChildCount(id);
-      if (existingChildCount > 0) {
-        throw badRequest("Cannot nest an attraction that already has its own children — only one level of nesting is allowed");
-      }
-      parentJustSet = await resolveParentLink(body.parentAttractionId as string, body.country as string | undefined);
+      parentJustSet = await resolveParentLink(body.parentAttractionId as string, body.country as string | undefined, id);
       attraction.parentAttractionId = parentJustSet._id as IAttraction["parentAttractionId"];
       attraction.country = parentJustSet.country;
       attraction.city = parentJustSet.city;

@@ -50,24 +50,50 @@ export async function getChildCount(attractionId: string): Promise<number> {
   return map.get(attractionId) ?? 0;
 }
 
+/** Walks a parent chain starting at `startId`, following `parentAttractionId` upward,
+ *  and returns true if `targetId` appears anywhere in that chain. Used to reject cycles
+ *  now that nesting supports arbitrary depth (a chain that could loop back on itself).
+ *  Bounded to a sane depth — legitimate nesting chains are a handful of levels, not
+ *  hundreds — so a corrupt/cyclic chain can't spin forever. */
+async function chainContains(startId: string, targetId: string, maxDepth = 50): Promise<boolean> {
+  let currentId: string | null = startId;
+  for (let depth = 0; currentId && depth < maxDepth; depth++) {
+    if (currentId === targetId) return true;
+    const doc: { parentAttractionId?: Types.ObjectId | null } | null =
+      await Attraction.findById(currentId).select("parentAttractionId").lean();
+    currentId = doc?.parentAttractionId?.toString() ?? null;
+  }
+  return false;
+}
+
 /** Resolves and validates a would-be parent link for create/update — throws a 400 with a
  *  clear message on any violation: parent doesn't exist, the caller explicitly named a
  *  different country than the parent's own (a child's coordinates/city/country are
  *  inherited from the parent, so a client-specified country contradicting the parent would
  *  otherwise silently be discarded in favor of the parent's — better to reject the
- *  contradiction outright), or the chosen parent is itself already a child (nesting is one
- *  level only — a child can't itself be a parent). `requestingCountry` is optional: when
- *  the caller didn't send a country at all (the common case — relying on inheritance),
- *  there's nothing to cross-check, so the parent's country is trusted unconditionally. */
-export async function resolveParentLink(parentAttractionId: string, requestingCountry?: string): Promise<IAttraction> {
+ *  contradiction outright), or the chosen parent is a descendant of the attraction being
+ *  updated (would create a cycle). Nesting depth is unbounded (any attraction, itself
+ *  possibly a child, can be chosen as a parent) — only cycles are rejected.
+ *  `requestingCountry` is optional: when the caller didn't send a country at all (the
+ *  common case — relying on inheritance), there's nothing to cross-check, so the parent's
+ *  country is trusted unconditionally. `selfId` is the attraction being updated (absent on
+ *  create, since a brand-new document can't yet be anyone's ancestor). */
+export async function resolveParentLink(
+  parentAttractionId: string,
+  requestingCountry?: string,
+  selfId?: string,
+): Promise<IAttraction> {
   await dbConnect();
+  if (selfId && parentAttractionId === selfId) {
+    throw badRequest("An attraction cannot be its own parent");
+  }
   const parent = await Attraction.findById(parentAttractionId);
   if (!parent) throw badRequest("Parent attraction not found");
   if (requestingCountry?.trim() && parent.country.trim().toLowerCase() !== requestingCountry.trim().toLowerCase()) {
     throw badRequest("Parent attraction must be in the same country");
   }
-  if (parent.parentAttractionId) {
-    throw badRequest("Cannot nest an attraction inside another child attraction — only one level of nesting is allowed");
+  if (selfId && (await chainContains(parentAttractionId, selfId))) {
+    throw badRequest("Cannot nest an attraction inside one of its own descendants");
   }
   return parent;
 }

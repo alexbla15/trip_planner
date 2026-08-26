@@ -39,10 +39,12 @@ export function ParentAttractionPicker({ isOpen, onClose, country, token, exclud
     }
   }, [isOpen]);
 
-  // Only top-level attractions can be a parent — nesting is one level only — and the
-  // attraction being edited can't be its own parent.
+  // Nesting depth is unbounded — any attraction (including one that's already a child)
+  // can be chosen as a parent. Only the attraction being edited itself is excluded here;
+  // picking one of its own descendants (a cycle) is caught server-side, since that
+  // requires walking the full descendant chain which isn't available in this search result set.
   const eligibleResults = useMemo(
-    () => results.filter((a) => !a.parentAttractionId && a._id !== excludeAttractionId),
+    () => results.filter((a) => a._id !== excludeAttractionId),
     [results, excludeAttractionId],
   );
 
