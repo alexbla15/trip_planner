@@ -1,6 +1,6 @@
 # Task: Opening months (seasonal availability) on attractions
 
-Status: reviewing
+Status: done
 Track: A
 Track reason: New data model field plus a new form UI (month selector) with no existing equivalent pattern in the design system — needs a design pass before implementation.
 
@@ -61,3 +61,10 @@ Handing off to `/developer` now — implement per the Requirements above plus th
 **Manual verification note:** this adds a new Mongoose schema field — the dev server must be restarted before `openingMonths` will actually persist on save (existing project learnings on this exact pitfall). Please restart `next dev` before testing in the browser.
 
 Verified with `npx tsc --noEmit` (clean) and `npx eslint` across all changed files (clean). Skipped a full `next build` verification pass since a `next dev` process was detected running — per project learnings, running a production build alongside a live dev server corrupts its route manifest, and a restart is needed anyway for the schema change to take effect.
+
+## Post-review fixes
+1. **Dev server had actually crashed** (not just a stale-schema issue): the user's save attempt failed with a generic "Couldn't update" error. Direct `curl` reproduction showed the real cause — `Error: Jest worker encountered 2 child process exceptions, exceeding retry limit`, a Next.js/Turbopack internal compiler-worker crash unrelated to any application code. Killed the two `trip_planner`-specific node processes (`next dev` + its `start-server.js` child, identified via `Get-CimInstance Win32_Process` command-line matching — left unrelated node processes for other projects untouched) and restarted `npm run dev`. Re-verified via direct API calls (login as demo user, create/update/delete a throwaway test attraction with `openingMonths` set) that the full save path now works and persists correctly.
+2. **Separately, the user hit a real React hydration error** ("`<button>` cannot be a descendant of `<button>`") while browsing Explore during the same testing session — pre-existing, unrelated to this task's changes (confirmed via `git diff` that `AttractionGridCard.tsx` had no changes from this session before this fix). `AttractionGridCard.tsx`'s whole card was a `<button>` wrapping several action `<button>`s (edit/delete/add-to-trip) — invalid HTML. Fixed by converting the outer element to `<div role="button" tabIndex={0}>` with an `onKeyDown` handler for Enter/Space, matching the same accepted pattern already documented in `docs/LEARNINGS.md` for `AttractionPickerModal`'s equivalent case.
+
+## Completion Summary
+Attractions can now specify seasonal availability (`openingMonths`, defaulting to year-round) via a new "Opening Months" section in the edit form, mirroring the existing 24/7-hours toggle pattern. Trips scheduled outside an attraction's open season now get a schedule warning, and genuinely seasonal attractions show an "Open Mar–Oct"-style chip on their detail card (year-round attractions, the default, show nothing). Along the way, diagnosed and fixed a crashed dev server (Turbopack worker crash, unrelated to this task's code) that was blocking the user's testing, and fixed a pre-existing nested-`<button>` hydration bug on the Explore grid card the user also encountered while testing. Confirmed working by user on 2026-08-26.

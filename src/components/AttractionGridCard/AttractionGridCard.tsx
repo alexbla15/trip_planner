@@ -25,10 +25,17 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, onAddTo
   const showActions = !!onAddToTrip || (canEdit && (!!onEdit || !!onDelete)) || !!attraction.websiteUrl;
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       className={styles.card}
       onClick={() => onClick(attraction)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick(attraction);
+        }
+      }}
       aria-label={`View details for ${attraction.name}`}
     >
       <div className={styles.photoArea}>
@@ -129,6 +136,6 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, onAddTo
           </span>
         )}
       </div>
-    </button>
+    </div>
   );
 }
