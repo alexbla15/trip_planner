@@ -65,6 +65,13 @@ function MapController({ mapRef }: { mapRef: MutableRefObject<MapHandle | null> 
       flyToCountry: (lat, lng)  => map.flyTo([lat, lng], 5, { duration: 1.2 }),
       flyToCity:    (lat, lng)  => map.flyTo([lat, lng], 13, { duration: 1.2 }),
     };
+    // ExploreMapWidget (and this Leaflet map instance) unmounts whenever grid view is
+    // shown instead — without this, mapRef.current keeps pointing at flyTo functions
+    // bound to a now-destroyed map, and calling them later (e.g. clicking a city while
+    // grid view is active) crashes inside Leaflet trying to read the dead map's pane position.
+    return () => {
+      mapRef.current = null;
+    };
   }, [map, mapRef]);
   return null;
 }
