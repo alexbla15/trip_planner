@@ -457,32 +457,38 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       </div>
 
       {/* Food styles — only for dining-type attractions */}
-      {isDining && foodStyleOptions.length > 0 && (
+      {isDining && (
         <div className={styles.field}>
           <span className={styles.labelWithIcon}>
             <UtensilsCrossed size={14} aria-hidden="true" />
             Food styles
           </span>
-          <div className={styles.foodStyleChips} role="group" aria-label="Food styles">
-            {foodStyleOptions.map((fs) => {
-              const active = selectedFoodStyles.includes(fs.name);
-              return (
-                <button
-                  key={fs._id}
-                  type="button"
-                  className={`${styles.foodStyleChip} ${active ? styles.foodStyleChipActive : ""}`}
-                  aria-pressed={active}
-                  onClick={() =>
-                    setSelectedFoodStyles((prev) =>
-                      active ? prev.filter((n) => n !== fs.name) : [...prev, fs.name]
-                    )
-                  }
-                >
-                  {fs.name}
-                </button>
-              );
-            })}
-          </div>
+          {foodStyleOptions.length > 0 ? (
+            <div className={styles.foodStyleChips} role="group" aria-label="Food styles">
+              {foodStyleOptions.map((fs) => {
+                const active = selectedFoodStyles.includes(fs.name);
+                return (
+                  <button
+                    key={fs._id}
+                    type="button"
+                    className={`${styles.foodStyleChip} ${active ? styles.foodStyleChipActive : ""}`}
+                    aria-pressed={active}
+                    onClick={() =>
+                      setSelectedFoodStyles((prev) =>
+                        active ? prev.filter((n) => n !== fs.name) : [...prev, fs.name]
+                      )
+                    }
+                  >
+                    {fs.name}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <p className={styles.hint}>
+              No food styles defined yet — add some from the Food Styles section in /admin.
+            </p>
+          )}
         </div>
       )}
 
