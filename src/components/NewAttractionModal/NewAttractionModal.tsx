@@ -7,7 +7,7 @@ import {
   useRef,
   type ChangeEvent,
 } from "react";
-import { MapPin, Clock, Calendar, ChevronDown, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check, FileText, X, Building2, Search } from "lucide-react";
+import { MapPin, Clock, Calendar, ChevronDown, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check, FileText, X, Building2, Search, UtensilsCrossed } from "lucide-react";
 import type {
   AttractionFormData,
   Coordinates,
@@ -30,7 +30,7 @@ import { OpeningHoursGrid } from "./OpeningHoursGrid";
 import { MonthsGrid } from "./MonthsGrid";
 import { ParentAttractionPicker } from "./ParentAttractionPicker";
 import { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h, isValidUrl, isYearRound, ALL_MONTHS } from "@/lib";
-import { useReverseGeocodeAutofill } from "@/hooks";
+import { useReverseGeocodeAutofill, useAttractionTypes, useFoodStyles } from "@/hooks";
 import { filterCityOptions } from "./NewAttractionModal.utils";
 import type { Attraction } from "@/types/attraction";
 import styles from "./NewAttractionModal.module.css";
@@ -59,6 +59,9 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   // form (reached e.g. via Explore's "Edit" button on any attraction, including a
   // residence someone else added) hides them rather than risk editing the wrong thing.
   const isEditingResidence = initialData?.subtype === "residence";
+
+  const { findType } = useAttractionTypes();
+  const { styles: foodStyleOptions } = useFoodStyles();
 
   const [name, setName] = useState("");
   const [country, setCountry] = useState(defaultCountry ?? "");
@@ -96,6 +99,10 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     onCityResolved: setCity,
   });
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedFoodStyles, setSelectedFoodStyles] = useState<string[]>([]);
+  // Food styles only make sense for a dining-type attraction — driven by the selected
+  // type's admin-managed category name, not a hardcoded type list.
+  const isDining = selectedTypes.some((t) => findType(t)?.category?.trim().toLowerCase() === "dining");
   const [durationValue, setDurationValue] = useState("");
   const [durationUnit, setDurationUnit] = useState<DurationUnit>("hours");
   const [price, setPrice] = useState<number | null>(null);
@@ -124,6 +131,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setParentAttractionId(initialData?.parentAttractionId ?? null);
     setParentAttractionName(initialData?.parentAttractionName ?? null);
     setSelectedTypes(initialData?.types ?? []);
+    setSelectedFoodStyles(initialData?.foodStyles ?? []);
     setDurationValue(initialData?.durationValue ?? "");
     setDurationUnit(initialData?.durationUnit ?? "hours");
     setPrice(initialData?.price ?? null);
@@ -209,6 +217,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       city: city.trim(),
       coordinates,
       types: selectedTypes,
+      foodStyles: isDining ? selectedFoodStyles : [],
       durationValue,
       durationUnit,
       price,
@@ -446,6 +455,36 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           </p>
         )}
       </div>
+
+      {/* Food styles — only for dining-type attractions */}
+      {isDining && foodStyleOptions.length > 0 && (
+        <div className={styles.field}>
+          <span className={styles.labelWithIcon}>
+            <UtensilsCrossed size={14} aria-hidden="true" />
+            Food styles
+          </span>
+          <div className={styles.foodStyleChips} role="group" aria-label="Food styles">
+            {foodStyleOptions.map((fs) => {
+              const active = selectedFoodStyles.includes(fs.name);
+              return (
+                <button
+                  key={fs._id}
+                  type="button"
+                  className={`${styles.foodStyleChip} ${active ? styles.foodStyleChipActive : ""}`}
+                  aria-pressed={active}
+                  onClick={() =>
+                    setSelectedFoodStyles((prev) =>
+                      active ? prev.filter((n) => n !== fs.name) : [...prev, fs.name]
+                    )
+                  }
+                >
+                  {fs.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Location — inherited from the parent once one is picked, so there's nothing
           independent to place on a map. */}

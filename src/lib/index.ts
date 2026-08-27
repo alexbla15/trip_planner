@@ -58,8 +58,8 @@ export {
   validateResetPasswordForm,
 } from "./validation";
 
-export type { TypeFormState, CategoryFormState, MoodTagFormState } from "./adminForms";
-export { typeFormFromRecord, catFormFromRecord, moodFormFromRecord } from "./adminForms";
+export type { TypeFormState, CategoryFormState, MoodTagFormState, FoodStyleFormState } from "./adminForms";
+export { typeFormFromRecord, catFormFromRecord, moodFormFromRecord, foodStyleFormFromRecord } from "./adminForms";
 
 export { flightMeta } from "./attractionDisplay";
 

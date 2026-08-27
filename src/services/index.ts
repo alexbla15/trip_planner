@@ -60,6 +60,13 @@ export {
   seedMoodTags,
 } from "./moodTags.service";
 
+export {
+  fetchFoodStyles,
+  createFoodStyle,
+  updateFoodStyle,
+  deleteFoodStyle,
+} from "./foodStyles.service";
+
 export { getCityBoundary, getCountryBoundary, getWorldCountriesGeoJson } from "./geo.service";
 
 export { reverseGeocode, searchLocation } from "./geocoding.service";

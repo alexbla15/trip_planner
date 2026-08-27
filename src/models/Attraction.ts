@@ -26,6 +26,10 @@ export interface IAttraction extends Document {
    *  independently editable. */
   parentAttractionId?: Types.ObjectId | null;
   types: Types.ObjectId[];
+  /** Only meaningful when the attraction's type/category is dining-related — one or more
+   *  admin-managed food styles (e.g. "Sushi", "Fast Food"). Referenced by id (not a
+   *  denormalized name snapshot), so renaming a FoodStyle doc is reflected automatically. */
+  foodStyles?: Types.ObjectId[];
   durationValue?: string;
   durationUnit?: "minutes" | "hours";
   price?: number | null;
@@ -85,6 +89,7 @@ const AttractionSchema = new Schema<IAttraction>(
     },
     parentAttractionId: { type: Schema.Types.ObjectId, ref: "Attraction", default: null },
     types: [{ type: Schema.Types.ObjectId, ref: "AttractionType" }],
+    foodStyles: [{ type: Schema.Types.ObjectId, ref: "FoodStyle" }],
     durationValue: { type: String },
     durationUnit: { type: String, enum: ["minutes", "hours"] },
     price: { type: Number, default: null },
@@ -188,6 +193,11 @@ export function formatAttraction(
         ? (t as { name: string }).name
         : String(t)
     ),
+    // Deleted FoodStyle docs leave a dangling ref that populate() resolves to null —
+    // filter those out rather than rendering a stringified ObjectId/"null".
+    foodStyles: ((doc.foodStyles as unknown[]) ?? [])
+      .filter((f) => f && typeof f === "object" && "name" in (f as Record<string, unknown>))
+      .map((f) => (f as { name: string }).name),
     durationValue: doc.durationValue,
     durationUnit: doc.durationUnit,
     // price/notes prefer a per-trip schedule override for the same reason as

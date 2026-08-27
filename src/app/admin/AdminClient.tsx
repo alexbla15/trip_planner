@@ -5,7 +5,7 @@ import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import {
   Shield, Plus, Pencil, Trash2,
-  Loader2, ChevronDown, Tag, Smile, Layers, RefreshCw,
+  Loader2, ChevronDown, Tag, Smile, Layers, RefreshCw, UtensilsCrossed,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
@@ -17,6 +17,8 @@ import {
   useMoodTags,
   invalidateMoodTagsCache,
   getMoodTagStyle,
+  useFoodStyles,
+  invalidateFoodStylesCache,
 } from "@/hooks";
 import {
   createAttractionType,
@@ -30,6 +32,9 @@ import {
   updateMoodTag,
   deleteMoodTag,
   seedMoodTags,
+  createFoodStyle,
+  updateFoodStyle,
+  deleteFoodStyle,
   ApiError,
 } from "@/services";
 import { getIconComponent, renderTypeIcon, IconPicker, SectionCard } from "@/components";
@@ -37,9 +42,11 @@ import {
   type TypeFormState,
   type CategoryFormState,
   type MoodTagFormState,
+  type FoodStyleFormState,
   typeFormFromRecord,
   catFormFromRecord,
   moodFormFromRecord,
+  foodStyleFormFromRecord,
 } from "@/lib";
 import type { AttractionCategoryRecord } from "@/types/attractionCategory";
 import { AdminEntityForm } from "./AdminEntityForm";
@@ -219,6 +226,48 @@ function CategoryForm({
   );
 }
 
+// ── Food Style form ────────────────────────────────────────────────────────────
+
+const EMPTY_FOOD_STYLE_FORM: FoodStyleFormState = { name: "" };
+
+function FoodStyleForm({
+  initial, token, styleId, onDone, onCancel,
+}: {
+  initial: FoodStyleFormState;
+  token: string;
+  styleId?: string;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const [form, setForm] = useState<FoodStyleFormState>(initial);
+
+  function validate(): string | null {
+    if (!form.name.trim()) return "Name is required.";
+    return null;
+  }
+
+  async function handleSave() {
+    const payload = { name: form.name.trim() };
+    if (styleId) await updateFoodStyle(styleId, token, payload);
+    else await createFoodStyle(token, payload);
+    invalidateFoodStylesCache();
+  }
+
+  return (
+    <AdminEntityForm validate={validate} onSave={handleSave} onDone={onDone} onCancel={onCancel} isEditing={!!styleId}>
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Name *</label>
+        <input
+          className={styles.input}
+          value={form.name}
+          onChange={(e) => setForm({ name: e.target.value })}
+          placeholder="e.g. Sushi"
+        />
+      </div>
+    </AdminEntityForm>
+  );
+}
+
 // ── Mood Tag form ──────────────────────────────────────────────────────────────
 
 const EMPTY_MOOD_FORM: MoodTagFormState = {
@@ -324,6 +373,7 @@ export function AdminClient() {
   const { types, loading: typesLoading, categories, byCategory } = useAttractionTypes();
   const { categories: catRecords, loading: catsLoading } = useAttractionCategories();
   const { tags: moodTags, loading: tagsLoading } = useMoodTags();
+  const { styles: foodStyleRecords, loading: foodStylesLoading } = useFoodStyles();
   const [collapsedTypeCategories, setCollapsedTypeCategories] = useState<Set<string>>(new Set());
 
   function toggleTypeCategory(cat: string) {
@@ -355,6 +405,12 @@ export function AdminClient() {
   const [moodDeleteId, setMoodDeleteId]   = useState<string | null>(null);
   const [moodDeleting, setMoodDeleting]   = useState(false);
   const [seeding, setSeeding]             = useState(false);
+
+  // Food style CRUD state
+  const [foodStyleEditingId, setFoodStyleEditingId] = useState<string | null>(null);
+  const [foodStyleAdding, setFoodStyleAdding]       = useState(false);
+  const [foodStyleDeleteId, setFoodStyleDeleteId]   = useState<string | null>(null);
+  const [foodStyleDeleting, setFoodStyleDeleting]   = useState(false);
 
   const loading = authLoading || typesLoading;
 
@@ -448,6 +504,25 @@ export function AdminClient() {
     setMoodAdding(false);
     setMoodEditingId(null);
     toast.success(wasEditing ? "Mood updated" : "Mood created");
+  }
+
+  // ── Food style handlers ──────────────────────────────────────────────────────
+
+  async function handleFoodStyleDelete(id: string) {
+    if (!token) return;
+    setFoodStyleDeleting(true);
+    await deleteFoodStyle(id, token);
+    invalidateFoodStylesCache();
+    setFoodStyleDeleting(false);
+    setFoodStyleDeleteId(null);
+    toast.success("Food style deleted");
+  }
+
+  function handleFoodStyleFormDone() {
+    const wasEditing = foodStyleEditingId !== null;
+    setFoodStyleAdding(false);
+    setFoodStyleEditingId(null);
+    toast.success(wasEditing ? "Food style updated" : "Food style created");
   }
 
   async function handleSeedMoodTags() {
@@ -791,6 +866,88 @@ export function AdminClient() {
                             className={`${styles.iconBtn} ${styles.deleteBtn}`}
                             onClick={() => setMoodDeleteId(tagRecord._id)}
                             aria-label={`Delete ${tagRecord.name}`}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </SectionCard>
+
+        {/* ── Food Styles card ───────────────────────────────────────────────── */}
+        <SectionCard
+          icon={UtensilsCrossed}
+          title="Food Styles"
+          headingCount={foodStyleRecords.length}
+          collapsible
+          actions={
+            !foodStyleAdding && !foodStyleEditingId && (
+              <button className={styles.addBtn} onClick={() => setFoodStyleAdding(true)} aria-label="Add food style">
+                <Plus size={14} aria-hidden="true" /> <span className={styles.addBtnLabel}>Add food style</span>
+              </button>
+            )
+          }
+        >
+          {foodStyleAdding && token && (
+            <FoodStyleForm
+              key="new-food-style"
+              initial={EMPTY_FOOD_STYLE_FORM}
+              token={token}
+              onDone={handleFoodStyleFormDone}
+              onCancel={() => setFoodStyleAdding(false)}
+            />
+          )}
+
+          {foodStylesLoading ? (
+            <div className={styles.center}><Loader2 size={24} className={styles.spin} /></div>
+          ) : (
+            <div className={styles.typesList}>
+              {foodStyleRecords.map((record) => (
+                <div key={record._id} className={styles.typeRow}>
+                  {foodStyleEditingId === record._id && token ? (
+                    <FoodStyleForm
+                      key={record._id}
+                      initial={foodStyleFormFromRecord(record)}
+                      token={token}
+                      styleId={record._id}
+                      onDone={handleFoodStyleFormDone}
+                      onCancel={() => setFoodStyleEditingId(null)}
+                    />
+                  ) : (
+                    <div className={styles.typeItem}>
+                      <span className={styles.typeName}>{record.name}</span>
+                      <div className={styles.typeActions}>
+                        <button
+                          className={styles.iconBtn}
+                          onClick={() => { setFoodStyleEditingId(record._id); setFoodStyleAdding(false); }}
+                          aria-label={`Edit ${record.name}`}
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        {foodStyleDeleteId === record._id ? (
+                          <div className={styles.confirmDelete}>
+                            <span>Delete?</span>
+                            <button
+                              className={styles.confirmYes}
+                              onClick={() => handleFoodStyleDelete(record._id)}
+                              disabled={foodStyleDeleting}
+                            >
+                              Yes
+                            </button>
+                            <button className={styles.confirmNo} onClick={() => setFoodStyleDeleteId(null)}>
+                              No
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            className={`${styles.iconBtn} ${styles.deleteBtn}`}
+                            onClick={() => setFoodStyleDeleteId(record._id)}
+                            aria-label={`Delete ${record.name}`}
                           >
                             <Trash2 size={13} />
                           </button>

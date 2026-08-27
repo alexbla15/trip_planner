@@ -48,6 +48,8 @@ export interface Attraction {
   city?: string;
   coordinates?: { lat: number; lng: number } | null;
   types: string[];
+  /** Only meaningful for dining-type attractions — admin-managed food style names. */
+  foodStyles?: string[];
   durationValue?: string;
   durationUnit?: "minutes" | "hours";
   price?: number | null;

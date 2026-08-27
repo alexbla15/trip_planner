@@ -25,6 +25,7 @@ import {
   Check,
   Luggage,
   Layers,
+  UtensilsCrossed,
 } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
@@ -212,13 +213,19 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
           {/* Types + status chips (24/7, and later year-round/permanently-closed) —
               rendered together in one row since they're both "chip" facts about the
               attraction, not two separate concepts needing their own sections. */}
-          {(attraction.types?.length > 0 || statusChips.length > 0) && (
+          {(attraction.types?.length > 0 || (attraction.foodStyles?.length ?? 0) > 0 || statusChips.length > 0) && (
             <div className={styles.section}>
               <div className={styles.chips}>
                 {attraction.types?.map((t) => (
                   <span key={t} className={styles.chip}>
                     {renderTypeIcon(findType(t)?.icon ?? "Globe")}
                     {t}
+                  </span>
+                ))}
+                {attraction.foodStyles?.map((style) => (
+                  <span key={style} className={styles.chip}>
+                    <UtensilsCrossed size={14} aria-hidden="true" />
+                    {style}
                   </span>
                 ))}
                 {statusChips.map(({ key, icon: Icon, label, tone }) => (

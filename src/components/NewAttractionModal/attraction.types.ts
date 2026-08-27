@@ -66,6 +66,8 @@ export interface AttractionFormData {
   city: string;
   coordinates: Coordinates | null;
   types: string[];
+  /** Only meaningful for dining-type attractions — admin-managed food style names. */
+  foodStyles?: string[];
   durationValue: string;
   durationUnit: DurationUnit;
   price: number | null;

@@ -54,3 +54,13 @@ export function moodFormFromRecord(r: MoodTagRecord): MoodTagFormState {
     darkColor: r.darkColor, darkBgColor: r.darkBgColor,
   };
 }
+
+/** Editable form state for a food style in the admin panel — just a name, no icon/color. */
+export interface FoodStyleFormState {
+  name: string;
+}
+
+/** Converts a saved food style into editable form state. */
+export function foodStyleFormFromRecord(r: { name: string }): FoodStyleFormState {
+  return { name: r.name };
+}

@@ -538,6 +538,47 @@
   color: var(--color-primary);
 }
 
+/* Food style multi-select chips — same shape/tokens as AttractionTypePicker's category chips */
+.foodStyleChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.foodStyleChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--easing-out);
+}
+
+.foodStyleChip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.foodStyleChipActive {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.foodStyleChip:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .parentChipName {
   flex: 1;
   min-width: 0;
