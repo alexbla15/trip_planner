@@ -255,53 +255,6 @@
 
 }
 
-@media (max-width: 768px) {
-  /* Transform-based carousel: clip the strip, no scroll container */
-  .dayColumnsWrapper {
-    overflow: hidden;
-    touch-action: pan-y; /* browser handles vertical; JS handles horizontal swipes */
-  }
-
-  /* The strip slides left/right via translateX driven by --mobile-day-idx */
-  .dayColumns {
-    min-width: unset;
-    gap: 0;
-    flex-wrap: nowrap;
-    transform: translateX(calc(var(--mobile-day-idx, 0) * -100%));
-    transition: transform 250ms ease;
-    will-change: transform;
-  }
-
-  /* Each column occupies exactly one viewport-width slot in the strip */
-  .dayColumn {
-    flex: 0 0 100%;
-    width: 100%;
-    min-width: unset;
-  }
-
-  /* Dot indicator row */
-  .mobileDayIndicator {
-    display: flex;
-    justify-content: center;
-    gap: 6px;
-    padding-bottom: 12px;
-  }
-
-  .mobileDot {
-    width: 6px;
-    height: 6px;
-    border-radius: var(--radius-full);
-    background: var(--color-border);
-  }
-
-  .mobileDotActive {
-    width: 6px;
-    height: 6px;
-    border-radius: var(--radius-full);
-    background: var(--color-primary);
-  }
-}
-
 /* ── Sidebar (item #1) ── */
 .sidebar {
   width: 230px;
@@ -469,6 +422,7 @@
 .mobileDayIndicator { display: none; }
 .mobileDot { display: none; }
 .mobileDotActive { display: none; }
+.mobileDatePicker { display: none; }
 .dayColumnMobileHidden { display: none; } /* unused safety — remove if confirmed */
 
 /* ── Day columns wrapper ── */
@@ -494,6 +448,80 @@
   display: flex;
   flex-direction: column;
   gap: 0;
+}
+
+/* These MUST come after the unconditional .dayColumnsWrapper/.dayColumns/.dayColumn
+   rules above — same specificity, so source order decides the winner on a tie, and a
+   media-query block declared earlier in the file loses to a later plain rule even when
+   its condition matches. (This carousel used to be broken on mobile for exactly that
+   reason: the plain 200px .dayColumn width was winning over this 100%-per-slide rule.) */
+@media (max-width: 768px) {
+  /* Transform-based carousel: clip the strip, no scroll container */
+  .dayColumnsWrapper {
+    overflow: hidden;
+    touch-action: pan-y; /* browser handles vertical; JS handles horizontal swipes */
+  }
+
+  /* The strip slides left/right via translateX driven by --mobile-day-idx */
+  .dayColumns {
+    min-width: unset;
+    gap: 0;
+    flex-wrap: nowrap;
+    transform: translateX(calc(var(--mobile-day-idx, 0) * -100%));
+    transition: transform 250ms ease;
+    will-change: transform;
+  }
+
+  /* Each column occupies exactly one viewport-width slot in the strip */
+  .dayColumn {
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: unset;
+  }
+
+  /* Jump-to-date select — additive to swipe navigation, kept in sync via the same
+     mobileDayIdx state (selecting an option jumps the carousel; swiping updates the
+     select's value right back). */
+  .mobileDatePicker {
+    display: block;
+    width: 100%;
+    height: 38px;
+    margin-bottom: 8px;
+    padding: 0 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    font-size: 14px;
+    font-family: inherit;
+  }
+
+  .mobileDatePicker:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
+  }
+
+  /* Dot indicator row */
+  .mobileDayIndicator {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding-bottom: 12px;
+  }
+
+  .mobileDot {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-full);
+    background: var(--color-border);
+  }
+
+  .mobileDotActive {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-full);
+    background: var(--color-primary);
+  }
 }
 
 .dayHeader {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useId } from "react";
 import dynamic from "next/dynamic";
 import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, Plus, Coffee, ArrowLeftRight } from "lucide-react";
 import { renderTypeIcon, AttractionDetailModal, AddCustomSlotModal, SwapDaysModal } from "@/components";
@@ -106,6 +106,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   const pointerStartX = useRef<number | null>(null);
   const pointerStartY = useRef<number | null>(null);
   const daysCountRef  = useRef(0); // always-current; updated each render below
+  const mobileDatePickerId = useId();
 
   const [totalSpend, setTotalSpend] = useState(0);
 
@@ -582,11 +583,24 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
             }}
           >
             {days.length > 1 && (
-              <div className={styles.mobileDayIndicator} aria-hidden="true">
-                {days.map((_, i) => (
-                  <span key={i} className={i === mobileDayIdx ? styles.mobileDotActive : styles.mobileDot} />
-                ))}
-              </div>
+              <>
+                <label htmlFor={mobileDatePickerId} className="srOnly">Jump to date</label>
+                <select
+                  id={mobileDatePickerId}
+                  className={styles.mobileDatePicker}
+                  value={mobileDayIdx}
+                  onChange={(e) => setMobileDayIdx(Number(e.target.value))}
+                >
+                  {days.map((dayIso, i) => (
+                    <option key={dayIso} value={i}>{formatDayLabel(dayIso)}</option>
+                  ))}
+                </select>
+                <div className={styles.mobileDayIndicator} aria-hidden="true">
+                  {days.map((_, i) => (
+                    <span key={i} className={i === mobileDayIdx ? styles.mobileDotActive : styles.mobileDot} />
+                  ))}
+                </div>
+              </>
             )}
             <div className={styles.dayColumns}
               style={{ ["--mobile-day-idx" as string]: mobileDayIdx }}>
