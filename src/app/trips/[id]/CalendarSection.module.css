@@ -456,8 +456,17 @@
    its condition matches. (This carousel used to be broken on mobile for exactly that
    reason: the plain 200px .dayColumn width was winning over this 100%-per-slide rule.) */
 @media (max-width: 768px) {
-  /* Transform-based carousel: clip the strip, no scroll container */
+  /* Transform-based carousel: clip the strip, no scroll container.
+     .calendarBody uses align-items: flex-start (needed for the desktop row layout),
+     which means its flex children shrink-to-fit their content instead of stretching to
+     the container's width — without an explicit width here, .dayColumnsWrapper (and
+     everything inside it, including .dayColumns/.dayColumn/the jump-to-date select) sizes
+     itself to its own content and grows past the viewport, no matter what overflow:hidden
+     or percentage widths further down the tree say, since a shrink-to-fit box has no
+     definite width for percentage children to resolve against. */
   .dayColumnsWrapper {
+    align-self: stretch;
+    width: 100%;
     overflow: hidden;
     touch-action: pan-y; /* browser handles vertical; JS handles horizontal swipes */
   }
@@ -900,11 +909,17 @@
   color: var(--color-primary);
 }
 
-/* Colored, proportional attraction block — position driven by layout vars */
+/* Colored, proportional attraction block — position driven by layout vars.
+   left/width are computed as a fraction of the block's actual rendered container
+   (the timeline, which spans the full day column) instead of a fixed pixel width
+   derived from an assumed desktop column size — this way overlapping attractions
+   always divide up whatever width the day column actually has, growing on desktop
+   (where the column itself widens to fit them) and shrinking on mobile (where the
+   column is capped to the viewport) instead of overflowing past a narrower column. */
 .attractionBlock {
   position: absolute;
-  left: var(--block-left, 42px);
-  width: var(--block-width, 154px);
+  left: calc(46px + (100% - 50px) * var(--block-col, 0) / var(--block-max-overlap, 1));
+  width: calc((100% - 50px) / var(--block-max-overlap, 1) - 3px);
   top: var(--block-top, 0px);
   height: var(--block-height, 60px);
   z-index: 1;

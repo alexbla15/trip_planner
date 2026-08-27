@@ -632,9 +632,6 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                 const layout     = layoutTimed([...dayAttractions, ...continuationItems]);
                 const maxOverlap = layout.length > 0 ? Math.max(...layout.map((l) => l.numCols)) : 1;
                 const colWidth   = dayColumnWidth(maxOverlap);
-                const LABEL_W    = 46;
-                const PAD_R      = 4;
-                const availW     = colWidth - LABEL_W - PAD_R;
 
                 return (
                   <div key={dayIso}
@@ -671,8 +668,6 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                         const rawIcon      = renderTypeIcon(findType(a.types?.[0] ?? "")?.icon ?? "");
                         const icon         = (!rawIcon && isCustomSlot) ? <Coffee size={10} /> : rawIcon;
                         const isPending = pending.has(a._id);
-                        const blockW    = availW / maxOverlap;
-                        const blockL    = LABEL_W + col * blockW;
                         const isCompact = height < SLOT_HEIGHT_PX;
 
                         // Detect flight by subtype OR by type tag (handles entries created before subtype was added)
@@ -716,8 +711,8 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                               ["--block-top"    as string]: `${top}px`,
                               ["--block-height" as string]: `${height}px`,
                               ["--block-color"  as string]: color,
-                              ["--block-left"   as string]: `${blockL}px`,
-                              ["--block-width"  as string]: `${blockW - 3}px`,
+                              ["--block-col"         as string]: String(col),
+                              ["--block-max-overlap" as string]: String(maxOverlap),
                             }}
                             role="button"
                             tabIndex={0}
