@@ -955,6 +955,137 @@
 }
 
 /* ── Costs tab ── */
+
+/* Add-expense inline form */
+.customExpenseForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+}
+
+.customExpenseInput {
+  flex: 1;
+  min-width: 160px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--color-text-primary);
+}
+
+.customExpenseAmountInput {
+  width: 100px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--color-text-primary);
+}
+
+.customExpenseDateSelect {
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--color-text-primary);
+}
+
+.customExpenseInput:focus,
+.customExpenseAmountInput:focus,
+.customExpenseDateSelect:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.saveBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.saveBtn:hover { background: var(--color-primary-dark); }
+.saveBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.cancelBtn {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.cancelBtn:hover { background: var(--color-bg-subtle); }
+
+/* Daily breakdown */
+.costsDayList {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.costsDaySection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.costsDayHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.costsDayTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.costsDaySubtotal {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
 .costsList {
   list-style: none;
   padding: 0;
@@ -985,12 +1116,6 @@
   color: var(--color-text-primary);
 }
 
-.costsRowDate {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-  flex-shrink: 0;
-}
-
 .costsTierList {
   display: flex;
   flex-direction: column;
@@ -1004,19 +1129,60 @@
   font-size: 13px;
 }
 
-.costsTierRow input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--color-primary);
-  cursor: pointer;
-}
-
 .costsTierLabel {
   flex: 1;
   color: var(--color-text-secondary);
 }
 
+.costsTierUnitPrice {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.costsQtyStepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.costsQtyBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--easing-out);
+}
+
+.costsQtyBtn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.costsQtyBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.costsQtyValue {
+  min-width: 16px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
 .costsTierAmount {
+  min-width: 64px;
+  text-align: right;
   font-weight: 600;
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;

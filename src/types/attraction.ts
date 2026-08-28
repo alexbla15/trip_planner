@@ -63,10 +63,11 @@ export interface Attraction {
    *  single synthesized "Regular" tier equal to `price`). See `IPriceTier` on the model
    *  for the full contract. */
   prices?: PriceTier[];
-  /** Which of `prices`' labels the user selected for THIS scheduled instance of the trip
-   *  — per-trip, so it's a schedule-entry field, not a shared-document one. Empty means
-   *  no explicit choice yet (the Costs tab defaults to the primary tier). */
-  selectedPriceTierLabels?: string[];
+  /** How many of each `prices` tier the user selected for THIS scheduled instance of the
+   *  trip (e.g. 3x "Adult", 1x "Child") — per-trip, so it's a schedule-entry field, not a
+   *  shared-document one. Empty means no explicit choice yet (the Costs tab defaults to
+   *  1x the primary tier). */
+  priceTierQuantities?: { label: string; quantity: number }[];
   currency?: string;
   openingHours?: OpeningHours;
   /** Months (1–12) this attraction is open in. Absent/empty means open year-round —

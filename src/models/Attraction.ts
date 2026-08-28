@@ -235,7 +235,7 @@ export function formatAttraction(
     // Which of this attraction's price tiers (by label) the user selected for this
     // scheduled instance — per-trip, so it lives on the schedule entry, not the shared
     // document. Empty means "not yet chosen"; the Costs tab defaults to the primary tier.
-    selectedPriceTierLabels: schedule?.selectedPriceTierLabels ?? [],
+    priceTierQuantities: schedule?.priceTierQuantities ?? [],
     openingHours: doc.openingHours as AttractionShape["openingHours"],
     openingMonths: doc.openingMonths,
     notes: schedule?.notes ?? doc.notes,

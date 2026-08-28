@@ -18,9 +18,11 @@ export interface IScheduleEntry {
   typeNames?: string[];
   price?: number | null;
   currency?: string;
-  /** Which of the linked Attraction's `prices` tiers (by label) the user selected for the
-   *  trip Costs tab's total. Per-trip — lives here, not on the shared Attraction document. */
-  selectedPriceTierLabels?: string[];
+  /** How many of each of the linked Attraction's `prices` tiers (by label) the user
+   *  selected for the trip Costs tab's total — e.g. 3x "Adult", 1x "Child". A tier absent
+   *  from this list (or with quantity 0) isn't included. Per-trip — lives here, not on
+   *  the shared Attraction document. */
+  priceTierQuantities?: { label: string; quantity: number }[];
   notes?: string;
   /** Per-trip stay-date override for a shared residence Attraction document — see the
    *  "pick existing residence" flow. Never write these onto the shared document itself;
@@ -45,6 +47,16 @@ export interface ICollaborator {
   userId: Types.ObjectId;
 }
 
+export interface ICustomExpense {
+  _id: Types.ObjectId;
+  label: string;
+  amount: number;
+  /** YYYY-MM-DD, matching IScheduleEntry.plannedDate's format — which day of the trip
+   *  this expense belongs to on the Costs tab's daily breakdown. Absent/null means a
+   *  general trip expense not tied to a specific day. */
+  date?: string | null;
+}
+
 export interface ITrip extends Document {
   ownerId: Types.ObjectId;
   name: string;
@@ -59,6 +71,9 @@ export interface ITrip extends Document {
   notes?: string;
   attractionIds: Types.ObjectId[];
   schedules: Map<string, IScheduleEntry>;
+  /** Ad-hoc trip costs not tied to any attraction's price tiers (e.g. a taxi, a tip) —
+   *  shown alongside attraction costs on the Costs tab's daily breakdown. */
+  customExpenses?: ICustomExpense[];
   collaborators: ICollaborator[];
   isPrivate: boolean;
   createdAt: Date;
@@ -69,6 +84,12 @@ const CollaboratorSchema = new Schema<ICollaborator>(
   { userId: { type: Schema.Types.ObjectId, ref: "User", required: true } },
   { _id: false }
 );
+
+const CustomExpenseSchema = new Schema<ICustomExpense>({
+  label:  { type: String, required: true, trim: true },
+  amount: { type: Number, required: true },
+  date:   { type: String, default: null },
+});
 
 const TripSchema = new Schema<ITrip>(
   {
@@ -84,6 +105,7 @@ const TripSchema = new Schema<ITrip>(
     moods: [{ type: String }],
     notes: { type: String },
     attractionIds: [{ type: Schema.Types.ObjectId, ref: "Attraction" }],
+    customExpenses: { type: [CustomExpenseSchema], default: [] },
     schedules: {
       type: Map,
       of: new Schema<IScheduleEntry>(
@@ -98,7 +120,7 @@ const TripSchema = new Schema<ITrip>(
           typeNames:           [{ type: String }],
           price:               { type: Number, default: null },
           currency:            { type: String },
-          selectedPriceTierLabels: [{ type: String }],
+          priceTierQuantities: [{ label: { type: String }, quantity: { type: Number }, _id: false }],
           notes:               { type: String },
           checkInDate:         { type: String },
           checkOutDate:        { type: String },
@@ -171,6 +193,12 @@ export function formatTrip(doc: ITrip): import("@/types/trip").Trip {
     moods: doc.moods,
     notes: doc.notes,
     attractionIds: doc.attractionIds?.map((id) => id.toString()) ?? [],
+    customExpenses: (doc.customExpenses ?? []).map((e) => ({
+      _id: e._id.toString(),
+      label: e.label,
+      amount: e.amount,
+      date: e.date ?? null,
+    })),
     // userId is populated via .populate('collaborators.userId', 'name email avatarUrl'); a
     // collaborator whose user document was deleted populates to null — drop that entry rather
     // than throwing on .toString().

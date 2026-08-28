@@ -5,6 +5,15 @@ export interface TripCollaborator {
   avatarUrl?: string | null;
 }
 
+export interface CustomExpense {
+  _id: string;
+  label: string;
+  amount: number;
+  /** YYYY-MM-DD — which day of the trip this belongs to on the Costs tab. Null means a
+   *  general trip expense not tied to a specific day. */
+  date?: string | null;
+}
+
 export interface Trip {
   _id: string;
   ownerId?: string;
@@ -21,6 +30,7 @@ export interface Trip {
   currency?: string;
   notes?: string;
   attractionIds?: string[];
+  customExpenses?: CustomExpense[];
   collaborators: TripCollaborator[];
   isPrivate: boolean;
   createdAt?: string;

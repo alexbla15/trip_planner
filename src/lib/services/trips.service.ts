@@ -120,13 +120,16 @@ interface UpdateTripInput {
   notes?: string;
   isPrivate?: boolean;
   collaboratorEmails?: string[];
+  /** Full-array replace — the client always sends the complete list (add/edit/remove all
+   *  go through the same PUT), matching how `moods`/`cities` are already handled here. */
+  customExpenses?: { _id?: string; label: string; amount: number; date?: string | null }[];
 }
 
 /** Updates a trip; only the owner or a collaborator may call this (collaboratorEmails changes are owner-only and silently ignored otherwise). */
 export async function updateTrip(payload: JwtPayload, tripId: string, body: UpdateTripInput): Promise<ITrip> {
   await dbConnect();
 
-  const { name, cities, country, coverImage, startDate, endDate, budget, currency, moods, notes, isPrivate, collaboratorEmails } = body;
+  const { name, cities, country, coverImage, startDate, endDate, budget, currency, moods, notes, isPrivate, collaboratorEmails, customExpenses } = body;
 
   // Built explicitly — avoids Mongoose Map-field change-detection bugs on `schedules`.
   const $set: Record<string, unknown> = {};
@@ -141,6 +144,14 @@ export async function updateTrip(payload: JwtPayload, tripId: string, body: Upda
   if (moods) $set.moods = moods;
   if (notes !== undefined) $set.notes = notes;
   if (isPrivate !== undefined) $set.isPrivate = isPrivate;
+  if (customExpenses !== undefined) {
+    for (const e of customExpenses) {
+      if (!e.label?.trim() || typeof e.amount !== "number") {
+        throw badRequest("Each custom expense needs a label and a numeric amount");
+      }
+    }
+    $set.customExpenses = customExpenses.map((e) => ({ label: e.label.trim(), amount: e.amount, date: e.date ?? null }));
+  }
 
   if (collaboratorEmails !== undefined) {
     const isOwner = await Trip.exists({ _id: tripId, ownerId: payload.userId });

@@ -887,9 +887,9 @@ export interface UpdateTripAttractionScheduleInput {
   // whose stay dates/price/notes are specific to this trip's booking.
   price?: number | null;
   currency?: string;
-  /** Which of the linked attraction's `prices` tiers (by label) are selected for the
-   *  trip Costs tab total. Per-trip — see `IScheduleEntry.selectedPriceTierLabels`. */
-  selectedPriceTierLabels?: string[];
+  /** How many of each of the linked attraction's `prices` tiers (by label) are selected
+   *  for the trip Costs tab total. Per-trip — see `IScheduleEntry.priceTierQuantities`. */
+  priceTierQuantities?: { label: string; quantity: number }[];
   notes?: string;
   checkInDate?: string;
   checkOutDate?: string;
@@ -939,7 +939,7 @@ export async function updateTripAttractionSchedule(
   if (body.actualDurationUnit !== undefined) scheduleSet[`${p}.actualDurationUnit`] = body.actualDurationUnit;
   if (body.price !== undefined) scheduleSet[`${p}.price`] = body.price;
   if (body.currency !== undefined) scheduleSet[`${p}.currency`] = body.currency;
-  if (body.selectedPriceTierLabels !== undefined) scheduleSet[`${p}.selectedPriceTierLabels`] = body.selectedPriceTierLabels;
+  if (body.priceTierQuantities !== undefined) scheduleSet[`${p}.priceTierQuantities`] = body.priceTierQuantities;
   if (body.notes !== undefined) scheduleSet[`${p}.notes`] = body.notes;
   if (body.checkInDate !== undefined) scheduleSet[`${p}.checkInDate`] = body.checkInDate;
   if (body.checkOutDate !== undefined) scheduleSet[`${p}.checkOutDate`] = body.checkOutDate;

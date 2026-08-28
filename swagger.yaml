@@ -147,6 +147,20 @@ components:
           items:
             type: string
           example: ["65f1234567890abcdef123bb"]
+        customExpenses:
+          type: array
+          description: Ad-hoc trip costs not tied to any attraction's price tiers (e.g. a taxi, a tip) — shown on the Costs tab's daily breakdown.
+          items:
+            type: object
+            properties:
+              _id: { type: string }
+              label: { type: string, example: Taxi from airport }
+              amount: { type: number, example: 25 }
+              date:
+                type: string
+                format: date
+                nullable: true
+                description: Which day of the trip this belongs to. Null means a general trip expense not tied to a specific day.
         collaborators:
           type: array
           description: Users invited by the owner to co-edit this trip.
@@ -214,6 +228,19 @@ components:
             owner-only, silently ignored if sent by a non-owner collaborator. Prefer the dedicated
             /api/trips/{id}/collaborators endpoints for single add/remove operations; this field
             is meant for the create/edit forms which batch all pending changes into one request.
+        customExpenses:
+          type: array
+          description: >
+            PUT /api/trips/{id} only. Full-array replace — send the complete list of custom
+            expenses (add/edit/remove all go through the same request), matching how `moods`
+            is already handled. Omit to leave existing custom expenses untouched.
+          items:
+            type: object
+            required: [label, amount]
+            properties:
+              label: { type: string, example: Taxi from airport }
+              amount: { type: number, example: 25 }
+              date: { type: string, format: date, nullable: true }
 
     # --- ATTRACTION SCHEMAS ---
     OpeningHoursRange:
@@ -276,15 +303,19 @@ components:
           type: number
           nullable: true
           description: Per-trip price override — same rationale as checkInDate.
-        selectedPriceTierLabels:
+        priceTierQuantities:
           type: array
-          items: { type: string }
           description: >
-            Which of the linked Attraction's `prices` tier labels are selected for this
-            scheduled instance's cost total (trips/[id]'s Costs tab). Per-trip — lives
-            here, not on the shared Attraction document. Empty means no explicit choice
-            yet (the Costs tab defaults to the primary tier).
-          example: ["Adult"]
+            How many of each of the linked Attraction's `prices` tiers are selected for
+            this scheduled instance's cost total (trips/[id]'s Costs tab), e.g. 3x
+            "Adult", 1x "Child". Per-trip — lives here, not on the shared Attraction
+            document. Empty means no explicit choice yet (the Costs tab defaults to 1x
+            the primary tier).
+          items:
+            type: object
+            properties:
+              label: { type: string, example: Adult }
+              quantity: { type: integer, example: 3 }
         currency:
           type: string
           nullable: true
@@ -429,14 +460,18 @@ components:
               label: { type: string, example: Adult }
               amount: { type: number, example: 16.00 }
               isPrimary: { type: boolean, example: true }
-        selectedPriceTierLabels:
+        priceTierQuantities:
           type: array
-          items: { type: string }
           description: >
-            Which of `prices`' labels the requesting trip selected for this scheduled
-            instance's cost total (trips/[id]'s Costs tab) — per-trip, not part of the
-            shared document. Empty means no explicit choice yet (defaults to the primary tier).
-          example: ["Adult"]
+            How many of each `prices` tier the requesting trip selected for this
+            scheduled instance's cost total (trips/[id]'s Costs tab), e.g. 3x "Adult" —
+            per-trip, not part of the shared document. Empty means no explicit choice
+            yet (defaults to 1x the primary tier).
+          items:
+            type: object
+            properties:
+              label: { type: string, example: Adult }
+              quantity: { type: integer, example: 3 }
         currency:
           type: string
           default: USD
