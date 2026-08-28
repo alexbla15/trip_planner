@@ -1,6 +1,6 @@
 # Goal: Trip/Analytics/Attraction improvement batch
 
-Status: in progress
+Status: done
 
 A batch of 14 fixes and enhancements across Analytics, Explore, Trip detail, and the Attraction data model, requested together on 2026-08-26.
 
@@ -19,7 +19,7 @@ A batch of 14 fixes and enhancements across Analytics, Explore, Trip detail, and
 - [x] .claude/tasks/trip-scheduler-mobile-date-picker.done.md
 - [x] .claude/tasks/attraction-food-styles-multiselect.done.md
 - [x] .claude/tasks/attraction-multi-price-expenses-tab.done.md
-- [ ] .claude/tasks/explore-map-grid-load-performance.md
+- [x] .claude/tasks/explore-map-grid-load-performance.done.md
 
 ## Plan
 0. **fix-attraction-detail-modal-null-build-error** (tracked separately, not in this list) — deployment-blocking build error, fixed first, ahead of everything below.

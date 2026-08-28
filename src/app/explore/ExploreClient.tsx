@@ -182,12 +182,27 @@ export function ExploreClient() {
   // powers the country-view map's individual attraction pins (replacing the old
   // per-city pin/boundary breakdown). Skipped once a city is picked (city-scoped fetch
   // above takes over).
+  //
+  // A heavy country can span several 300-result pages — waiting for all of them before
+  // rendering anything made Explore feel slow to open. The first page now replaces
+  // countryAttractions as soon as it arrives (fast first paint); any further pages
+  // stream in and append, so the map/grid keep filling in rather than the user staring
+  // at a blank view until the very last page lands.
   useEffect(() => {
     if (!selectedCountry || selectedCity) { setCountryAttractions([]); return; }
     setAttractionsLoading(true);
     setPageError(null);
-    getAttractionsByCountry(selectedCountry, token)
-      .then((data) => setCountryAttractions(Array.isArray(data) ? (data as Attraction[]) : []))
+    let firstPage = true;
+    getAttractionsByCountry(selectedCountry, token, (page) => {
+      const items = page as Attraction[];
+      if (firstPage) {
+        firstPage = false;
+        setCountryAttractions(items);
+        setAttractionsLoading(false); // first page is in — no need to keep the loading state up
+      } else {
+        setCountryAttractions((prev) => [...prev, ...items]);
+      }
+    })
       .catch(() => setPageError("Couldn't load attractions for this country. Please try again."))
       .finally(() => setAttractionsLoading(false));
   }, [selectedCountry, selectedCity, token]);

@@ -30,11 +30,19 @@ export async function getAttractionsByCity(city: string, token?: string | null):
 // A bare country-only search is capped at 300 results per page server-side (see
 // searchAttractions in src/lib/services/attractions.service.ts). A country-level map view
 // needs every attraction, not just the first page, so this paginates through all of them
-// using the X-Total-Count/X-Limit headers the route already returns — but fires every page
-// after the first IN PARALLEL (their skip/limit values are all known upfront once the first
-// response reports the total), rather than awaiting one page at a time. A country that fits
-// in a single page (the common case, now that the cap is 300) makes exactly one request.
-export async function getAttractionsByCountry(country: string, token?: string | null): Promise<unknown[]> {
+// using the X-Total-Count/X-Limit headers the route already returns.
+//
+// `onPage`, when passed, is invoked as soon as EACH page resolves — the first page (fired
+// alone, before the total is even known) lets the caller paint immediately instead of
+// waiting on every page; any remaining pages (fired in parallel once the total is known)
+// stream in afterwards. Without `onPage`, this still resolves once with the full combined
+// list, unchanged from before — existing callers (e.g. NearbyAttractionsModal, which only
+// ever deals with a small nearby-radius result set) don't need to change.
+export async function getAttractionsByCountry(
+  country: string,
+  token?: string | null,
+  onPage?: (page: unknown[]) => void,
+): Promise<unknown[]> {
   const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
   const fetchPage = async (skip: number) => {
     const res = await fetch(
@@ -48,12 +56,15 @@ export async function getAttractionsByCountry(country: string, token?: string | 
   };
 
   const first = await fetchPage(0);
+  onPage?.(first.page);
   if (first.page.length === 0 || first.limit >= first.total) return first.page;
 
   const remainingSkips: number[] = [];
   for (let skip = first.limit; skip < first.total; skip += first.limit) remainingSkips.push(skip);
 
-  const rest = await Promise.all(remainingSkips.map((skip) => fetchPage(skip)));
+  const rest = await Promise.all(
+    remainingSkips.map((skip) => fetchPage(skip).then((r) => { onPage?.(r.page); return r; }))
+  );
   return [...first.page, ...rest.flatMap((r) => r.page)];
 }
 
