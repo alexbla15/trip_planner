@@ -468,6 +468,14 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                 <span className={styles.infoText}>
                   <span className={styles.infoLabel}>Price</span>
                   <span className={styles.infoValue}>{formatPrice(attraction.price!, attraction.currency ?? "USD")}</span>
+                  {attraction.prices && attraction.prices.length > 1 && (
+                    <span className={styles.priceTiersNote}>
+                      {attraction.prices
+                        .filter((t) => !t.isPrimary)
+                        .map((t) => `${t.label}: ${formatPrice(t.amount, attraction.currency ?? "USD")}`)
+                        .join(" · ")}
+                    </span>
+                  )}
                 </span>
               </div>
             )}

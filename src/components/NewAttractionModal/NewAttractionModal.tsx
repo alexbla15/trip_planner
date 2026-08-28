@@ -105,7 +105,9 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   const isDining = selectedTypes.some((t) => findType(t)?.category?.trim().toLowerCase() === "dining");
   const [durationValue, setDurationValue] = useState("");
   const [durationUnit, setDurationUnit] = useState<DurationUnit>("hours");
-  const [price, setPrice] = useState<number | null>(null);
+  const [priceTiers, setPriceTiers] = useState<{ label: string; amount: number | null; isPrimary: boolean }[]>([
+    { label: "Regular", amount: null, isPrimary: true },
+  ]);
   const [currency, setCurrency] = useState("USD");
   const [openingHours, setOpeningHours] = useState<OpeningHours>(buildInitialHours);
   const [is24h, setIs24h]               = useState(false);
@@ -134,7 +136,11 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setSelectedFoodStyles(initialData?.foodStyles ?? []);
     setDurationValue(initialData?.durationValue ?? "");
     setDurationUnit(initialData?.durationUnit ?? "hours");
-    setPrice(initialData?.price ?? null);
+    setPriceTiers(
+      initialData?.prices?.length
+        ? initialData.prices.map((t) => ({ ...t }))
+        : [{ label: "Regular", amount: initialData?.price ?? null, isPrimary: true }]
+    );
     setCurrency(initialData?.currency ?? "USD");
     const isResidence = initialData?.subtype === "residence";
     const loadedHours = isResidence
@@ -211,6 +217,8 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     if (Object.keys(errs).length > 0) return;
 
     setSaving(true);
+    const validTiers = priceTiers.filter((t) => t.label.trim() && t.amount != null);
+    const primaryTier = validTiers.find((t) => t.isPrimary) ?? validTiers[0];
     const data: AttractionFormData = {
       name: name.trim(),
       country,
@@ -220,7 +228,10 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       foodStyles: isDining ? selectedFoodStyles : [],
       durationValue,
       durationUnit,
-      price,
+      price: primaryTier?.amount ?? null,
+      prices: validTiers.length
+        ? validTiers.map((t) => ({ label: t.label.trim(), amount: t.amount!, isPrimary: t === primaryTier }))
+        : undefined,
       currency,
       openingHours,
       openingMonths: yearRound ? undefined : openingMonths,
@@ -245,7 +256,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setSelectedTypes([]);
     setDurationValue("");
     setDurationUnit("hours");
-    setPrice(null);
+    setPriceTiers([{ label: "Regular", amount: null, isPrimary: true }]);
     setCurrency("USD");
     setOpeningHours(buildInitialHours());
     setOpeningMonths(ALL_MONTHS);
@@ -547,28 +558,83 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       )}
 
       {/* Price — omitted for a residence: price is a per-trip stay concern, edited via
-          AddResidenceModal within the trip, not here. */}
+          AddResidenceModal within the trip, not here. One shared currency for every tier;
+          exactly one tier is the "primary" rate shown wherever a single price is displayed. */}
       {!isEditingResidence && (
         <div className={styles.field}>
-          <label htmlFor="attraction-price" className={styles.labelWithIcon}>
+          <span className={styles.labelWithIcon}>
             <Wallet size={14} aria-hidden="true" />
             Price
-          </label>
+          </span>
           <div className={styles.priceRow}>
             <CurrencySelect value={currency} onChange={setCurrency} />
-            <input
-              id="attraction-price"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="0.00"
-              value={price ?? ""}
-              onChange={(e) =>
-                setPrice(e.target.value === "" ? null : parseFloat(e.target.value))
+          </div>
+          <div className={styles.priceTierList}>
+            {priceTiers.map((tier, i) => (
+              <div key={i} className={styles.priceTierRow}>
+                <button
+                  type="button"
+                  className={`${styles.priceTierPrimaryBtn} ${tier.isPrimary ? styles.priceTierPrimaryBtnActive : ""}`}
+                  onClick={() =>
+                    setPriceTiers((prev) => prev.map((t, ti) => ({ ...t, isPrimary: ti === i })))
+                  }
+                  title={tier.isPrimary ? "Primary rate" : "Set as primary rate"}
+                  aria-pressed={tier.isPrimary}
+                  aria-label={tier.isPrimary ? "Primary rate" : "Set as primary rate"}
+                >
+                  <Check size={12} aria-hidden="true" />
+                </button>
+                <input
+                  type="text"
+                  value={tier.label}
+                  onChange={(e) =>
+                    setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, label: e.target.value } : t)))
+                  }
+                  placeholder="e.g. Adult"
+                  className={styles.priceTierLabelInput}
+                  aria-label="Price tier label"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={tier.amount ?? ""}
+                  onChange={(e) =>
+                    setPriceTiers((prev) =>
+                      prev.map((t, ti) => (ti === i ? { ...t, amount: e.target.value === "" ? null : parseFloat(e.target.value) } : t))
+                    )
+                  }
+                  className={styles.priceInput}
+                  aria-label="Price tier amount"
+                />
+                {priceTiers.length > 1 && (
+                  <button
+                    type="button"
+                    className={styles.iconBtn}
+                    onClick={() =>
+                      setPriceTiers((prev) => {
+                        const next = prev.filter((_, ti) => ti !== i);
+                        if (prev[i].isPrimary && next.length > 0) next[0] = { ...next[0], isPrimary: true };
+                        return next;
+                      })
+                    }
+                    aria-label={`Remove ${tier.label || "tier"}`}
+                  >
+                    <X size={14} aria-hidden="true" />
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              className={styles.addTierBtn}
+              onClick={() =>
+                setPriceTiers((prev) => [...prev, { label: "", amount: null, isPrimary: prev.length === 0 }])
               }
-              className={styles.priceInput}
-              aria-label="Price amount"
-            />
+            >
+              + Add price tier
+            </button>
           </div>
         </div>
       )}

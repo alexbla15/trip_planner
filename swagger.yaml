@@ -276,6 +276,15 @@ components:
           type: number
           nullable: true
           description: Per-trip price override — same rationale as checkInDate.
+        selectedPriceTierLabels:
+          type: array
+          items: { type: string }
+          description: >
+            Which of the linked Attraction's `prices` tier labels are selected for this
+            scheduled instance's cost total (trips/[id]'s Costs tab). Per-trip — lives
+            here, not on the shared Attraction document. Empty means no explicit choice
+            yet (the Costs tab defaults to the primary tier).
+          example: ["Adult"]
         currency:
           type: string
           nullable: true
@@ -404,7 +413,30 @@ components:
         price:
           type: number
           nullable: true
+          description: >
+            The primary price tier's amount — kept in sync with `prices` on every write,
+            so existing single-price consumers (cards, budget calculations) need no changes.
           example: 16.00
+        prices:
+          type: array
+          description: >
+            Named price tiers (adult/child/reduced/etc.). Always non-empty — a document
+            with no explicit tiers gets a single synthesized "Regular" tier equal to
+            `price`. Exactly one tier has `isPrimary: true`.
+          items:
+            type: object
+            properties:
+              label: { type: string, example: Adult }
+              amount: { type: number, example: 16.00 }
+              isPrimary: { type: boolean, example: true }
+        selectedPriceTierLabels:
+          type: array
+          items: { type: string }
+          description: >
+            Which of `prices`' labels the requesting trip selected for this scheduled
+            instance's cost total (trips/[id]'s Costs tab) — per-trip, not part of the
+            shared document. Empty means no explicit choice yet (defaults to the primary tier).
+          example: ["Adult"]
         currency:
           type: string
           default: USD
@@ -581,6 +613,19 @@ components:
         price:
           type: number
           nullable: true
+          description: Ignored when `prices` is also sent — use `prices` for a single tier too (one entry, isPrimary true).
+        prices:
+          type: array
+          description: >
+            Named price tiers — when sent, overrides `price` (the primary tier's amount is
+            synced onto `price`). Omit to keep/create a single-tier attraction from `price` alone.
+          items:
+            type: object
+            required: [label, amount]
+            properties:
+              label: { type: string, example: Adult }
+              amount: { type: number, example: 16.00 }
+              isPrimary: { type: boolean, description: "Exactly one tier should be true; the first tier is promoted automatically if none is marked." }
         currency:
           type: string
           default: USD

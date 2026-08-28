@@ -353,6 +353,101 @@
   color: var(--color-text-tertiary);
 }
 
+/* Price tiers — repeatable (label, amount) rows sharing the attraction's one currency */
+.priceTierList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.priceTierRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.priceTierLabelInput {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--color-text-primary);
+}
+
+.priceTierLabelInput:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.priceTierPrimaryBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: transparent;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--easing-out);
+}
+
+.priceTierPrimaryBtn:hover {
+  border-color: var(--color-primary);
+}
+
+.priceTierPrimaryBtnActive {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.addTierBtn {
+  align-self: flex-start;
+  padding: 6px 12px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.addTierBtn:hover {
+  background: var(--color-primary-light);
+}
+
+.iconBtn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--easing-out), background var(--duration-fast) var(--easing-out);
+}
+
+.iconBtn:hover {
+  color: var(--color-error);
+  background: var(--color-bg-subtle);
+}
+
 /* Error */
 .errorMsg {
   display: flex;

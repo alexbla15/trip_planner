@@ -18,7 +18,7 @@ A batch of 14 fixes and enhancements across Analytics, Explore, Trip detail, and
 - [x] .claude/tasks/explore-visited-trips-picker-collapsible.done.md
 - [x] .claude/tasks/trip-scheduler-mobile-date-picker.done.md
 - [x] .claude/tasks/attraction-food-styles-multiselect.done.md
-- [ ] .claude/tasks/attraction-multi-price-expenses-tab.md
+- [x] .claude/tasks/attraction-multi-price-expenses-tab.done.md
 - [ ] .claude/tasks/explore-map-grid-load-performance.md
 
 ## Plan

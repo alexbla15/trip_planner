@@ -18,6 +18,9 @@ export interface IScheduleEntry {
   typeNames?: string[];
   price?: number | null;
   currency?: string;
+  /** Which of the linked Attraction's `prices` tiers (by label) the user selected for the
+   *  trip Costs tab's total. Per-trip — lives here, not on the shared Attraction document. */
+  selectedPriceTierLabels?: string[];
   notes?: string;
   /** Per-trip stay-date override for a shared residence Attraction document — see the
    *  "pick existing residence" flow. Never write these onto the shared document itself;
@@ -95,6 +98,7 @@ const TripSchema = new Schema<ITrip>(
           typeNames:           [{ type: String }],
           price:               { type: Number, default: null },
           currency:            { type: String },
+          selectedPriceTierLabels: [{ type: String }],
           notes:               { type: String },
           checkInDate:         { type: String },
           checkOutDate:        { type: String },

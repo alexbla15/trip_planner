@@ -82,6 +82,7 @@ const TRIP_TABS = [
   { id: "flights",     label: "Flights",     Icon: Plane           },
   { id: "residences",  label: "Residences",  Icon: BedDouble       },
   { id: "explore",     label: "Explore",     Icon: Compass         },
+  { id: "costs",       label: "Costs",       Icon: DollarSign      },
 ] as const;
 
 type TripTabId = typeof TRIP_TABS[number]["id"];
@@ -522,6 +523,50 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     }
     return result;
   }, [attractions]);
+
+  // Costs tab — every scheduled instance (attraction, custom slot, flight, residence),
+  // not deduped like regularAttractions above, since each instance has its own tier
+  // selection/price and contributes independently to the trip total.
+  const scheduledCostRows = useMemo(
+    () => attractions.filter((a) => !!a.plannedDate),
+    [attractions]
+  );
+
+  function selectedTierLabelsFor(a: Attraction): string[] {
+    if (a.selectedPriceTierLabels?.length) return a.selectedPriceTierLabels;
+    return a.prices?.filter((t) => t.isPrimary).map((t) => t.label) ?? [];
+  }
+
+  const costTotalsByCurrency = useMemo(() => {
+    const totals: Record<string, number> = {};
+    for (const a of scheduledCostRows) {
+      const currency = a.currency ?? "USD";
+      let amount = 0;
+      if (a.prices?.length) {
+        const selected = selectedTierLabelsFor(a);
+        amount = a.prices.filter((t) => selected.includes(t.label)).reduce((sum, t) => sum + t.amount, 0);
+      } else if (a.price != null) {
+        amount = a.price;
+      }
+      totals[currency] = (totals[currency] ?? 0) + amount;
+    }
+    return totals;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scheduledCostRows]);
+
+  async function handleToggleCostTier(a: Attraction, tierLabel: string) {
+    if (!token || !trip) return;
+    const current = selectedTierLabelsFor(a);
+    const next = current.includes(tierLabel) ? current.filter((l) => l !== tierLabel) : [...current, tierLabel];
+    setAttractions((prev) => prev.map((x) => (x._id === a._id ? { ...x, selectedPriceTierLabels: next } : x)));
+    try {
+      const res = await updateTripAttractionSchedule(trip._id, a._id, token, { selectedPriceTierLabels: next });
+      if (!res.ok) throw new Error("Failed to save cost selection");
+    } catch {
+      setAttractions((prev) => prev.map((x) => (x._id === a._id ? { ...x, selectedPriceTierLabels: current } : x)));
+      toast.error("Couldn't save cost selection. Please try again.");
+    }
+  }
 
   const presentCategories = useMemo(
     () => [...new Set(
@@ -1146,6 +1191,66 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                     unscheduledColor={UNSCHEDULED_DAY_COLOR}
                   />
                 </div>
+              </div>
+            )}
+
+            {activeTab === "costs" && (
+              <div className={styles.card}>
+                <div className={styles.attractionsHeader}>
+                  <h2 className={styles.sectionHeading}>Costs</h2>
+                </div>
+
+                {scheduledCostRows.length === 0 ? (
+                  <p className={styles.emptyText}>
+                    Nothing scheduled yet — costs appear here once attractions have a planned date.
+                  </p>
+                ) : (
+                  <>
+                    <ul className={styles.costsList}>
+                      {scheduledCostRows.map((a) => {
+                        const selected = selectedTierLabelsFor(a);
+                        return (
+                          <li key={a._id} className={styles.costsRow}>
+                            <div className={styles.costsRowHeader}>
+                              <span className={styles.costsRowName}>{a.name}</span>
+                              <span className={styles.costsRowDate}>{a.plannedDate}</span>
+                            </div>
+                            {a.prices?.length ? (
+                              <div className={styles.costsTierList}>
+                                {a.prices.map((tier) => (
+                                  <label key={tier.label} className={styles.costsTierRow}>
+                                    <input
+                                      type="checkbox"
+                                      checked={selected.includes(tier.label)}
+                                      disabled={!effectiveCanEdit}
+                                      onChange={() => handleToggleCostTier(a, tier.label)}
+                                    />
+                                    <span className={styles.costsTierLabel}>{tier.label}</span>
+                                    <span className={styles.costsTierAmount}>{formatPrice(tier.amount, a.currency ?? "USD")}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            ) : a.price != null && (
+                              <div className={styles.costsTierRow}>
+                                <span className={styles.costsTierLabel}>Cost</span>
+                                <span className={styles.costsTierAmount}>{formatPrice(a.price, a.currency ?? "USD")}</span>
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+
+                    <div className={styles.costsTotals}>
+                      <span className={styles.costsTotalsLabel}>Total</span>
+                      {Object.entries(costTotalsByCurrency).map(([currency, amount]) => (
+                        <span key={currency} className={styles.costsTotalsAmount}>
+                          {formatPrice(amount, currency)}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>

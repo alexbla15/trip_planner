@@ -11,9 +11,11 @@ export function attractionToFormData(a: Attraction): AttractionFormData {
     city: a.city ?? "",
     coordinates: a.coordinates ?? null,
     types: (a.types ?? []) as AttractionFormData["types"],
+    foodStyles: a.foodStyles ?? [],
     durationValue: a.durationValue ?? "",
     durationUnit: (a.durationUnit ?? "hours") as DurationUnit,
     price: a.price ?? null,
+    prices: a.prices,
     currency: a.currency ?? "USD",
     openingHours: hasOpeningHoursData(a.openingHours)
       ? normalizeOpeningHours(a.openingHours)

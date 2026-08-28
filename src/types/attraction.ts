@@ -10,6 +10,12 @@ export interface OpeningHoursDay {
 
 export type OpeningHours = Record<string, OpeningHoursDay>;
 
+export interface PriceTier {
+  label: string;
+  amount: number;
+  isPrimary: boolean;
+}
+
 export interface Attraction {
   /** Identifies this ROW — for a regular attraction's 2nd+ scheduled instance, this is a
    *  synthetic per-instance id, not the shared document's own id (see `attractionId`). For
@@ -53,6 +59,14 @@ export interface Attraction {
   durationValue?: string;
   durationUnit?: "minutes" | "hours";
   price?: number | null;
+  /** Named price tiers — always non-empty (a document with no explicit tiers gets a
+   *  single synthesized "Regular" tier equal to `price`). See `IPriceTier` on the model
+   *  for the full contract. */
+  prices?: PriceTier[];
+  /** Which of `prices`' labels the user selected for THIS scheduled instance of the trip
+   *  — per-trip, so it's a schedule-entry field, not a shared-document one. Empty means
+   *  no explicit choice yet (the Costs tab defaults to the primary tier). */
+  selectedPriceTierLabels?: string[];
   currency?: string;
   openingHours?: OpeningHours;
   /** Months (1–12) this attraction is open in. Absent/empty means open year-round —

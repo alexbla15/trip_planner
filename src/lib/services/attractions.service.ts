@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
 import { dbConnect } from "@/lib/mongoose";
 import { badRequest, notFound, conflict } from "@/lib/apiError";
-import { Attraction, formatAttraction, type IAttraction } from "@/models/Attraction";
+import { Attraction, formatAttraction, type IAttraction, type IPriceTier } from "@/models/Attraction";
 import { AttractionType } from "@/models/AttractionType";
 import { FoodStyle } from "@/models/FoodStyle";
 import { Trip, type ITrip, type IScheduleEntry } from "@/models/Trip";
@@ -21,6 +21,27 @@ function throwIfDuplicateKeyError(err: unknown): never {
     throw conflict("An attraction with this name already exists at this location");
   }
   throw err;
+}
+
+/** Validates and normalizes a client-supplied price-tier list: at least one tier, exactly
+ *  one flagged primary (the first tier is promoted automatically if the client didn't mark
+ *  one — a client bug shouldn't be a 400, since "primary" is a display convenience, not a
+ *  business rule the client can violate meaningfully). Returns the normalized tiers plus
+ *  the primary tier's amount, which callers sync onto the legacy `price` field so every
+ *  existing single-price consumer (cards, budget calculations) keeps working unchanged. */
+function normalizePriceTiers(tiers: { label: string; amount: number; isPrimary?: boolean }[]): {
+  prices: IPriceTier[];
+  primaryAmount: number;
+} {
+  if (tiers.length === 0) throw badRequest("At least one price tier is required");
+  const hasPrimary = tiers.some((t) => t.isPrimary);
+  const prices: IPriceTier[] = tiers.map((t, i) => ({
+    label: t.label.trim(),
+    amount: t.amount,
+    isPrimary: hasPrimary ? !!t.isPrimary : i === 0,
+  }));
+  const primary = prices.find((t) => t.isPrimary)!;
+  return { prices, primaryAmount: primary.amount };
 }
 
 export interface SearchAttractionsParams {
@@ -159,6 +180,10 @@ export interface CreateAttractionInput {
   durationValue?: string;
   durationUnit?: "minutes" | "hours";
   price?: number | null;
+  /** Named price tiers — when provided, overrides `price` (the primary tier's amount is
+   *  synced onto `price` for backward compat). Omit to create a single-tier attraction
+   *  from `price` alone, unchanged from before this field existed. */
+  prices?: { label: string; amount: number; isPrimary?: boolean }[];
   currency?: string;
   openingHours?: OpeningHours;
   openingMonths?: number[];
@@ -169,7 +194,7 @@ export interface CreateAttractionInput {
 
 export async function createAttraction(payload: JwtPayload, body: CreateAttractionInput): Promise<IAttraction> {
   const { name, country, city, coordinates, parentAttractionId, types, foodStyles, durationValue, durationUnit,
-    price, currency, openingHours, openingMonths, notes, photoUrl, websiteUrl } = body;
+    price, prices: priceTiersInput, currency, openingHours, openingMonths, notes, photoUrl, websiteUrl } = body;
 
   if (!name?.trim() || (!parentAttractionId && (!country?.trim() || !city?.trim()))) {
     // A child's country/city are inherited from its parent — only required directly when
@@ -201,6 +226,7 @@ export async function createAttraction(payload: JwtPayload, body: CreateAttracti
   const resolvedCountry = parent?.country ?? country!.trim();
   const resolvedCity = parent?.city ?? city!.trim();
   const resolvedCoordinates = parent ? parent.coordinates ?? null : coordinates ?? null;
+  const normalizedTiers = priceTiersInput?.length ? normalizePriceTiers(priceTiersInput) : null;
 
   try {
     const attraction = await Attraction.create({
@@ -214,7 +240,8 @@ export async function createAttraction(payload: JwtPayload, body: CreateAttracti
       foodStyles: foodStyleIds,
       durationValue: durationValue || undefined,
       durationUnit: durationUnit || undefined,
-      price: price ?? null,
+      price: normalizedTiers ? normalizedTiers.primaryAmount : (price ?? null),
+      prices: normalizedTiers?.prices,
       currency: currency || "USD",
       openingHours: openingHours ?? undefined,
       openingMonths: openingMonths?.length ? openingMonths : undefined,
@@ -338,7 +365,20 @@ export async function updateAttraction(
   }
   if (body.durationValue !== undefined) attraction.durationValue = body.durationValue as string;
   if (body.durationUnit !== undefined) attraction.durationUnit = body.durationUnit as "minutes" | "hours";
-  if (body.price !== undefined) attraction.price = body.price as number | null;
+  if (body.prices !== undefined) {
+    const tiers = body.prices as { label: string; amount: number; isPrimary?: boolean }[];
+    if (tiers.length === 0) {
+      attraction.prices = undefined;
+      if (body.price === undefined) throw badRequest("At least one price tier is required, or send `price` to fall back to a single rate");
+    } else {
+      const normalized = normalizePriceTiers(tiers);
+      attraction.prices = normalized.prices;
+      attraction.price = normalized.primaryAmount;
+    }
+  }
+  // Only applied when `prices` wasn't also sent in this same request — `prices` (above)
+  // already resolves and syncs the correct `price` from the new primary tier.
+  if (body.price !== undefined && body.prices === undefined) attraction.price = body.price as number | null;
   if (body.currency !== undefined) attraction.currency = body.currency as string;
   if (body.openingHours !== undefined) {
     attraction.openingHours = body.openingHours as OpeningHours;
@@ -847,6 +887,9 @@ export interface UpdateTripAttractionScheduleInput {
   // whose stay dates/price/notes are specific to this trip's booking.
   price?: number | null;
   currency?: string;
+  /** Which of the linked attraction's `prices` tiers (by label) are selected for the
+   *  trip Costs tab total. Per-trip — see `IScheduleEntry.selectedPriceTierLabels`. */
+  selectedPriceTierLabels?: string[];
   notes?: string;
   checkInDate?: string;
   checkOutDate?: string;
@@ -896,6 +939,7 @@ export async function updateTripAttractionSchedule(
   if (body.actualDurationUnit !== undefined) scheduleSet[`${p}.actualDurationUnit`] = body.actualDurationUnit;
   if (body.price !== undefined) scheduleSet[`${p}.price`] = body.price;
   if (body.currency !== undefined) scheduleSet[`${p}.currency`] = body.currency;
+  if (body.selectedPriceTierLabels !== undefined) scheduleSet[`${p}.selectedPriceTierLabels`] = body.selectedPriceTierLabels;
   if (body.notes !== undefined) scheduleSet[`${p}.notes`] = body.notes;
   if (body.checkInDate !== undefined) scheduleSet[`${p}.checkInDate`] = body.checkInDate;
   if (body.checkOutDate !== undefined) scheduleSet[`${p}.checkOutDate`] = body.checkOutDate;

@@ -11,6 +11,12 @@ interface IOpeningHoursDay {
   ranges: IOpeningHoursRange[];
 }
 
+export interface IPriceTier {
+  label: string;
+  amount: number;
+  isPrimary: boolean;
+}
+
 export interface IAttraction extends Document {
   // No tripId — attractions are global entities that can appear in many trips.
   // Scheduling (plannedDate, plannedTime, actualDuration) lives in Trip.schedules.
@@ -33,6 +39,14 @@ export interface IAttraction extends Document {
   durationValue?: string;
   durationUnit?: "minutes" | "hours";
   price?: number | null;
+  /** Named price tiers (adult/child/reduced/etc.) — optional; when absent, `price` above is
+   *  the attraction's one and only rate. Exactly one tier is flagged `isPrimary`; that tier's
+   *  `amount` is kept in sync with the legacy `price` field on every write, so every existing
+   *  consumer that reads `.price` directly (cards, budget calculations) keeps working
+   *  unchanged. `formatAttraction` synthesizes a single-tier array from `price` on read for
+   *  any document that predates this field, so callers can always rely on `prices` being
+   *  non-empty without a real DB migration. */
+  prices?: IPriceTier[];
   currency?: string;
   openingHours?: Record<string, IOpeningHoursDay>;
   /** Months (1–12) this attraction is open in. Absent/empty means open year-round. */
@@ -71,6 +85,11 @@ const OpeningHoursDaySchema = new Schema<IOpeningHoursDay>(
   { _id: false }
 );
 
+const PriceTierSchema = new Schema<IPriceTier>(
+  { label: { type: String, required: true, trim: true }, amount: { type: Number, required: true }, isPrimary: { type: Boolean, default: false } },
+  { _id: false }
+);
+
 const AttractionSchema = new Schema<IAttraction>(
   {
     ownerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -93,6 +112,7 @@ const AttractionSchema = new Schema<IAttraction>(
     durationValue: { type: String },
     durationUnit: { type: String, enum: ["minutes", "hours"] },
     price: { type: Number, default: null },
+    prices: [PriceTierSchema],
     currency: { type: String, default: "USD" },
     notes: { type: String },
     photoUrl: { type: String },
@@ -175,6 +195,13 @@ export function formatAttraction(
    *  via getChildCount/getChildCountMap. Defaults to 0. */
   childAttractionCount?: number
 ): AttractionShape {
+  // Synthesize a single primary tier from the legacy `price` field for any document that
+  // predates multi-tier pricing (or was created/edited without specifying tiers) — callers
+  // can always rely on `prices` being non-empty without a real DB migration.
+  const prices: IPriceTier[] = doc.prices?.length
+    ? doc.prices
+    : [{ label: "Regular", amount: doc.price ?? 0, isPrimary: true }];
+
   return {
     _id: idOverride ?? doc._id.toString(),
     attractionId: doc._id.toString(),
@@ -203,7 +230,12 @@ export function formatAttraction(
     // price/notes prefer a per-trip schedule override for the same reason as
     // checkInDate/checkOutDate below — see the "pick existing residence" flow.
     price: schedule?.price ?? doc.price ?? null,
+    prices,
     currency: schedule?.currency ?? doc.currency ?? "USD",
+    // Which of this attraction's price tiers (by label) the user selected for this
+    // scheduled instance — per-trip, so it lives on the schedule entry, not the shared
+    // document. Empty means "not yet chosen"; the Costs tab defaults to the primary tier.
+    selectedPriceTierLabels: schedule?.selectedPriceTierLabels ?? [],
     openingHours: doc.openingHours as AttractionShape["openingHours"],
     openingMonths: doc.openingMonths,
     notes: schedule?.notes ?? doc.notes,
