@@ -594,10 +594,10 @@ export function AdminClient() {
           ) : catRecords.length === 0 ? (
             <p className={styles.fieldHint}>No categories yet. Add one or use "Migrate legacy" if you have existing types.</p>
           ) : (
-            <div className={styles.typesList}>
-              {catRecords.map((cat) => (
-                <div key={cat._id} className={styles.typeRow}>
-                  {catEditingId === cat._id && token ? (
+            <div className={styles.compactGrid}>
+              {catRecords.map((cat, index) => (
+                catEditingId === cat._id && token ? (
+                  <div key={cat._id} className={styles.compactFormWrap}>
                     <CategoryForm
                       key={cat._id}
                       initial={catFormFromRecord(cat)}
@@ -606,50 +606,51 @@ export function AdminClient() {
                       onDone={handleCatFormDone}
                       onCancel={() => setCatEditingId(null)}
                     />
-                  ) : (
-                    <div className={styles.typeItem}>
-                      <span className={styles.typeIcon}>{renderTypeIcon(cat.icon, 15)}</span>
-                      <span
-                        className={styles.typeNameColored}
-                        style={{ "--type-color": cat.color } as CSSProperties}
+                  </div>
+                ) : (
+                  <div key={cat._id} className={styles.compactChip}>
+                    <span className={styles.compactIndex}>#{index + 1}</span>
+                    <span className={styles.typeIcon}>{renderTypeIcon(cat.icon, 15)}</span>
+                    <span
+                      className={styles.typeNameColored}
+                      style={{ "--type-color": cat.color } as CSSProperties}
+                    >
+                      {cat.name}
+                    </span>
+                    <div className={styles.typeActions}>
+                      <button
+                        className={styles.iconBtn}
+                        onClick={() => { setCatEditingId(cat._id); setCatAdding(false); }}
+                        aria-label={`Edit ${cat.name}`}
                       >
-                        {cat.name}
-                      </span>
-                      <div className={styles.typeActions}>
-                        <button
-                          className={styles.iconBtn}
-                          onClick={() => { setCatEditingId(cat._id); setCatAdding(false); }}
-                          aria-label={`Edit ${cat.name}`}
-                        >
-                          <Pencil size={13} />
-                        </button>
-                        {catDeleteId === cat._id ? (
-                          <div className={styles.confirmDelete}>
-                            <span>Delete?</span>
-                            <button
-                              className={styles.confirmYes}
-                              onClick={() => handleCatDelete(cat._id)}
-                              disabled={catDeleting}
-                            >
-                              Yes
-                            </button>
-                            <button className={styles.confirmNo} onClick={() => setCatDeleteId(null)}>
-                              No
-                            </button>
-                          </div>
-                        ) : (
+                        <Pencil size={13} />
+                      </button>
+                      {catDeleteId === cat._id ? (
+                        <div className={styles.confirmDelete}>
+                          <span>Delete?</span>
                           <button
-                            className={`${styles.iconBtn} ${styles.deleteBtn}`}
-                            onClick={() => setCatDeleteId(cat._id)}
-                            aria-label={`Delete ${cat.name}`}
+                            className={styles.confirmYes}
+                            onClick={() => handleCatDelete(cat._id)}
+                            disabled={catDeleting}
                           >
-                            <Trash2 size={13} />
+                            Yes
                           </button>
-                        )}
-                      </div>
+                          <button className={styles.confirmNo} onClick={() => setCatDeleteId(null)}>
+                            No
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          className={`${styles.iconBtn} ${styles.deleteBtn}`}
+                          onClick={() => setCatDeleteId(cat._id)}
+                          aria-label={`Delete ${cat.name}`}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )
               ))}
             </div>
           )}
@@ -821,10 +822,10 @@ export function AdminClient() {
           {tagsLoading ? (
             <div className={styles.center}><Loader2 size={24} className={styles.spin} /></div>
           ) : (
-            <div className={styles.typesList}>
-              {moodTags.map((tagRecord) => (
-                <div key={tagRecord._id} className={styles.typeRow}>
-                  {moodEditingId === tagRecord._id && token ? (
+            <div className={styles.compactGrid}>
+              {moodTags.map((tagRecord, index) => (
+                moodEditingId === tagRecord._id && token ? (
+                  <div key={tagRecord._id} className={styles.compactFormWrap}>
                     <MoodTagForm
                       key={tagRecord._id}
                       initial={moodFormFromRecord(tagRecord)}
@@ -833,47 +834,48 @@ export function AdminClient() {
                       onDone={handleMoodFormDone}
                       onCancel={() => setMoodEditingId(null)}
                     />
-                  ) : (
-                    <div className={styles.typeItem}>
-                      <span className={styles.moodIcon} style={getMoodTagStyle(tagRecord)}>
-                        {renderTypeIcon(tagRecord.icon, 15)}
-                      </span>
-                      <span className={styles.moodName} style={getMoodTagStyle(tagRecord)}>{tagRecord.name}</span>
-                      <div className={styles.typeActions}>
-                        <button
-                          className={styles.iconBtn}
-                          onClick={() => { setMoodEditingId(tagRecord._id); setMoodAdding(false); }}
-                          aria-label={`Edit ${tagRecord.name}`}
-                        >
-                          <Pencil size={13} />
-                        </button>
-                        {moodDeleteId === tagRecord._id ? (
-                          <div className={styles.confirmDelete}>
-                            <span>Delete?</span>
-                            <button
-                              className={styles.confirmYes}
-                              onClick={() => handleMoodDelete(tagRecord._id)}
-                              disabled={moodDeleting}
-                            >
-                              Yes
-                            </button>
-                            <button className={styles.confirmNo} onClick={() => setMoodDeleteId(null)}>
-                              No
-                            </button>
-                          </div>
-                        ) : (
+                  </div>
+                ) : (
+                  <div key={tagRecord._id} className={styles.compactChip}>
+                    <span className={styles.compactIndex}>#{index + 1}</span>
+                    <span className={styles.moodIcon} style={getMoodTagStyle(tagRecord)}>
+                      {renderTypeIcon(tagRecord.icon, 15)}
+                    </span>
+                    <span className={styles.moodName} style={getMoodTagStyle(tagRecord)}>{tagRecord.name}</span>
+                    <div className={styles.typeActions}>
+                      <button
+                        className={styles.iconBtn}
+                        onClick={() => { setMoodEditingId(tagRecord._id); setMoodAdding(false); }}
+                        aria-label={`Edit ${tagRecord.name}`}
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      {moodDeleteId === tagRecord._id ? (
+                        <div className={styles.confirmDelete}>
+                          <span>Delete?</span>
                           <button
-                            className={`${styles.iconBtn} ${styles.deleteBtn}`}
-                            onClick={() => setMoodDeleteId(tagRecord._id)}
-                            aria-label={`Delete ${tagRecord.name}`}
+                            className={styles.confirmYes}
+                            onClick={() => handleMoodDelete(tagRecord._id)}
+                            disabled={moodDeleting}
                           >
-                            <Trash2 size={13} />
+                            Yes
                           </button>
-                        )}
-                      </div>
+                          <button className={styles.confirmNo} onClick={() => setMoodDeleteId(null)}>
+                            No
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          className={`${styles.iconBtn} ${styles.deleteBtn}`}
+                          onClick={() => setMoodDeleteId(tagRecord._id)}
+                          aria-label={`Delete ${tagRecord.name}`}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )
               ))}
             </div>
           )}
@@ -906,10 +908,10 @@ export function AdminClient() {
           {foodStylesLoading ? (
             <div className={styles.center}><Loader2 size={24} className={styles.spin} /></div>
           ) : (
-            <div className={styles.foodStyleGrid}>
+            <div className={styles.compactGrid}>
               {foodStyleRecords.map((record, index) => (
                 foodStyleEditingId === record._id && token ? (
-                  <div key={record._id} className={styles.foodStyleFormWrap}>
+                  <div key={record._id} className={styles.compactFormWrap}>
                     <FoodStyleForm
                       key={record._id}
                       initial={foodStyleFormFromRecord(record)}
@@ -920,8 +922,8 @@ export function AdminClient() {
                     />
                   </div>
                 ) : (
-                  <div key={record._id} className={styles.foodStyleChip}>
-                    <span className={styles.foodStyleIndex}>#{index + 1}</span>
+                  <div key={record._id} className={styles.compactChip}>
+                    <span className={styles.compactIndex}>#{index + 1}</span>
                     <span className={styles.typeName}>{record.name}</span>
                     <div className={styles.typeActions}>
                       <button

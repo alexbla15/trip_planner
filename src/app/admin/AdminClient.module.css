@@ -161,9 +161,11 @@
   min-height: 44px;
 }
 
-/* Food styles have no icon/color and no reason to take a full row each like
-   Attraction Types/Categories/Moods — short name tags pack several per row instead. */
-.foodStyleGrid {
+/* Compact wrapping chip grid — used by Food Styles, Travel Moods, and Attraction
+   Categories admin lists: short name tags with only edit/delete actions pack several
+   per row instead of each taking a full row like Attraction Types (which has more
+   per-row detail: category, subtype, etc.). */
+.compactGrid {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -171,7 +173,7 @@
   background: var(--color-surface);
 }
 
-.foodStyleChip {
+.compactChip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -181,7 +183,7 @@
   background: var(--color-bg-subtle);
 }
 
-.foodStyleIndex {
+.compactIndex {
   font-size: 11px;
   font-weight: 600;
   color: var(--color-text-tertiary);
@@ -189,14 +191,16 @@
   flex-shrink: 0;
 }
 
-/* .typeName is flex:1 by default (fine in a full-width row) — pin it to content width
-   here so chips stay compact instead of each stretching to fill the wrapped row. */
-.foodStyleChip .typeName {
+/* .typeName/.moodName are flex:1 by default (fine in a full-width row) — pin them to
+   content width here so chips stay compact instead of each stretching to fill the row. */
+.compactChip .typeName,
+.compactChip .typeNameColored,
+.compactChip .moodName {
   flex: none;
 }
 
 /* An item being edited grows to its own full-width row (the form is too wide for a chip) */
-.foodStyleFormWrap {
+.compactFormWrap {
   flex-basis: 100%;
 }
 
