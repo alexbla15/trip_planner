@@ -37,6 +37,11 @@ import styles from "./NewAttractionModal.module.css";
 
 const HEADING_ID = "new-attraction-modal-title";
 
+// Dining-category types that don't need a food-style/cuisine picker — there's no
+// meaningful "cuisine" concept for a bar, ice cream stand, or supermarket the way there
+// is for a restaurant, café, food truck, etc.
+const NO_FOOD_STYLE_TYPES = new Set(["Bar", "Ice Cream", "Supermarket"]);
+
 function build24hHours(): OpeningHours {
   return Object.fromEntries(
     DAY_KEYS.map((d) => [d, { closed: false, ranges: [{ open: "00:00", close: "23:59" }] }])
@@ -101,8 +106,13 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedFoodStyles, setSelectedFoodStyles] = useState<string[]>([]);
   // Food styles only make sense for a dining-type attraction — driven by the selected
-  // type's admin-managed category name, not a hardcoded type list.
-  const isDining = selectedTypes.some((t) => findType(t)?.category?.trim().toLowerCase() === "dining");
+  // type's admin-managed category name, not a hardcoded type list — except a couple of
+  // Dining types where a "food style"/cuisine concept doesn't apply (a bar or ice cream
+  // stand isn't a cuisine in the same sense a restaurant is).
+  const isDining = selectedTypes.some((t) => {
+    if (NO_FOOD_STYLE_TYPES.has(t)) return false;
+    return findType(t)?.category?.trim().toLowerCase() === "dining";
+  });
   const [durationValue, setDurationValue] = useState("");
   const [durationUnit, setDurationUnit] = useState<DurationUnit>("hours");
   const [priceTiers, setPriceTiers] = useState<{ label: string; amount: number | null; isPrimary: boolean }[]>([
