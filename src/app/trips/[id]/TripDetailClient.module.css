@@ -720,7 +720,10 @@
 
 .attractionInfo {
   flex: 1;
-  min-width: 0;
+  /* Enough width for the title to wrap onto a couple of lines instead of degenerating
+     into one character per line when .rowActions grows (edit mode adds two more fixed-
+     width buttons) and squeezes this flex-shrinkable column down towards 0. */
+  min-width: 96px;
   display: flex;
   flex-direction: column;
   gap: 3px;
