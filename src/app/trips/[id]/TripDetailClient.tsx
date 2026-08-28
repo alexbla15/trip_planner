@@ -382,17 +382,19 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     // The row id (schedule key) may be a synthetic 2nd+ instance key — the shared
     // Attraction document must be addressed by its own real id, not the row's.
     const realId = editingAttraction.attractionId ?? editingAttraction._id;
+    const editedRowId = editingAttraction._id;
     setEditingAttraction(null);
     setActionError(null);
 
     try {
       const updated = (await updateAttraction(realId, token, data)) as Attraction;
+      let editedRow: Attraction | null = null;
       setAttractions((prev) =>
         prev.map((a) => {
           // Shared-document fields apply to every scheduled instance of this attraction,
           // not just the row that was open in the edit modal.
           if ((a.attractionId ?? a._id) !== realId) return a;
-          return {
+          const merged: Attraction = {
             ...updated,
             _id: a._id,
             attractionId: realId,
@@ -401,8 +403,13 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
             actualDurationValue: a.actualDurationValue,
             actualDurationUnit: a.actualDurationUnit,
           };
+          if (a._id === editedRowId) editedRow = merged;
+          return merged;
         })
       );
+      // Drop back into the read-only detail card for the attraction just edited, instead
+      // of leaving the user staring at the plain list after the edit modal closes.
+      if (editedRow) setViewingAttraction(editedRow);
       toast.success("Attraction updated");
     } catch {
       setActionError("Couldn't update the attraction. Please try again.");

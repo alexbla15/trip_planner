@@ -472,6 +472,17 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                 </span>
               </div>
             )}
+            {/* Same hours every day of the week — a full day-by-day table would just repeat
+                one value seven times, so fold it into a single info item instead. */}
+            {!isResidence && !isFlight && uniformHoursLabel && statusChips.length === 0 && (
+              <div className={styles.infoItem}>
+                <span className={styles.infoIconBubble}><Clock size={15} aria-hidden="true" /></span>
+                <span className={styles.infoText}>
+                  <span className={styles.infoLabel}>Hours</span>
+                  <span className={styles.infoValue}>{uniformHoursLabel}</span>
+                </span>
+              </div>
+            )}
             {/* Coordinates shown in the map caption above — removed from info grid */}
           </div>
 
@@ -507,46 +518,41 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
           {/* Opening hours — not shown for subtypes. When a status chip (24/7, and
               later permanently-closed) already covers the situation — shown up in the
               Types row instead — the day-by-day table and its heading would be
-              redundant, so this section is skipped entirely. */}
-          {!isResidence && !isFlight && attraction.openingHours && statusChips.length === 0 && (
+              redundant, so this section is skipped entirely. Same-every-day hours are
+              shown as a compact info item above instead of this full table. */}
+          {!isResidence && !isFlight && attraction.openingHours && statusChips.length === 0 && !uniformHoursLabel && (
             <div className={styles.section}>
               <h3 className={styles.sectionTitle}>
                 <Clock size={14} aria-hidden="true" />
                 Opening Hours
               </h3>
-              {uniformHoursLabel ? (
-                <div className={styles.hoursCard}>
-                  <p className={styles.uniformHours}>{uniformHoursLabel}</p>
-                </div>
-              ) : (
-                <div className={styles.hoursCard}>
-                  <table className={styles.hoursTable} aria-label="Opening hours">
-                    <tbody>
-                      {DAY_KEYS.map((day) => {
-                        const row = attraction.openingHours?.[day];
-                        const isToday = day === todayKey;
-                        return (
-                          <tr key={day} className={`${styles.hoursRow} ${isToday ? styles.hoursRowToday : ""}`}>
-                            <td className={styles.hoursDay}>
-                              <span className={styles.hoursDayInner}>
-                                {day}
-                                {isToday && <span className={styles.todayPill}>Today</span>}
-                              </span>
-                            </td>
-                            <td className={styles.hoursTime}>
-                              {row?.closed || !row?.ranges?.length ? (
-                                <span className={styles.closed}>Closed</span>
-                              ) : (
-                                row.ranges.map((r) => `${r.open} – ${r.close}`).join(", ")
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              <div className={styles.hoursCard}>
+                <table className={styles.hoursTable} aria-label="Opening hours">
+                  <tbody>
+                    {DAY_KEYS.map((day) => {
+                      const row = attraction.openingHours?.[day];
+                      const isToday = day === todayKey;
+                      return (
+                        <tr key={day} className={`${styles.hoursRow} ${isToday ? styles.hoursRowToday : ""}`}>
+                          <td className={styles.hoursDay}>
+                            <span className={styles.hoursDayInner}>
+                              {day}
+                              {isToday && <span className={styles.todayPill}>Today</span>}
+                            </span>
+                          </td>
+                          <td className={styles.hoursTime}>
+                            {row?.closed || !row?.ranges?.length ? (
+                              <span className={styles.closed}>Closed</span>
+                            ) : (
+                              row.ranges.map((r) => `${r.open} – ${r.close}`).join(", ")
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
