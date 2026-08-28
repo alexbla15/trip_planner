@@ -111,6 +111,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   const isFlight    = attraction.subtype === "flight";
   const statusChips = getStatusChips(attraction.openingHours, attraction.openingMonths);
   const uniformHoursLabel = attraction.openingHours ? getUniformHoursLabel(attraction.openingHours) : null;
+  const hasMultiplePriceTiers = (attraction.prices?.length ?? 0) > 1;
 
   function handleToggleChildren(e: React.MouseEvent) {
     e.stopPropagation();
@@ -462,25 +463,46 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                 </span>
               </div>
             )}
-            {attraction.price != null && (
+            {attraction.price != null && !hasMultiplePriceTiers && (
               <div className={styles.infoItem}>
                 <span className={styles.infoIconBubble}><Wallet size={15} aria-hidden="true" /></span>
                 <span className={styles.infoText}>
                   <span className={styles.infoLabel}>Price</span>
                   <span className={styles.infoValue}>{formatPrice(attraction.price!, attraction.currency ?? "USD")}</span>
-                  {attraction.prices && attraction.prices.length > 1 && (
-                    <span className={styles.priceTiersNote}>
-                      {attraction.prices
-                        .filter((t) => !t.isPrimary)
-                        .map((t) => `${t.label}: ${formatPrice(t.amount, attraction.currency ?? "USD")}`)
-                        .join(" · ")}
-                    </span>
-                  )}
                 </span>
               </div>
             )}
             {/* Coordinates shown in the map caption above — removed from info grid */}
           </div>
+
+          {/* Prices — broken out of the info grid into its own table, same pattern as
+              Opening Hours below, once there's more than one tier to compare (a single
+              price stays in the compact info-item above). */}
+          {hasMultiplePriceTiers && (
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>
+                <Wallet size={14} aria-hidden="true" />
+                Prices
+              </h3>
+              <div className={styles.hoursCard}>
+                <table className={styles.hoursTable} aria-label="Price tiers">
+                  <tbody>
+                    {attraction.prices!.map((tier) => (
+                      <tr key={tier.label} className={`${styles.hoursRow} ${tier.isPrimary ? styles.hoursRowToday : ""}`}>
+                        <td className={styles.hoursDay}>
+                          <span className={styles.hoursDayInner}>
+                            {tier.label}
+                            {tier.isPrimary && <span className={styles.todayPill}>Primary</span>}
+                          </span>
+                        </td>
+                        <td className={styles.hoursTime}>{formatPrice(tier.amount, attraction.currency ?? "USD")}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* Opening hours — not shown for subtypes. When a status chip (24/7, and
               later permanently-closed) already covers the situation — shown up in the
