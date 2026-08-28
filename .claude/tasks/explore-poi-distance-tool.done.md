@@ -1,6 +1,6 @@
 # Task: Custom Pin + Travel-Time Tool on Explore
 
-Status: reviewing
+Status: done
 
 Track: A
 Track reason: Genuinely new map interaction — click-to-place-a-custom-pin, point selection between two markers, and travel-time/route display — none of which exist on Explore today (confirmed: `ExploreMapWidget.tsx` has no map-click handler or synthetic-marker state currently).
@@ -66,3 +66,6 @@ Copy this whole visual system verbatim for the two-point tool below — same col
 - Endpoint replacement is FIFO as specified: a 3rd selection (map click or attraction click) while 2 points are already set replaces the oldest, keeping the tool immediately ready for the next comparison.
 - **Verified live, not just reasoned about:** confirmed via direct `curl` that `GET /api/route/valhalla` and `GET /api/route/transit` both return real routing data for two arbitrary Tbilisi-area coordinates with no attraction/trip IDs involved — confirming the brief's assumption that zero backend changes were needed held up in practice.
 - `tsc --noEmit` clean. `eslint` shows one new finding consistent with the same `react-hooks/set-state-in-effect` pattern already present (unfixed) throughout this codebase and flagged as pre-existing, accepted debt in every prior task this session (e.g. the identical shape already exists in this same file's city-loading effect, and in `ExploreMapWidget.tsx`'s existing boundary effects) — not treated as a new class of problem, consistent with how every other instance of this pattern has been handled this session.
+
+## Completion Summary
+The measure-distance tool shipped and was verified live (routing endpoints confirmed working with arbitrary coordinates, no backend changes needed). Confirmed working; formally closed 2026-08-28 (was left in `reviewing` without a final close-out).

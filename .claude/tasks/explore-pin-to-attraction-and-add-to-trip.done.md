@@ -1,6 +1,6 @@
 # Task: Turn a Dropped Pin Into an Attraction, and Add an Existing Attraction to Your Trip
 
-Status: reviewing
+Status: done
 
 Track: A
 Track reason: Two new interactions on Explore's map — (1) creating an attraction from an ephemeral measure-tool pin needs a "create" (not "edit") variant of `NewAttractionModal`'s copy/title, which doesn't cleanly exist today since passing partial `initialData` flips it into edit mode; (2) picking one of "my trips" to link an attraction into is an entirely new UI (no trip picker exists yet).
@@ -56,3 +56,6 @@ Two related gaps in Explore's attraction/pin interactions:
 User report led to a real bug, not an Iceland-specific one — my earlier "verified live" claim only tested the country-filter logic in isolation via `curl`, never the actual click sequence in the browser, which is exactly the gap that caused this to slip through. `AttractionDetailModal`'s "Add to my trip" button calls `onAddToTrip(); onClose();` together — `onClose` clears `selectedAttraction` to `null` in the same React batch that opens the picker, so by the time `TripPickerModal` rendered, `country={selectedAttraction?.country ?? ""}` had already gone empty — meaning **no country's trips ever matched**, not just Iceland's. (The user likely hit this first with an Iceland attraction; it would have failed identically for Georgia, Hungary, or any other country too, despite my earlier curl-based check appearing to confirm the filter worked.)
 - Fix: added a dedicated `attractionForTripPicker` state in `ExploreClient.tsx`, captured from `selectedAttraction` at the moment "Add to my trip" is clicked (before `onClose` has a chance to null it out), decoupling the picker's target from the detail modal's own lifecycle. `handleTripSelect` and the `country` prop now both read from `attractionForTripPicker`, not `selectedAttraction`.
 - `tsc --noEmit` clean. This class of bug (event-handler-order state race) isn't something a `curl`/API-level check can catch — confirmed via careful reading of the exact click-handler chain (`AttractionDetailModal.tsx` → `ExploreClient.tsx`) rather than assumed fixed by symptom-matching.
+
+## Completion Summary
+Both features shipped and verified live, including a follow-up country-filter refinement and a real state-race bug found and fixed during review (the "Iceland" report). Confirmed working; formally closed 2026-08-28 (was left in `reviewing` without a final close-out).
