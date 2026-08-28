@@ -73,6 +73,7 @@ import {
   markAttractionVisited,
   unmarkAttractionVisited,
   updateTrip,
+  getFxRate,
 } from "@/services";
 import { formatDisplayDate, currencySymbol, formatPrice, getTripDays, formatDayLabel, buildDayColorMap, UNSCHEDULED_DAY_COLOR } from "@/lib";
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
@@ -574,16 +575,62 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     return a.price ?? 0;
   }
 
-  // No currency conversion is supported — every row/expense's raw amount is summed as
-  // one figure and displayed in the trip's own currency, regardless of what currency it
-  // was individually recorded in.
+  // Every currency actually in play across cost rows/expenses, other than the trip's own
+  // — these need a fetched conversion rate before they can be folded into a single total.
+  const foreignCostCurrencies = useMemo(() => {
+    const tripCurrency = trip?.currency ?? "USD";
+    const set = new Set<string>();
+    for (const a of scheduledCostRows) {
+      const c = a.currency ?? "USD";
+      if (c !== tripCurrency) set.add(c);
+    }
+    for (const e of customExpenses) {
+      const c = e.currency ?? tripCurrency;
+      if (c !== tripCurrency) set.add(c);
+    }
+    return set;
+  }, [scheduledCostRows, customExpenses, trip?.currency]);
+
+  const [fxRates, setFxRates] = useState<Record<string, number>>({});
+
+  // Fetch (and cache) a conversion rate for every foreign currency currently on the
+  // Costs tab, to the trip's own currency — the totals below sum in one currency and
+  // can't display an honest figure for a currency they haven't got a rate for yet.
+  useEffect(() => {
+    const tripCurrency = trip?.currency ?? "USD";
+    const missing = [...foreignCostCurrencies].filter((c) => !(c in fxRates));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    Promise.all(missing.map((c) => getFxRate(c, tripCurrency).then((r) => [c, r.rate ?? null] as const)))
+      .then((results) => {
+        if (cancelled) return;
+        setFxRates((prev) => {
+          const next = { ...prev };
+          for (const [c, rate] of results) if (rate != null) next[c] = rate;
+          return next;
+        });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [foreignCostCurrencies, trip?.currency, fxRates]);
+
+  // Converts an amount into the trip's own currency using the fetched rate; while a rate
+  // hasn't loaded yet (or the lookup failed) the amount is left unconverted rather than
+  // blocking the total — it corrects itself once the rate arrives.
+  function toTripCurrency(amount: number, currency: string): number {
+    const tripCurrency = trip?.currency ?? "USD";
+    if (currency === tripCurrency) return amount;
+    const rate = fxRates[currency];
+    return rate != null ? amount * rate : amount;
+  }
+
   const costTotal = useMemo(() => {
     let total = 0;
-    for (const a of scheduledCostRows) total += costForRow(a);
-    for (const e of customExpenses) total += e.amount;
+    for (const a of scheduledCostRows) total += toTripCurrency(costForRow(a), a.currency ?? "USD");
+    for (const e of customExpenses) total += toTripCurrency(e.amount, e.currency ?? trip?.currency ?? "USD");
     return total;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scheduledCostRows, customExpenses]);
+  }, [scheduledCostRows, customExpenses, fxRates, trip?.currency]);
 
   async function handleChangeCostTierQty(a: Attraction, tierLabel: string, delta: number) {
     if (!token || !trip) return;
@@ -661,8 +708,8 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
 
   function daySubtotal(rows: Attraction[], expenses: CustomExpense[]): number {
     let total = 0;
-    for (const a of rows) total += costForRow(a);
-    for (const e of expenses) total += e.amount;
+    for (const a of rows) total += toTripCurrency(costForRow(a), a.currency ?? "USD");
+    for (const e of expenses) total += toTripCurrency(e.amount, e.currency ?? trip?.currency ?? "USD");
     return total;
   }
 
