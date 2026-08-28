@@ -161,6 +161,45 @@
   min-height: 44px;
 }
 
+/* Food styles have no icon/color and no reason to take a full row each like
+   Attraction Types/Categories/Moods — short name tags pack several per row instead. */
+.foodStyleGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 20px;
+  background: var(--color-surface);
+}
+
+.foodStyleChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 10px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-subtle);
+}
+
+.foodStyleIndex {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* .typeName is flex:1 by default (fine in a full-width row) — pin it to content width
+   here so chips stay compact instead of each stretching to fill the wrapped row. */
+.foodStyleChip .typeName {
+  flex: none;
+}
+
+/* An item being edited grows to its own full-width row (the form is too wide for a chip) */
+.foodStyleFormWrap {
+  flex-basis: 100%;
+}
+
 .typeIcon {
   width: 24px;
   height: 24px;

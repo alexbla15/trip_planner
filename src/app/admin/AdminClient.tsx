@@ -906,10 +906,10 @@ export function AdminClient() {
           {foodStylesLoading ? (
             <div className={styles.center}><Loader2 size={24} className={styles.spin} /></div>
           ) : (
-            <div className={styles.typesList}>
-              {foodStyleRecords.map((record) => (
-                <div key={record._id} className={styles.typeRow}>
-                  {foodStyleEditingId === record._id && token ? (
+            <div className={styles.foodStyleGrid}>
+              {foodStyleRecords.map((record, index) => (
+                foodStyleEditingId === record._id && token ? (
+                  <div key={record._id} className={styles.foodStyleFormWrap}>
                     <FoodStyleForm
                       key={record._id}
                       initial={foodStyleFormFromRecord(record)}
@@ -918,44 +918,45 @@ export function AdminClient() {
                       onDone={handleFoodStyleFormDone}
                       onCancel={() => setFoodStyleEditingId(null)}
                     />
-                  ) : (
-                    <div className={styles.typeItem}>
-                      <span className={styles.typeName}>{record.name}</span>
-                      <div className={styles.typeActions}>
-                        <button
-                          className={styles.iconBtn}
-                          onClick={() => { setFoodStyleEditingId(record._id); setFoodStyleAdding(false); }}
-                          aria-label={`Edit ${record.name}`}
-                        >
-                          <Pencil size={13} />
-                        </button>
-                        {foodStyleDeleteId === record._id ? (
-                          <div className={styles.confirmDelete}>
-                            <span>Delete?</span>
-                            <button
-                              className={styles.confirmYes}
-                              onClick={() => handleFoodStyleDelete(record._id)}
-                              disabled={foodStyleDeleting}
-                            >
-                              Yes
-                            </button>
-                            <button className={styles.confirmNo} onClick={() => setFoodStyleDeleteId(null)}>
-                              No
-                            </button>
-                          </div>
-                        ) : (
+                  </div>
+                ) : (
+                  <div key={record._id} className={styles.foodStyleChip}>
+                    <span className={styles.foodStyleIndex}>#{index + 1}</span>
+                    <span className={styles.typeName}>{record.name}</span>
+                    <div className={styles.typeActions}>
+                      <button
+                        className={styles.iconBtn}
+                        onClick={() => { setFoodStyleEditingId(record._id); setFoodStyleAdding(false); }}
+                        aria-label={`Edit ${record.name}`}
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      {foodStyleDeleteId === record._id ? (
+                        <div className={styles.confirmDelete}>
+                          <span>Delete?</span>
                           <button
-                            className={`${styles.iconBtn} ${styles.deleteBtn}`}
-                            onClick={() => setFoodStyleDeleteId(record._id)}
-                            aria-label={`Delete ${record.name}`}
+                            className={styles.confirmYes}
+                            onClick={() => handleFoodStyleDelete(record._id)}
+                            disabled={foodStyleDeleting}
                           >
-                            <Trash2 size={13} />
+                            Yes
                           </button>
-                        )}
-                      </div>
+                          <button className={styles.confirmNo} onClick={() => setFoodStyleDeleteId(null)}>
+                            No
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          className={`${styles.iconBtn} ${styles.deleteBtn}`}
+                          onClick={() => setFoodStyleDeleteId(record._id)}
+                          aria-label={`Delete ${record.name}`}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )
               ))}
             </div>
           )}
