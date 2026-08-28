@@ -51,6 +51,9 @@ export interface ICustomExpense {
   _id: Types.ObjectId;
   label: string;
   amount: number;
+  /** Absent on expenses saved before this field was added — callers fall back to the
+   *  trip's own currency. */
+  currency?: string;
   /** YYYY-MM-DD, matching IScheduleEntry.plannedDate's format — which day of the trip
    *  this expense belongs to on the Costs tab's daily breakdown. Absent/null means a
    *  general trip expense not tied to a specific day. */
@@ -86,9 +89,10 @@ const CollaboratorSchema = new Schema<ICollaborator>(
 );
 
 const CustomExpenseSchema = new Schema<ICustomExpense>({
-  label:  { type: String, required: true, trim: true },
-  amount: { type: Number, required: true },
-  date:   { type: String, default: null },
+  label:    { type: String, required: true, trim: true },
+  amount:   { type: Number, required: true },
+  currency: { type: String },
+  date:     { type: String, default: null },
 });
 
 const TripSchema = new Schema<ITrip>(
@@ -197,6 +201,7 @@ export function formatTrip(doc: ITrip): import("@/types/trip").Trip {
       _id: e._id.toString(),
       label: e.label,
       amount: e.amount,
+      currency: e.currency,
       date: e.date ?? null,
     })),
     // userId is populated via .populate('collaborators.userId', 'name email avatarUrl'); a

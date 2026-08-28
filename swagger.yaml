@@ -156,6 +156,10 @@ components:
               _id: { type: string }
               label: { type: string, example: Taxi from airport }
               amount: { type: number, example: 25 }
+              currency:
+                type: string
+                example: USD
+                description: Absent on expenses saved before this field existed — clients fall back to the trip's own currency.
               date:
                 type: string
                 format: date
@@ -240,6 +244,7 @@ components:
             properties:
               label: { type: string, example: Taxi from airport }
               amount: { type: number, example: 25 }
+              currency: { type: string, example: USD }
               date: { type: string, format: date, nullable: true }
 
     # --- ATTRACTION SCHEMAS ---

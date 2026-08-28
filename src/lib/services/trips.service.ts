@@ -122,7 +122,7 @@ interface UpdateTripInput {
   collaboratorEmails?: string[];
   /** Full-array replace — the client always sends the complete list (add/edit/remove all
    *  go through the same PUT), matching how `moods`/`cities` are already handled here. */
-  customExpenses?: { _id?: string; label: string; amount: number; date?: string | null }[];
+  customExpenses?: { _id?: string; label: string; amount: number; currency?: string; date?: string | null }[];
 }
 
 /** Updates a trip; only the owner or a collaborator may call this (collaboratorEmails changes are owner-only and silently ignored otherwise). */
@@ -150,7 +150,7 @@ export async function updateTrip(payload: JwtPayload, tripId: string, body: Upda
         throw badRequest("Each custom expense needs a label and a numeric amount");
       }
     }
-    $set.customExpenses = customExpenses.map((e) => ({ label: e.label.trim(), amount: e.amount, date: e.date ?? null }));
+    $set.customExpenses = customExpenses.map((e) => ({ label: e.label.trim(), amount: e.amount, currency: e.currency, date: e.date ?? null }));
   }
 
   if (collaboratorEmails !== undefined) {

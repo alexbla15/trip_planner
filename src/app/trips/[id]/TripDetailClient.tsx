@@ -46,6 +46,7 @@ import {
   ImageWithSkeleton,
   WebsiteLinkButton,
   attractionToFormData,
+  CurrencySelect,
 } from "@/components";
 import type {
   ResidenceFormData,
@@ -147,6 +148,9 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     setActiveTab(id as TripTabId);
     window.history.replaceState({}, "", `?tab=${id}`);
   }
+
+  // Costs is only meaningful to people actually planning the trip — hide the nav item
+  // (and fall back off it below) for viewers who are neither the owner nor a collaborator.
 
   const [searchModalOpen, setSearchModalOpen]       = useState(false);
   const [modalOpen, setModalOpen]                   = useState(false);
@@ -527,11 +531,12 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     return result;
   }, [attractions]);
 
-  // Costs tab — every scheduled instance (attraction, custom slot, flight, residence),
-  // not deduped like regularAttractions above, since each instance has its own tier
-  // quantities/price and contributes independently to the trip total.
+  // Costs tab — every scheduled instance (attraction, flight, residence), not deduped
+  // like regularAttractions above, since each instance has its own tier quantities/price
+  // and contributes independently to the trip total. Custom slots are excluded: they're
+  // free-form itinerary placeholders with no price, so they'd only clutter the list.
   const scheduledCostRows = useMemo(
-    () => attractions.filter((a) => !!a.plannedDate),
+    () => attractions.filter((a) => !!a.plannedDate && a.subtype !== "custom-slot"),
     [attractions]
   );
 
@@ -562,19 +567,16 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     return a.price ?? 0;
   }
 
-  const costTotalsByCurrency = useMemo(() => {
-    const totals: Record<string, number> = {};
-    for (const a of scheduledCostRows) {
-      const currency = a.currency ?? "USD";
-      totals[currency] = (totals[currency] ?? 0) + costForRow(a);
-    }
-    const expenseCurrency = trip?.currency ?? "USD";
-    for (const e of customExpenses) {
-      totals[expenseCurrency] = (totals[expenseCurrency] ?? 0) + e.amount;
-    }
-    return totals;
+  // No currency conversion is supported — every row/expense's raw amount is summed as
+  // one figure and displayed in the trip's own currency, regardless of what currency it
+  // was individually recorded in.
+  const costTotal = useMemo(() => {
+    let total = 0;
+    for (const a of scheduledCostRows) total += costForRow(a);
+    for (const e of customExpenses) total += e.amount;
+    return total;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scheduledCostRows, customExpenses, trip?.currency]);
+  }, [scheduledCostRows, customExpenses]);
 
   async function handleChangeCostTierQty(a: Attraction, tierLabel: string, delta: number) {
     if (!token || !trip) return;
@@ -596,8 +598,14 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   const [customExpenseFormOpen, setCustomExpenseFormOpen] = useState(false);
   const [customExpenseLabel, setCustomExpenseLabel] = useState("");
   const [customExpenseAmount, setCustomExpenseAmount] = useState("");
+  const [customExpenseCurrency, setCustomExpenseCurrency] = useState(trip?.currency ?? "USD");
   const [customExpenseDate, setCustomExpenseDate] = useState("");
   const [customExpenseSaving, setCustomExpenseSaving] = useState(false);
+
+  function openCustomExpenseForm() {
+    setCustomExpenseCurrency(trip?.currency ?? "USD");
+    setCustomExpenseFormOpen((v) => !v);
+  }
 
   async function handleAddCustomExpense() {
     if (!token || !trip) return;
@@ -605,8 +613,8 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     if (!customExpenseLabel.trim() || isNaN(amount)) return;
     setCustomExpenseSaving(true);
     const next = [
-      ...customExpenses.map((e) => ({ label: e.label, amount: e.amount, date: e.date })),
-      { label: customExpenseLabel.trim(), amount, date: customExpenseDate || null },
+      ...customExpenses.map((e) => ({ label: e.label, amount: e.amount, currency: e.currency, date: e.date })),
+      { label: customExpenseLabel.trim(), amount, currency: customExpenseCurrency, date: customExpenseDate || null },
     ];
     try {
       const res = await updateTrip(trip._id, token, { customExpenses: next });
@@ -644,15 +652,11 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     return [...perDay, ...extra].filter((d) => d.rows.length > 0 || d.expenses.length > 0);
   }, [tripDays, scheduledCostRows, customExpenses]);
 
-  function daySubtotals(rows: Attraction[], expenses: CustomExpense[]): Record<string, number> {
-    const totals: Record<string, number> = {};
-    for (const a of rows) {
-      const currency = a.currency ?? "USD";
-      totals[currency] = (totals[currency] ?? 0) + costForRow(a);
-    }
-    const expenseCurrency = trip?.currency ?? "USD";
-    for (const e of expenses) totals[expenseCurrency] = (totals[expenseCurrency] ?? 0) + e.amount;
-    return totals;
+  function daySubtotal(rows: Attraction[], expenses: CustomExpense[]): number {
+    let total = 0;
+    for (const a of rows) total += costForRow(a);
+    for (const e of expenses) total += e.amount;
+    return total;
   }
 
   async function handleRemoveCustomExpense(expenseId: string) {
@@ -720,6 +724,17 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
 
   useEffect(() => { setPage(1); }, [searchQuery, selectedCategories, selectedTypes]);
 
+  // A viewer without edit access can land on ?tab=costs directly (stale link, shared URL,
+  // or losing collaborator/owner status) — bounce them off a tab they can't see. Computed
+  // inline rather than reusing the `canEdit` below since that's declared after the
+  // loading/forbidden early returns and isn't in scope for hooks up here.
+  useEffect(() => {
+    if (!trip || activeTab !== "costs") return;
+    const ownerMatch = !!authUser && authUser._id === trip.ownerId;
+    const collabMatch = !!authUser && !ownerMatch && (trip.collaborators ?? []).some((c) => c.userId === authUser._id);
+    if (!ownerMatch && !collabMatch) switchTab("overview");
+  }, [activeTab, trip, authUser]);
+
   if (forbidden) {
     return (
       <div className={styles.forbiddenState}>
@@ -770,6 +785,12 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   const isCollaborator = !!authUser && !isOwner && (trip.collaborators ?? []).some((c) => c.userId === authUser._id);
   const canEdit        = isOwner || isCollaborator;
   const effectiveCanEdit = canEdit && viewMode === "edit";
+
+  // Costs is only relevant to the people planning the trip — hide the tab entirely for
+  // viewers who are neither the owner nor a collaborator (unlike effectiveCanEdit, this
+  // doesn't depend on the read-only preview toggle, so an owner previewing read-only mode
+  // still sees the tab).
+  const visibleTabs = canEdit ? TRIP_TABS : TRIP_TABS.filter((t) => t.id !== "costs");
 
   // The shared AttractionDetailModal (viewingAttraction) is also opened for attractions
   // NOT on this trip yet (e.g. NearbyAttractionsModal's suggestions) — only offer
@@ -898,7 +919,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
           </div>
         </div>
 
-        <TripTabBar tabs={TRIP_TABS} active={activeTab} onChange={switchTab} />
+        <TripTabBar tabs={visibleTabs} active={activeTab} onChange={switchTab} />
 
         <div className={styles.container}>
           <FormErrorBanner message={actionError} />
@@ -1296,7 +1317,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
               </div>
             )}
 
-            {activeTab === "costs" && (
+            {activeTab === "costs" && canEdit && (
               <div className={styles.card}>
                 <div className={styles.attractionsHeader}>
                   <h2 className={styles.sectionHeading}>Costs</h2>
@@ -1304,7 +1325,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                     <button
                       type="button"
                       className={styles.addBtn}
-                      onClick={() => setCustomExpenseFormOpen((v) => !v)}
+                      onClick={openCustomExpenseForm}
                     >
                       <Plus size={14} aria-hidden="true" />
                       Add expense
@@ -1332,6 +1353,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                       className={styles.customExpenseAmountInput}
                       aria-label="Expense amount"
                     />
+                    <CurrencySelect value={customExpenseCurrency} onChange={setCustomExpenseCurrency} />
                     <select
                       value={customExpenseDate}
                       onChange={(e) => setCustomExpenseDate(e.target.value)}
@@ -1350,7 +1372,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                       disabled={customExpenseSaving || !customExpenseLabel.trim() || !customExpenseAmount}
                     >
                       {customExpenseSaving ? <Loader2 size={14} className={styles.loadingIcon} aria-hidden="true" /> : <Check size={14} aria-hidden="true" />}
-                      Add
+                      Save
                     </button>
                     <button type="button" className={styles.cancelBtn} onClick={() => setCustomExpenseFormOpen(false)}>
                       Cancel
@@ -1366,13 +1388,13 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                   <>
                     <div className={styles.costsDayList}>
                       {costsByDay.map(({ day, label, rows, expenses }) => {
-                        const subtotals = daySubtotals(rows, expenses);
+                        const subtotal = daySubtotal(rows, expenses);
                         return (
                           <div key={day ?? "no-date"} className={styles.costsDaySection}>
                             <div className={styles.costsDayHeader}>
                               <h3 className={styles.costsDayTitle}>{label}</h3>
                               <span className={styles.costsDaySubtotal}>
-                                {Object.entries(subtotals).map(([c, amt]) => formatPrice(amt, c)).join(" + ")}
+                                {formatPrice(subtotal, trip?.currency ?? "USD")}
                               </span>
                             </div>
                             <ul className={styles.costsList}>
@@ -1444,7 +1466,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                                   </div>
                                   <div className={styles.costsTierRow}>
                                     <span className={styles.costsTierLabel}>Custom expense</span>
-                                    <span className={styles.costsTierAmount}>{formatPrice(e.amount, trip?.currency ?? "USD")}</span>
+                                    <span className={styles.costsTierAmount}>{formatPrice(e.amount, e.currency ?? trip?.currency ?? "USD")}</span>
                                   </div>
                                 </li>
                               ))}
@@ -1456,11 +1478,9 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
 
                     <div className={styles.costsTotals}>
                       <span className={styles.costsTotalsLabel}>Total</span>
-                      {Object.entries(costTotalsByCurrency).map(([currency, amount]) => (
-                        <span key={currency} className={styles.costsTotalsAmount}>
-                          {formatPrice(amount, currency)}
-                        </span>
-                      ))}
+                      <span className={styles.costsTotalsAmount}>
+                        {formatPrice(costTotal, trip?.currency ?? "USD")}
+                      </span>
                     </div>
                   </>
                 )}

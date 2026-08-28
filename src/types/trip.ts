@@ -9,6 +9,9 @@ export interface CustomExpense {
   _id: string;
   label: string;
   amount: number;
+  /** Absent on expenses saved before the currency field was added — callers fall back to
+   *  the trip's own currency. */
+  currency?: string;
   /** YYYY-MM-DD — which day of the trip this belongs to on the Costs tab. Null means a
    *  general trip expense not tied to a specific day. */
   date?: string | null;
