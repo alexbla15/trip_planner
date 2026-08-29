@@ -54,14 +54,13 @@ export interface CityEntry {
   lat: number;
   lng: number;
   count: number;
-  /** How many of this city's attractions the requesting user has marked visited.
-   *  0 for an anonymous/unauthenticated request. */
-  visitedCount: number;
-  unvisitedCount: number;
-  /** How many of this city's attractions already appear in one of the requesting
-   *  user's own trips. 0 for an anonymous/unauthenticated request. */
-  usedInTripCount: number;
-  notUsedInTripCount: number;
+  /** Exact intersection counts across all three boolean filter dimensions (visited ×
+   *  usedInTrip × verified — visited/usedInTrip are 0 for an anonymous/unauthenticated
+   *  request), keyed "vuf" — each digit 1/0 in that order, e.g. "101" = visited, not used
+   *  in a trip, verified. Lets combinedCount() below answer "how many attractions match
+   *  ALL currently-active filters at once", which a flat per-dimension count can't (it
+   *  only knows "at least one attraction matches X"). */
+  buckets: Record<string, number>;
 }
 
 export interface CountryEntry {
@@ -211,27 +210,46 @@ export function ExploreClient() {
       .finally(() => setAttractionsLoading(false));
   }, [selectedCountry, selectedCity, token]);
 
-  // Cities matching the visited + trip-usage filters — a country/city only stays listed
-  // if at least one of its attractions matches (e.g. "Unvisited" hides a city where every
-  // attraction is already marked visited). Applies across the whole Explore experience
-  // (world → country → city), driven by the single header picker, not just the selected
-  // city's list.
-  const visibleCities = useMemo(() => {
-    return cities
-      .filter((c) => visitedFilter === "all" || (visitedFilter === "visited" ? c.visitedCount > 0 : c.unvisitedCount > 0))
-      .filter((c) => tripUsageFilter === "all" || (tripUsageFilter === "used" ? c.usedInTripCount > 0 : c.notUsedInTripCount > 0));
-  }, [cities, visitedFilter, tripUsageFilter]);
+  // Exact count of a city's attractions matching ALL currently-active filters at once,
+  // by summing whichever of the 8 visited×usedInTrip×verified buckets are consistent with
+  // the current filter selection (a filter set to "all" doesn't constrain that digit — both
+  // 0 and 1 are summed for it). Replaces the old per-dimension-only counts, which could
+  // only answer "at least one attraction matches X" and broke down as soon as 2+ filters
+  // were active together (e.g. "Visited" + "Verified" showing the visited count, ignoring
+  // verified entirely).
+  function combinedCount(entry: { count: number; buckets: Record<string, number> }): number {
+    const vDigits = visitedFilter === "all" ? ["0", "1"] : [visitedFilter === "visited" ? "1" : "0"];
+    const uDigits = tripUsageFilter === "all" ? ["0", "1"] : [tripUsageFilter === "used" ? "1" : "0"];
+    const fDigits = verifiedFilter === "all" ? ["0", "1"] : [verifiedFilter === "verified" ? "1" : "0"];
+    let total = 0;
+    for (const v of vDigits) {
+      for (const u of uDigits) {
+        for (const f of fDigits) {
+          total += entry.buckets[`${v}${u}${f}`] ?? 0;
+        }
+      }
+    }
+    return total;
+  }
 
-  // The number to display for a city/country pill under whichever filter is active — the
-  // total attraction count is misleading once filtered (e.g. showing "12" under "Unvisited"
-  // when only 4 of those 12 are actually unvisited), so show whichever count matches what
-  // drilling into that city would actually reveal. When both filters are active there's no
-  // tracked intersection count, so the visited filter (checked first) takes priority — an
-  // approximation, but still closer than the unfiltered total.
-  function countFor(entry: { count: number; visitedCount: number; unvisitedCount: number; usedInTripCount: number; notUsedInTripCount: number }): number {
-    if (visitedFilter !== "all") return visitedFilter === "visited" ? entry.visitedCount : entry.unvisitedCount;
-    if (tripUsageFilter !== "all") return tripUsageFilter === "used" ? entry.usedInTripCount : entry.notUsedInTripCount;
-    return entry.count;
+  // Cities matching every currently-active filter at once — a country/city only stays
+  // listed if at least one of its attractions matches ALL of them simultaneously (e.g.
+  // "Verified" + "Unvisited" hides a city whose only verified attraction is already
+  // visited, even though it has other unvisited ones). Applies across the whole Explore
+  // experience (world → country → city), driven by the single header picker, not just the
+  // selected city's list.
+  const visibleCities = useMemo(() => {
+    if (visitedFilter === "all" && tripUsageFilter === "all" && verifiedFilter === "all") return cities;
+    return cities.filter((c) => combinedCount(c) > 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cities, visitedFilter, tripUsageFilter, verifiedFilter]);
+
+  // The number to display for a city/country pill under whichever filter combination is
+  // active — the total attraction count is misleading once filtered (e.g. showing "12"
+  // under "Unvisited" when only 4 of those 12 are actually unvisited).
+  function countFor(entry: { count: number; buckets: Record<string, number> }): number {
+    if (visitedFilter === "all" && tripUsageFilter === "all" && verifiedFilter === "all") return entry.count;
+    return combinedCount(entry);
   }
 
   // Derive unique countries with centroid + radius
@@ -619,28 +637,43 @@ export function ExploreClient() {
     toast.success("Attraction deleted");
   }
 
-  // "Visited" is a per-user fact about the shared attraction document — flip it on
-  // every row sharing the same real attraction id, plus the open detail modal if it's
-  // currently showing this attraction, with an optimistic update + rollback on failure.
-  // Keeps the separate `cities` aggregate (visitedCount/unvisitedCount, used to filter
-  // which countries/cities are even listed) in sync with a toggle — without this, those
-  // counts stay stale until the next full page load, so e.g. the last unvisited attraction
-  // in a city gets marked visited but the city keeps appearing under "Unvisited".
-  function adjustCityVisitedCount(cityName: string | undefined, country: string, delta: number) {
-    if (!cityName) return;
+  function isUsedInTrip(a: Attraction): boolean {
+    return !!a.usedInTripNames && a.usedInTripNames.length > 0;
+  }
+
+  function bucketKeyFor(a: Attraction, override: Partial<{ visited: boolean; used: boolean; verified: boolean }>): string {
+    const v = override.visited ?? !!a.isVisited;
+    const u = override.used ?? isUsedInTrip(a);
+    const f = override.verified ?? !!a.verified;
+    return `${v ? 1 : 0}${u ? 1 : 0}${f ? 1 : 0}`;
+  }
+
+  // Keeps the separate `cities` aggregate (the visited×usedInTrip×verified bucket matrix,
+  // used to filter/count which countries/cities are even listed) in sync with a toggle —
+  // without this, it stays stale until the next full page load, so e.g. the last unvisited
+  // attraction in a city gets marked visited but the city keeps appearing under "Unvisited".
+  function shiftCityBucket(cityName: string | undefined, country: string, oldKey: string, newKey: string) {
+    if (!cityName || oldKey === newKey) return;
     setCities((prev) =>
-      prev.map((c) =>
-        c.name === cityName && c.country === country
-          ? { ...c, visitedCount: c.visitedCount + delta, unvisitedCount: c.unvisitedCount - delta }
-          : c
-      )
+      prev.map((c) => {
+        if (c.name !== cityName || c.country !== country) return c;
+        const buckets = { ...c.buckets };
+        buckets[oldKey] = Math.max(0, (buckets[oldKey] ?? 0) - 1);
+        buckets[newKey] = (buckets[newKey] ?? 0) + 1;
+        return { ...c, buckets };
+      })
     );
   }
 
+  // "Visited" is a per-user fact about the shared attraction document — flip it on
+  // every row sharing the same real attraction id, plus the open detail modal if it's
+  // currently showing this attraction, with an optimistic update + rollback on failure.
   async function handleToggleVisited(attraction: Attraction) {
     if (!token || !attraction.attractionId) return;
     const realId = attraction.attractionId;
     const next = !attraction.isVisited;
+    const oldKey = bucketKeyFor(attraction, {});
+    const newKey = bucketKeyFor(attraction, { visited: next });
 
     setCityAttractions((prev) =>
       prev.map((a) => (a.attractionId ?? a._id) === realId ? { ...a, isVisited: next } : a)
@@ -654,7 +687,7 @@ export function ExploreClient() {
     setSelectedAttraction((prev) =>
       prev && (prev.attractionId ?? prev._id) === realId ? { ...prev, isVisited: next } : prev
     );
-    adjustCityVisitedCount(attraction.city, attraction.country, next ? 1 : -1);
+    shiftCityBucket(attraction.city, attraction.country, oldKey, newKey);
 
     try {
       if (next) await markAttractionVisited(realId, token);
@@ -669,7 +702,7 @@ export function ExploreClient() {
       setSelectedAttraction((prev) =>
         prev && (prev.attractionId ?? prev._id) === realId ? { ...prev, isVisited: !next } : prev
       );
-      adjustCityVisitedCount(attraction.city, attraction.country, next ? -1 : 1);
+      shiftCityBucket(attraction.city, attraction.country, newKey, oldKey);
       toast.error("Couldn't update visited status. Please try again.");
     }
   }
@@ -682,6 +715,9 @@ export function ExploreClient() {
     if (!token) return;
     const realId = attraction.attractionId ?? attraction._id;
     const next = !attraction.verified;
+    const oldKey = bucketKeyFor(attraction, {});
+    const newKey = bucketKeyFor(attraction, { verified: next });
+    shiftCityBucket(attraction.city, attraction.country, oldKey, newKey);
     setVerifiedToggling(true);
     try {
       await updateAttraction(realId, token, { verified: next });
@@ -691,6 +727,7 @@ export function ExploreClient() {
       setSelectedAttraction((prev) => (prev ? patch(prev) : prev));
       toast.success(next ? "Marked as verified" : "Unmarked as verified");
     } catch {
+      shiftCityBucket(attraction.city, attraction.country, newKey, oldKey);
       toast.error("Couldn't update verified status. Please try again.");
     } finally {
       setVerifiedToggling(false);

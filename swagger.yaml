@@ -1653,11 +1653,12 @@ paths:
       summary: List cities that have public attractions with coordinates
       description: >
         Works without a token (security: [] — same optional-auth pattern as GET
-        /api/attractions). When a valid token IS supplied, visitedCount/unvisitedCount
-        and usedInTripCount/notUsedInTripCount are computed for that caller; an
-        anonymous or unauthenticated request always gets visitedCount: 0 and
-        usedInTripCount: 0 for every city (unvisitedCount/notUsedInTripCount then equal
-        count).
+        /api/attractions). `buckets` is keyed "vuf" (visited/usedInTrip/verified, each
+        1 or 0) mapping to how many of this city's attractions fall in that exact
+        combination — e.g. buckets["101"] = visited, not used in a trip, verified. Sum
+        the matching keys client-side to get an exact count for any combination of
+        active filters. When no valid token is supplied, every attraction is treated as
+        not-visited and not-used-in-a-trip (verified is unaffected by auth).
       tags: [Attractions]
       security: []
       responses:
@@ -1688,20 +1689,15 @@ paths:
                         count:
                           type: integer
                           example: 12
-                        visitedCount:
-                          type: integer
-                          example: 3
-                          description: How many of this city's attractions the requesting user has marked visited.
-                        unvisitedCount:
-                          type: integer
-                          example: 9
-                        usedInTripCount:
-                          type: integer
-                          example: 2
-                          description: How many of this city's attractions already appear in one of the requesting user's own trips.
-                        notUsedInTripCount:
-                          type: integer
-                          example: 10
+                        buckets:
+                          type: object
+                          description: >
+                            Exact-intersection counts keyed "vuf" (visited/usedInTrip/verified,
+                            each 1 or 0), e.g. {"000": 5, "101": 3, ...}. Sum the keys matching
+                            the caller's active filters for an exact combined count.
+                          additionalProperties:
+                            type: integer
+                          example: { "000": 5, "100": 2, "101": 3, "001": 2 }
         '500':
           description: Internal server error
 

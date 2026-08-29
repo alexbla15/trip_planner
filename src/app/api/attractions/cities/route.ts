@@ -44,8 +44,24 @@ export const GET = withApiHandler("GET /api/attractions/cities", async (req: Req
         lat:   { $avg: "$coordinates.lat" },
         lng:   { $avg: "$coordinates.lng" },
         count: { $sum: 1 },
-        visitedCount: { $sum: { $cond: ["$isVisited", 1, 0] } },
-        usedInTripCount: { $sum: { $cond: ["$isUsedInTrip", 1, 0] } },
+        // Exact-intersection matrix across all three boolean filter dimensions
+        // (visited × usedInTrip × verified), keyed "vuf" (each 1/0) — a single-dimension
+        // count (e.g. "N visited") only says "at least one attraction matches X", which
+        // can't answer "does at least one attraction match X AND Y AND Z" once 2+ filters
+        // are active at once. The client sums the matching bucket(s) for whichever
+        // combination of filters is currently selected, giving an exact count/visibility
+        // check instead of an approximation.
+        buckets: {
+          $push: {
+            k: {
+              $concat: [
+                { $cond: ["$isVisited", "1", "0"] },
+                { $cond: ["$isUsedInTrip", "1", "0"] },
+                { $cond: ["$verified", "1", "0"] },
+              ],
+            },
+          },
+        },
       },
     },
     {
@@ -56,13 +72,21 @@ export const GET = withApiHandler("GET /api/attractions/cities", async (req: Req
         lat: 1,
         lng: 1,
         count: 1,
-        visitedCount: 1,
-        unvisitedCount: { $subtract: ["$count", "$visitedCount"] },
-        usedInTripCount: 1,
-        notUsedInTripCount: { $subtract: ["$count", "$usedInTripCount"] },
+        buckets: "$buckets.k",
       },
     },
     { $sort: { count: -1 } },
   ]);
-  return NextResponse.json({ cities: result });
+
+  // Collapse each city's flat bucket-key array (one entry per attraction) into counts
+  // per key, e.g. { "000": 3, "101": 2 } — done in JS rather than a $group-of-$group
+  // aggregation stage, since Mongo has no simple "value counts" accumulator.
+  const cities = result.map((c) => {
+    const bucketCounts: Record<string, number> = {};
+    for (const k of c.buckets as string[]) bucketCounts[k] = (bucketCounts[k] ?? 0) + 1;
+    const { buckets: _buckets, ...rest } = c;
+    return { ...rest, buckets: bucketCounts };
+  });
+
+  return NextResponse.json({ cities });
 });
