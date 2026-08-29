@@ -56,6 +56,9 @@ export interface IAttraction extends Document {
   /** Official venue website — user-editable, separate from photoUrl. Never fabricated on
    *  backfill; left unset when no real official site exists for a place. */
   websiteUrl?: string;
+  /** Admin-curated "verified" mark — set only via the admin-only path in
+   *  updateAttraction, never by a regular owner/collaborator edit. Defaults false. */
+  verified: boolean;
   createdAt: Date;
   updatedAt: Date;
   // Subtype discriminator
@@ -117,6 +120,7 @@ const AttractionSchema = new Schema<IAttraction>(
     notes: { type: String },
     photoUrl: { type: String },
     websiteUrl: { type: String },
+    verified: { type: Boolean, default: false },
     openingHours: {
       Mon: { type: OpeningHoursDaySchema },
       Tue: { type: OpeningHoursDaySchema },
@@ -241,6 +245,7 @@ export function formatAttraction(
     notes: schedule?.notes ?? doc.notes,
     photoUrl: doc.photoUrl,
     websiteUrl: doc.websiteUrl,
+    verified: doc.verified ?? false,
     createdAt: doc.createdAt?.toISOString(),
     updatedAt: doc.updatedAt?.toISOString(),
     // Subtype fields — checkInDate/checkOutDate prefer a per-trip schedule override (see

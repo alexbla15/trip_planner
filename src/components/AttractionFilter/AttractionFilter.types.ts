@@ -36,4 +36,9 @@ export interface AttractionFilterProps {
   collapsible?: boolean;
   /** Label on the collapsible toggle button. */
   collapsibleLabel?: string;
+
+  /** Optional third chip row for the admin-curated "verified" mark — only rendered when
+   *  both props are provided. */
+  verifiedFilter?: "all" | "verified" | "unverified";
+  onVerifiedFilterChange?: (value: "all" | "verified" | "unverified") => void;
 }

@@ -2,20 +2,27 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useAttractionTypes } from "./useAttractionTypes";
+import { matchesVerifiedFilter, type VerifiedFilterValue } from "@/lib";
 
 /**
  * Shared category/type multi-select filter state for a list of attraction-like items.
  * Computes which category/type chips are actually present in `items` (so chips reflect
  * what's filterable right now), and drops any selected type whose parent category is
  * removed — see docs/LEARNINGS.md's note on ExploreClient's original cascade behavior.
+ *
+ * `getVerified` is optional — omit it for item types that don't carry a real `verified`
+ * flag (e.g. local unsaved drafts); the verified filter state is still returned but has
+ * no effect on `matches` in that case.
  */
 export function useAttractionCategoryTypeFilter<T>(
   items: T[],
   getTypes: (item: T) => string[],
+  getVerified?: (item: T) => boolean | undefined,
 ) {
   const { types, findType } = useAttractionTypes();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [verifiedFilter, setVerifiedFilter] = useState<VerifiedFilterValue>("all");
 
   const presentCategories = useMemo(
     () => [...new Set(
@@ -56,14 +63,16 @@ export function useAttractionCategoryTypeFilter<T>(
         });
       const matchesType =
         selectedTypes.length === 0 || itemTypes.some((t) => selectedTypes.includes(t));
-      return matchesCategory && matchesType;
+      const matchesVerified = !getVerified || matchesVerifiedFilter(getVerified(item), verifiedFilter);
+      return matchesCategory && matchesType && matchesVerified;
     },
-    [getTypes, selectedCategories, selectedTypes, findType],
+    [getTypes, selectedCategories, selectedTypes, getVerified, verifiedFilter, findType],
   );
 
   const reset = useCallback(() => {
     setSelectedCategories([]);
     setSelectedTypes([]);
+    setVerifiedFilter("all");
   }, []);
 
   return {
@@ -73,6 +82,8 @@ export function useAttractionCategoryTypeFilter<T>(
     handleCategoriesChange,
     presentCategories,
     presentTypes,
+    verifiedFilter,
+    setVerifiedFilter,
     matches,
     reset,
   };

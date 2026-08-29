@@ -18,6 +18,7 @@ import { AttractionDetailModal, NewAttractionModal, TripPickerModal, Spinner, Fo
 import type { AttractionFormData } from "@/components";
 import type { Attraction } from "@/types/attraction";
 import type { Trip } from "@/types/trip";
+import { matchesVerifiedFilter, type VerifiedFilterValue } from "@/lib";
 import { EXPLORE_GRID_CARD_MIN_WIDTH_PX, EXPLORE_GRID_GAP_PX, EXPLORE_GRID_ROWS_PER_PAGE } from "@/config/ui";
 import styles from "./ExploreClient.module.css";
 
@@ -116,6 +117,7 @@ export function ExploreClient() {
   const [selectedFoodStyles, setSelectedFoodStyles] = useState<string[]>([]);
   const [visitedFilter, setVisitedFilter]           = useState<"all" | "visited" | "unvisited">("all");
   const [tripUsageFilter, setTripUsageFilter]       = useState<"all" | "used" | "unused">("all");
+  const [verifiedFilter, setVerifiedFilter]         = useState<VerifiedFilterValue>("all");
   // Default open only if a filter is already active — never hide active filter state
   // from the user, but otherwise keep the sidebar compact by default.
   const [visitedPickerOpen, setVisitedPickerOpen]   = useState(false);
@@ -281,6 +283,10 @@ export function ExploreClient() {
     return tripUsageFilter === "all" || (tripUsageFilter === "used" ? used : !used);
   }
 
+  function passesVerifiedFilter(a: Attraction): boolean {
+    return matchesVerifiedFilter(a.verified, verifiedFilter);
+  }
+
   // Shared by both city- and country-scoped attraction lists: does this attraction match
   // the currently selected category/type chips? (Visited/trip-usage status is checked
   // separately via passesVisitedFilter/passesTripUsageFilter — independent filters
@@ -305,16 +311,17 @@ export function ExploreClient() {
 
   // Client-side filtering of city attractions
   const filteredAttractions = useMemo(() => {
-    return cityAttractions.filter((a) => matchesChipFilters(a) && passesVisitedFilter(a) && passesTripUsageFilter(a));
+    return cityAttractions.filter((a) => matchesChipFilters(a) && passesVisitedFilter(a) && passesTripUsageFilter(a) && passesVerifiedFilter(a));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cityAttractions, selectedCategories, selectedTypes, selectedFoodStyles, visitedFilter, tripUsageFilter, byCategory]);
+  }, [cityAttractions, selectedCategories, selectedTypes, selectedFoodStyles, visitedFilter, tripUsageFilter, verifiedFilter, byCategory]);
 
-  // Country-view attraction pins — same category/type + visited/trip-usage filtering as
-  // city view, so selecting a type in country view narrows the map pins too, not just a list.
+  // Country-view attraction pins — same category/type + visited/trip-usage/verified
+  // filtering as city view, so selecting a type in country view narrows the map pins too,
+  // not just a list.
   const filteredCountryAttractions = useMemo(() => {
-    return countryAttractions.filter((a) => matchesChipFilters(a) && passesVisitedFilter(a) && passesTripUsageFilter(a));
+    return countryAttractions.filter((a) => matchesChipFilters(a) && passesVisitedFilter(a) && passesTripUsageFilter(a) && passesVerifiedFilter(a));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [countryAttractions, selectedCategories, selectedTypes, selectedFoodStyles, visitedFilter, tripUsageFilter, byCategory]);
+  }, [countryAttractions, selectedCategories, selectedTypes, selectedFoodStyles, visitedFilter, tripUsageFilter, verifiedFilter, byCategory]);
 
   // Grid view renders from the exact same filtered list the map's pins already use —
   // no separate fetch, no separate filter logic. Page size is however many cards
@@ -372,7 +379,7 @@ export function ExploreClient() {
 
   // Reset to page 1 whenever the underlying filtered set changes shape, so the user
   // never lands on a stale, now-out-of-range page after narrowing a filter.
-  useEffect(() => { setGridPage(1); }, [selectedCountry, selectedCity, selectedCategories, selectedTypes, visitedFilter, tripUsageFilter]);
+  useEffect(() => { setGridPage(1); }, [selectedCountry, selectedCity, selectedCategories, selectedTypes, visitedFilter, tripUsageFilter, verifiedFilter]);
 
   // Safety clamp for cases the position-preserving resize logic above doesn't cover
   // (e.g. the filtered item count itself shrinks) — never a no-op relative to it since
@@ -386,9 +393,9 @@ export function ExploreClient() {
   // zero results if also selected (every match already visited).
   const chipScopedAttractions = useMemo(() => {
     const pool = selectedCity ? cityAttractions : countryAttractions;
-    return pool.filter((a) => passesVisitedFilter(a) && passesTripUsageFilter(a));
+    return pool.filter((a) => passesVisitedFilter(a) && passesTripUsageFilter(a) && passesVerifiedFilter(a));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCity, cityAttractions, countryAttractions, visitedFilter, tripUsageFilter]);
+  }, [selectedCity, cityAttractions, countryAttractions, visitedFilter, tripUsageFilter, verifiedFilter]);
 
   // Categories present in the current scope (honoring the visited filter)
   const availableCategories = useMemo(() => {
@@ -421,8 +428,8 @@ export function ExploreClient() {
     return [...namesInScope].sort((a, b) => a.localeCompare(b));
   }, [isDiningSelected, chipScopedAttractions]);
 
-  const hasActiveFilters = selectedCategories.length > 0 || selectedTypes.length > 0 || selectedFoodStyles.length > 0 || visitedFilter !== "all" || tripUsageFilter !== "all";
-  const activeFilterCount = selectedCategories.length + selectedTypes.length + selectedFoodStyles.length + (visitedFilter !== "all" ? 1 : 0) + (tripUsageFilter !== "all" ? 1 : 0);
+  const hasActiveFilters = selectedCategories.length > 0 || selectedTypes.length > 0 || selectedFoodStyles.length > 0 || visitedFilter !== "all" || tripUsageFilter !== "all" || verifiedFilter !== "all";
+  const activeFilterCount = selectedCategories.length + selectedTypes.length + selectedFoodStyles.length + (visitedFilter !== "all" ? 1 : 0) + (tripUsageFilter !== "all" ? 1 : 0) + (verifiedFilter !== "all" ? 1 : 0);
 
   // Note: visitedFilter is deliberately NOT reset by any of these — it's a page-level
   // filter (applies to which countries/cities are even listed, via visibleCities), not a
@@ -662,6 +669,29 @@ export function ExploreClient() {
       );
       adjustCityVisitedCount(attraction.city, attraction.country, next ? -1 : 1);
       toast.error("Couldn't update visited status. Please try again.");
+    }
+  }
+
+  const [verifiedToggling, setVerifiedToggling] = useState(false);
+
+  // Admin-only — updateAttraction's PUT rejects `verified` from anyone whose role isn't
+  // "admin" (403), so the button that calls this is itself gated on user.role === "admin".
+  async function handleToggleVerified(attraction: Attraction) {
+    if (!token) return;
+    const realId = attraction.attractionId ?? attraction._id;
+    const next = !attraction.verified;
+    setVerifiedToggling(true);
+    try {
+      await updateAttraction(realId, token, { verified: next });
+      const patch = (a: Attraction) => ((a.attractionId ?? a._id) === realId ? { ...a, verified: next } : a);
+      setCityAttractions((prev) => prev.map(patch));
+      setCountryAttractions((prev) => prev.map(patch));
+      setSelectedAttraction((prev) => (prev ? patch(prev) : prev));
+      toast.success(next ? "Marked as verified" : "Unmarked as verified");
+    } catch {
+      toast.error("Couldn't update verified status. Please try again.");
+    } finally {
+      setVerifiedToggling(false);
     }
   }
 
@@ -950,6 +980,8 @@ export function ExploreClient() {
               selectedTypes={selectedTypes}
               onTypesChange={setSelectedTypes}
               typeLabel="Types"
+              verifiedFilter={verifiedFilter}
+              onVerifiedFilterChange={setVerifiedFilter}
             />
           )}
 
@@ -1378,6 +1410,12 @@ export function ExploreClient() {
             ? () => handleToggleVisited(selectedAttraction)
             : undefined
         }
+        onToggleVerified={
+          token && user?.role === "admin" && selectedAttraction
+            ? () => handleToggleVerified(selectedAttraction)
+            : undefined
+        }
+        verifiedToggling={verifiedToggling}
       />
 
       <TripPickerModal

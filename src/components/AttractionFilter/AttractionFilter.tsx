@@ -27,6 +27,8 @@ export function AttractionFilter({
   hideSearch = false,
   collapsible = false,
   collapsibleLabel = "Filter by category or type",
+  verifiedFilter,
+  onVerifiedFilterChange,
 }: AttractionFilterProps) {
   const { byCategory } = useAttractionTypes();
   const inputId = useId();
@@ -39,8 +41,10 @@ export function AttractionFilter({
   // meaningful on/off toggle — show it.
   const showCategoryChips = multiSelect ? categories.length > 0 : categories.length > 1;
   const showTypeChips = multiSelect && !!types && types.length > 0;
-  const hasChips = showCategoryChips || showTypeChips;
-  const activeChipCount = activeCategories.length + selectedTypes.length;
+  const showVerifiedChips = !!onVerifiedFilterChange;
+  const hasChips = showCategoryChips || showTypeChips || showVerifiedChips;
+  const activeChipCount = activeCategories.length + selectedTypes.length
+    + (verifiedFilter && verifiedFilter !== "all" ? 1 : 0);
 
   function isCategoryActive(cat: string): boolean {
     return multiSelect ? activeCategories.includes(cat) : selectedCategory === cat;
@@ -66,6 +70,7 @@ export function AttractionFilter({
   function handleClearAll() {
     if (multiSelect) onCategoriesChange!([]);
     onTypesChange?.([]);
+    onVerifiedFilterChange?.("all");
   }
 
   return (
@@ -164,6 +169,24 @@ export function AttractionFilter({
                       </button>
                     );
                   })}
+                </div>
+              </div>
+            )}
+            {showVerifiedChips && (
+              <div className={`${styles.filterSection} ${showCategoryChips || showTypeChips ? styles.filterSectionDivided : ""}`}>
+                <span className={styles.filterSectionLabel}>Verified</span>
+                <div className={styles.filterChips} role="group" aria-label="Filter by verified status">
+                  {(["all", "verified", "unverified"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={`${styles.filterChip} ${(verifiedFilter ?? "all") === v ? styles.filterChipActive : ""}`}
+                      aria-pressed={(verifiedFilter ?? "all") === v}
+                      onClick={() => onVerifiedFilterChange!(v)}
+                    >
+                      {v === "all" ? "All" : v === "verified" ? "Verified" : "Not verified"}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}

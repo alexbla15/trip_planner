@@ -77,3 +77,6 @@ export { haversineKm } from "./geo";
 export { filterTopLevelMapPins } from "./mapPinDedup";
 
 export { DAY_COLOR_PALETTE, UNSCHEDULED_DAY_COLOR, buildDayColorMap } from "./dayColors";
+
+export type { VerifiedFilterValue } from "./attractionVerifiedFilter";
+export { matchesVerifiedFilter } from "./attractionVerifiedFilter";

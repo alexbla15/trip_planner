@@ -92,6 +92,10 @@
   background: var(--color-primary);
 }
 
+.badgeVerified {
+  background: var(--color-primary);
+}
+
 .badgeChildren {
   background: var(--color-accent);
 }
@@ -274,15 +278,6 @@
   flex-shrink: 0;
   color: var(--color-text-tertiary);
   font-weight: 600;
-}
-
-.residencePrice {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #d97706;
 }
 
 /* "Part of {parent}" — a distinct color from .meta (city) above so the two don't read

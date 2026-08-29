@@ -26,6 +26,7 @@ import {
   Luggage,
   Layers,
   UtensilsCrossed,
+  BadgeCheck,
 } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
@@ -68,9 +69,14 @@ interface AttractionDetailModalProps {
    *  to the same state setter used to originally open the modal. Omit to disable this
    *  cross-navigation (the chips/rows still render, just non-interactive). */
   onNavigateToAttraction?: (attraction: Attraction) => void;
+  /** Present only for an admin viewer — toggles the admin-curated "verified" mark.
+   *  Non-admins never see this control; the badge itself (when `attraction.verified`)
+   *  is always shown regardless. */
+  onToggleVerified?: () => void;
+  verifiedToggling?: boolean;
 }
 
-export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit, onEdit, onAddToTrip, onRemoveFromTrip, onDelete, onToggleVisited, isVisited, onNavigateToAttraction }: AttractionDetailModalProps) {
+export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit, onEdit, onAddToTrip, onRemoveFromTrip, onDelete, onToggleVisited, isVisited, onNavigateToAttraction, onToggleVerified, verifiedToggling }: AttractionDetailModalProps) {
   const { findType } = useAttractionTypes();
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -110,6 +116,11 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   const isResidence = attraction.subtype === "residence";
   const isFlight    = attraction.subtype === "flight";
   const statusChips = getStatusChips(attraction.openingHours, attraction.openingMonths);
+  // Only "Open 24/7" and "Permanently closed" already convey the full hours story on
+  // their own — the "seasonal" chip just says which months apply and says nothing about
+  // the actual daily hours, so it must NOT suppress the hours table/info-item below (a
+  // seasonally-open place like Gardaland still has real per-day hours worth showing).
+  const hoursCoveredByChip = statusChips.some((c) => c.key === "open-24-7" || c.key === "permanently-closed");
   const uniformHoursLabel = attraction.openingHours ? getUniformHoursLabel(attraction.openingHours) : null;
   const hasMultiplePriceTiers = (attraction.prices?.length ?? 0) > 1;
 
@@ -169,9 +180,28 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
               </span>
             )}
             <h2 className={styles.title}>{attraction.name}</h2>
+            {attraction.verified && (
+              <span className={styles.verifiedBadge} title="Verified by an admin">
+                <BadgeCheck size={16} aria-hidden="true" />
+                Verified
+              </span>
+            )}
           </div>
           <div className={styles.headerActions}>
             <WebsiteLinkButton url={attraction.websiteUrl} variant="compact" className={styles.websiteBtn} />
+            {onToggleVerified && (
+              <button
+                type="button"
+                className={`${styles.visitedToggleBtn} ${attraction.verified ? styles.visitedToggleBtnActive : ""}`}
+                onClick={onToggleVerified}
+                disabled={!!verifiedToggling}
+                aria-pressed={!!attraction.verified}
+                aria-label={attraction.verified ? `Unmark ${attraction.name} as verified` : `Mark ${attraction.name} as verified`}
+                title={attraction.verified ? "Verified — click to unverify" : "Mark as verified"}
+              >
+                <BadgeCheck size={18} aria-hidden="true" />
+              </button>
+            )}
             {onToggleVisited && (
               <button
                 type="button"
@@ -474,7 +504,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
             )}
             {/* Same hours every day of the week — a full day-by-day table would just repeat
                 one value seven times, so fold it into a single info item instead. */}
-            {!isResidence && !isFlight && uniformHoursLabel && statusChips.length === 0 && (
+            {!isResidence && !isFlight && uniformHoursLabel && !hoursCoveredByChip && (
               <div className={styles.infoItem}>
                 <span className={styles.infoIconBubble}><Clock size={15} aria-hidden="true" /></span>
                 <span className={styles.infoText}>
@@ -520,7 +550,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
               Types row instead — the day-by-day table and its heading would be
               redundant, so this section is skipped entirely. Same-every-day hours are
               shown as a compact info item above instead of this full table. */}
-          {!isResidence && !isFlight && attraction.openingHours && statusChips.length === 0 && !uniformHoursLabel && (
+          {!isResidence && !isFlight && attraction.openingHours && !hoursCoveredByChip && !uniformHoursLabel && (
             <div className={styles.section}>
               <h3 className={styles.sectionTitle}>
                 <Clock size={14} aria-hidden="true" />

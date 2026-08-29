@@ -1,9 +1,10 @@
 import { Types } from "mongoose";
 import { dbConnect } from "@/lib/mongoose";
-import { badRequest, notFound, conflict } from "@/lib/apiError";
+import { badRequest, notFound, conflict, forbidden } from "@/lib/apiError";
 import { Attraction, formatAttraction, type IAttraction, type IPriceTier } from "@/models/Attraction";
 import { AttractionType } from "@/models/AttractionType";
 import { FoodStyle } from "@/models/FoodStyle";
+import { User } from "@/models/User";
 import { Trip, type ITrip, type IScheduleEntry } from "@/models/Trip";
 import { getVisitedIdSet, isAttractionVisited } from "@/lib/services/visited.service";
 import { getUsedInTripsMap, getUsedInTripNames } from "@/lib/services/usedInTrips.service";
@@ -389,6 +390,15 @@ export async function updateAttraction(
   if (body.notes !== undefined) attraction.notes = body.notes as string;
   if (body.photoUrl !== undefined) attraction.photoUrl = body.photoUrl as string;
   if (body.websiteUrl !== undefined) attraction.websiteUrl = body.websiteUrl as string;
+  // Admin-only field — checked on demand rather than up front, so the common (non-admin,
+  // no `verified` in body) edit path never pays for the extra User lookup.
+  if (body.verified !== undefined) {
+    const caller = await User.findById(payload.userId).select("role");
+    if (caller?.role !== "admin") {
+      throw forbidden("Only admins can update the verified flag");
+    }
+    attraction.verified = body.verified as boolean;
+  }
 
   // NOTE: plannedDate, plannedTime, actualDuration* are now trip-specific schedule fields
   // and live in Trip.schedules — they are NOT updated here.

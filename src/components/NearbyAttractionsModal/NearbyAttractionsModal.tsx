@@ -8,6 +8,7 @@ import { ModalShell } from "@/components/Modal";
 import { useAttractionTypes } from "@/hooks";
 import { addAttractionToTrip, getAttractionsByCountry, formatStepDuration } from "@/services";
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
+import { matchesVerifiedFilter, type VerifiedFilterValue } from "@/lib";
 import type { Attraction } from "@/types/attraction";
 import type { NearbyAttractionsModalProps, NearbySuggestion, NearbyStep } from "./NearbyAttractionsModal.types";
 import { prefilterCandidates, findNearbySuggestions, formatMaxMinutesLabel } from "./NearbyAttractionsModal.utils";
@@ -35,6 +36,7 @@ export function NearbyAttractionsModal({
   const [resultCategories, setResultCategories] = useState<string[]>([]);
   const [resultTypes, setResultTypes]           = useState<string[]>([]);
   const [resultSearch, setResultSearch]         = useState("");
+  const [resultVerifiedFilter, setResultVerifiedFilter] = useState<VerifiedFilterValue>("all");
   const [resultPage, setResultPage]             = useState(1);
 
   const [originSearch, setOriginSearch] = useState("");
@@ -128,7 +130,8 @@ export function NearbyAttractionsModal({
       resultCategories.length === 0 ||
       a.types.some((t) => { const cat = findType(t)?.category; return cat && resultCategories.includes(cat); });
     const matchesType = resultTypes.length === 0 || a.types.some((t) => resultTypes.includes(t));
-    return matchesText && matchesCategory && matchesType;
+    const matchesVerified = matchesVerifiedFilter(a.verified, resultVerifiedFilter);
+    return matchesText && matchesCategory && matchesType && matchesVerified;
   });
   const resultTotalPages = Math.max(1, Math.ceil(filteredSuggestions.length / ATTRACTIONS_PAGE_SIZE));
   const paginatedSuggestions = filteredSuggestions.slice(
@@ -277,6 +280,8 @@ export function NearbyAttractionsModal({
             selectedTypes={resultTypes}
             onTypesChange={handleResultTypesChange}
             typeLabel="Types"
+            verifiedFilter={resultVerifiedFilter}
+            onVerifiedFilterChange={(v) => { setResultVerifiedFilter(v); setResultPage(1); }}
           />
 
           {loading && (

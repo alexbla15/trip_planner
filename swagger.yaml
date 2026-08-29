@@ -514,6 +514,10 @@ components:
           nullable: true
           description: Official venue website, set by the attraction's owner or backfilled from a verified source. Absent when no real official site exists for the place.
           example: https://www.louvre.fr
+        verified:
+          type: boolean
+          default: false
+          description: Admin-curated "verified" mark. Only settable via PUT /api/attractions/{id} by an admin — a non-admin sending this field gets a 403.
         plannedDate:
           type: string
           nullable: true
@@ -700,6 +704,9 @@ components:
           type: string
           nullable: true
           description: Official venue website. Omit when no real official site exists for the place — never fabricate one.
+        verified:
+          type: boolean
+          description: Admin-only. Ignored (403) on PUT /api/attractions/{id} unless the caller is an admin; never accepted on create.
         existingAttractionId:
           type: string
           description: >

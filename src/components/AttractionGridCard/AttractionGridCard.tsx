@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, ArrowUpRight, Calendar, Wallet } from "lucide-react";
+import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, ArrowUpRight, Calendar, BadgeCheck } from "lucide-react";
 import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
 import { Spinner } from "@/components/Spinner";
 import { getAttraction, getChildAttractions } from "@/services";
 import { useAttractionTypes } from "@/hooks";
-import { formatDisplayDate, formatPrice, getNightsCount } from "@/lib";
+import { formatDisplayDate, getNightsCount } from "@/lib";
 import type { Attraction } from "@/types/attraction";
 import styles from "./AttractionGridCard.module.css";
 import type { AttractionGridCardProps } from "./AttractionGridCard.types";
@@ -86,6 +86,11 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
         )}
 
         <div className={styles.badges}>
+          {attraction.verified && (
+            <span className={`${styles.badge} ${styles.badgeVerified}`} title="Verified by an admin">
+              <BadgeCheck size={12} aria-hidden="true" />
+            </span>
+          )}
           {attraction.isVisited && (
             <span className={styles.badge} title="Visited">
               <Check size={12} aria-hidden="true" />
@@ -191,12 +196,6 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
                 {nights != null && nights > 0 && (
                   <span className={styles.residenceNights}>{nights}n</span>
                 )}
-              </span>
-            )}
-            {attraction.price != null && (
-              <span className={styles.residencePrice}>
-                <Wallet size={11} aria-hidden="true" />
-                {formatPrice(attraction.price, attraction.currency ?? "USD")}
               </span>
             )}
           </div>

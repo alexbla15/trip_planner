@@ -75,7 +75,7 @@ import {
   updateTrip,
   getFxRate,
 } from "@/services";
-import { formatDisplayDate, currencySymbol, formatPrice, getTripDays, formatDayLabel, buildDayColorMap, UNSCHEDULED_DAY_COLOR } from "@/lib";
+import { formatDisplayDate, currencySymbol, formatPrice, getTripDays, formatDayLabel, buildDayColorMap, UNSCHEDULED_DAY_COLOR, matchesVerifiedFilter, type VerifiedFilterValue } from "@/lib";
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
 import type { Trip, CustomExpense } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
@@ -167,11 +167,13 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   const [searchQuery, setSearchQuery]             = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes]         = useState<string[]>([]);
+  const [verifiedFilter, setVerifiedFilter]       = useState<VerifiedFilterValue>("all");
 
   // Explore tab — filter state kept separate from the Attractions tab's own
   // selectedCategories/selectedTypes above so the two tabs don't affect each other.
   const [exploreCategories, setExploreCategories] = useState<string[]>([]);
   const [exploreTypes, setExploreTypes]           = useState<string[]>([]);
+  const [exploreVerifiedFilter, setExploreVerifiedFilter] = useState<VerifiedFilterValue>("all");
   // Selected day keys (ISO date strings, plus UNSCHEDULED_DAY_KEY) — null means
   // "not yet initialized"; initialized to every day + unscheduled once the trip loads.
   const [exploreSelectedDays, setExploreSelectedDays] = useState<Set<string> | null>(null);
@@ -771,12 +773,13 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
           });
         const matchesType =
           selectedTypes.length === 0 || a.types.some((t) => selectedTypes.includes(t));
-        return matchesText && matchesCategory && matchesType;
+        const matchesVerified = matchesVerifiedFilter(a.verified, verifiedFilter);
+        return matchesText && matchesCategory && matchesType && matchesVerified;
       })
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [regularAttractions, searchQuery, selectedCategories, selectedTypes, findType]);
+  }, [regularAttractions, searchQuery, selectedCategories, selectedTypes, verifiedFilter, findType]);
 
-  useEffect(() => { setPage(1); }, [searchQuery, selectedCategories, selectedTypes]);
+  useEffect(() => { setPage(1); }, [searchQuery, selectedCategories, selectedTypes, verifiedFilter]);
 
   // A viewer without edit access can land on ?tab=costs directly (stale link, shared URL,
   // or losing collaborator/owner status) — bounce them off a tab they can't see. Computed
@@ -911,7 +914,8 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
       });
     const matchesType =
       exploreTypes.length === 0 || a.types.some((t) => exploreTypes.includes(t));
-    return matchesDay && matchesCategory && matchesType;
+    const matchesVerified = matchesVerifiedFilter(a.verified, exploreVerifiedFilter);
+    return matchesDay && matchesCategory && matchesType && matchesVerified;
   });
 
   return (
@@ -1137,6 +1141,8 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                       selectedTypes={selectedTypes}
                       onTypesChange={setSelectedTypes}
                       typeLabel="Types"
+                      verifiedFilter={verifiedFilter}
+                      onVerifiedFilterChange={setVerifiedFilter}
                       resultCount={filteredAttractions.length}
                     />
                   )}
@@ -1358,6 +1364,8 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                   selectedTypes={exploreTypes}
                   onTypesChange={setExploreTypes}
                   typeLabel="Types"
+                  verifiedFilter={exploreVerifiedFilter}
+                  onVerifiedFilterChange={setExploreVerifiedFilter}
                 />
 
                 <div className={styles.exploreMapWrapper}>

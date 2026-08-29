@@ -38,6 +38,7 @@ export function AttractionSearchModal({
   const searchRef = useRef<HTMLInputElement>(null);
 
   const getAttractionTypes = useCallback((a: Attraction) => a.types, []);
+  const getAttractionVerified = useCallback((a: Attraction) => a.verified, []);
   const {
     selectedCategories,
     selectedTypes,
@@ -45,9 +46,11 @@ export function AttractionSearchModal({
     handleCategoriesChange,
     presentCategories,
     presentTypes,
+    verifiedFilter,
+    setVerifiedFilter,
     matches: matchesFilter,
     reset: resetCategoryTypeFilter,
-  } = useAttractionCategoryTypeFilter(results, getAttractionTypes);
+  } = useAttractionCategoryTypeFilter(results, getAttractionTypes, getAttractionVerified);
 
   // Reset on open
   useEffect(() => {
@@ -188,6 +191,8 @@ export function AttractionSearchModal({
                 selectedTypes={selectedTypes}
                 onTypesChange={setSelectedTypes}
                 typeLabel="Types"
+                verifiedFilter={verifiedFilter}
+                onVerifiedFilterChange={setVerifiedFilter}
               />
             </div>
           )}

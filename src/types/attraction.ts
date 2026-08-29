@@ -77,6 +77,8 @@ export interface Attraction {
   photoUrl?: string;
   /** Official venue website — user-editable, separate from photoUrl. */
   websiteUrl?: string;
+  /** Admin-curated "verified" mark — only an admin can set this (see PUT /api/attractions/:id). */
+  verified?: boolean;
   plannedDate?: string | null;
   plannedTime?: string | null;  // "HH:MM", e.g. "09:00"
   actualDurationValue?: string;
