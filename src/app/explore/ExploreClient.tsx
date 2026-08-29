@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useState, useEffect, useMemo, useCallback, useRef, useId } from "react";
-import { Globe, Plus, ChevronLeft, ChevronDown, SlidersHorizontal, X, Ruler, Footprints, Car, Bus, Loader2, Search, Check, Map as MapIcon, LayoutGrid, ChevronRight, Luggage } from "lucide-react";
+import { Globe, Plus, ChevronLeft, ChevronDown, SlidersHorizontal, X, Ruler, Footprints, Car, Bus, Loader2, Search, Check, Map as MapIcon, LayoutGrid, ChevronRight, Luggage, BadgeCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useAttractionTypes } from "@/hooks";
@@ -122,6 +122,7 @@ export function ExploreClient() {
   // from the user, but otherwise keep the sidebar compact by default.
   const [visitedPickerOpen, setVisitedPickerOpen]   = useState(false);
   const [foodStylePickerOpen, setFoodStylePickerOpen] = useState(false);
+  const [verifiedPickerOpen, setVerifiedPickerOpen] = useState(false);
 
   // Measure-distance tool (available once a country is selected — see view guard below)
   const [measureMode, setMeasureMode]               = useState(false);
@@ -141,6 +142,7 @@ export function ExploreClient() {
   const mapRef = useRef<MapHandle | null>(null);
   const visitedPickerCollapseId = useId();
   const foodStylePickerCollapseId = useId();
+  const verifiedPickerCollapseId = useId();
 
   // Fetch the route between the two selected measure points whenever either the
   // points or the travel mode change — mirrors TripDayMapWidget.tsx's leg-fetch effect.
@@ -963,6 +965,71 @@ export function ExploreClient() {
             </div>
           )}
 
+          {/* Verified status — an admin-curated fact about the attraction itself, not
+              per-user, so (unlike the visited/trip-usage picker above) this is shown to
+              every visitor, logged in or not. Its own collapsible section rather than
+              piggybacking on the category/type AttractionFilter below, since that one is
+              only rendered when categories/types are actually present in scope — verified
+              filtering should work even when they aren't. */}
+          <div>
+            <button
+              type="button"
+              className={styles.chipFilterToggle}
+              onClick={() => setVerifiedPickerOpen((v) => !v)}
+              aria-expanded={verifiedPickerOpen}
+              aria-controls={verifiedPickerCollapseId}
+            >
+              <SlidersHorizontal size={14} aria-hidden="true" />
+              Verified
+              {verifiedFilter !== "all" && (
+                <span className={styles.chipFilterBadge}>1</span>
+              )}
+              <ChevronDown
+                size={14}
+                aria-hidden="true"
+                className={`${styles.chipFilterChevron} ${verifiedPickerOpen ? styles.chipFilterChevronOpen : ""}`}
+              />
+            </button>
+            <div
+              id={verifiedPickerCollapseId}
+              className={`${styles.chipFilterCollapse} ${verifiedPickerOpen ? styles.chipFilterCollapseOpen : ""}`}
+            >
+              <div className={styles.chipFilterInner}>
+                <div className={styles.chipGroup} role="radiogroup" aria-label="Filter by verified status">
+                  <button
+                    type="button"
+                    className={`${styles.chip} ${verifiedFilter === "all" ? styles.chipActive : ""}`}
+                    role="radio"
+                    aria-checked={verifiedFilter === "all"}
+                    onClick={() => setVerifiedFilter("all")}
+                  >
+                    All
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.chip} ${verifiedFilter === "verified" ? styles.chipActive : ""}`}
+                    role="radio"
+                    aria-checked={verifiedFilter === "verified"}
+                    onClick={() => setVerifiedFilter("verified")}
+                  >
+                    <BadgeCheck size={12} aria-hidden="true" />
+                    Verified
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.chip} ${verifiedFilter === "unverified" ? styles.chipActive : ""}`}
+                    role="radio"
+                    aria-checked={verifiedFilter === "unverified"}
+                    onClick={() => setVerifiedFilter("unverified")}
+                  >
+                    <X size={12} aria-hidden="true" />
+                    Not verified
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Category/type filter chips — scoped to the current country/city selection
               (empty categories/types hide it automatically at world view). Rendered once
               here, right under the visited/trip-status picker, instead of duplicated
@@ -980,8 +1047,6 @@ export function ExploreClient() {
               selectedTypes={selectedTypes}
               onTypesChange={setSelectedTypes}
               typeLabel="Types"
-              verifiedFilter={verifiedFilter}
-              onVerifiedFilterChange={setVerifiedFilter}
             />
           )}
 
