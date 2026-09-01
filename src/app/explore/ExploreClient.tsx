@@ -544,6 +544,16 @@ export function ExploreClient() {
     if (selectedCity && newAttraction.city === selectedCity) {
       setCityAttractions((prev) => [...prev, newAttraction]);
     }
+    // Country view's grid/map render from this separate array — without also appending
+    // here, a brand-new attraction never shows up in country view (or the world-view map,
+    // which falls back to it) until a full page reload.
+    if (selectedCountry && newAttraction.country === selectedCountry) {
+      setCountryAttractions((prev) => [...prev, newAttraction]);
+    }
+    // The world-view city/country list (names + per-city counts) is a separate fetch
+    // (getCities) — a brand-new attraction always changes at least one city's count (or
+    // adds a new city/country pin entirely), so always refresh it.
+    setCitiesReloadKey((k) => k + 1);
     if (newAttraction.parentAttractionId) {
       const parentId = newAttraction.parentAttractionId;
       getAttraction(parentId, token)
@@ -790,6 +800,10 @@ export function ExploreClient() {
     if (selectedCity && newAttraction.city === selectedCity) {
       setCityAttractions((prev) => [...prev, newAttraction]);
     }
+    if (selectedCountry && newAttraction.country === selectedCountry) {
+      setCountryAttractions((prev) => [...prev, newAttraction]);
+    }
+    setCitiesReloadKey((k) => k + 1);
     toast.success("Attraction saved");
   }
 
