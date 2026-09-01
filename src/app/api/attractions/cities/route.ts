@@ -26,10 +26,31 @@ export const GET = withApiHandler("GET /api/attractions/cities", async (req: Req
   const usedInTripObjectIds = [...usedInTripIds].map((id) => new Types.ObjectId(id));
 
   const result = await Attraction.aggregate([
+    // Some nested children (mainly bulk-seeded ones) were never given their own
+    // `coordinates` even though the live create/edit API always copies them from the
+    // parent — rather than excluding those children from the map/counts entirely, fall
+    // back to the parent's coordinates at read time via this self-join. Own coordinates
+    // win when present; this never touches the stored documents.
+    {
+      $lookup: {
+        from: "attractions",
+        localField: "parentAttractionId",
+        foreignField: "_id",
+        pipeline: [{ $project: { coordinates: 1 } }],
+        as: "_parent",
+      },
+    },
+    {
+      $addFields: {
+        effectiveCoordinates: {
+          $ifNull: ["$coordinates", { $arrayElemAt: ["$_parent.coordinates", 0] }],
+        },
+      },
+    },
     {
       $match: {
-        "coordinates.lat": { $exists: true, $ne: null },
-        "coordinates.lng": { $exists: true, $ne: null },
+        "effectiveCoordinates.lat": { $exists: true, $ne: null },
+        "effectiveCoordinates.lng": { $exists: true, $ne: null },
       },
     },
     {
@@ -41,8 +62,8 @@ export const GET = withApiHandler("GET /api/attractions/cities", async (req: Req
     {
       $group: {
         _id: { city: "$city", country: "$country" },
-        lat:   { $avg: "$coordinates.lat" },
-        lng:   { $avg: "$coordinates.lng" },
+        lat:   { $avg: "$effectiveCoordinates.lat" },
+        lng:   { $avg: "$effectiveCoordinates.lng" },
         count: { $sum: 1 },
         // Exact-intersection matrix across all three boolean filter dimensions
         // (visited × usedInTrip × verified), keyed "vuf" (each 1/0) — a single-dimension

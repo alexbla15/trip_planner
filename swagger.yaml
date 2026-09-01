@@ -1665,7 +1665,9 @@ paths:
         combination — e.g. buckets["101"] = visited, not used in a trip, verified. Sum
         the matching keys client-side to get an exact count for any combination of
         active filters. When no valid token is supplied, every attraction is treated as
-        not-visited and not-used-in-a-trip (verified is unaffected by auth).
+        not-visited and not-used-in-a-trip (verified is unaffected by auth). A nested
+        attraction with no coordinates of its own falls back to its parent's coordinates
+        for grouping/plotting purposes (read-time only — never written back).
       tags: [Attractions]
       security: []
       responses:
