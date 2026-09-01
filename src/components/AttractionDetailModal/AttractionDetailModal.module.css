@@ -433,11 +433,6 @@
   white-space: nowrap;
 }
 
-.childRowCity {
-  flex-shrink: 0;
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-}
 
 /* ── Info grid ── */
 .infoGrid {

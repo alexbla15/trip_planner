@@ -345,7 +345,6 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                           <>
                             <span className={styles.childRowIcon} aria-hidden="true">{childIcon}</span>
                             <span className={styles.childRowName}>{child.name}</span>
-                            {child.city && <span className={styles.childRowCity}>{child.city}</span>}
                           </>
                         );
                         return onNavigateToAttraction ? (
