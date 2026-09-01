@@ -282,7 +282,17 @@ export function ExploreClient() {
       })
       .sort((a, b) => b.count - a.count);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleCities, visitedFilter, tripUsageFilter]);
+  }, [visibleCities, visitedFilter, tripUsageFilter, verifiedFilter]);
+
+  // Cities scoped for the map — same cities as visibleCities, but with `count` overridden
+  // to the exact count matching the active filter combination (countFor), not each city's
+  // raw unfiltered total. Without this, map pins/cluster totals kept showing the raw count
+  // even while "Verified"/"Visited"/etc. narrowed which cities were shown at all.
+  const mapCities = useMemo(
+    () => visibleCities.map((c) => ({ ...c, count: countFor(c) })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [visibleCities, visitedFilter, tripUsageFilter, verifiedFilter]
+  );
 
   const citiesInCountry = useMemo(
     () =>
@@ -1432,7 +1442,7 @@ export function ExploreClient() {
             countries={countries}
             selectedCountry={selectedCountry}
             selectedCity={selectedCity}
-            cities={cities}
+            cities={mapCities}
             attractions={view === "country" ? filteredCountryAttractions : filteredAttractions}
             onCountryClick={handleCountrySelect}
             onCityClick={handleCitySelect}
