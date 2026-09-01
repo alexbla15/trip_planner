@@ -439,13 +439,6 @@
   color: var(--color-text-tertiary);
 }
 
-.emptyChildrenNote {
-  margin: 0;
-  padding: 12px;
-  font-size: 13px;
-  color: var(--color-text-tertiary);
-  text-align: center;
-}
 
 
 /* ── Info grid ── */

@@ -91,7 +91,6 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   const [parentLoading, setParentLoading] = useState(false);
 
   const [otherLocationsExpanded, setOtherLocationsExpanded] = useState(false);
-  const [otherLocationsLoading, setOtherLocationsLoading] = useState(false);
   const [otherLocations, setOtherLocations] = useState<Attraction[] | null>(null);
   const [otherLocationsPage, setOtherLocationsPage] = useState(1);
 
@@ -105,10 +104,33 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
     setChildrenLoading(false);
     setChildren(null);
     setChildrenPage(1);
+  }, [attraction?._id]);
+
+  // Unlike children (lazy, behind a click, since the count is already known via
+  // childAttractionCount), whether any "other locations" even exist isn't known ahead of
+  // time — fetched eagerly here so the toggle button can be hidden entirely rather than
+  // shown and then reveal an empty "No other locations found" state on click.
+  useEffect(() => {
     setOtherLocationsExpanded(false);
-    setOtherLocationsLoading(false);
-    setOtherLocations(null);
     setOtherLocationsPage(1);
+    setOtherLocations(null);
+    if (!attraction || attraction.subtype === "residence" || attraction.subtype === "flight" || !attraction.city) {
+      return;
+    }
+    const { _id, name, city } = attraction;
+    let cancelled = false;
+    getOtherLocationsInCity(name, city)
+      .then((data) => {
+        if (cancelled) return;
+        const normalizedName = name.trim().toLowerCase();
+        const matches = (data as Attraction[]).filter(
+          (a) => a._id !== _id && a.name.trim().toLowerCase() === normalizedName
+        );
+        setOtherLocations(matches);
+      })
+      .catch(() => { if (!cancelled) setOtherLocations([]); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attraction?._id]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -167,27 +189,11 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
     return (e: React.MouseEvent) => { e.stopPropagation(); handler(); };
   }
 
-  // Other branches of the same chain (e.g. McDonald's, Adidas) in the same city — the `q`
-  // param is a partial case-insensitive regex match server-side, so the result is filtered
-  // here to an exact (trimmed, case-insensitive) name match, and the attraction currently
-  // being viewed is excluded from its own "other locations" list.
+  // Fetched eagerly (see the useEffect above) so this just toggles visibility — the
+  // button itself is only rendered once otherLocations is known to be non-empty.
   function handleToggleOtherLocations(e: React.MouseEvent) {
     e.stopPropagation();
-    if (!attraction || !attraction.city) return;
     setOtherLocationsExpanded((prev) => !prev);
-    if (otherLocations === null && !otherLocationsLoading) {
-      setOtherLocationsLoading(true);
-      getOtherLocationsInCity(attraction.name, attraction.city)
-        .then((data) => {
-          const normalizedName = attraction.name.trim().toLowerCase();
-          const matches = (data as Attraction[]).filter(
-            (a) => a._id !== attraction._id && a.name.trim().toLowerCase() === normalizedName
-          );
-          setOtherLocations(matches);
-        })
-        .catch(() => setOtherLocations([]))
-        .finally(() => setOtherLocationsLoading(false));
-    }
   }
 
   const otherLocationsTotalPages = Math.max(1, Math.ceil((otherLocations?.length ?? 0) / ATTRACTIONS_PAGE_SIZE));
@@ -434,9 +440,10 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
           )}
 
           {/* Other branches of the same chain in the same city (McDonald's, Adidas, etc.) —
-              not shown for residences/flights (the "chain" concept doesn't apply) or when
-              there's no city to scope the search to. */}
-          {!isResidence && !isFlight && attraction.city && (
+              fetched eagerly above, so this only renders once we already know there's at
+              least one sibling location; no point showing a button that just reveals an
+              empty state on click. */}
+          {!!otherLocations && otherLocations.length > 0 && (
             <div className={styles.childrenSection}>
               <button
                 type="button"
@@ -449,16 +456,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
               </button>
               {otherLocationsExpanded && (
                 <div className={styles.childrenList}>
-                  {otherLocationsLoading ? (
-                    <div className={styles.childrenLoading}>
-                      <Spinner variant="icon" iconSize={14} />
-                    </div>
-                  ) : otherLocations?.length === 0 ? (
-                    <p className={styles.emptyChildrenNote}>
-                      No other locations found in {attraction.city}
-                    </p>
-                  ) : (
-                    <>
+                  <>
                       {paginatedOtherLocations?.map((other) => {
                         const otherIcon = renderTypeIcon(findType(other.types?.[0] ?? "")?.icon ?? "Globe");
                         const rowContent = (
@@ -513,7 +511,6 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                         </div>
                       )}
                     </>
-                  )}
                 </div>
               )}
             </div>
