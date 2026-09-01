@@ -82,20 +82,6 @@
   flex-shrink: 0;
 }
 
-.verifiedBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-  margin-top: 2px;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  font-size: 12px;
-  font-weight: 600;
-}
-
 /* Aligns WebsiteLinkButton's compact variant to this header's 36px icon-button
    family (closeBtn/visitedToggleBtn) instead of its own default 32px/shadowed look. */
 .websiteBtn {

@@ -398,6 +398,13 @@ components:
           type: string
           description: The parent's name — present only when parentAttractionId is set.
           example: Westfield Mall
+        parentAttractionPhotoUrl:
+          type: string
+          description: >
+            The parent's photo — present only when parentAttractionId is set AND the
+            parent has a photo. Clients should fall back to this when the attraction has
+            no photoUrl of its own.
+          example: https://example.com/mall-photo.jpg
         childAttractionCount:
           type: integer
           default: 0

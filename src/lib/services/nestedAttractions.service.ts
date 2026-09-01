@@ -26,6 +26,30 @@ export async function getParentName(parentAttractionId: string | null | undefine
   return map.get(parentAttractionId);
 }
 
+/** Maps each parent attraction id (string) to its photo URL — for resolving a photo
+ *  fallback onto children that have no photo of their own (e.g. a specific ride nested
+ *  inside a theme park). Mirrors `getParentNameMap`; a separate query rather than folding
+ *  into it since most callers only need one of the two fields. Parents without a photo
+ *  are simply absent from the map. */
+export async function getParentPhotoMap(parentIds: (string | null | undefined)[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  const uniqueIds = [...new Set(parentIds.filter((id): id is string => !!id))];
+  if (uniqueIds.length === 0) return map;
+  await dbConnect();
+  const parents = await Attraction.find({ _id: { $in: uniqueIds } }).select("photoUrl").lean();
+  for (const p of parents) if (p.photoUrl) map.set(p._id.toString(), p.photoUrl);
+  return map;
+}
+
+/** Photo URL of a single attraction's parent — cheaper than `getParentPhotoMap` when only
+ *  one doc's parent needs resolving. Returns undefined when `parentAttractionId` is
+ *  null/undefined, the parent doc is missing, or the parent has no photo. */
+export async function getParentPhoto(parentAttractionId: string | null | undefined): Promise<string | undefined> {
+  if (!parentAttractionId) return undefined;
+  const map = await getParentPhotoMap([parentAttractionId]);
+  return map.get(parentAttractionId);
+}
+
 /** Maps each attraction id (string) to how many other attractions reference it as their
  *  parent — for resolving `childAttractionCount` onto a list of potential parents in one
  *  query. Children scattered anywhere in the DB are counted, not just within the same

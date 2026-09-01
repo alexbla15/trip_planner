@@ -43,6 +43,10 @@ export interface Attraction {
   /** The parent's name — set only when `parentAttractionId` is set, resolved server-side
    *  so consumers can render "Part of {name}" without a second lookup. */
   parentAttractionName?: string;
+  /** The parent's photo — set only when `parentAttractionId` is set AND the parent has a
+   *  photo. UI falls back to this when the child has no photoUrl of its own (a nested
+   *  attraction, e.g. a specific ride inside a theme park, often has no dedicated photo). */
+  parentAttractionPhotoUrl?: string;
   /** How many other attractions are nested inside this one. 0 for a child (nesting is one
    *  level only) or a leaf attraction with no children. */
   childAttractionCount?: number;

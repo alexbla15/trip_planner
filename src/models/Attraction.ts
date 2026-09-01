@@ -197,14 +197,24 @@ export function formatAttraction(
   parentAttractionName?: string,
   /** How many other attractions reference this one as their parent — resolved by callers
    *  via getChildCount/getChildCountMap. Defaults to 0. */
-  childAttractionCount?: number
+  childAttractionCount?: number,
+  /** This attraction's parent's photo — set only when `doc.parentAttractionId` is set AND
+   *  the parent has a photo; resolved by callers via getParentPhoto/getParentPhotoMap
+   *  (see `src/lib/services/nestedAttractions.service.ts`). Used by the UI as a fallback
+   *  when this attraction has no photo of its own. */
+  parentAttractionPhotoUrl?: string
 ): AttractionShape {
   // Synthesize a single primary tier from the legacy `price` field for any document that
   // predates multi-tier pricing (or was created/edited without specifying tiers) — callers
-  // can always rely on `prices` being non-empty without a real DB migration.
+  // can always rely on `prices` being non-empty whenever the attraction actually has a
+  // price. When there's genuinely no price at all (`doc.price` is null), leave `prices`
+  // empty rather than synthesizing a fake "Regular: 0" tier — that would make an
+  // unpriced attraction indistinguishable from one that's free/priced at 0.
   const prices: IPriceTier[] = doc.prices?.length
     ? doc.prices
-    : [{ label: "Regular", amount: doc.price ?? 0, isPrimary: true }];
+    : doc.price != null
+      ? [{ label: "Regular", amount: doc.price, isPrimary: true }]
+      : [];
 
   return {
     _id: idOverride ?? doc._id.toString(),
@@ -213,6 +223,7 @@ export function formatAttraction(
     usedInTripNames: usedInTripNames ?? [],
     parentAttractionId: doc.parentAttractionId ? doc.parentAttractionId.toString() : null,
     parentAttractionName,
+    parentAttractionPhotoUrl,
     childAttractionCount: childAttractionCount ?? 0,
     ownerId: doc.ownerId?.toString(),
     name: doc.name,

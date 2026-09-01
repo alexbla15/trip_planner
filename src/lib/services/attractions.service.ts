@@ -8,7 +8,7 @@ import { User } from "@/models/User";
 import { Trip, type ITrip, type IScheduleEntry } from "@/models/Trip";
 import { getVisitedIdSet, isAttractionVisited } from "@/lib/services/visited.service";
 import { getUsedInTripsMap, getUsedInTripNames } from "@/lib/services/usedInTrips.service";
-import { getParentNameMap, getParentName, getChildCountMap, getChildCount, resolveParentLink } from "@/lib/services/nestedAttractions.service";
+import { getParentNameMap, getParentName, getParentPhotoMap, getParentPhoto, getChildCountMap, getChildCount, resolveParentLink } from "@/lib/services/nestedAttractions.service";
 import type { JwtPayload } from "@/lib/auth";
 import type { Attraction as AttractionShape, OpeningHours } from "@/types/attraction";
 
@@ -495,6 +495,7 @@ export async function listTripAttractions(
   const visitedIds = await getVisitedIdSet(userId);
   const usedInTripsMap = await getUsedInTripsMap(userId);
   const parentNameMap = await getParentNameMap(docs.map((doc) => doc.parentAttractionId?.toString()));
+  const parentPhotoMap = await getParentPhotoMap(docs.map((doc) => doc.parentAttractionId?.toString()));
   const childCountMap = await getChildCountMap(docs.map((doc) => doc._id.toString()));
 
   // Group regular-attraction schedule entries by which real document they reference — a
@@ -521,12 +522,13 @@ export async function listTripAttractions(
     const isVisited = visitedIds.has(idStr);
     const usedInTripNames = usedInTripsMap.get(idStr);
     const parentAttractionName = doc.parentAttractionId ? parentNameMap.get(doc.parentAttractionId.toString()) : undefined;
+    const parentAttractionPhotoUrl = doc.parentAttractionId ? parentPhotoMap.get(doc.parentAttractionId.toString()) : undefined;
     const childAttractionCount = childCountMap.get(idStr) ?? 0;
     if (!entries || entries.length === 0) {
-      result.push(formatAttraction(doc, null, idStr, isVisited, usedInTripNames, parentAttractionName, childAttractionCount)); // linked but not yet scheduled
+      result.push(formatAttraction(doc, null, idStr, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl)); // linked but not yet scheduled
     } else {
       for (const [key, entry] of entries) {
-        result.push(formatAttraction(doc, entry, key, isVisited, usedInTripNames, parentAttractionName, childAttractionCount));
+        result.push(formatAttraction(doc, entry, key, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl));
       }
     }
   }
@@ -820,6 +822,7 @@ export async function addAttractionToTrip(
   const attractionId = attraction._id.toString();
   const isVisited = await isAttractionVisited(payload.userId, attractionId);
   const parentAttractionName = await getParentName(attraction.parentAttractionId?.toString());
+  const parentAttractionPhotoUrl = await getParentPhoto(attraction.parentAttractionId?.toString());
   const childAttractionCount = await getChildCount(attractionId);
 
   const alreadyLinked = trip.attractionIds.some(
@@ -849,12 +852,12 @@ export async function addAttractionToTrip(
       });
       await attraction.populate(["types", "foodStyles"]);
       const usedInTripNames = await getUsedInTripNames(payload.userId, attractionId);
-      return { status: 201, data: formatAttraction(attraction, scheduleEntry, instanceKey, isVisited, usedInTripNames, parentAttractionName, childAttractionCount) };
+      return { status: 201, data: formatAttraction(attraction, scheduleEntry, instanceKey, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl) };
     }
     const schedule = trip.schedules?.get(attractionId);
     await attraction.populate(["types", "foodStyles"]);
     const usedInTripNames = await getUsedInTripNames(payload.userId, attractionId);
-    return { status: 200, data: formatAttraction(attraction, schedule ?? null, undefined, isVisited, usedInTripNames, parentAttractionName, childAttractionCount) };
+    return { status: 200, data: formatAttraction(attraction, schedule ?? null, undefined, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl) };
   }
 
   trip.attractionIds.push(attraction._id);
@@ -884,7 +887,7 @@ export async function addAttractionToTrip(
   await attraction.populate(["types", "foodStyles"]);
 
   const usedInTripNames = await getUsedInTripNames(payload.userId, attractionId);
-  return { status: 201, data: formatAttraction(attraction, scheduleEntry, undefined, isVisited, usedInTripNames, parentAttractionName, childAttractionCount) };
+  return { status: 201, data: formatAttraction(attraction, scheduleEntry, undefined, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl) };
 }
 
 export interface UpdateTripAttractionScheduleInput {
@@ -1063,9 +1066,10 @@ export async function updateTripAttractionSchedule(
   const isVisited = await isAttractionVisited(payload.userId, realAttractionId);
   const usedInTripNames = await getUsedInTripNames(payload.userId, realAttractionId);
   const parentAttractionName = await getParentName(attraction.parentAttractionId?.toString());
+  const parentAttractionPhotoUrl = await getParentPhoto(attraction.parentAttractionId?.toString());
   const childAttractionCount = await getChildCount(realAttractionId);
 
-  return formatAttraction(attraction, updatedSchedule, attractionId, isVisited, usedInTripNames, parentAttractionName, childAttractionCount);
+  return formatAttraction(attraction, updatedSchedule, attractionId, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl);
 }
 
 /** Unlink attraction from this trip (or remove a custom time-slot / flight entirely).

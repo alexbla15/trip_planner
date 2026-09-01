@@ -128,6 +128,13 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   const hoursCoveredByChip = statusChips.some((c) => c.key === "open-24-7" || c.key === "permanently-closed");
   const uniformHoursLabel = attraction.openingHours ? getUniformHoursLabel(attraction.openingHours) : null;
   const hasMultiplePriceTiers = (attraction.prices?.length ?? 0) > 1;
+  // A nested attraction (e.g. a specific ride inside a theme park) often has no photo of
+  // its own — fall back to the parent's photo rather than showing no photo at all.
+  const displayPhotoUrl = attraction.photoUrl?.startsWith("http")
+    ? attraction.photoUrl
+    : attraction.parentAttractionPhotoUrl?.startsWith("http")
+      ? attraction.parentAttractionPhotoUrl
+      : undefined;
 
   function handleToggleChildren(e: React.MouseEvent) {
     e.stopPropagation();
@@ -194,12 +201,6 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
               </span>
             )}
             <h2 className={styles.title}>{attraction.name}</h2>
-            {attraction.verified && (
-              <span className={styles.verifiedBadge} title="Verified by an admin">
-                <BadgeCheck size={16} aria-hidden="true" />
-                Verified
-              </span>
-            )}
           </div>
           <div className={styles.headerActions}>
             <WebsiteLinkButton url={attraction.websiteUrl} variant="compact" className={styles.websiteBtn} />
@@ -242,10 +243,10 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
         {/* Body */}
         <div className={styles.body}>
           {/* Photo */}
-          {attraction.photoUrl?.startsWith("http") && (
+          {displayPhotoUrl && (
             <div className={styles.photo}>
               <ImageWithSkeleton
-                src={attraction.photoUrl}
+                src={displayPhotoUrl}
                 alt={`${attraction.name} photo`}
                 fill
                 unoptimized

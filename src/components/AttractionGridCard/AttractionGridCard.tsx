@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, ArrowUpRight, Calendar, BadgeCheck, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, ArrowUpRight, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
@@ -16,7 +16,14 @@ import type { AttractionGridCardProps } from "./AttractionGridCard.types";
 
 export function AttractionGridCard({ attraction, onClick, currentUserId, token, onAddToTrip, onEdit, onDelete }: AttractionGridCardProps) {
   const { findType } = useAttractionTypes();
-  const hasPhoto = !!attraction.photoUrl?.startsWith("http");
+  // A nested attraction (e.g. a specific ride inside a theme park) often has no photo of
+  // its own — fall back to the parent's photo rather than showing the generic icon tile.
+  const displayPhotoUrl = attraction.photoUrl?.startsWith("http")
+    ? attraction.photoUrl
+    : attraction.parentAttractionPhotoUrl?.startsWith("http")
+      ? attraction.parentAttractionPhotoUrl
+      : undefined;
+  const hasPhoto = !!displayPhotoUrl;
   const icon = renderTypeIcon(findType(attraction.types?.[0] ?? "")?.icon ?? "Globe");
   const canEdit = !!currentUserId && attraction.ownerId === currentUserId;
   const isResidence = attraction.subtype === "residence";
@@ -84,7 +91,7 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
       <div className={styles.photoArea}>
         {hasPhoto ? (
           <ImageWithSkeleton
-            src={attraction.photoUrl!}
+            src={displayPhotoUrl!}
             alt=""
             fill
             unoptimized
@@ -97,11 +104,6 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
         )}
 
         <div className={styles.badges}>
-          {attraction.verified && (
-            <span className={`${styles.badge} ${styles.badgeVerified}`} title="Verified by an admin">
-              <BadgeCheck size={12} aria-hidden="true" />
-            </span>
-          )}
           {attraction.isVisited && (
             <span className={styles.badge} title="Visited">
               <Check size={12} aria-hidden="true" />
