@@ -27,12 +27,15 @@ import {
   Layers,
   UtensilsCrossed,
   BadgeCheck,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
 import { Spinner } from "@/components/Spinner";
 import { getAttraction, getChildAttractions } from "@/services";
 import { useAttractionTypes } from "@/hooks";
+import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
 
 const LocationViewMap = dynamic(
   () => import("./LocationViewMap").then((m) => ({ default: m.LocationViewMap })),
@@ -84,6 +87,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   const [childrenExpanded, setChildrenExpanded] = useState(false);
   const [childrenLoading, setChildrenLoading] = useState(false);
   const [children, setChildren] = useState<Attraction[] | null>(null);
+  const [childrenPage, setChildrenPage] = useState(1);
   const [parentLoading, setParentLoading] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
@@ -95,6 +99,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
     setChildrenExpanded(false);
     setChildrenLoading(false);
     setChildren(null);
+    setChildrenPage(1);
   }, [attraction?._id]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -135,6 +140,15 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
         .catch(() => setChildren([]))
         .finally(() => setChildrenLoading(false));
     }
+  }
+
+  const childrenTotalPages = Math.max(1, Math.ceil((children?.length ?? 0) / ATTRACTIONS_PAGE_SIZE));
+  const paginatedChildren = children?.slice(
+    (childrenPage - 1) * ATTRACTIONS_PAGE_SIZE, childrenPage * ATTRACTIONS_PAGE_SIZE
+  );
+
+  function stopAndPage(handler: () => void) {
+    return (e: React.MouseEvent) => { e.stopPropagation(); handler(); };
   }
 
   function handleOpenParent(e: React.MouseEvent) {
@@ -323,34 +337,59 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                       <Spinner variant="icon" iconSize={14} />
                     </div>
                   ) : (
-                    children?.map((child) => {
-                      const childIcon = renderTypeIcon(findType(child.types?.[0] ?? "")?.icon ?? "Globe");
-                      const rowContent = (
-                        <>
-                          <span className={styles.childRowIcon} aria-hidden="true">{childIcon}</span>
-                          <span className={styles.childRowName}>{child.name}</span>
-                          {child.city && <span className={styles.childRowCity}>{child.city}</span>}
-                        </>
-                      );
-                      return onNavigateToAttraction ? (
-                        <button
-                          type="button"
-                          key={child._id}
-                          className={`${styles.childRow} ${styles.childRowButton}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onNavigateToAttraction(child);
-                          }}
-                          aria-label={`View details for ${child.name}`}
-                        >
-                          {rowContent}
-                        </button>
-                      ) : (
-                        <div key={child._id} className={styles.childRow}>
-                          {rowContent}
+                    <>
+                      {paginatedChildren?.map((child) => {
+                        const childIcon = renderTypeIcon(findType(child.types?.[0] ?? "")?.icon ?? "Globe");
+                        const rowContent = (
+                          <>
+                            <span className={styles.childRowIcon} aria-hidden="true">{childIcon}</span>
+                            <span className={styles.childRowName}>{child.name}</span>
+                            {child.city && <span className={styles.childRowCity}>{child.city}</span>}
+                          </>
+                        );
+                        return onNavigateToAttraction ? (
+                          <button
+                            type="button"
+                            key={child._id}
+                            className={`${styles.childRow} ${styles.childRowButton}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onNavigateToAttraction(child);
+                            }}
+                            aria-label={`View details for ${child.name}`}
+                          >
+                            {rowContent}
+                          </button>
+                        ) : (
+                          <div key={child._id} className={styles.childRow}>
+                            {rowContent}
+                          </div>
+                        );
+                      })}
+                      {childrenTotalPages > 1 && (
+                        <div className={styles.childrenPagination}>
+                          <button
+                            type="button"
+                            className={styles.childrenPageBtn}
+                            onClick={stopAndPage(() => setChildrenPage((p) => p - 1))}
+                            disabled={childrenPage === 1}
+                            aria-label="Previous places"
+                          >
+                            <ChevronLeft size={12} aria-hidden="true" />
+                          </button>
+                          <span className={styles.childrenPageInfo}>{childrenPage} / {childrenTotalPages}</span>
+                          <button
+                            type="button"
+                            className={styles.childrenPageBtn}
+                            onClick={stopAndPage(() => setChildrenPage((p) => p + 1))}
+                            disabled={childrenPage === childrenTotalPages}
+                            aria-label="Next places"
+                          >
+                            <ChevronRight size={12} aria-hidden="true" />
+                          </button>
                         </div>
-                      );
-                    })
+                      )}
+                    </>
                   )}
                 </div>
               )}

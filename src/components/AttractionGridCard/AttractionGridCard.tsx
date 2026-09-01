@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, ArrowUpRight, Calendar, BadgeCheck } from "lucide-react";
+import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, ArrowUpRight, Calendar, BadgeCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
@@ -9,6 +9,7 @@ import { Spinner } from "@/components/Spinner";
 import { getAttraction, getChildAttractions } from "@/services";
 import { useAttractionTypes } from "@/hooks";
 import { formatDisplayDate, getNightsCount } from "@/lib";
+import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
 import type { Attraction } from "@/types/attraction";
 import styles from "./AttractionGridCard.module.css";
 import type { AttractionGridCardProps } from "./AttractionGridCard.types";
@@ -24,6 +25,7 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
   const [childrenExpanded, setChildrenExpanded] = useState(false);
   const [childrenLoading, setChildrenLoading] = useState(false);
   const [children, setChildren] = useState<Attraction[] | null>(null);
+  const [childrenPage, setChildrenPage] = useState(1);
   const [parentLoading, setParentLoading] = useState(false);
 
   function stopAnd(handler: (attraction: Attraction) => void) {
@@ -52,6 +54,15 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
         .catch(() => setChildren([]))
         .finally(() => setChildrenLoading(false));
     }
+  }
+
+  const childrenTotalPages = Math.max(1, Math.ceil((children?.length ?? 0) / ATTRACTIONS_PAGE_SIZE));
+  const paginatedChildren = children?.slice(
+    (childrenPage - 1) * ATTRACTIONS_PAGE_SIZE, childrenPage * ATTRACTIONS_PAGE_SIZE
+  );
+
+  function stopAndPage(handler: () => void) {
+    return (e: React.MouseEvent) => { e.stopPropagation(); handler(); };
   }
 
   const showActions = !!onAddToTrip || (canEdit && (!!onEdit || !!onDelete)) || !!attraction.websiteUrl;
@@ -209,24 +220,49 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
               <Spinner variant="icon" iconSize={14} />
             </div>
           ) : (
-            children?.map((child) => {
-              const childIcon = renderTypeIcon(findType(child.types?.[0] ?? "")?.icon ?? "Globe");
-              return (
-                <button
-                  type="button"
-                  key={child._id}
-                  className={styles.childRow}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onClick(child);
-                  }}
-                  aria-label={`View details for ${child.name}`}
-                >
-                  <span className={styles.childRowIcon} aria-hidden="true">{childIcon}</span>
-                  <span className={styles.childRowName}>{child.name}</span>
-                </button>
-              );
-            })
+            <>
+              {paginatedChildren?.map((child) => {
+                const childIcon = renderTypeIcon(findType(child.types?.[0] ?? "")?.icon ?? "Globe");
+                return (
+                  <button
+                    type="button"
+                    key={child._id}
+                    className={styles.childRow}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClick(child);
+                    }}
+                    aria-label={`View details for ${child.name}`}
+                  >
+                    <span className={styles.childRowIcon} aria-hidden="true">{childIcon}</span>
+                    <span className={styles.childRowName}>{child.name}</span>
+                  </button>
+                );
+              })}
+              {childrenTotalPages > 1 && (
+                <div className={styles.childrenPagination}>
+                  <button
+                    type="button"
+                    className={styles.childrenPageBtn}
+                    onClick={stopAndPage(() => setChildrenPage((p) => p - 1))}
+                    disabled={childrenPage === 1}
+                    aria-label="Previous places"
+                  >
+                    <ChevronLeft size={12} aria-hidden="true" />
+                  </button>
+                  <span className={styles.childrenPageInfo}>{childrenPage} / {childrenTotalPages}</span>
+                  <button
+                    type="button"
+                    className={styles.childrenPageBtn}
+                    onClick={stopAndPage(() => setChildrenPage((p) => p + 1))}
+                    disabled={childrenPage === childrenTotalPages}
+                    aria-label="Next places"
+                  >
+                    <ChevronRight size={12} aria-hidden="true" />
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

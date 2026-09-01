@@ -339,7 +339,7 @@
   font: inherit;
   transition: background-color var(--duration-fast) var(--easing-out);
 }
-.childRow:last-child {
+.childRow:last-of-type {
   border-bottom: none;
 }
 .childRow:hover {
@@ -367,4 +367,39 @@
   color: var(--color-text-primary);
   white-space: normal;
   overflow-wrap: break-word;
+}
+
+.childrenPagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 12px;
+}
+
+.childrenPageBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.childrenPageBtn:hover:not(:disabled) {
+  background: var(--color-bg-subtle);
+}
+.childrenPageBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.childrenPageInfo {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
 }
