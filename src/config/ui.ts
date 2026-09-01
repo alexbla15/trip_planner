@@ -13,3 +13,6 @@ export const TABLE_PAGE_SIZE = 5;             // max rows per page for any pagin
 export const EXPLORE_GRID_CARD_MIN_WIDTH_PX = 180;
 export const EXPLORE_GRID_GAP_PX = 16;
 export const EXPLORE_GRID_ROWS_PER_PAGE = 3;
+// Floor on the computed columns × rows page size — a narrow viewport (few columns) would
+// otherwise paginate after as few as 3-6 cards, which feels broken on mobile.
+export const EXPLORE_GRID_MIN_PAGE_SIZE = 20;

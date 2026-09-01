@@ -19,7 +19,7 @@ import type { AttractionFormData } from "@/components";
 import type { Attraction } from "@/types/attraction";
 import type { Trip } from "@/types/trip";
 import { matchesVerifiedFilter, type VerifiedFilterValue } from "@/lib";
-import { EXPLORE_GRID_CARD_MIN_WIDTH_PX, EXPLORE_GRID_GAP_PX, EXPLORE_GRID_ROWS_PER_PAGE } from "@/config/ui";
+import { EXPLORE_GRID_CARD_MIN_WIDTH_PX, EXPLORE_GRID_GAP_PX, EXPLORE_GRID_ROWS_PER_PAGE, EXPLORE_GRID_MIN_PAGE_SIZE } from "@/config/ui";
 import styles from "./ExploreClient.module.css";
 
 interface LocationSearchResult {
@@ -347,9 +347,10 @@ export function ExploreClient() {
   // no separate fetch, no separate filter logic. Page size is however many cards
   // actually fit per row (measured) × a fixed number of rows, not a flat constant —
   // otherwise a wide viewport fits far more than one page's worth per row and paginates
-  // after showing only a sliver of unused space.
+  // after showing only a sliver of unused space. Floored at EXPLORE_GRID_MIN_PAGE_SIZE so
+  // a narrow viewport (few columns) doesn't paginate after only a handful of cards.
   const gridAttractions = selectedCity ? filteredAttractions : filteredCountryAttractions;
-  const gridPageSize = gridColumns * EXPLORE_GRID_ROWS_PER_PAGE;
+  const gridPageSize = Math.max(EXPLORE_GRID_MIN_PAGE_SIZE, gridColumns * EXPLORE_GRID_ROWS_PER_PAGE);
   const gridTotalPages = Math.max(1, Math.ceil(gridAttractions.length / gridPageSize));
   const paginatedGridAttractions = gridAttractions.slice(
     (gridPage - 1) * gridPageSize, gridPage * gridPageSize
@@ -379,7 +380,7 @@ export function ExploreClient() {
       const cols = Math.max(1, Math.floor(
         (width + EXPLORE_GRID_GAP_PX) / (EXPLORE_GRID_CARD_MIN_WIDTH_PX + EXPLORE_GRID_GAP_PX)
       ));
-      const newPageSize = cols * EXPLORE_GRID_ROWS_PER_PAGE;
+      const newPageSize = Math.max(EXPLORE_GRID_MIN_PAGE_SIZE, cols * EXPLORE_GRID_ROWS_PER_PAGE);
       const oldPageSize = prevGridPageSizeRef.current;
       if (newPageSize !== oldPageSize) {
         setGridPage((prevPage) => Math.floor(((prevPage - 1) * oldPageSize) / newPageSize) + 1);
