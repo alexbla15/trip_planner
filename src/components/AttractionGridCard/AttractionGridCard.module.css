@@ -92,6 +92,10 @@
   background: var(--color-primary);
 }
 
+.badgeVerified {
+  background: var(--color-primary);
+}
+
 .badgeChildren {
   background: var(--color-accent);
 }

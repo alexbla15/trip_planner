@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, ArrowUpRight, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, ArrowUpRight, Calendar, BadgeCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
@@ -104,6 +104,11 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
         )}
 
         <div className={styles.badges}>
+          {attraction.verified && (
+            <span className={`${styles.badge} ${styles.badgeVerified}`} title="Verified by an admin">
+              <BadgeCheck size={12} aria-hidden="true" />
+            </span>
+          )}
           {attraction.isVisited && (
             <span className={styles.badge} title="Visited">
               <Check size={12} aria-hidden="true" />
