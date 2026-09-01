@@ -33,7 +33,7 @@ import {
 import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
 import { Spinner } from "@/components/Spinner";
-import { getAttraction, getChildAttractions } from "@/services";
+import { getAttraction, getChildAttractions, getOtherLocationsInCity } from "@/services";
 import { useAttractionTypes } from "@/hooks";
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
 
@@ -90,6 +90,11 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   const [childrenPage, setChildrenPage] = useState(1);
   const [parentLoading, setParentLoading] = useState(false);
 
+  const [otherLocationsExpanded, setOtherLocationsExpanded] = useState(false);
+  const [otherLocationsLoading, setOtherLocationsLoading] = useState(false);
+  const [otherLocations, setOtherLocations] = useState<Attraction[] | null>(null);
+  const [otherLocationsPage, setOtherLocationsPage] = useState(1);
+
   useEffect(() => { setMounted(true); }, []);
 
   // Reset the children expansion whenever a different attraction is shown — otherwise
@@ -100,6 +105,10 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
     setChildrenLoading(false);
     setChildren(null);
     setChildrenPage(1);
+    setOtherLocationsExpanded(false);
+    setOtherLocationsLoading(false);
+    setOtherLocations(null);
+    setOtherLocationsPage(1);
   }, [attraction?._id]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -157,6 +166,34 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   function stopAndPage(handler: () => void) {
     return (e: React.MouseEvent) => { e.stopPropagation(); handler(); };
   }
+
+  // Other branches of the same chain (e.g. McDonald's, Adidas) in the same city — the `q`
+  // param is a partial case-insensitive regex match server-side, so the result is filtered
+  // here to an exact (trimmed, case-insensitive) name match, and the attraction currently
+  // being viewed is excluded from its own "other locations" list.
+  function handleToggleOtherLocations(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!attraction || !attraction.city) return;
+    setOtherLocationsExpanded((prev) => !prev);
+    if (otherLocations === null && !otherLocationsLoading) {
+      setOtherLocationsLoading(true);
+      getOtherLocationsInCity(attraction.name, attraction.city)
+        .then((data) => {
+          const normalizedName = attraction.name.trim().toLowerCase();
+          const matches = (data as Attraction[]).filter(
+            (a) => a._id !== attraction._id && a.name.trim().toLowerCase() === normalizedName
+          );
+          setOtherLocations(matches);
+        })
+        .catch(() => setOtherLocations([]))
+        .finally(() => setOtherLocationsLoading(false));
+    }
+  }
+
+  const otherLocationsTotalPages = Math.max(1, Math.ceil((otherLocations?.length ?? 0) / ATTRACTIONS_PAGE_SIZE));
+  const paginatedOtherLocations = otherLocations?.slice(
+    (otherLocationsPage - 1) * ATTRACTIONS_PAGE_SIZE, otherLocationsPage * ATTRACTIONS_PAGE_SIZE
+  );
 
   function handleOpenParent(e: React.MouseEvent) {
     e.stopPropagation();
@@ -384,6 +421,92 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                             onClick={stopAndPage(() => setChildrenPage((p) => p + 1))}
                             disabled={childrenPage === childrenTotalPages}
                             aria-label="Next places"
+                          >
+                            <ChevronRight size={12} aria-hidden="true" />
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Other branches of the same chain in the same city (McDonald's, Adidas, etc.) —
+              not shown for residences/flights (the "chain" concept doesn't apply) or when
+              there's no city to scope the search to. */}
+          {!isResidence && !isFlight && attraction.city && (
+            <div className={styles.childrenSection}>
+              <button
+                type="button"
+                className={styles.childCountBadge}
+                onClick={handleToggleOtherLocations}
+                aria-expanded={otherLocationsExpanded}
+              >
+                <MapPin size={13} aria-hidden="true" />
+                Other locations in {attraction.city}
+              </button>
+              {otherLocationsExpanded && (
+                <div className={styles.childrenList}>
+                  {otherLocationsLoading ? (
+                    <div className={styles.childrenLoading}>
+                      <Spinner variant="icon" iconSize={14} />
+                    </div>
+                  ) : otherLocations?.length === 0 ? (
+                    <p className={styles.emptyChildrenNote}>
+                      No other locations found in {attraction.city}
+                    </p>
+                  ) : (
+                    <>
+                      {paginatedOtherLocations?.map((other) => {
+                        const otherIcon = renderTypeIcon(findType(other.types?.[0] ?? "")?.icon ?? "Globe");
+                        const rowContent = (
+                          <>
+                            <span className={styles.childRowIcon} aria-hidden="true">{otherIcon}</span>
+                            <span className={styles.childRowName}>{other.name}</span>
+                            {other.parentAttractionName && (
+                              <span className={styles.otherLocationParent}>({other.parentAttractionName})</span>
+                            )}
+                          </>
+                        );
+                        return onNavigateToAttraction ? (
+                          <button
+                            type="button"
+                            key={other._id}
+                            className={`${styles.childRow} ${styles.childRowButton}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onNavigateToAttraction(other);
+                            }}
+                            aria-label={`View details for ${other.name}`}
+                          >
+                            {rowContent}
+                          </button>
+                        ) : (
+                          <div key={other._id} className={styles.childRow}>
+                            {rowContent}
+                          </div>
+                        );
+                      })}
+                      {otherLocationsTotalPages > 1 && (
+                        <div className={styles.childrenPagination}>
+                          <button
+                            type="button"
+                            className={styles.childrenPageBtn}
+                            onClick={stopAndPage(() => setOtherLocationsPage((p) => p - 1))}
+                            disabled={otherLocationsPage === 1}
+                            aria-label="Previous locations"
+                          >
+                            <ChevronLeft size={12} aria-hidden="true" />
+                          </button>
+                          <span className={styles.childrenPageInfo}>{otherLocationsPage} / {otherLocationsTotalPages}</span>
+                          <button
+                            type="button"
+                            className={styles.childrenPageBtn}
+                            onClick={stopAndPage(() => setOtherLocationsPage((p) => p + 1))}
+                            disabled={otherLocationsPage === otherLocationsTotalPages}
+                            aria-label="Next locations"
                           >
                             <ChevronRight size={12} aria-hidden="true" />
                           </button>

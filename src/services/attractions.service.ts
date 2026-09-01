@@ -87,6 +87,18 @@ export async function getChildAttractions(parentAttractionId: string, token?: st
   return parseOrThrow<unknown[]>(res);
 }
 
+/** Other branches of a chain (e.g. McDonald's, Adidas) in the same city — matched by
+ *  name via the existing `q` search param, scoped to `city`. `q` does a partial
+ *  case-insensitive regex match server-side, so callers must still filter the result to
+ *  an exact (trimmed, case-insensitive) name match themselves. */
+export async function getOtherLocationsInCity(name: string, city: string, token?: string | null): Promise<unknown[]> {
+  const params = new URLSearchParams({ city, q: name, includeHidden: "true" });
+  const res = await fetch(`/api/attractions?${params}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  return parseOrThrow<unknown[]>(res);
+}
+
 export async function searchAttractionsByCountry(country: string, query: string, token?: string | null): Promise<unknown[]> {
   const params = new URLSearchParams({ country });
   if (query.trim()) params.set("q", query.trim());

@@ -24,6 +24,7 @@ export {
   getAttractionsByCity,
   getAttractionsByCountry,
   getChildAttractions,
+  getOtherLocationsInCity,
   searchAttractionsByCountry,
   searchAttractionsByType,
   createAttraction,
