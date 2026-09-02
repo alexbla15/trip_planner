@@ -514,29 +514,32 @@
 
 .priceTierActions {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   justify-self: end;
   align-items: center;
+  padding: 0 4px;
 }
 
 .priceTierPrimaryBtn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-full);
-  background: var(--color-surface);
-  color: transparent;
+  background: transparent;
+  color: var(--color-text-tertiary);
   cursor: pointer;
   transition: all var(--duration-fast) var(--easing-out);
+  padding: 0;
 }
 
 .priceTierPrimaryBtn:hover {
   border-color: var(--color-primary);
   background: var(--color-primary-light);
+  color: var(--color-text-tertiary);
 }
 
 .priceTierPrimaryBtnActive {
@@ -777,23 +780,24 @@
 }
 
 .iconBtn {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   border: none;
-  background: none;
+  background: transparent;
   border-radius: var(--radius-md);
   color: var(--color-text-tertiary);
   cursor: pointer;
   transition: color var(--duration-fast) var(--easing-out), background var(--duration-fast) var(--easing-out);
+  padding: 0;
 }
 
 .iconBtn:hover {
   color: var(--color-error);
-  background: var(--color-bg-subtle);
+  background: var(--color-error-light);
 }
 
 /* Error */
