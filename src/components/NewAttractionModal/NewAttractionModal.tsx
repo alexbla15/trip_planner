@@ -658,8 +658,11 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       )}
 
       {/* Opening Hours — omitted for a residence: always treated as open 24/7, no
-          per-day pickers needed. */}
-      {!isEditingResidence && (
+          per-day pickers needed. Also omitted once any Seasonal Hours entry exists: each
+          entry has its own full weekly hours grid, and the base schedule here is never
+          used once those exist (see resolveOpeningHoursForDate) — showing it would just
+          be a dead-weight duplicate of the same UI. */}
+      {!isEditingResidence && !hasSeasonalHours && (
         <div className={styles.field}>
           <div className={styles.labelRow}>
             <span className={styles.labelWithIcon}>
