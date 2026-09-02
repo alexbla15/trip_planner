@@ -433,8 +433,14 @@
 
 .daysModeButtons {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   flex-wrap: wrap;
+}
+
+@media (max-width: 767px) {
+  .daysModeButtons {
+    gap: 8px;
+  }
 }
 
 .daysModeBtn {
@@ -531,6 +537,220 @@
 
 .addTierBtn:hover {
   background: var(--color-primary-light);
+}
+
+/* Responsive layout: Desktop vs Mobile */
+.desktopOnly {
+  display: grid;
+}
+
+.mobileOnly {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .desktopOnly {
+    display: none;
+  }
+
+  .mobileOnly {
+    display: block;
+  }
+
+  .priceTierHeader {
+    display: none;
+  }
+
+  .priceTierRow {
+    display: block;
+    padding: 0;
+    border-bottom: none;
+    margin-bottom: 12px;
+  }
+
+  .priceTierRow:last-of-type {
+    margin-bottom: 0;
+  }
+}
+
+/* Mobile Card Layout */
+.priceTierCardWrapper {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.priceTierCardSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: none;
+  background: var(--color-surface);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--duration-fast) var(--easing-out);
+  gap: 8px;
+}
+
+.priceTierCardSummary:hover {
+  background: var(--color-bg-subtle);
+}
+
+.cardSummaryText {
+  flex: 1;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.primaryBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.cardExpandIcon {
+  width: 20px;
+  height: 20px;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  transition: transform 200ms var(--easing-out);
+}
+
+.cardExpandIconOpen {
+  transform: rotate(180deg);
+}
+
+.priceTierCardContent {
+  padding: 12px;
+  border-top: 1px solid var(--color-border-subtle);
+  animation: cardSlideDown 200ms var(--easing-out);
+}
+
+@keyframes cardSlideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+  }
+}
+
+.cardFieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.cardFieldGroup:last-of-type {
+  margin-bottom: 8px;
+}
+
+.cardFieldLabel {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cardInput {
+  height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--color-text-primary);
+  transition: border-color var(--duration-fast) var(--easing-out);
+}
+
+.cardInput:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+.cardInput::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.cardActions {
+  display: flex;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.cardActions .priceTierPrimaryBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: 44px;
+  gap: 6px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.cardActions .priceTierPrimaryBtn:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.cardActions .priceTierPrimaryBtnActive {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.cardDeleteBtn {
+  flex: 0 1 auto;
+  width: auto;
+  height: 44px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-md);
+  background: transparent;
+}
+
+.cardDeleteBtn:hover {
+  background: var(--color-error);
+  color: #fff;
+}
+
+.priceTierRowExpanded {
+  padding: 0;
 }
 
 .iconBtn {
