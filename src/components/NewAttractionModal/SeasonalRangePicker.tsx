@@ -14,55 +14,76 @@ interface SeasonalRangePickerProps {
   onChange: (start: MonthDay | null, end: MonthDay | null) => void;
 }
 
-// <input type="date"> requires a full date — a fixed leap year lets Feb 29 be picked
-// as a valid endpoint. The year itself is never read or stored; only month/day survive.
-const DUMMY_YEAR = 2000;
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+// Feb capped at 29 (not 28) — these ranges recur annually with no specific year attached,
+// so Feb 29 stays a pickable endpoint rather than being excluded in a non-leap context.
+const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
-function monthDayToDateValue(md: MonthDay | null): string {
-  if (!md) return "";
-  return `${DUMMY_YEAR}-${String(md.month).padStart(2, "0")}-${String(md.day).padStart(2, "0")}`;
-}
-
-function dateValueToMonthDay(value: string): MonthDay | null {
-  if (!value) return null;
-  const [, month, day] = value.split("-").map(Number);
-  return { month, day };
-}
-
-/** Precise start/end date-range picker (month/day only, no year — recurs annually). Used
- *  to scope a seasonal opening-hours override to a specific part of the year. */
+/** Precise start/end date-range picker (month/day only, no year — recurs annually). Uses
+ *  plain month/day dropdowns rather than `<input type="date">` — a native date input
+ *  always renders a year alongside month/day, which is misleading here since the year is
+ *  never read or stored and the range applies every year. */
 export function SeasonalRangePicker({ start, end, onChange }: SeasonalRangePickerProps) {
-  function handleStartChange(e: ChangeEvent<HTMLInputElement>) {
-    onChange(dateValueToMonthDay(e.target.value), end);
+  function handleStartMonth(e: ChangeEvent<HTMLSelectElement>) {
+    const month = Number(e.target.value);
+    onChange(month ? { month, day: Math.min(start?.day ?? 1, DAYS_IN_MONTH[month - 1]) } : null, end);
   }
 
-  function handleEndChange(e: ChangeEvent<HTMLInputElement>) {
-    onChange(start, dateValueToMonthDay(e.target.value));
+  function handleStartDay(e: ChangeEvent<HTMLSelectElement>) {
+    const day = Number(e.target.value);
+    onChange(start ? { ...start, day } : day ? { month: 1, day } : null, end);
   }
+
+  function handleEndMonth(e: ChangeEvent<HTMLSelectElement>) {
+    const month = Number(e.target.value);
+    onChange(start, month ? { month, day: Math.min(end?.day ?? 1, DAYS_IN_MONTH[month - 1]) } : null);
+  }
+
+  function handleEndDay(e: ChangeEvent<HTMLSelectElement>) {
+    const day = Number(e.target.value);
+    onChange(start, end ? { ...end, day } : day ? { month: 1, day } : null);
+  }
+
+  const startDayCount = DAYS_IN_MONTH[(start?.month ?? 1) - 1];
+  const endDayCount = DAYS_IN_MONTH[(end?.month ?? 1) - 1];
 
   return (
     <div className={styles.row} role="group" aria-label="Date range">
-      <label className={styles.field}>
+      <div className={styles.field}>
         <span className={styles.label}>From</span>
-        <input
-          type="date"
-          className={styles.input}
-          value={monthDayToDateValue(start)}
-          onChange={handleStartChange}
-          aria-label="Range start date"
-        />
-      </label>
+        <div className={styles.monthDayRow}>
+          <select className={styles.select} value={start?.month ?? ""} onChange={handleStartMonth} aria-label="Range start month">
+            <option value="">Month</option>
+            {MONTH_NAMES.map((name, i) => (
+              <option key={name} value={i + 1}>{name}</option>
+            ))}
+          </select>
+          <select className={styles.selectDay} value={start?.day ?? ""} onChange={handleStartDay} aria-label="Range start day">
+            <option value="">Day</option>
+            {Array.from({ length: startDayCount }, (_, i) => i + 1).map((day) => (
+              <option key={day} value={day}>{day}</option>
+            ))}
+          </select>
+        </div>
+      </div>
       <span className={styles.dash} aria-hidden="true">–</span>
-      <label className={styles.field}>
+      <div className={styles.field}>
         <span className={styles.label}>To</span>
-        <input
-          type="date"
-          className={styles.input}
-          value={monthDayToDateValue(end)}
-          onChange={handleEndChange}
-          aria-label="Range end date"
-        />
-      </label>
+        <div className={styles.monthDayRow}>
+          <select className={styles.select} value={end?.month ?? ""} onChange={handleEndMonth} aria-label="Range end month">
+            <option value="">Month</option>
+            {MONTH_NAMES.map((name, i) => (
+              <option key={name} value={i + 1}>{name}</option>
+            ))}
+          </select>
+          <select className={styles.selectDay} value={end?.day ?? ""} onChange={handleEndDay} aria-label="Range end day">
+            <option value="">Day</option>
+            {Array.from({ length: endDayCount }, (_, i) => i + 1).map((day) => (
+              <option key={day} value={day}>{day}</option>
+            ))}
+          </select>
+        </div>
+      </div>
     </div>
   );
 }

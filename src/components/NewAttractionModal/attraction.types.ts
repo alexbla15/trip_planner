@@ -84,16 +84,41 @@ export interface Coordinates {
   lng: number;
 }
 
-/** In-progress form state for one price-tier row — `product`/`visitorType` use `""` as
- *  the "not set" sentinel (vs. `undefined` in the submitted shape) so controlled inputs
- *  always have a defined value. `days` is always an array (empty = "Any day"). */
-export interface PriceTierDraft {
-  product: string;
-  label: string;
-  amount: number | null;
-  isPrimary: boolean;
+/** One visitor-type column in a price tab's grid — e.g. "Adult", "Children 2-12". */
+export interface PriceGridColumnDraft {
+  id: string;
   visitorType: string;
+}
+
+/** One tier row in a price tab's grid — e.g. "Entry", "VIP". `days` applies to the whole
+ *  row (every visitor-type column in it shares the same day-scope), matching how a real
+ *  price list reads: a rate period/tier, priced differently per visitor type. `cells` is
+ *  keyed by `PriceGridColumnDraft.id`; a column with no entry (or `null`) has no price set
+ *  yet for this row and is submitted as an empty cell (dropped, not a zero-price tier). */
+export interface PriceGridRowDraft {
+  id: string;
+  label: string;
   days: string[];
+  cells: Record<string, number | null>;
+}
+
+/** One product tab — e.g. "Galaxy", "Entry" — holding its own independent grid of
+ *  tier rows x visitor-type columns. */
+export interface PriceTabDraft {
+  id: string;
+  product: string;
+  columns: PriceGridColumnDraft[];
+  rows: PriceGridRowDraft[];
+}
+
+/** Identifies exactly one price cell (tab + row + column) as the attraction's single
+ *  "primary" rate — the one shown wherever only one price fits (cards, budget totals).
+ *  `null` means no primary chosen yet; the submit mapping falls back to the first tier
+ *  with a set amount. */
+export interface PrimaryCellRef {
+  tabId: string;
+  rowId: string;
+  columnId: string;
 }
 
 export interface AttractionFormData {

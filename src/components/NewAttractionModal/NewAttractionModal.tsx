@@ -14,7 +14,8 @@ import type {
   DurationUnit,
   NewAttractionModalProps,
   OpeningHours,
-  PriceTierDraft,
+  PriceTabDraft,
+  PrimaryCellRef,
   SeasonalHoursEntry,
 } from "./attraction.types";
 import {
@@ -32,9 +33,10 @@ import { OpeningHoursGrid } from "./OpeningHoursGrid";
 import { MonthsGrid } from "./MonthsGrid";
 import { SeasonalRangePicker } from "./SeasonalRangePicker";
 import { ParentAttractionPicker } from "./ParentAttractionPicker";
+import { PriceTierEditor } from "./PriceTierEditor";
 import { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h, isValidUrl, isYearRound, ALL_MONTHS } from "@/lib";
 import { useReverseGeocodeAutofill, useAttractionTypes, useFoodStyles } from "@/hooks";
-import { filterCityOptions } from "./NewAttractionModal.utils";
+import { filterCityOptions, emptyPriceTab, flatPriceTiersToTabs, tabsToFlatPriceTiers } from "./NewAttractionModal.utils";
 import type { Attraction } from "@/types/attraction";
 import styles from "./NewAttractionModal.module.css";
 
@@ -118,12 +120,13 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   });
   const [durationValue, setDurationValue] = useState("");
   const [durationUnit, setDurationUnit] = useState<DurationUnit>("hours");
-  const [priceTiers, setPriceTiers] = useState<PriceTierDraft[]>([
-    { product: "", label: "Regular", amount: null, isPrimary: true, visitorType: "", days: [] },
-  ]);
-  const [expandedTierIndex, setExpandedTierIndex] = useState<number | null>(null);
-  const [customDaysPopupIndex, setCustomDaysPopupIndex] = useState<number | null>(null);
-  const [expandedTextField, setExpandedTextField] = useState<string | null>(null);
+  const [priceTabs, setPriceTabs] = useState<PriceTabDraft[]>(() => [emptyPriceTab()]);
+  const [primaryCell, setPrimaryCell] = useState<PrimaryCellRef | null>(() => {
+    const tab = priceTabs[0];
+    const row = tab?.rows[0];
+    const column = tab?.columns[0];
+    return tab && row && column ? { tabId: tab.id, rowId: row.id, columnId: column.id } : null;
+  });
   const [currency, setCurrency] = useState("USD");
   const [openingHours, setOpeningHours] = useState<OpeningHours>(buildInitialHours);
   const [is24h, setIs24h]               = useState(false);
@@ -153,18 +156,21 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setSelectedFoodStyles(initialData?.foodStyles ?? []);
     setDurationValue(initialData?.durationValue ?? "");
     setDurationUnit(initialData?.durationUnit ?? "hours");
-    setPriceTiers(
-      initialData?.prices?.length
-        ? initialData.prices.map((t) => ({
-            product: t.product ?? "",
-            label: t.label,
-            amount: t.amount,
-            isPrimary: t.isPrimary,
-            visitorType: t.visitorType ?? "",
-            days: t.days ?? [],
-          }))
-        : [{ product: "", label: "Regular", amount: initialData?.price ?? null, isPrimary: true, visitorType: "", days: [] }]
-    );
+    if (initialData?.prices?.length) {
+      const { tabs, primary } = flatPriceTiersToTabs(initialData.prices);
+      setPriceTabs(tabs);
+      setPrimaryCell(primary);
+    } else if (initialData?.price != null) {
+      const { tabs, primary } = flatPriceTiersToTabs([{ label: "Regular", amount: initialData.price, isPrimary: true }]);
+      setPriceTabs(tabs);
+      setPrimaryCell(primary);
+    } else {
+      // Brand-new attraction with no existing price data — a fresh tab with an empty
+      // (not zero-filled) amount field, same starting point as the lazy useState default.
+      const tab = emptyPriceTab();
+      setPriceTabs([tab]);
+      setPrimaryCell({ tabId: tab.id, rowId: tab.rows[0].id, columnId: tab.columns[0].id });
+    }
     setCurrency(initialData?.currency ?? "USD");
     const isResidence = initialData?.subtype === "residence";
     const loadedHours = isResidence
@@ -262,62 +268,6 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     );
   }
 
-  // Helpers for managing days in price tiers
-  const DAY_OPTIONS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-
-  function getDaysModeForTier(tier: PriceTierDraft): "any" | "weekday" | "weekend" | "custom" {
-    if (tier.days.length === 0) return "any";
-    if (tier.days.length === 1) {
-      if (tier.days[0] === "weekday") return "weekday";
-      if (tier.days[0] === "weekend") return "weekend";
-    }
-    return "custom";
-  }
-
-  function getDaysSummary(tier: PriceTierDraft): string {
-    const mode = getDaysModeForTier(tier);
-    if (mode === "any") return "Any day";
-    if (mode === "weekday") return "Weekdays";
-    if (mode === "weekend") return "Weekends";
-    if (tier.days.length === 0) return "Select days";
-    return tier.days.map((d) => d.slice(0, 3)).join(", ");
-  }
-
-  function setDaysMode(tierIndex: number, mode: "any" | "weekday" | "weekend" | "custom") {
-    setPriceTiers((prev) =>
-      prev.map((t, ti) =>
-        ti === tierIndex
-          ? {
-              ...t,
-              days:
-                mode === "any"
-                  ? []
-                  : mode === "weekday"
-                    ? ["weekday"]
-                    : mode === "weekend"
-                      ? ["weekend"]
-                      : t.days,
-            }
-          : t
-      )
-    );
-  }
-
-  function toggleDayInCustom(tierIndex: number, day: string) {
-    setPriceTiers((prev) =>
-      prev.map((t, ti) =>
-        ti === tierIndex
-          ? {
-              ...t,
-              days: t.days.includes(day)
-                ? t.days.filter((d) => d !== day)
-                : [...t.days, day],
-            }
-          : t
-      )
-    );
-  }
-
   async function handleSave() {
     const allTouched = { name: true, country: true, types: true, websiteUrl: true };
     setTouched(allTouched);
@@ -326,8 +276,8 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     if (Object.keys(errs).length > 0) return;
 
     setSaving(true);
-    const validTiers = priceTiers.filter((t) => t.label.trim() && t.amount != null);
-    const primaryTier = validTiers.find((t) => t.isPrimary) ?? validTiers[0];
+    const flatTiers = tabsToFlatPriceTiers(priceTabs, primaryCell);
+    const primaryTier = flatTiers.find((t) => t.isPrimary) ?? flatTiers[0];
     const data: AttractionFormData = {
       name: name.trim(),
       country,
@@ -338,16 +288,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       durationValue,
       durationUnit,
       price: primaryTier?.amount ?? null,
-      prices: validTiers.length
-        ? validTiers.map((t) => ({
-            product: t.product.trim() || undefined,
-            label: t.label.trim(),
-            amount: t.amount!,
-            isPrimary: t === primaryTier,
-            visitorType: t.visitorType.trim() || undefined,
-            days: t.days.length > 0 ? t.days : undefined,
-          }))
-        : undefined,
+      prices: flatTiers.length ? flatTiers : undefined,
       currency,
       openingHours,
       openingMonths: yearRound ? undefined : openingMonths,
@@ -378,7 +319,11 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setSelectedTypes([]);
     setDurationValue("");
     setDurationUnit("hours");
-    setPriceTiers([{ product: "", label: "Regular", amount: null, isPrimary: true, visitorType: "", days: [] }]);
+    {
+      const tab = emptyPriceTab();
+      setPriceTabs([tab]);
+      setPrimaryCell({ tabId: tab.id, rowId: tab.rows[0].id, columnId: tab.columns[0].id });
+    }
     setExpandedTierIndex(null);
     setCurrency("USD");
     setOpeningHours(buildInitialHours());
@@ -693,390 +638,13 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           <div className={styles.priceRow}>
             <CurrencySelect value={currency} onChange={setCurrency} />
           </div>
-          <div className={styles.priceTierEditor}>
-            {/* Desktop Grid Header */}
-            <div className={styles.priceTierHeader}>
-              <div className={styles.priceTierHeaderCell}>Product</div>
-              <div className={styles.priceTierHeaderCell}>Tier</div>
-              <div className={styles.priceTierHeaderCell}>Visitor Type</div>
-              <div className={styles.priceTierHeaderCell}>Price</div>
-              <div className={styles.priceTierHeaderCell}>Days</div>
-              <div className={styles.priceTierHeaderCell}></div>
-            </div>
-            {/* Tiers: Grid (desktop) or Cards (mobile) */}
-            {priceTiers.map((tier, i) => {
-              const daysMode = getDaysModeForTier(tier);
-              const isExpanded = expandedTierIndex === i;
-              return (
-                <div
-                  key={i}
-                  className={`${styles.priceTierRow} ${isExpanded ? styles.priceTierRowExpanded : ""}`}
-                >
-                  {/* DESKTOP LAYOUT (≥768px) - Grid columns */}
-                  {/* Product - Expandable */}
-                  <div className={`${styles.expandableFieldWrapper} ${styles.desktopOnly}`}>
-                    {expandedTextField === `product-${i}` ? (
-                      <textarea
-                        value={tier.product}
-                        onChange={(e) =>
-                          setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, product: e.target.value } : t)))
-                        }
-                        placeholder="e.g. Galaxy 3-hour tour"
-                        className={styles.expandableTextarea}
-                        aria-label="Product name"
-                        onBlur={() => setExpandedTextField(null)}
-                        autoFocus
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        className={styles.expandableFieldTrigger}
-                        onClick={() => setExpandedTextField(`product-${i}`)}
-                        aria-label="Edit product"
-                      >
-                        {tier.product || "Product"}
-                      </button>
-                    )}
-                  </div>
-                  {/* Tier - Expandable */}
-                  <div className={`${styles.expandableFieldWrapper} ${styles.desktopOnly}`}>
-                    {expandedTextField === `tier-${i}` ? (
-                      <textarea
-                        value={tier.label}
-                        onChange={(e) =>
-                          setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, label: e.target.value } : t)))
-                        }
-                        placeholder="e.g. 3h, Half-day"
-                        className={styles.expandableTextarea}
-                        aria-label="Tier description"
-                        onBlur={() => setExpandedTextField(null)}
-                        autoFocus
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        className={styles.expandableFieldTrigger}
-                        onClick={() => setExpandedTextField(`tier-${i}`)}
-                        aria-label="Edit tier"
-                      >
-                        {tier.label || "Tier"}
-                      </button>
-                    )}
-                  </div>
-                  {/* Visitor Type - Expandable */}
-                  <div className={`${styles.expandableFieldWrapper} ${styles.desktopOnly}`}>
-                    {expandedTextField === `visitorType-${i}` ? (
-                      <textarea
-                        value={tier.visitorType}
-                        onChange={(e) =>
-                          setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, visitorType: e.target.value } : t)))
-                        }
-                        placeholder="e.g. Adult, Child"
-                        className={styles.expandableTextarea}
-                        aria-label="Visitor type"
-                        onBlur={() => setExpandedTextField(null)}
-                        autoFocus
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        className={styles.expandableFieldTrigger}
-                        onClick={() => setExpandedTextField(`visitorType-${i}`)}
-                        aria-label="Edit visitor type"
-                      >
-                        {tier.visitorType || "Visitor type"}
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={tier.amount ?? ""}
-                    onChange={(e) =>
-                      setPriceTiers((prev) =>
-                        prev.map((t, ti) => (ti === i ? { ...t, amount: e.target.value === "" ? null : parseFloat(e.target.value) } : t))
-                      )
-                    }
-                    className={`${styles.priceTierCell} ${styles.priceInput} ${styles.desktopOnly}`}
-                    aria-label="Price amount"
-                  />
-                  <div className={`${styles.priceTierDaysCell} ${styles.desktopOnly}`}>
-                    <button
-                      type="button"
-                      className={styles.daysTriggerBtn}
-                      onClick={() => setCustomDaysPopupIndex(i)}
-                      aria-haspopup="dialog"
-                      aria-expanded={customDaysPopupIndex === i}
-                    >
-                      <Calendar size={13} aria-hidden="true" />
-                      <span className={styles.daysTriggerText}>{getDaysSummary(tier)}</span>
-                    </button>
-                  </div>
-                  {customDaysPopupIndex === i && (
-                    <>
-                      <div className={styles.customDaysOverlay} onClick={() => setCustomDaysPopupIndex(null)} />
-                      <div className={styles.customDaysPopup}>
-                      <div className={styles.customDaysPopupHeader}>
-                        <h3 className={styles.customDaysPopupTitle}>Days</h3>
-                        <button
-                          type="button"
-                          className={styles.customDaysPopupClose}
-                          onClick={() => setCustomDaysPopupIndex(null)}
-                          aria-label="Close"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                      <div className={styles.customDaysPopupBody}>
-                        <div className={styles.daysModeButtons}>
-                          <button
-                            type="button"
-                            className={`${styles.daysModeBtn} ${daysMode === "any" ? styles.dayModeBtnActive : ""}`}
-                            onClick={() => setDaysMode(i, "any")}
-                            aria-pressed={daysMode === "any"}
-                          >
-                            Any day
-                          </button>
-                          <button
-                            type="button"
-                            className={`${styles.daysModeBtn} ${daysMode === "weekday" ? styles.dayModeBtnActive : ""}`}
-                            onClick={() => setDaysMode(i, "weekday")}
-                            aria-pressed={daysMode === "weekday"}
-                          >
-                            Weekdays
-                          </button>
-                          <button
-                            type="button"
-                            className={`${styles.daysModeBtn} ${daysMode === "weekend" ? styles.dayModeBtnActive : ""}`}
-                            onClick={() => setDaysMode(i, "weekend")}
-                            aria-pressed={daysMode === "weekend"}
-                          >
-                            Weekends
-                          </button>
-                        </div>
-                        <div className={styles.customDaysPopupDivider}>
-                          <span>or pick specific days</span>
-                        </div>
-                        <div className={styles.customDaysPopupGrid}>
-                          {DAY_OPTIONS.map((day) => (
-                            <label key={day} className={styles.dayCheckboxLabel}>
-                              <input
-                                type="checkbox"
-                                checked={tier.days.includes(day)}
-                                onChange={() => toggleDayInCustom(i, day)}
-                                aria-label={day}
-                              />
-                              {day}
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                      <div className={styles.customDaysPopupFooter}>
-                        <button
-                          type="button"
-                          className={styles.customDaysPopupDone}
-                          onClick={() => setCustomDaysPopupIndex(null)}
-                        >
-                          Done
-                        </button>
-                      </div>
-                    </div>
-                    </>
-                  )}
-                  <div className={`${styles.priceTierActions} ${styles.desktopOnly}`}>
-                    <button
-                      type="button"
-                      className={`${styles.priceTierPrimaryBtn} ${tier.isPrimary ? styles.priceTierPrimaryBtnActive : ""}`}
-                      onClick={() =>
-                        setPriceTiers((prev) => prev.map((t, ti) => ({ ...t, isPrimary: ti === i })))
-                      }
-                      title={tier.isPrimary ? "Primary rate" : "Set as primary rate"}
-                      aria-pressed={tier.isPrimary}
-                      aria-label={tier.isPrimary ? "Primary rate" : "Set as primary rate"}
-                    >
-                      <Check size={12} aria-hidden="true" />
-                    </button>
-                    {priceTiers.length > 1 && (
-                      <button
-                        type="button"
-                        className={styles.iconBtn}
-                        onClick={() =>
-                          setPriceTiers((prev) => {
-                            const next = prev.filter((_, ti) => ti !== i);
-                            if (prev[i].isPrimary && next.length > 0) next[0] = { ...next[0], isPrimary: true };
-                            return next;
-                          })
-                        }
-                        aria-label={`Remove ${tier.label || "tier"}`}
-                      >
-                        <X size={14} aria-hidden="true" />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* MOBILE LAYOUT (<768px) - Card with summary/expanded view */}
-                  <div className={`${styles.priceTierCardWrapper} ${styles.mobileOnly}`}>
-                    {/* Collapsed card - summary line */}
-                    <button
-                      type="button"
-                      className={styles.priceTierCardSummary}
-                      onClick={() => setExpandedTierIndex(isExpanded ? null : i)}
-                      aria-expanded={isExpanded}
-                      aria-label={`Price tier: ${tier.product || tier.label}`}
-                    >
-                      <div className={styles.cardSummaryMain}>
-                        <span className={styles.cardSummaryTitle}>
-                          {tier.product || tier.label || "New tier"}
-                        </span>
-                        <span className={styles.cardSummaryMeta}>
-                          {[tier.label, tier.visitorType, getDaysSummary(tier)].filter(Boolean).join(" · ")}
-                        </span>
-                      </div>
-                      {tier.amount != null && (
-                        <span className={styles.cardSummaryPrice}>
-                          {currency} {tier.amount.toFixed(2)}
-                        </span>
-                      )}
-                      {tier.isPrimary && <span className={styles.primaryBadge}>Primary</span>}
-                      <ChevronDown
-                        size={18}
-                        className={`${styles.cardExpandIcon} ${isExpanded ? styles.cardExpandIconOpen : ""}`}
-                        aria-hidden="true"
-                      />
-                    </button>
-
-                    {/* Expanded card - full fields */}
-                    {isExpanded && (
-                      <div className={styles.priceTierCardContent}>
-                        <div className={styles.cardFieldRow}>
-                          <div className={styles.cardFieldGroup}>
-                            <label className={styles.cardFieldLabel}>Product</label>
-                            <input
-                              type="text"
-                              value={tier.product}
-                              onChange={(e) =>
-                                setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, product: e.target.value } : t)))
-                              }
-                              placeholder="e.g. Galaxy"
-                              className={styles.cardInput}
-                              aria-label="Product name"
-                            />
-                          </div>
-                          <div className={styles.cardFieldGroup}>
-                            <label className={styles.cardFieldLabel}>Tier</label>
-                            <input
-                              type="text"
-                              value={tier.label}
-                              onChange={(e) =>
-                                setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, label: e.target.value } : t)))
-                              }
-                              placeholder="e.g. 3h"
-                              className={styles.cardInput}
-                              aria-label="Tier description"
-                            />
-                          </div>
-                        </div>
-
-                        <div className={styles.cardFieldRow}>
-                          <div className={styles.cardFieldGroup}>
-                            <label className={styles.cardFieldLabel}>Price ({currency})</label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              placeholder="0.00"
-                              value={tier.amount ?? ""}
-                              onChange={(e) =>
-                                setPriceTiers((prev) =>
-                                  prev.map((t, ti) => (ti === i ? { ...t, amount: e.target.value === "" ? null : parseFloat(e.target.value) } : t))
-                                )
-                              }
-                              className={styles.cardInput}
-                              aria-label="Price amount"
-                            />
-                          </div>
-                          <div className={styles.cardFieldGroup}>
-                            <label className={styles.cardFieldLabel}>Visitor Type</label>
-                            <input
-                              type="text"
-                              value={tier.visitorType}
-                              onChange={(e) =>
-                                setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, visitorType: e.target.value } : t)))
-                              }
-                              placeholder="e.g. Adult"
-                              className={styles.cardInput}
-                              aria-label="Visitor type"
-                            />
-                          </div>
-                        </div>
-
-                        <div className={`${styles.cardFieldGroup} ${styles.cardDaysGroup}`}>
-                          <label className={styles.cardFieldLabel}>Days</label>
-                          <button
-                            type="button"
-                            className={styles.cardDaysButton}
-                            onClick={() => setCustomDaysPopupIndex(i)}
-                            aria-haspopup="dialog"
-                            aria-expanded={customDaysPopupIndex === i}
-                          >
-                            <span>{getDaysSummary(tier)}</span>
-                            <Calendar size={16} aria-hidden="true" />
-                          </button>
-                        </div>
-
-                        <hr className={styles.cardDivider} />
-
-                        {/* Actions */}
-                        <div className={styles.cardActions}>
-                          <button
-                            type="button"
-                            className={`${styles.priceTierPrimaryBtn} ${tier.isPrimary ? styles.priceTierPrimaryBtnActive : ""}`}
-                            onClick={() =>
-                              setPriceTiers((prev) => prev.map((t, ti) => ({ ...t, isPrimary: ti === i })))
-                            }
-                            title={tier.isPrimary ? "Primary rate" : "Set as primary rate"}
-                            aria-pressed={tier.isPrimary}
-                            aria-label={tier.isPrimary ? "Primary rate" : "Set as primary rate"}
-                          >
-                            <Check size={12} aria-hidden="true" />
-                            Primary
-                          </button>
-                          {priceTiers.length > 1 && (
-                            <button
-                              type="button"
-                              className={`${styles.iconBtn} ${styles.cardDeleteBtn}`}
-                              onClick={() =>
-                                setPriceTiers((prev) => {
-                                  const next = prev.filter((_, ti) => ti !== i);
-                                  if (prev[i].isPrimary && next.length > 0) next[0] = { ...next[0], isPrimary: true };
-                                  return next;
-                                })
-                              }
-                              aria-label={`Remove ${tier.label || "tier"}`}
-                            >
-                              <X size={16} aria-hidden="true" />
-                              Delete
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-            <button
-              type="button"
-              className={styles.addTierBtn}
-              onClick={() =>
-                setPriceTiers((prev) => [...prev, { product: "", label: "", amount: null, isPrimary: prev.length === 0, visitorType: "", days: [] }])
-              }
-            >
-              + Add price tier
-            </button>
-          </div>
+          <PriceTierEditor
+            tabs={priceTabs}
+            onChange={setPriceTabs}
+            primary={primaryCell}
+            onPrimaryChange={setPrimaryCell}
+            currency={currency}
+          />
         </div>
       )}
 

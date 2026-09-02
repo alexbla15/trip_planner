@@ -20,21 +20,45 @@
   letter-spacing: 0.4px;
 }
 
-.input {
+.monthDayRow {
+  display: flex;
+  gap: 6px;
+}
+
+.select {
   height: 40px;
-  padding: 0 10px;
+  padding: 0 8px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   font-size: 13px;
   font-family: inherit;
   color: var(--color-text-primary);
-  width: 100%;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
   transition: border-color var(--duration-fast) var(--easing-out),
     box-shadow var(--duration-fast) var(--easing-out);
 }
 
-.input:focus {
+.selectDay {
+  height: 40px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--color-text-primary);
+  width: 70px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--easing-out),
+    box-shadow var(--duration-fast) var(--easing-out);
+}
+
+.select:focus,
+.selectDay:focus {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px var(--color-primary-light);

@@ -43,7 +43,7 @@ const LocationViewMap = dynamic(
 );
 import type { AttractionType } from "@/components/NewAttractionModal";
 import type { Attraction } from "@/types/attraction";
-import { formatDisplayDate, formatPrice, getStatusChips, getUniformHoursLabel } from "@/lib";
+import { formatDisplayDate, formatPrice, getStatusChips, getUniformHoursLabel, formatSeasonalRangeLabel } from "@/lib";
 import { buildPriceTierTabs, buildPricePivot } from "./AttractionDetailModal.utils";
 import styles from "./AttractionDetailModal.module.css";
 
@@ -96,6 +96,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   const [otherLocationsPage, setOtherLocationsPage] = useState(1);
 
   const [activePriceTab, setActivePriceTab] = useState(0);
+  const [activeHoursTab, setActiveHoursTab] = useState(0);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -108,6 +109,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
     setChildren(null);
     setChildrenPage(1);
     setActivePriceTab(0);
+    setActiveHoursTab(0);
   }, [attraction?._id]);
 
   // Unlike children (lazy, behind a click, since the count is already known via
@@ -162,6 +164,18 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   // seasonally-open place like Gardaland still has real per-day hours worth showing).
   const hoursCoveredByChip = statusChips.some((c) => c.key === "open-24-7" || c.key === "permanently-closed");
   const uniformHoursLabel = attraction.openingHours ? getUniformHoursLabel(attraction.openingHours) : null;
+  // "Default" + one tab per seasonal-hours override, so a venue with e.g. longer summer
+  // hours shows both schedules instead of only ever displaying the base weekly hours.
+  const hoursTabs = [
+    { key: "Default", hours: attraction.openingHours },
+    ...(attraction.seasonalHours ?? []).map((h) => ({
+      key: formatSeasonalRangeLabel(h.start, h.end),
+      hours: h.hours,
+    })),
+  ];
+  const showHoursTabs = hoursTabs.length > 1;
+  const activeHoursIndex = Math.min(activeHoursTab, hoursTabs.length - 1);
+  const effectiveOpeningHours = hoursTabs[activeHoursIndex]?.hours ?? attraction.openingHours;
   const hasMultiplePriceTiers = (attraction.prices?.length ?? 0) > 1;
   // A nested attraction (e.g. a specific ride inside a theme park) often has no photo of
   // its own — fall back to the parent's photo rather than showing no photo at all.
@@ -758,17 +772,32 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
               Types row instead — the day-by-day table and its heading would be
               redundant, so this section is skipped entirely. Same-every-day hours are
               shown as a compact info item above instead of this full table. */}
-          {!isResidence && !isFlight && attraction.openingHours && !hoursCoveredByChip && !uniformHoursLabel && (
+          {!isResidence && !isFlight && attraction.openingHours && !hoursCoveredByChip && (!uniformHoursLabel || showHoursTabs) && (
             <div className={styles.section}>
               <h3 className={styles.sectionTitle}>
                 <Clock size={14} aria-hidden="true" />
                 Opening Hours
               </h3>
+              {showHoursTabs && (
+                <div className={styles.priceTabs} role="tablist" aria-label="Seasonal hours">
+                  {hoursTabs.map((tab, i) => (
+                    <button
+                      key={tab.key}
+                      role="tab"
+                      aria-selected={i === activeHoursIndex}
+                      className={`${styles.priceTab} ${i === activeHoursIndex ? styles.priceTabActive : ""}`}
+                      onClick={() => setActiveHoursTab(i)}
+                    >
+                      {tab.key}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className={styles.hoursCard}>
-                <table className={styles.hoursTable} aria-label="Opening hours">
+                <table key={hoursTabs[activeHoursIndex]?.key} className={styles.hoursTable} aria-label="Opening hours">
                   <tbody>
                     {DAY_KEYS.map((day) => {
-                      const row = attraction.openingHours?.[day];
+                      const row = effectiveOpeningHours?.[day];
                       const isToday = day === todayKey;
                       return (
                         <tr key={day} className={`${styles.hoursRow} ${isToday ? styles.hoursRowToday : ""}`}>
