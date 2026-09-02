@@ -15,6 +15,10 @@ export interface IPriceTier {
   label: string;
   amount: number;
   isPrimary: boolean;
+  /** See `PriceTier.visitorType` in `src/types/attraction.ts` — same contract. */
+  visitorType?: string;
+  /** See `PriceTier.dayType` in `src/types/attraction.ts` — same contract. */
+  dayType?: "weekday" | "weekend";
 }
 
 export interface IAttraction extends Document {
@@ -89,7 +93,13 @@ const OpeningHoursDaySchema = new Schema<IOpeningHoursDay>(
 );
 
 const PriceTierSchema = new Schema<IPriceTier>(
-  { label: { type: String, required: true, trim: true }, amount: { type: Number, required: true }, isPrimary: { type: Boolean, default: false } },
+  {
+    label: { type: String, required: true, trim: true },
+    amount: { type: Number, required: true },
+    isPrimary: { type: Boolean, default: false },
+    visitorType: { type: String, trim: true },
+    dayType: { type: String, enum: ["weekday", "weekend"] },
+  },
   { _id: false }
 );
 

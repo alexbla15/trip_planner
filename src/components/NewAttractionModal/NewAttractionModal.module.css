@@ -361,10 +361,61 @@
   margin-top: 8px;
 }
 
+.priceTierGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.priceTierGroup:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
 .priceTierRow {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* Optional grouping metadata (visitor type / day-type) — a lighter second line under
+   the main label+amount row so the common case (a single "Regular" tier) stays visually
+   simple and these fields don't compete with the primary inputs above. */
+.priceTierMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 34px; /* aligns under the label input, past the primary-toggle button */
+}
+
+.priceTierMetaInput,
+.priceTierMetaSelect {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 12.5px;
+  font-family: inherit;
+  color: var(--color-text-secondary);
+}
+
+.priceTierMetaInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.priceTierMetaInput:focus,
+.priceTierMetaSelect:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.priceTierMetaInput::placeholder {
+  color: var(--color-text-tertiary);
 }
 
 .priceTierLabelInput {

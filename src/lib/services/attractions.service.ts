@@ -30,7 +30,7 @@ function throwIfDuplicateKeyError(err: unknown): never {
  *  business rule the client can violate meaningfully). Returns the normalized tiers plus
  *  the primary tier's amount, which callers sync onto the legacy `price` field so every
  *  existing single-price consumer (cards, budget calculations) keeps working unchanged. */
-function normalizePriceTiers(tiers: { label: string; amount: number; isPrimary?: boolean }[]): {
+function normalizePriceTiers(tiers: { label: string; amount: number; isPrimary?: boolean; visitorType?: string; dayType?: "weekday" | "weekend" }[]): {
   prices: IPriceTier[];
   primaryAmount: number;
 } {
@@ -40,6 +40,8 @@ function normalizePriceTiers(tiers: { label: string; amount: number; isPrimary?:
     label: t.label.trim(),
     amount: t.amount,
     isPrimary: hasPrimary ? !!t.isPrimary : i === 0,
+    visitorType: t.visitorType?.trim() || undefined,
+    dayType: t.dayType,
   }));
   const primary = prices.find((t) => t.isPrimary)!;
   return { prices, primaryAmount: primary.amount };
@@ -184,7 +186,7 @@ export interface CreateAttractionInput {
   /** Named price tiers — when provided, overrides `price` (the primary tier's amount is
    *  synced onto `price` for backward compat). Omit to create a single-tier attraction
    *  from `price` alone, unchanged from before this field existed. */
-  prices?: { label: string; amount: number; isPrimary?: boolean }[];
+  prices?: { label: string; amount: number; isPrimary?: boolean; visitorType?: string; dayType?: "weekday" | "weekend" }[];
   currency?: string;
   openingHours?: OpeningHours;
   openingMonths?: number[];
@@ -367,7 +369,7 @@ export async function updateAttraction(
   if (body.durationValue !== undefined) attraction.durationValue = body.durationValue as string;
   if (body.durationUnit !== undefined) attraction.durationUnit = body.durationUnit as "minutes" | "hours";
   if (body.prices !== undefined) {
-    const tiers = body.prices as { label: string; amount: number; isPrimary?: boolean }[];
+    const tiers = body.prices as { label: string; amount: number; isPrimary?: boolean; visitorType?: string; dayType?: "weekday" | "weekend" }[];
     if (tiers.length === 0) {
       attraction.prices = undefined;
       if (body.price === undefined) throw badRequest("At least one price tier is required, or send `price` to fall back to a single rate");

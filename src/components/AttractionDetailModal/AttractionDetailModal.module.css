@@ -563,6 +563,56 @@
   margin: 0;
 }
 
+/* ── Price filter chips (visitor type) — same pill shape as the Types chips, active
+   state borrowing the status-chip primary treatment. ── */
+.priceFilterChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.priceFilterChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--easing-out);
+}
+
+.priceFilterChip:hover {
+  border-color: var(--color-primary);
+}
+
+.priceFilterChipActive {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* Day-type subheader row inside the price tiers table (e.g. "Mon–Thu") */
+.priceGroupHeadingRow {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.priceGroupHeading {
+  padding: 6px 12px;
+  background: var(--color-bg-subtle);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
 /* ── Hours table ── */
 .hoursCard {
   border-radius: var(--radius-md);

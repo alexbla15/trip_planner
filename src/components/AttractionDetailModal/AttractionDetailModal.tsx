@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState } from "react";
+import { Fragment, useEffect, useRef, useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import { ImageWithSkeleton } from "@/components";
@@ -44,6 +44,7 @@ const LocationViewMap = dynamic(
 import type { AttractionType } from "@/components/NewAttractionModal";
 import type { Attraction } from "@/types/attraction";
 import { formatDisplayDate, formatPrice, getStatusChips, getUniformHoursLabel } from "@/lib";
+import { buildPriceTierGroups, filterPricesByVisitorType, getDistinctVisitorTypes } from "./AttractionDetailModal.utils";
 import styles from "./AttractionDetailModal.module.css";
 
 const DAY_KEYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
@@ -95,6 +96,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   const [otherLocationsPage, setOtherLocationsPage] = useState(1);
 
   const [pricesPage, setPricesPage] = useState(1);
+  const [activeVisitorFilter, setActiveVisitorFilter] = useState<string | null>(null);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -107,6 +109,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
     setChildren(null);
     setChildrenPage(1);
     setPricesPage(1);
+    setActiveVisitorFilter(null);
   }, [attraction?._id]);
 
   // Unlike children (lazy, behind a click, since the count is already known via
@@ -204,10 +207,21 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
     (otherLocationsPage - 1) * ATTRACTIONS_PAGE_SIZE, otherLocationsPage * ATTRACTIONS_PAGE_SIZE
   );
 
-  const pricesTotalPages = Math.max(1, Math.ceil((attraction.prices?.length ?? 0) / ATTRACTIONS_PAGE_SIZE));
-  const paginatedPrices = attraction.prices?.slice(
-    (pricesPage - 1) * ATTRACTIONS_PAGE_SIZE, pricesPage * ATTRACTIONS_PAGE_SIZE
+  const distinctVisitorTypes = getDistinctVisitorTypes(attraction.prices ?? []);
+  const filteredPrices = filterPricesByVisitorType(attraction.prices ?? [], activeVisitorFilter);
+  const pricesTotalPages = Math.max(1, Math.ceil(filteredPrices.length / ATTRACTIONS_PAGE_SIZE));
+  // Clamp rather than rely solely on the filter click handler resetting `pricesPage` —
+  // covers the edge case of switching filters while on a page number that no longer exists.
+  const effectivePricesPage = Math.min(pricesPage, pricesTotalPages);
+  const paginatedPrices = filteredPrices.slice(
+    (effectivePricesPage - 1) * ATTRACTIONS_PAGE_SIZE, effectivePricesPage * ATTRACTIONS_PAGE_SIZE
   );
+  const priceGroups = buildPriceTierGroups(paginatedPrices);
+
+  function handleVisitorFilterClick(type: string | null) {
+    setActiveVisitorFilter(type);
+    setPricesPage(1);
+  }
 
   function handleOpenParent(e: React.MouseEvent) {
     e.stopPropagation();
@@ -692,19 +706,51 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                 <Wallet size={14} aria-hidden="true" />
                 Prices
               </h3>
+              {distinctVisitorTypes.length > 1 && (
+                <div className={styles.priceFilterChips} role="group" aria-label="Filter prices by visitor type">
+                  <button
+                    type="button"
+                    className={`${styles.priceFilterChip} ${activeVisitorFilter === null ? styles.priceFilterChipActive : ""}`}
+                    aria-pressed={activeVisitorFilter === null}
+                    onClick={() => handleVisitorFilterClick(null)}
+                  >
+                    All
+                  </button>
+                  {distinctVisitorTypes.map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      className={`${styles.priceFilterChip} ${activeVisitorFilter === type ? styles.priceFilterChipActive : ""}`}
+                      aria-pressed={activeVisitorFilter === type}
+                      onClick={() => handleVisitorFilterClick(type)}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className={styles.hoursCard}>
                 <table className={styles.hoursTable} aria-label="Price tiers">
                   <tbody>
-                    {paginatedPrices?.map((tier) => (
-                      <tr key={tier.label} className={`${styles.hoursRow} ${tier.isPrimary ? styles.hoursRowToday : ""}`}>
-                        <td className={styles.hoursDay}>
-                          <span className={styles.hoursDayInner}>
-                            {tier.label}
-                            {tier.isPrimary && <span className={styles.todayPill}>Primary</span>}
-                          </span>
-                        </td>
-                        <td className={styles.hoursTime}>{formatPrice(tier.amount, attraction.currency ?? "USD")}</td>
-                      </tr>
+                    {priceGroups.map((group, gi) => (
+                      <Fragment key={gi}>
+                        {group.heading && (
+                          <tr key={`heading-${gi}`} className={styles.priceGroupHeadingRow}>
+                            <td className={styles.priceGroupHeading} colSpan={2}>{group.heading}</td>
+                          </tr>
+                        )}
+                        {group.tiers.map((tier) => (
+                          <tr key={tier.label} className={`${styles.hoursRow} ${tier.isPrimary ? styles.hoursRowToday : ""}`}>
+                            <td className={styles.hoursDay}>
+                              <span className={styles.hoursDayInner}>
+                                {tier.label}
+                                {tier.isPrimary && <span className={styles.todayPill}>Primary</span>}
+                              </span>
+                            </td>
+                            <td className={styles.hoursTime}>{formatPrice(tier.amount, attraction.currency ?? "USD")}</td>
+                          </tr>
+                        ))}
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>
@@ -715,17 +761,17 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                     type="button"
                     className={styles.childrenPageBtn}
                     onClick={() => setPricesPage((p) => p - 1)}
-                    disabled={pricesPage === 1}
+                    disabled={effectivePricesPage === 1}
                     aria-label="Previous prices"
                   >
                     <ChevronLeft size={12} aria-hidden="true" />
                   </button>
-                  <span className={styles.childrenPageInfo}>{pricesPage} / {pricesTotalPages}</span>
+                  <span className={styles.childrenPageInfo}>{effectivePricesPage} / {pricesTotalPages}</span>
                   <button
                     type="button"
                     className={styles.childrenPageBtn}
                     onClick={() => setPricesPage((p) => p + 1)}
-                    disabled={pricesPage === pricesTotalPages}
+                    disabled={effectivePricesPage === pricesTotalPages}
                     aria-label="Next prices"
                   >
                     <ChevronRight size={12} aria-hidden="true" />

@@ -14,6 +14,7 @@ import type {
   DurationUnit,
   NewAttractionModalProps,
   OpeningHours,
+  PriceTierDraft,
 } from "./attraction.types";
 import {
   COUNTRIES,
@@ -115,8 +116,8 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   });
   const [durationValue, setDurationValue] = useState("");
   const [durationUnit, setDurationUnit] = useState<DurationUnit>("hours");
-  const [priceTiers, setPriceTiers] = useState<{ label: string; amount: number | null; isPrimary: boolean }[]>([
-    { label: "Regular", amount: null, isPrimary: true },
+  const [priceTiers, setPriceTiers] = useState<PriceTierDraft[]>([
+    { label: "Regular", amount: null, isPrimary: true, visitorType: "", dayType: "" },
   ]);
   const [currency, setCurrency] = useState("USD");
   const [openingHours, setOpeningHours] = useState<OpeningHours>(buildInitialHours);
@@ -148,8 +149,14 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setDurationUnit(initialData?.durationUnit ?? "hours");
     setPriceTiers(
       initialData?.prices?.length
-        ? initialData.prices.map((t) => ({ ...t }))
-        : [{ label: "Regular", amount: initialData?.price ?? null, isPrimary: true }]
+        ? initialData.prices.map((t) => ({
+            label: t.label,
+            amount: t.amount,
+            isPrimary: t.isPrimary,
+            visitorType: t.visitorType ?? "",
+            dayType: t.dayType ?? "",
+          }))
+        : [{ label: "Regular", amount: initialData?.price ?? null, isPrimary: true, visitorType: "", dayType: "" }]
     );
     setCurrency(initialData?.currency ?? "USD");
     const isResidence = initialData?.subtype === "residence";
@@ -240,7 +247,13 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       durationUnit,
       price: primaryTier?.amount ?? null,
       prices: validTiers.length
-        ? validTiers.map((t) => ({ label: t.label.trim(), amount: t.amount!, isPrimary: t === primaryTier }))
+        ? validTiers.map((t) => ({
+            label: t.label.trim(),
+            amount: t.amount!,
+            isPrimary: t === primaryTier,
+            visitorType: t.visitorType.trim() || undefined,
+            dayType: t.dayType || undefined,
+          }))
         : undefined,
       currency,
       openingHours,
@@ -266,7 +279,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setSelectedTypes([]);
     setDurationValue("");
     setDurationUnit("hours");
-    setPriceTiers([{ label: "Regular", amount: null, isPrimary: true }]);
+    setPriceTiers([{ label: "Regular", amount: null, isPrimary: true, visitorType: "", dayType: "" }]);
     setCurrency("USD");
     setOpeningHours(buildInitialHours());
     setOpeningMonths(ALL_MONTHS);
@@ -581,66 +594,96 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           </div>
           <div className={styles.priceTierList}>
             {priceTiers.map((tier, i) => (
-              <div key={i} className={styles.priceTierRow}>
-                <button
-                  type="button"
-                  className={`${styles.priceTierPrimaryBtn} ${tier.isPrimary ? styles.priceTierPrimaryBtnActive : ""}`}
-                  onClick={() =>
-                    setPriceTiers((prev) => prev.map((t, ti) => ({ ...t, isPrimary: ti === i })))
-                  }
-                  title={tier.isPrimary ? "Primary rate" : "Set as primary rate"}
-                  aria-pressed={tier.isPrimary}
-                  aria-label={tier.isPrimary ? "Primary rate" : "Set as primary rate"}
-                >
-                  <Check size={12} aria-hidden="true" />
-                </button>
-                <input
-                  type="text"
-                  value={tier.label}
-                  onChange={(e) =>
-                    setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, label: e.target.value } : t)))
-                  }
-                  placeholder="e.g. Adult"
-                  className={styles.priceTierLabelInput}
-                  aria-label="Price tier label"
-                />
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={tier.amount ?? ""}
-                  onChange={(e) =>
-                    setPriceTiers((prev) =>
-                      prev.map((t, ti) => (ti === i ? { ...t, amount: e.target.value === "" ? null : parseFloat(e.target.value) } : t))
-                    )
-                  }
-                  className={styles.priceInput}
-                  aria-label="Price tier amount"
-                />
-                {priceTiers.length > 1 && (
+              <div key={i} className={styles.priceTierGroup}>
+                <div className={styles.priceTierRow}>
                   <button
                     type="button"
-                    className={styles.iconBtn}
+                    className={`${styles.priceTierPrimaryBtn} ${tier.isPrimary ? styles.priceTierPrimaryBtnActive : ""}`}
                     onClick={() =>
-                      setPriceTiers((prev) => {
-                        const next = prev.filter((_, ti) => ti !== i);
-                        if (prev[i].isPrimary && next.length > 0) next[0] = { ...next[0], isPrimary: true };
-                        return next;
-                      })
+                      setPriceTiers((prev) => prev.map((t, ti) => ({ ...t, isPrimary: ti === i })))
                     }
-                    aria-label={`Remove ${tier.label || "tier"}`}
+                    title={tier.isPrimary ? "Primary rate" : "Set as primary rate"}
+                    aria-pressed={tier.isPrimary}
+                    aria-label={tier.isPrimary ? "Primary rate" : "Set as primary rate"}
                   >
-                    <X size={14} aria-hidden="true" />
+                    <Check size={12} aria-hidden="true" />
                   </button>
-                )}
+                  <input
+                    type="text"
+                    value={tier.label}
+                    onChange={(e) =>
+                      setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, label: e.target.value } : t)))
+                    }
+                    placeholder="e.g. Galaxy 3h"
+                    className={styles.priceTierLabelInput}
+                    aria-label="Price tier label"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={tier.amount ?? ""}
+                    onChange={(e) =>
+                      setPriceTiers((prev) =>
+                        prev.map((t, ti) => (ti === i ? { ...t, amount: e.target.value === "" ? null : parseFloat(e.target.value) } : t))
+                      )
+                    }
+                    className={styles.priceInput}
+                    aria-label="Price tier amount"
+                  />
+                  {priceTiers.length > 1 && (
+                    <button
+                      type="button"
+                      className={styles.iconBtn}
+                      onClick={() =>
+                        setPriceTiers((prev) => {
+                          const next = prev.filter((_, ti) => ti !== i);
+                          if (prev[i].isPrimary && next.length > 0) next[0] = { ...next[0], isPrimary: true };
+                          return next;
+                        })
+                      }
+                      aria-label={`Remove ${tier.label || "tier"}`}
+                    >
+                      <X size={14} aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
+                {/* Optional grouping metadata — lets the attraction detail page group/filter
+                    tiers by visitor type and day-type once there are several of them. */}
+                <div className={styles.priceTierMetaRow}>
+                  <input
+                    type="text"
+                    value={tier.visitorType}
+                    onChange={(e) =>
+                      setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, visitorType: e.target.value } : t)))
+                    }
+                    placeholder="Visitor type (e.g. Adult) — optional"
+                    className={styles.priceTierMetaInput}
+                    aria-label="Price tier visitor type"
+                  />
+                  <select
+                    value={tier.dayType}
+                    onChange={(e) =>
+                      setPriceTiers((prev) =>
+                        prev.map((t, ti) => (ti === i ? { ...t, dayType: e.target.value as PriceTierDraft["dayType"] } : t))
+                      )
+                    }
+                    className={styles.priceTierMetaSelect}
+                    aria-label="Price tier day type"
+                  >
+                    <option value="">Any day</option>
+                    <option value="weekday">Weekday (Mon–Thu)</option>
+                    <option value="weekend">Weekend (Fri–Sun & holidays)</option>
+                  </select>
+                </div>
               </div>
             ))}
             <button
               type="button"
               className={styles.addTierBtn}
               onClick={() =>
-                setPriceTiers((prev) => [...prev, { label: "", amount: null, isPrimary: prev.length === 0 }])
+                setPriceTiers((prev) => [...prev, { label: "", amount: null, isPrimary: prev.length === 0, visitorType: "", dayType: "" }])
               }
             >
               + Add price tier
