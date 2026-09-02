@@ -563,54 +563,99 @@
   margin: 0;
 }
 
-/* ── Price filter chips (visitor type) — same pill shape as the Types chips, active
-   state borrowing the status-chip primary treatment. ── */
-.priceFilterChips {
+/* ── Price tabs (one per product/brand) — rendered only when there's >1 product. ── */
+.priceTabs {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 2px;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--color-border);
 }
 
-.priceFilterChip {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 12px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-subtle);
+.priceTab {
+  padding: 8px 16px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  background: transparent;
   font-size: 13px;
   font-weight: 500;
-  font-family: inherit;
   color: var(--color-text-secondary);
   cursor: pointer;
   transition: all var(--duration-fast) var(--easing-out);
+  font-family: inherit;
 }
 
-.priceFilterChip:hover {
-  border-color: var(--color-primary);
+.priceTab:hover {
+  color: var(--color-text-primary);
 }
 
-.priceFilterChipActive {
-  border-color: var(--color-primary);
-  background: var(--color-primary-light);
+.priceTabActive {
   color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
   font-weight: 600;
 }
 
-/* Day-type subheader row inside the price tiers table (e.g. "Mon–Thu") */
-.priceGroupHeadingRow {
-  border-bottom: 1px solid var(--color-border-subtle);
+/* ── Price table (3-column: Tier / Visitor Type / Price) ── */
+.priceTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
 }
 
-.priceGroupHeading {
-  padding: 6px 12px;
+.priceTable thead {
   background: var(--color-bg-subtle);
+}
+
+.priceTable thead th {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
   font-size: 11px;
   font-weight: 700;
   color: var(--color-text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.4px;
+  text-align: left;
+}
+
+.priceColField {
+  flex: 1;
+  min-width: 200px;
+}
+
+.priceColVisitor {
+  width: 140px;
+  text-align: center;
+}
+
+.priceColPrice {
+  width: 100px;
+  text-align: right;
+}
+
+.priceRow {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.priceRow:last-child {
+  border-bottom: none;
+}
+
+.priceRowPrimary {
+  background: var(--color-primary-light);
+}
+
+.priceRow td {
+  padding: 8px 12px;
+  color: var(--color-text-secondary);
+}
+
+.priceRowPrimary td {
+  color: var(--color-primary);
+}
+
+.priceLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* ── Hours table ── */
