@@ -44,7 +44,7 @@ const LocationViewMap = dynamic(
 import type { AttractionType } from "@/components/NewAttractionModal";
 import type { Attraction } from "@/types/attraction";
 import { formatDisplayDate, formatPrice, getStatusChips, getUniformHoursLabel } from "@/lib";
-import { buildPriceTierTabs } from "./AttractionDetailModal.utils";
+import { buildPriceTierTabs, buildPricePivot } from "./AttractionDetailModal.utils";
 import styles from "./AttractionDetailModal.module.css";
 
 const DAY_KEYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
@@ -209,6 +209,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   // Show tabs only if there's more than one product/brand grouping
   const showPriceTabs = priceTabs.length > 1;
   const activeTab = Math.min(activePriceTab, priceTabs.length - 1);
+  const pricePivot = priceTabs.length > 0 ? buildPricePivot(priceTabs[activeTab].tiers) : null;
 
 
   function handleOpenParent(e: React.MouseEvent) {
@@ -709,31 +710,44 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                   ))}
                 </div>
               )}
-              {priceTabs.length > 0 && (
+              {pricePivot && (
                 <div className={styles.hoursCard}>
-                  <table key={priceTabs[activeTab].key} className={styles.priceTable} aria-label={`${priceTabs[activeTab].key} pricing`}>
-                    <thead>
-                      <tr>
-                        <th className={styles.priceColField} scope="col">Tier</th>
-                        <th className={styles.priceColVisitor} scope="col">Visitor Type</th>
-                        <th className={styles.priceColPrice} scope="col">Price</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {priceTabs[activeTab].tiers.map((tier, ti) => (
-                        <tr key={`${tier.label}-${tier.visitorType ?? ""}-${ti}`} className={`${styles.priceRow} ${tier.isPrimary ? styles.priceRowPrimary : ""}`}>
-                          <td className={styles.priceColField}>
-                            <span className={styles.priceLabel}>
-                              {tier.label}
-                              {tier.isPrimary && <span className={styles.todayPill}>Primary</span>}
-                            </span>
-                          </td>
-                          <td className={styles.priceColVisitor}>{tier.visitorType || "—"}</td>
-                          <td className={styles.priceColPrice}>{formatPrice(tier.amount, attraction.currency ?? "USD")}</td>
+                  <div className={styles.priceTableScroll}>
+                    <table key={priceTabs[activeTab].key} className={styles.priceTable} aria-label={`${priceTabs[activeTab].key} pricing`}>
+                      <thead>
+                        <tr>
+                          <th className={styles.priceColField} scope="col">Tier</th>
+                          {pricePivot.columns.map((col) => (
+                            <th key={col.key} className={styles.priceColVisitor} scope="col">{col.label}</th>
+                          ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {pricePivot.rows.map((row) => (
+                          <tr key={row.label} className={styles.priceRow}>
+                            <td className={styles.priceColField}>
+                              <span className={styles.priceLabel}>{row.label}</span>
+                            </td>
+                            {pricePivot.columns.map((col) => {
+                              const tier = row.cells.get(col.key);
+                              return (
+                                <td key={col.key} className={`${styles.priceColVisitor} ${tier?.isPrimary ? styles.priceCellPrimary : ""}`}>
+                                  {tier ? (
+                                    <span className={styles.priceCellValue}>
+                                      {formatPrice(tier.amount, attraction.currency ?? "USD")}
+                                      {tier.isPrimary && <span className={styles.todayPill}>Primary</span>}
+                                    </span>
+                                  ) : (
+                                    <span className={styles.priceCellEmpty}>—</span>
+                                  )}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>

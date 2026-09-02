@@ -594,7 +594,11 @@
   font-weight: 600;
 }
 
-/* ── Price table (3-column: Tier / Visitor Type / Price) ── */
+/* ── Price table (pivot: Tier rows x Visitor Type columns) ── */
+.priceTableScroll {
+  overflow-x: auto;
+}
+
 .priceTable {
   width: 100%;
   border-collapse: collapse;
@@ -614,21 +618,17 @@
   text-transform: uppercase;
   letter-spacing: 0.4px;
   text-align: left;
+  white-space: nowrap;
 }
 
 .priceColField {
-  flex: 1;
-  min-width: 200px;
+  min-width: 120px;
 }
 
 .priceColVisitor {
-  width: 140px;
+  min-width: 110px;
   text-align: center;
-}
-
-.priceColPrice {
-  width: 100px;
-  text-align: right;
+  white-space: nowrap;
 }
 
 .priceRow {
@@ -639,23 +639,37 @@
   border-bottom: none;
 }
 
-.priceRowPrimary {
-  background: var(--color-primary-light);
-}
-
 .priceRow td {
   padding: 8px 12px;
   color: var(--color-text-secondary);
 }
 
-.priceRowPrimary td {
+.priceCellPrimary {
+  background: var(--color-primary-light);
+}
+
+.priceCellValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.priceCellPrimary .priceCellValue {
   color: var(--color-primary);
+}
+
+.priceCellEmpty {
+  color: var(--color-text-tertiary);
 }
 
 .priceLabel {
   display: flex;
   align-items: center;
   gap: 6px;
+  font-weight: 600;
+  color: var(--color-text-primary);
 }
 
 /* ── Hours table ── */
