@@ -94,6 +94,8 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   const [otherLocations, setOtherLocations] = useState<Attraction[] | null>(null);
   const [otherLocationsPage, setOtherLocationsPage] = useState(1);
 
+  const [pricesPage, setPricesPage] = useState(1);
+
   useEffect(() => { setMounted(true); }, []);
 
   // Reset the children expansion whenever a different attraction is shown — otherwise
@@ -104,6 +106,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
     setChildrenLoading(false);
     setChildren(null);
     setChildrenPage(1);
+    setPricesPage(1);
   }, [attraction?._id]);
 
   // Unlike children (lazy, behind a click, since the count is already known via
@@ -199,6 +202,11 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   const otherLocationsTotalPages = Math.max(1, Math.ceil((otherLocations?.length ?? 0) / ATTRACTIONS_PAGE_SIZE));
   const paginatedOtherLocations = otherLocations?.slice(
     (otherLocationsPage - 1) * ATTRACTIONS_PAGE_SIZE, otherLocationsPage * ATTRACTIONS_PAGE_SIZE
+  );
+
+  const pricesTotalPages = Math.max(1, Math.ceil((attraction.prices?.length ?? 0) / ATTRACTIONS_PAGE_SIZE));
+  const paginatedPrices = attraction.prices?.slice(
+    (pricesPage - 1) * ATTRACTIONS_PAGE_SIZE, pricesPage * ATTRACTIONS_PAGE_SIZE
   );
 
   function handleOpenParent(e: React.MouseEvent) {
@@ -687,7 +695,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
               <div className={styles.hoursCard}>
                 <table className={styles.hoursTable} aria-label="Price tiers">
                   <tbody>
-                    {attraction.prices!.map((tier) => (
+                    {paginatedPrices?.map((tier) => (
                       <tr key={tier.label} className={`${styles.hoursRow} ${tier.isPrimary ? styles.hoursRowToday : ""}`}>
                         <td className={styles.hoursDay}>
                           <span className={styles.hoursDayInner}>
@@ -701,6 +709,29 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                   </tbody>
                 </table>
               </div>
+              {pricesTotalPages > 1 && (
+                <div className={styles.childrenPagination}>
+                  <button
+                    type="button"
+                    className={styles.childrenPageBtn}
+                    onClick={() => setPricesPage((p) => p - 1)}
+                    disabled={pricesPage === 1}
+                    aria-label="Previous prices"
+                  >
+                    <ChevronLeft size={12} aria-hidden="true" />
+                  </button>
+                  <span className={styles.childrenPageInfo}>{pricesPage} / {pricesTotalPages}</span>
+                  <button
+                    type="button"
+                    className={styles.childrenPageBtn}
+                    onClick={() => setPricesPage((p) => p + 1)}
+                    disabled={pricesPage === pricesTotalPages}
+                    aria-label="Next prices"
+                  >
+                    <ChevronRight size={12} aria-hidden="true" />
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
