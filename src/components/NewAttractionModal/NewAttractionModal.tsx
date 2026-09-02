@@ -176,7 +176,16 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     const loadedMonths = initialData?.openingMonths?.length ? initialData.openingMonths : ALL_MONTHS;
     setOpeningMonths(loadedMonths);
     setYearRound(isResidence ? true : isYearRound(initialData?.openingMonths));
-    setSeasonalHours(isResidence ? [] : initialData?.seasonalHours ?? []);
+    setSeasonalHours(
+      isResidence
+        ? []
+        : (initialData?.seasonalHours ?? []).map((entry, i) => ({
+            id: `existing-${i}`,
+            start: entry.start,
+            end: entry.end,
+            hours: entry.hours,
+          }))
+    );
     setNotes(initialData?.notes ?? "");
     setPhotoUrl(initialData?.photoUrl ?? "");
     setWebsiteUrl(initialData?.websiteUrl ?? "");

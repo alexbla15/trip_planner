@@ -60,9 +60,18 @@ export interface MonthDay {
   day: number;   // 1–31
 }
 
-/** One date-scoped opening-hours override — a full weekly `hours` grid that applies only
- *  between `start` and `end` (month/day, no year — recurs annually). `id` is a client-only
- *  React key, never sent to/received from the API. */
+/** The submitted/API shape of one date-scoped opening-hours override — a full weekly
+ *  `hours` grid that applies only between `start` and `end` (month/day, no year — recurs
+ *  annually). */
+export interface SeasonalHoursEntryInput {
+  start: MonthDay;
+  end: MonthDay;
+  hours: OpeningHours;
+}
+
+/** In-progress form state for one seasonal-hours entry — `start`/`end` are nullable
+ *  (not yet picked) and `id` is a client-only React key, never sent to/received from the
+ *  API. Narrows to `SeasonalHoursEntryInput` on submit once both dates are set. */
 export interface SeasonalHoursEntry {
   id: string;
   start: MonthDay | null;
@@ -107,7 +116,7 @@ export interface AttractionFormData {
   /** Optional date-scoped hours overrides — e.g. different hours in summer vs. winter.
    *  Empty/undefined means `openingHours` above applies to every date, unchanged from
    *  before this field existed. See `SeasonalHoursEntry` / `attraction.utils.ts`. */
-  seasonalHours?: SeasonalHoursEntry[];
+  seasonalHours?: SeasonalHoursEntryInput[];
   notes: string;
   photoUrl: string;
   websiteUrl: string;
