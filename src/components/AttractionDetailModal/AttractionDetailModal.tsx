@@ -686,7 +686,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
             )}
             {/* Same hours every day of the week — a full day-by-day table would just repeat
                 one value seven times, so fold it into a single info item instead. */}
-            {!isResidence && !isFlight && uniformHoursLabel && !hoursCoveredByChip && (
+            {!isResidence && !isFlight && uniformHoursLabel && !hoursCoveredByChip && !attraction.seasonalHours?.length && (
               <div className={styles.infoItem}>
                 <span className={styles.infoIconBubble}><Clock size={15} aria-hidden="true" /></span>
                 <span className={styles.infoText}>
