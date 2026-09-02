@@ -627,7 +627,7 @@
 
 .priceColVisitor {
   min-width: 110px;
-  text-align: center;
+  text-align: left;
   white-space: nowrap;
 }
 
