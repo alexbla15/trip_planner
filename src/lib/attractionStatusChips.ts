@@ -1,6 +1,6 @@
 import { Ban, CalendarDays, Clock, type LucideIcon } from "lucide-react";
 import { isAllDay24h, isPermanentlyClosed } from "./openingHours";
-import { isYearRound, formatOpeningMonthsLabel } from "./openingMonths";
+import { isYearRound, formatOpeningMonthsLabel, formatSeasonalRangeLabel, type MonthDay } from "./openingMonths";
 import type { OpeningHours } from "@/types/attraction";
 
 export interface StatusChipDescriptor {
@@ -29,7 +29,9 @@ export interface StatusChipDescriptor {
  *  the default" pattern as "Permanently closed". */
 export function getStatusChips(
   openingHours: OpeningHours | undefined,
-  openingMonths?: number[]
+  openingMonths?: number[],
+  seasonalStart?: MonthDay,
+  seasonalEnd?: MonthDay
 ): StatusChipDescriptor[] {
   if (!openingHours) return [];
 
@@ -44,7 +46,10 @@ export function getStatusChips(
   }
 
   if (!isYearRound(openingMonths)) {
-    chips.push({ key: "seasonal", icon: CalendarDays, label: `Open ${formatOpeningMonthsLabel(openingMonths!)}` });
+    const label = seasonalStart && seasonalEnd
+      ? formatSeasonalRangeLabel(seasonalStart, seasonalEnd)
+      : formatOpeningMonthsLabel(openingMonths!);
+    chips.push({ key: "seasonal", icon: CalendarDays, label: `Open ${label}` });
   }
 
   return chips;

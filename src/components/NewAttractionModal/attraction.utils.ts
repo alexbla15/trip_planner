@@ -21,6 +21,8 @@ export function attractionToFormData(a: Attraction): AttractionFormData {
       ? normalizeOpeningHours(a.openingHours)
       : buildInitialHours(),
     openingMonths: a.openingMonths,
+    seasonalStart: a.seasonalStart,
+    seasonalEnd: a.seasonalEnd,
     notes: a.notes ?? "",
     photoUrl: a.photoUrl ?? "",
     websiteUrl: a.websiteUrl ?? "",

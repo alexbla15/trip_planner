@@ -28,9 +28,9 @@ import { CoverImageField } from "@/components";
 import { ModalShell } from "@/components/Modal";
 import { MapPicker } from "./MapPicker";
 import { OpeningHoursGrid } from "./OpeningHoursGrid";
-import { MonthsGrid } from "./MonthsGrid";
+import { SeasonalRangePicker } from "./SeasonalRangePicker";
 import { ParentAttractionPicker } from "./ParentAttractionPicker";
-import { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h, isValidUrl, isYearRound, ALL_MONTHS } from "@/lib";
+import { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h, isValidUrl, isYearRound, ALL_MONTHS, deriveOpeningMonthsFromRange } from "@/lib";
 import { useReverseGeocodeAutofill, useAttractionTypes, useFoodStyles } from "@/hooks";
 import { filterCityOptions } from "./NewAttractionModal.utils";
 import type { Attraction } from "@/types/attraction";
@@ -127,6 +127,8 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   const [is24h, setIs24h]               = useState(false);
   const [openingMonths, setOpeningMonths] = useState<number[]>(ALL_MONTHS);
   const [yearRound, setYearRound]         = useState(true);
+  const [seasonalStart, setSeasonalStart] = useState<{ month: number; day: number } | null>(null);
+  const [seasonalEnd, setSeasonalEnd]     = useState<{ month: number; day: number } | null>(null);
   const [notes, setNotes] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
@@ -173,6 +175,8 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     const loadedMonths = initialData?.openingMonths?.length ? initialData.openingMonths : ALL_MONTHS;
     setOpeningMonths(loadedMonths);
     setYearRound(isResidence ? true : isYearRound(initialData?.openingMonths));
+    setSeasonalStart(isResidence ? null : initialData?.seasonalStart ?? null);
+    setSeasonalEnd(isResidence ? null : initialData?.seasonalEnd ?? null);
     setNotes(initialData?.notes ?? "");
     setPhotoUrl(initialData?.photoUrl ?? "");
     setWebsiteUrl(initialData?.websiteUrl ?? "");
@@ -318,7 +322,13 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
         : undefined,
       currency,
       openingHours,
-      openingMonths: yearRound ? undefined : openingMonths,
+      openingMonths: yearRound
+        ? undefined
+        : seasonalStart && seasonalEnd
+          ? deriveOpeningMonthsFromRange(seasonalStart, seasonalEnd)
+          : openingMonths,
+      seasonalStart: yearRound ? undefined : seasonalStart ?? undefined,
+      seasonalEnd: yearRound ? undefined : seasonalEnd ?? undefined,
       notes,
       photoUrl,
       websiteUrl: websiteUrl.trim(),
@@ -346,6 +356,8 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setOpeningHours(buildInitialHours());
     setOpeningMonths(ALL_MONTHS);
     setYearRound(true);
+    setSeasonalStart(null);
+    setSeasonalEnd(null);
     setNotes("");
     setPhotoUrl("");
     setWebsiteUrl("");
@@ -1064,13 +1076,13 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
         </div>
       )}
 
-      {/* Opening Months — omitted for a residence: always treated as year-round. */}
+      {/* Opening Season — omitted for a residence: always treated as year-round. */}
       {!isEditingResidence && (
         <div className={styles.field}>
           <div className={styles.labelRow}>
             <span className={styles.labelWithIcon}>
               <Calendar size={14} aria-hidden="true" />
-              Opening Months
+              Opening Season
             </span>
             <button
               type="button"
@@ -1082,7 +1094,17 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
               Year-round
             </button>
           </div>
-          {!yearRound && <MonthsGrid value={openingMonths} onChange={setOpeningMonths} />}
+          {!yearRound && (
+            <SeasonalRangePicker
+              start={seasonalStart}
+              end={seasonalEnd}
+              onChange={(start, end) => {
+                setSeasonalStart(start);
+                setSeasonalEnd(end);
+                if (start && end) setOpeningMonths(deriveOpeningMonthsFromRange(start, end));
+              }}
+            />
+          )}
         </div>
       )}
 

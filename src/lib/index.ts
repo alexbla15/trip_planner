@@ -70,7 +70,15 @@ export { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay
 export type { StatusChipDescriptor } from "./attractionStatusChips";
 export { getStatusChips } from "./attractionStatusChips";
 
-export { ALL_MONTHS, isYearRound, formatOpeningMonthsLabel } from "./openingMonths";
+export {
+  ALL_MONTHS,
+  isYearRound,
+  formatOpeningMonthsLabel,
+  deriveOpeningMonthsFromRange,
+  formatSeasonalRangeLabel,
+  isMonthDayInRange,
+  type MonthDay,
+} from "./openingMonths";
 
 export { haversineKm } from "./geo";
 

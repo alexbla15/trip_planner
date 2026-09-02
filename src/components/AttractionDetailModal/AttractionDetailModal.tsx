@@ -155,7 +155,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
 
   const isResidence = attraction.subtype === "residence";
   const isFlight    = attraction.subtype === "flight";
-  const statusChips = getStatusChips(attraction.openingHours, attraction.openingMonths);
+  const statusChips = getStatusChips(attraction.openingHours, attraction.openingMonths, attraction.seasonalStart, attraction.seasonalEnd);
   // Only "Open 24/7" and "Permanently closed" already convey the full hours story on
   // their own — the "seasonal" chip just says which months apply and says nothing about
   // the actual daily hours, so it must NOT suppress the hours table/info-item below (a

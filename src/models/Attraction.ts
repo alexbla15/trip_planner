@@ -57,6 +57,10 @@ export interface IAttraction extends Document {
   openingHours?: Record<string, IOpeningHoursDay>;
   /** Months (1–12) this attraction is open in. Absent/empty means open year-round. */
   openingMonths?: number[];
+  /** See `Attraction.seasonalStart`/`seasonalEnd` in `src/types/attraction.ts` — same
+   *  contract (precise month/day range, no year, recurs annually). */
+  seasonalStart?: { month: number; day: number };
+  seasonalEnd?: { month: number; day: number };
   notes?: string;
   photoUrl?: string;
   /** Official venue website — user-editable, separate from photoUrl. Never fabricated on
@@ -144,6 +148,14 @@ const AttractionSchema = new Schema<IAttraction>(
       Sun: { type: OpeningHoursDaySchema },
     },
     openingMonths: [{ type: Number, min: 1, max: 12 }],
+    seasonalStart: {
+      type: new Schema({ month: { type: Number, min: 1, max: 12 }, day: { type: Number, min: 1, max: 31 } }, { _id: false }),
+      required: false,
+    },
+    seasonalEnd: {
+      type: new Schema({ month: { type: Number, min: 1, max: 12 }, day: { type: Number, min: 1, max: 31 } }, { _id: false }),
+      required: false,
+    },
     // Subtype discriminator
     subtype: { type: String, enum: ["residence", "flight"] },
     // Residence fields
@@ -266,6 +278,8 @@ export function formatAttraction(
     priceTierQuantities: schedule?.priceTierQuantities ?? [],
     openingHours: doc.openingHours as AttractionShape["openingHours"],
     openingMonths: doc.openingMonths,
+    seasonalStart: doc.seasonalStart,
+    seasonalEnd: doc.seasonalEnd,
     notes: schedule?.notes ?? doc.notes,
     photoUrl: doc.photoUrl,
     websiteUrl: doc.websiteUrl,

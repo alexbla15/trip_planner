@@ -87,8 +87,13 @@ export interface AttractionFormData {
   price: number | null;
   currency: string;
   openingHours: OpeningHours;
-  /** Months (1–12) this attraction is open in. Undefined means open year-round. */
+  /** Months (1–12) this attraction is open in. Undefined means open year-round. Kept in
+   *  sync with `seasonalStart`/`seasonalEnd` on submit — see `attraction.utils.ts`. */
   openingMonths?: number[];
+  /** Precise open-season range (month/day, no year — recurs annually). Both set together
+   *  or both undefined. See `Attraction.seasonalStart` in `src/types/attraction.ts`. */
+  seasonalStart?: { month: number; day: number };
+  seasonalEnd?: { month: number; day: number };
   notes: string;
   photoUrl: string;
   websiteUrl: string;
