@@ -324,7 +324,6 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       setPriceTabs([tab]);
       setPrimaryCell({ tabId: tab.id, rowId: tab.rows[0].id, columnId: tab.columns[0].id });
     }
-    setExpandedTierIndex(null);
     setCurrency("USD");
     setOpeningHours(buildInitialHours());
     setOpeningMonths(ALL_MONTHS);
