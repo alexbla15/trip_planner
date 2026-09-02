@@ -11,7 +11,7 @@ import type { JwtPayload } from "@/lib/auth";
 const TRACKED_FIELDS = [
   "name", "country", "city", "coordinates", "parentAttractionId", "types", "foodStyles",
   "durationValue", "durationUnit", "price", "prices", "currency", "openingHours",
-  "openingMonths", "seasonalStart", "seasonalEnd", "notes", "photoUrl", "websiteUrl",
+  "openingMonths", "seasonalHours", "notes", "photoUrl", "websiteUrl",
   "verified", "subtype", "residenceType", "checkInDate", "checkOutDate",
   "flightNumber", "airline", "departureAirport", "arrivalAirport", "departureTime",
   "arrivalTime", "gate", "seat",

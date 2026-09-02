@@ -13,7 +13,7 @@ const FIELD_LABELS: Record<string, string> = {
   parentAttractionId: "Parent attraction", types: "Types", foodStyles: "Food styles",
   durationValue: "Duration", durationUnit: "Duration unit", price: "Price", prices: "Price tiers",
   currency: "Currency", openingHours: "Opening hours", openingMonths: "Opening months",
-  seasonalStart: "Season start", seasonalEnd: "Season end", notes: "Notes", photoUrl: "Photo",
+  seasonalHours: "Seasonal hours", notes: "Notes", photoUrl: "Photo",
   websiteUrl: "Website", verified: "Verified", subtype: "Subtype", residenceType: "Residence type",
   checkInDate: "Check-in", checkOutDate: "Check-out", flightNumber: "Flight number",
   airline: "Airline", departureAirport: "Departure airport", arrivalAirport: "Arrival airport",
@@ -53,6 +53,30 @@ export function AdminMessagesBell() {
   }, [token, isAdmin]);
 
   useEffect(() => { refresh(); }, [refresh]);
+
+  // Refetch immediately whenever any attraction save happens anywhere in the app (see
+  // updateAttraction in services/attractions.service.ts) — without this, a newly-generated
+  // message only showed up after a full page reload, since this component otherwise only
+  // fetched once on mount.
+  useEffect(() => {
+    if (!isAdmin) return;
+    window.addEventListener("attraction:updated", refresh);
+    return () => window.removeEventListener("attraction:updated", refresh);
+  }, [isAdmin, refresh]);
+
+  // Light polling fallback — covers edits made from another browser tab/session, which
+  // the same-tab "attraction:updated" event above can't see.
+  useEffect(() => {
+    if (!isAdmin) return;
+    const interval = setInterval(refresh, 30000);
+    return () => clearInterval(interval);
+  }, [isAdmin, refresh]);
+
+  // Also refetch every time the panel is opened, so a badge that was already stale (e.g.
+  // this tab was idle when the event fired) is guaranteed fresh the moment it's checked.
+  useEffect(() => {
+    if (open) refresh();
+  }, [open, refresh]);
 
   useEffect(() => {
     if (!open) return;

@@ -133,7 +133,15 @@ export async function updateAttraction(id: string, token: string, data: unknown)
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(data),
   });
-  return parseOrThrow<unknown>(res);
+  const result = await parseOrThrow<unknown>(res);
+  // A successful edit may have generated an admin notification (see
+  // adminMessages.service.ts on the server) — broadcast so any mounted
+  // AdminMessagesBell refetches immediately instead of waiting for its next poll
+  // or a full page reload, regardless of which page/component made the edit.
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("attraction:updated"));
+  }
+  return result;
 }
 
 // Deletes the shared Attraction document globally (owner-only, enforced server-side) — not

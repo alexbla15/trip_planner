@@ -87,20 +87,14 @@ export interface Attraction {
   currency?: string;
   openingHours?: OpeningHours;
   /** Months (1–12) this attraction is open in. Absent/empty means open year-round —
-   *  never persisted for the common case, only when it's genuinely seasonal. Derived
-   *  automatically from `seasonalStart`/`seasonalEnd` when those are set (kept in sync
-   *  so older month-only consumers keep working); may also be set directly on legacy
-   *  data that predates the precise range fields. */
+   *  never persisted for the common case, only when it's genuinely seasonal. */
   openingMonths?: number[];
-  /** Precise start of the open season (month/day, no year — recurs annually), e.g.
-   *  `{ month: 3, day: 15 }` for "March 15". Both must be set together; absent means
-   *  the attraction's season (if any) is only known at whole-month granularity via
-   *  `openingMonths`. */
-  seasonalStart?: { month: number; day: number };
-  /** Precise end of the open season (month/day, no year — recurs annually). A range
-   *  where `seasonalEnd` is earlier in the year than `seasonalStart` (e.g. Nov 1 – Feb
-   *  28) wraps across the New Year and is valid. */
-  seasonalEnd?: { month: number; day: number };
+  /** Date-scoped hours overrides — e.g. different hours in summer vs. winter. Each entry
+   *  has its own full weekly `hours` grid plus a `start`/`end` (month/day, no year — recurs
+   *  annually) window it applies to. `openingHours` above is still the base/default
+   *  schedule used for any date that doesn't fall inside one of these ranges (or when this
+   *  is empty/absent — the common, non-seasonal case). */
+  seasonalHours?: { start: { month: number; day: number }; end: { month: number; day: number }; hours: OpeningHours }[];
   notes?: string;
   photoUrl?: string;
   /** Official venue website — user-editable, separate from photoUrl. */

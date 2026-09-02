@@ -7,7 +7,7 @@ import {
   useRef,
   type ChangeEvent,
 } from "react";
-import { MapPin, Clock, Calendar, ChevronDown, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check, FileText, X, Building2, Search, UtensilsCrossed } from "lucide-react";
+import { MapPin, Clock, Calendar, ChevronDown, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check, FileText, X, Building2, Search, UtensilsCrossed, Plus } from "lucide-react";
 import type {
   AttractionFormData,
   Coordinates,
@@ -15,6 +15,7 @@ import type {
   NewAttractionModalProps,
   OpeningHours,
   PriceTierDraft,
+  SeasonalHoursEntry,
 } from "./attraction.types";
 import {
   COUNTRIES,
@@ -28,9 +29,10 @@ import { CoverImageField } from "@/components";
 import { ModalShell } from "@/components/Modal";
 import { MapPicker } from "./MapPicker";
 import { OpeningHoursGrid } from "./OpeningHoursGrid";
+import { MonthsGrid } from "./MonthsGrid";
 import { SeasonalRangePicker } from "./SeasonalRangePicker";
 import { ParentAttractionPicker } from "./ParentAttractionPicker";
-import { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h, isValidUrl, isYearRound, ALL_MONTHS, deriveOpeningMonthsFromRange } from "@/lib";
+import { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h, isValidUrl, isYearRound, ALL_MONTHS } from "@/lib";
 import { useReverseGeocodeAutofill, useAttractionTypes, useFoodStyles } from "@/hooks";
 import { filterCityOptions } from "./NewAttractionModal.utils";
 import type { Attraction } from "@/types/attraction";
@@ -127,8 +129,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   const [is24h, setIs24h]               = useState(false);
   const [openingMonths, setOpeningMonths] = useState<number[]>(ALL_MONTHS);
   const [yearRound, setYearRound]         = useState(true);
-  const [seasonalStart, setSeasonalStart] = useState<{ month: number; day: number } | null>(null);
-  const [seasonalEnd, setSeasonalEnd]     = useState<{ month: number; day: number } | null>(null);
+  const [seasonalHours, setSeasonalHours] = useState<SeasonalHoursEntry[]>([]);
   const [notes, setNotes] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
@@ -175,8 +176,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     const loadedMonths = initialData?.openingMonths?.length ? initialData.openingMonths : ALL_MONTHS;
     setOpeningMonths(loadedMonths);
     setYearRound(isResidence ? true : isYearRound(initialData?.openingMonths));
-    setSeasonalStart(isResidence ? null : initialData?.seasonalStart ?? null);
-    setSeasonalEnd(isResidence ? null : initialData?.seasonalEnd ?? null);
+    setSeasonalHours(isResidence ? [] : initialData?.seasonalHours ?? []);
     setNotes(initialData?.notes ?? "");
     setPhotoUrl(initialData?.photoUrl ?? "");
     setWebsiteUrl(initialData?.websiteUrl ?? "");
@@ -199,6 +199,25 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   function handleHoursChange(hours: OpeningHours) {
     setIs24h(false);
     setOpeningHours(hours);
+  }
+
+  function addSeasonalHoursEntry() {
+    setSeasonalHours((prev) => [
+      ...prev,
+      { id: `new-${Date.now()}-${prev.length}`, start: null, end: null, hours: buildInitialHours() },
+    ]);
+  }
+
+  function removeSeasonalHoursEntry(id: string) {
+    setSeasonalHours((prev) => prev.filter((entry) => entry.id !== id));
+  }
+
+  function updateSeasonalHoursRange(id: string, start: SeasonalHoursEntry["start"], end: SeasonalHoursEntry["end"]) {
+    setSeasonalHours((prev) => prev.map((entry) => (entry.id === id ? { ...entry, start, end } : entry)));
+  }
+
+  function updateSeasonalHoursGrid(id: string, hours: OpeningHours) {
+    setSeasonalHours((prev) => prev.map((entry) => (entry.id === id ? { ...entry, hours } : entry)));
   }
 
   function validate(): FieldErrors {
@@ -322,13 +341,13 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
         : undefined,
       currency,
       openingHours,
-      openingMonths: yearRound
-        ? undefined
-        : seasonalStart && seasonalEnd
-          ? deriveOpeningMonthsFromRange(seasonalStart, seasonalEnd)
-          : openingMonths,
-      seasonalStart: yearRound ? undefined : seasonalStart ?? undefined,
-      seasonalEnd: yearRound ? undefined : seasonalEnd ?? undefined,
+      openingMonths: yearRound ? undefined : openingMonths,
+      seasonalHours: (() => {
+        const complete = seasonalHours.filter((entry) => entry.start !== null && entry.end !== null);
+        return complete.length
+          ? complete.map((entry) => ({ start: entry.start!, end: entry.end!, hours: entry.hours }))
+          : undefined;
+      })(),
       notes,
       photoUrl,
       websiteUrl: websiteUrl.trim(),
@@ -356,8 +375,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setOpeningHours(buildInitialHours());
     setOpeningMonths(ALL_MONTHS);
     setYearRound(true);
-    setSeasonalStart(null);
-    setSeasonalEnd(null);
+    setSeasonalHours([]);
     setNotes("");
     setPhotoUrl("");
     setWebsiteUrl("");
@@ -1076,13 +1094,13 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
         </div>
       )}
 
-      {/* Opening Season — omitted for a residence: always treated as year-round. */}
+      {/* Opening Months — omitted for a residence: always treated as year-round. */}
       {!isEditingResidence && (
         <div className={styles.field}>
           <div className={styles.labelRow}>
             <span className={styles.labelWithIcon}>
               <Calendar size={14} aria-hidden="true" />
-              Opening Season
+              Opening Months
             </span>
             <button
               type="button"
@@ -1094,17 +1112,54 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
               Year-round
             </button>
           </div>
-          {!yearRound && (
-            <SeasonalRangePicker
-              start={seasonalStart}
-              end={seasonalEnd}
-              onChange={(start, end) => {
-                setSeasonalStart(start);
-                setSeasonalEnd(end);
-                if (start && end) setOpeningMonths(deriveOpeningMonthsFromRange(start, end));
-              }}
-            />
-          )}
+          {!yearRound && <MonthsGrid value={openingMonths} onChange={setOpeningMonths} />}
+        </div>
+      )}
+
+      {/* Seasonal Hours — optional per-date-range overrides on top of the base Opening
+          Hours above (e.g. longer summer hours). Omitted for a residence, same as Opening
+          Hours/Months. Leaving this empty means Opening Hours applies to every date, all
+          year, exactly as before this feature existed. */}
+      {!isEditingResidence && (
+        <div className={styles.field}>
+          <div className={styles.labelRow}>
+            <span className={styles.labelWithIcon}>
+              <Calendar size={14} aria-hidden="true" />
+              Seasonal Hours (optional)
+            </span>
+          </div>
+          <p className={styles.helperText}>
+            Add a date range with different hours than usual (e.g. summer 9–20, rest of the year 10–18).
+            Leave empty if hours are the same all year.
+          </p>
+          {seasonalHours.map((entry, i) => (
+            <div key={entry.id} className={styles.seasonalHoursEntry}>
+              <div className={styles.seasonalHoursEntryHeader}>
+                <span className={styles.seasonalHoursEntryTitle}>Season {i + 1}</span>
+                <button
+                  type="button"
+                  className={styles.iconBtn}
+                  onClick={() => removeSeasonalHoursEntry(entry.id)}
+                  aria-label={`Remove season ${i + 1}`}
+                >
+                  <X size={14} aria-hidden="true" />
+                </button>
+              </div>
+              <SeasonalRangePicker
+                start={entry.start}
+                end={entry.end}
+                onChange={(start, end) => updateSeasonalHoursRange(entry.id, start, end)}
+              />
+              <OpeningHoursGrid
+                value={entry.hours}
+                onChange={(hours) => updateSeasonalHoursGrid(entry.id, hours)}
+              />
+            </div>
+          ))}
+          <button type="button" className={styles.addTierBtn} onClick={addSeasonalHoursEntry}>
+            <Plus size={14} aria-hidden="true" />
+            Add seasonal hours
+          </button>
         </div>
       )}
 

@@ -1,6 +1,7 @@
 import { Ban, CalendarDays, Clock, type LucideIcon } from "lucide-react";
 import { isAllDay24h, isPermanentlyClosed } from "./openingHours";
-import { isYearRound, formatOpeningMonthsLabel, formatSeasonalRangeLabel, type MonthDay } from "./openingMonths";
+import { isYearRound, formatOpeningMonthsLabel } from "./openingMonths";
+import type { SeasonalHoursEntry } from "./seasonalHours";
 import type { OpeningHours } from "@/types/attraction";
 
 export interface StatusChipDescriptor {
@@ -30,8 +31,7 @@ export interface StatusChipDescriptor {
 export function getStatusChips(
   openingHours: OpeningHours | undefined,
   openingMonths?: number[],
-  seasonalStart?: MonthDay,
-  seasonalEnd?: MonthDay
+  seasonalHours?: SeasonalHoursEntry[]
 ): StatusChipDescriptor[] {
   if (!openingHours) return [];
 
@@ -46,10 +46,14 @@ export function getStatusChips(
   }
 
   if (!isYearRound(openingMonths)) {
-    const label = seasonalStart && seasonalEnd
-      ? formatSeasonalRangeLabel(seasonalStart, seasonalEnd)
-      : formatOpeningMonthsLabel(openingMonths!);
-    chips.push({ key: "seasonal", icon: CalendarDays, label: `Open ${label}` });
+    chips.push({ key: "seasonal", icon: CalendarDays, label: `Open ${formatOpeningMonthsLabel(openingMonths!)}` });
+  }
+
+  // Independent of the whole-month restriction above — this flags that hours themselves
+  // differ by date range (e.g. longer summer hours), not that the venue is closed outside
+  // certain months.
+  if (seasonalHours?.length) {
+    chips.push({ key: "seasonal-hours", icon: CalendarDays, label: "Seasonal hours apply" });
   }
 
   return chips;

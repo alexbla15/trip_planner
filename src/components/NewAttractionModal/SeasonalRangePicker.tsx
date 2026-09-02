@@ -29,8 +29,8 @@ function dateValueToMonthDay(value: string): MonthDay | null {
   return { month, day };
 }
 
-/** Precise start/end date-range picker for an attraction's open season (month/day only,
- *  no year — recurs annually). Replaces the coarser whole-month checkbox grid. */
+/** Precise start/end date-range picker (month/day only, no year — recurs annually). Used
+ *  to scope a seasonal opening-hours override to a specific part of the year. */
 export function SeasonalRangePicker({ start, end, onChange }: SeasonalRangePickerProps) {
   function handleStartChange(e: ChangeEvent<HTMLInputElement>) {
     onChange(dateValueToMonthDay(e.target.value), end);
@@ -41,7 +41,7 @@ export function SeasonalRangePicker({ start, end, onChange }: SeasonalRangePicke
   }
 
   return (
-    <div className={styles.row} role="group" aria-label="Open season date range">
+    <div className={styles.row} role="group" aria-label="Date range">
       <label className={styles.field}>
         <span className={styles.label}>From</span>
         <input
@@ -49,7 +49,7 @@ export function SeasonalRangePicker({ start, end, onChange }: SeasonalRangePicke
           className={styles.input}
           value={monthDayToDateValue(start)}
           onChange={handleStartChange}
-          aria-label="Season start date"
+          aria-label="Range start date"
         />
       </label>
       <span className={styles.dash} aria-hidden="true">–</span>
@@ -60,7 +60,7 @@ export function SeasonalRangePicker({ start, end, onChange }: SeasonalRangePicke
           className={styles.input}
           value={monthDayToDateValue(end)}
           onChange={handleEndChange}
-          aria-label="Season end date"
+          aria-label="Range end date"
         />
       </label>
     </div>

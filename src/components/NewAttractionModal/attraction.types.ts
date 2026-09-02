@@ -55,6 +55,21 @@ export interface OpeningHoursDay {
 
 export type OpeningHours = Record<DayKey, OpeningHoursDay>;
 
+export interface MonthDay {
+  month: number; // 1–12
+  day: number;   // 1–31
+}
+
+/** One date-scoped opening-hours override — a full weekly `hours` grid that applies only
+ *  between `start` and `end` (month/day, no year — recurs annually). `id` is a client-only
+ *  React key, never sent to/received from the API. */
+export interface SeasonalHoursEntry {
+  id: string;
+  start: MonthDay | null;
+  end: MonthDay | null;
+  hours: OpeningHours;
+}
+
 export interface Coordinates {
   lat: number;
   lng: number;
@@ -87,13 +102,12 @@ export interface AttractionFormData {
   price: number | null;
   currency: string;
   openingHours: OpeningHours;
-  /** Months (1–12) this attraction is open in. Undefined means open year-round. Kept in
-   *  sync with `seasonalStart`/`seasonalEnd` on submit — see `attraction.utils.ts`. */
+  /** Months (1–12) this attraction is open in. Undefined means open year-round. */
   openingMonths?: number[];
-  /** Precise open-season range (month/day, no year — recurs annually). Both set together
-   *  or both undefined. See `Attraction.seasonalStart` in `src/types/attraction.ts`. */
-  seasonalStart?: { month: number; day: number };
-  seasonalEnd?: { month: number; day: number };
+  /** Optional date-scoped hours overrides — e.g. different hours in summer vs. winter.
+   *  Empty/undefined means `openingHours` above applies to every date, unchanged from
+   *  before this field existed. See `SeasonalHoursEntry` / `attraction.utils.ts`. */
+  seasonalHours?: SeasonalHoursEntry[];
   notes: string;
   photoUrl: string;
   websiteUrl: string;

@@ -57,10 +57,8 @@ export interface IAttraction extends Document {
   openingHours?: Record<string, IOpeningHoursDay>;
   /** Months (1–12) this attraction is open in. Absent/empty means open year-round. */
   openingMonths?: number[];
-  /** See `Attraction.seasonalStart`/`seasonalEnd` in `src/types/attraction.ts` — same
-   *  contract (precise month/day range, no year, recurs annually). */
-  seasonalStart?: { month: number; day: number };
-  seasonalEnd?: { month: number; day: number };
+  /** See `Attraction.seasonalHours` in `src/types/attraction.ts` — same contract. */
+  seasonalHours?: ISeasonalHoursEntry[];
   notes?: string;
   photoUrl?: string;
   /** Official venue website — user-editable, separate from photoUrl. Never fabricated on
@@ -95,6 +93,39 @@ const OpeningHoursRangeSchema = new Schema<IOpeningHoursRange>(
 
 const OpeningHoursDaySchema = new Schema<IOpeningHoursDay>(
   { closed: Boolean, ranges: [OpeningHoursRangeSchema] },
+  { _id: false }
+);
+
+const WeeklyHoursSchema = new Schema(
+  {
+    Mon: { type: OpeningHoursDaySchema },
+    Tue: { type: OpeningHoursDaySchema },
+    Wed: { type: OpeningHoursDaySchema },
+    Thu: { type: OpeningHoursDaySchema },
+    Fri: { type: OpeningHoursDaySchema },
+    Sat: { type: OpeningHoursDaySchema },
+    Sun: { type: OpeningHoursDaySchema },
+  },
+  { _id: false }
+);
+
+const MonthDaySchema = new Schema(
+  { month: { type: Number, min: 1, max: 12 }, day: { type: Number, min: 1, max: 31 } },
+  { _id: false }
+);
+
+interface ISeasonalHoursEntry {
+  start: { month: number; day: number };
+  end: { month: number; day: number };
+  hours: Record<string, IOpeningHoursDay>;
+}
+
+const SeasonalHoursEntrySchema = new Schema<ISeasonalHoursEntry>(
+  {
+    start: { type: MonthDaySchema, required: true },
+    end: { type: MonthDaySchema, required: true },
+    hours: { type: WeeklyHoursSchema, required: true },
+  },
   { _id: false }
 );
 
@@ -148,14 +179,7 @@ const AttractionSchema = new Schema<IAttraction>(
       Sun: { type: OpeningHoursDaySchema },
     },
     openingMonths: [{ type: Number, min: 1, max: 12 }],
-    seasonalStart: {
-      type: new Schema({ month: { type: Number, min: 1, max: 12 }, day: { type: Number, min: 1, max: 31 } }, { _id: false }),
-      required: false,
-    },
-    seasonalEnd: {
-      type: new Schema({ month: { type: Number, min: 1, max: 12 }, day: { type: Number, min: 1, max: 31 } }, { _id: false }),
-      required: false,
-    },
+    seasonalHours: [SeasonalHoursEntrySchema],
     // Subtype discriminator
     subtype: { type: String, enum: ["residence", "flight"] },
     // Residence fields
@@ -278,8 +302,7 @@ export function formatAttraction(
     priceTierQuantities: schedule?.priceTierQuantities ?? [],
     openingHours: doc.openingHours as AttractionShape["openingHours"],
     openingMonths: doc.openingMonths,
-    seasonalStart: doc.seasonalStart,
-    seasonalEnd: doc.seasonalEnd,
+    seasonalHours: doc.seasonalHours,
     notes: schedule?.notes ?? doc.notes,
     photoUrl: doc.photoUrl,
     websiteUrl: doc.websiteUrl,

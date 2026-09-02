@@ -1,7 +1,7 @@
 export { NewAttractionModal } from "./NewAttractionModal";
 export { MapPicker } from "./MapPicker";
 export { OpeningHoursGrid } from "./OpeningHoursGrid";
-export { SeasonalRangePicker } from "./SeasonalRangePicker";
+export { MonthsGrid } from "./MonthsGrid";
 export { AttractionTypeChip } from "./AttractionTypeChip";
 export { attractionToFormData } from "./attraction.utils";
 export type {

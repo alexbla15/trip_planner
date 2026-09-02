@@ -1,5 +1,6 @@
 import type { Attraction } from "@/types/attraction";
-import { timeToMins, isYearRound, formatOpeningMonthsLabel, formatSeasonalRangeLabel, isMonthDayInRange } from "@/lib";
+import { timeToMins, isYearRound, formatOpeningMonthsLabel } from "@/lib";
+import { resolveOpeningHoursForDate } from "@/lib/seasonalHours";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -34,8 +35,14 @@ function attractionEndMins(a: Attraction): number {
 function getClosedAlert(a: Attraction): ScheduleAlert | null {
   if (!a.plannedDate || !a.plannedTime || !a.openingHours) return null;
 
-  const dow = DOW_KEYS[new Date(a.plannedDate).getUTCDay()];
-  const hours = a.openingHours[dow];
+  const plannedDateObj = new Date(a.plannedDate);
+  // A seasonal-hours entry whose date range covers plannedDate overrides the base weekly
+  // schedule for this check — e.g. longer summer hours shouldn't false-positive a "closed"
+  // alert for an evening slot that's only open during that season.
+  const effectiveHours = resolveOpeningHoursForDate(a.openingHours, a.seasonalHours, plannedDateObj) ?? a.openingHours;
+
+  const dow = DOW_KEYS[plannedDateObj.getUTCDay()];
+  const hours = effectiveHours[dow];
   if (!hours) return null;
 
   if (hours.closed) {
@@ -72,19 +79,7 @@ function getClosedAlert(a: Attraction): ScheduleAlert | null {
 function getOutOfSeasonAlert(a: Attraction): ScheduleAlert | null {
   if (!a.plannedDate || isYearRound(a.openingMonths)) return null;
 
-  const planned = new Date(a.plannedDate);
-  const month = planned.getUTCMonth() + 1; // 1–12
-
-  if (a.seasonalStart && a.seasonalEnd) {
-    const day = planned.getUTCDate();
-    if (isMonthDayInRange({ month, day }, a.seasonalStart, a.seasonalEnd)) return null;
-    return {
-      id:      `season-${a._id}`,
-      type:    "season",
-      message: `"${a.name}" is scheduled on ${a.plannedDate} but is only open ${formatSeasonalRangeLabel(a.seasonalStart, a.seasonalEnd)}.`,
-    };
-  }
-
+  const month = new Date(a.plannedDate).getUTCMonth() + 1; // 1–12
   if (a.openingMonths!.includes(month)) return null;
 
   return {

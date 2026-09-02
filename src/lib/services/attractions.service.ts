@@ -192,8 +192,7 @@ export interface CreateAttractionInput {
   currency?: string;
   openingHours?: OpeningHours;
   openingMonths?: number[];
-  seasonalStart?: { month: number; day: number };
-  seasonalEnd?: { month: number; day: number };
+  seasonalHours?: { start: { month: number; day: number }; end: { month: number; day: number }; hours: OpeningHours }[];
   notes?: string;
   photoUrl?: string;
   websiteUrl?: string;
@@ -201,7 +200,7 @@ export interface CreateAttractionInput {
 
 export async function createAttraction(payload: JwtPayload, body: CreateAttractionInput): Promise<IAttraction> {
   const { name, country, city, coordinates, parentAttractionId, types, foodStyles, durationValue, durationUnit,
-    price, prices: priceTiersInput, currency, openingHours, openingMonths, seasonalStart, seasonalEnd, notes, photoUrl, websiteUrl } = body;
+    price, prices: priceTiersInput, currency, openingHours, openingMonths, seasonalHours, notes, photoUrl, websiteUrl } = body;
 
   if (!name?.trim() || (!parentAttractionId && (!country?.trim() || !city?.trim()))) {
     // A child's country/city are inherited from its parent — only required directly when
@@ -252,8 +251,7 @@ export async function createAttraction(payload: JwtPayload, body: CreateAttracti
       currency: currency || "USD",
       openingHours: openingHours ?? undefined,
       openingMonths: openingMonths?.length ? openingMonths : undefined,
-      seasonalStart: seasonalStart ?? undefined,
-      seasonalEnd: seasonalEnd ?? undefined,
+      seasonalHours: seasonalHours?.length ? seasonalHours : undefined,
       notes: notes || undefined,
       photoUrl: photoUrl || undefined,
       websiteUrl: websiteUrl || undefined,
@@ -399,11 +397,8 @@ export async function updateAttraction(
   if (body.openingMonths !== undefined) {
     attraction.openingMonths = body.openingMonths as number[];
   }
-  if (body.seasonalStart !== undefined) {
-    attraction.seasonalStart = body.seasonalStart as { month: number; day: number } | undefined;
-  }
-  if (body.seasonalEnd !== undefined) {
-    attraction.seasonalEnd = body.seasonalEnd as { month: number; day: number } | undefined;
+  if (body.seasonalHours !== undefined) {
+    attraction.seasonalHours = body.seasonalHours as IAttraction["seasonalHours"];
   }
   if (body.notes !== undefined) attraction.notes = body.notes as string;
   if (body.photoUrl !== undefined) attraction.photoUrl = body.photoUrl as string;
