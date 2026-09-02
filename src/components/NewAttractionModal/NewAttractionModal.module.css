@@ -357,22 +357,22 @@
 .priceTierEditor {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 8px;
+  gap: 0;
+  margin-top: 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
-  background: var(--color-bg-subtle);
+  background: transparent;
 }
 
 .priceTierHeader {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.2fr 100px 150px auto;
-  gap: 8px;
-  padding: 10px 12px;
-  background: var(--color-surface);
+  grid-template-columns: 1.2fr 1.1fr 1.2fr 110px 140px auto;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--color-bg-subtle);
   border-bottom: 1px solid var(--color-border);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--color-text-secondary);
   text-transform: uppercase;
@@ -388,11 +388,17 @@
 
 .priceTierRow {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.2fr 100px 150px auto;
-  gap: 8px;
-  padding: 10px 12px;
-  align-items: start;
+  grid-template-columns: 1.2fr 1.1fr 1.2fr 110px 140px auto;
+  gap: 12px;
+  padding: 12px 16px;
+  align-items: center;
   border-bottom: 1px solid var(--color-border-subtle);
+  background: var(--color-surface);
+  transition: background var(--duration-fast) var(--easing-out);
+}
+
+.priceTierRow:hover {
+  background: var(--color-bg-subtle);
 }
 
 .priceTierRow:last-of-type {
@@ -400,15 +406,16 @@
 }
 
 .priceTierCell {
-  height: 36px;
-  padding: 0 10px;
+  height: 40px;
+  padding: 0 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   font-size: 13px;
   font-family: inherit;
   color: var(--color-text-primary);
-  transition: border-color var(--duration-fast) var(--easing-out);
+  transition: border-color var(--duration-fast) var(--easing-out),
+    background var(--duration-fast) var(--easing-out);
 }
 
 .priceTierCell:focus {
@@ -433,7 +440,7 @@
 
 .daysModeButtons {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -493,16 +500,17 @@
 
 .priceTierActions {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   justify-self: end;
+  align-items: center;
 }
 
 .priceTierPrimaryBtn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-full);
@@ -514,6 +522,7 @@
 
 .priceTierPrimaryBtn:hover {
   border-color: var(--color-primary);
+  background: var(--color-primary-light);
 }
 
 .priceTierPrimaryBtnActive {
