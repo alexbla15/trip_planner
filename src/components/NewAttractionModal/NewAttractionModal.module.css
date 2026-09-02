@@ -367,7 +367,7 @@
 
 .priceTierHeader {
   display: grid;
-  grid-template-columns: 0.6fr 0.6fr 0.7fr 90px 170px auto;
+  grid-template-columns: minmax(0, 0.6fr) minmax(0, 0.6fr) minmax(0, 0.7fr) 90px 170px auto;
   gap: 12px;
   padding: 14px 16px;
   background: var(--color-bg-subtle);
@@ -388,7 +388,7 @@
 
 .priceTierRow {
   display: grid;
-  grid-template-columns: 0.6fr 0.6fr 0.7fr 90px 170px auto;
+  grid-template-columns: minmax(0, 0.6fr) minmax(0, 0.6fr) minmax(0, 0.7fr) 90px 170px auto;
   gap: 12px;
   padding: 12px 16px;
   align-items: start;
@@ -396,6 +396,10 @@
   background: var(--color-surface);
   transition: background var(--duration-fast) var(--easing-out);
   position: relative;
+}
+
+.priceTierRow > * {
+  min-width: 0;
 }
 
 .priceTierRow:hover {
@@ -1069,6 +1073,7 @@
 .expandableFieldWrapper {
   position: relative;
   width: 100%;
+  min-width: 0;
   min-height: 40px;
   display: flex;
   align-items: center;
@@ -1076,6 +1081,9 @@
 
 .expandableFieldTrigger {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   height: 40px;
   padding: 0 10px;
   border: 1px solid var(--color-border);
@@ -1105,6 +1113,8 @@
 
 .expandableTextarea {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 80px;
   padding: 10px 12px;
   border: 1px solid var(--color-primary);
@@ -1115,8 +1125,11 @@
   color: var(--color-text-primary);
   resize: none;
   box-shadow: 0 0 0 2px var(--color-primary-light);
-  font-family: inherit;
   line-height: 1.5;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  box-sizing: border-box;
 }
 
 .expandableTextarea:focus {
