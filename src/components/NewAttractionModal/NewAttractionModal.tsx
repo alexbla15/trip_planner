@@ -34,7 +34,7 @@ import { MonthsGrid } from "./MonthsGrid";
 import { SeasonalRangePicker } from "./SeasonalRangePicker";
 import { ParentAttractionPicker } from "./ParentAttractionPicker";
 import { PriceTierEditor } from "./PriceTierEditor";
-import { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h, isValidUrl, isYearRound, ALL_MONTHS } from "@/lib";
+import { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h, isValidUrl, isYearRound, ALL_MONTHS, deriveOpeningMonthsFromSeasonalHours, formatOpeningMonthsLabel } from "@/lib";
 import { useReverseGeocodeAutofill, useAttractionTypes, useFoodStyles } from "@/hooks";
 import { filterCityOptions, emptyPriceTab, flatPriceTiersToTabs, tabsToFlatPriceTiers } from "./NewAttractionModal.utils";
 import type { Attraction } from "@/types/attraction";
@@ -278,6 +278,10 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setSaving(true);
     const flatTiers = tabsToFlatPriceTiers(priceTabs, primaryCell);
     const primaryTier = flatTiers.find((t) => t.isPrimary) ?? flatTiers[0];
+    const completeSeasonalHours = seasonalHours
+      .filter((entry): entry is typeof entry & { start: NonNullable<typeof entry.start>; end: NonNullable<typeof entry.end> } =>
+        entry.start !== null && entry.end !== null)
+      .map((entry) => ({ start: entry.start, end: entry.end, hours: entry.hours }));
     const data: AttractionFormData = {
       name: name.trim(),
       country,
@@ -291,13 +295,13 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       prices: flatTiers.length ? flatTiers : undefined,
       currency,
       openingHours,
-      openingMonths: yearRound ? undefined : openingMonths,
-      seasonalHours: (() => {
-        const complete = seasonalHours.filter((entry) => entry.start !== null && entry.end !== null);
-        return complete.length
-          ? complete.map((entry) => ({ start: entry.start!, end: entry.end!, hours: entry.hours }))
-          : undefined;
-      })(),
+      // Once any seasonal-hours entry exists, openingMonths is derived from their date
+      // ranges — never independently set by the Opening Months toggle in that case (see
+      // deriveOpeningMonthsFromSeasonalHours).
+      openingMonths: completeSeasonalHours.length
+        ? deriveOpeningMonthsFromSeasonalHours(completeSeasonalHours)
+        : yearRound ? undefined : openingMonths,
+      seasonalHours: completeSeasonalHours.length ? completeSeasonalHours : undefined,
       notes,
       photoUrl,
       websiteUrl: websiteUrl.trim(),
@@ -342,6 +346,12 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   }
 
   const formIsValid = Object.keys(validate()).length === 0;
+  // Once any seasonal-hours entry has both dates set, Opening Months is derived from
+  // those ranges — the manual Year-round toggle/grid is replaced with a read-only note.
+  const seasonalHoursForMonths = seasonalHours.filter((e) => e.start !== null && e.end !== null) as
+    { start: NonNullable<SeasonalHoursEntry["start"]>; end: NonNullable<SeasonalHoursEntry["end"]>; hours: OpeningHours }[];
+  const hasSeasonalHours = seasonalHoursForMonths.length > 0;
+  const derivedOpeningMonths = hasSeasonalHours ? deriveOpeningMonthsFromSeasonalHours(seasonalHoursForMonths) : [];
 
   return (
     <>
@@ -670,7 +680,9 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
         </div>
       )}
 
-      {/* Opening Months — omitted for a residence: always treated as year-round. */}
+      {/* Opening Months — omitted for a residence: always treated as year-round. When
+          Seasonal Hours entries exist, this is derived from their date ranges instead of
+          being independently set — see deriveOpeningMonthsFromSeasonalHours. */}
       {!isEditingResidence && (
         <div className={styles.field}>
           <div className={styles.labelRow}>
@@ -678,17 +690,25 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
               <Calendar size={14} aria-hidden="true" />
               Opening Months
             </span>
-            <button
-              type="button"
-              role="checkbox"
-              aria-checked={yearRound}
-              className={`${styles.toggle24h} ${yearRound ? styles.toggle24hActive : ""}`}
-              onClick={() => setYearRound(!yearRound)}
-            >
-              Year-round
-            </button>
+            {!hasSeasonalHours && (
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={yearRound}
+                className={`${styles.toggle24h} ${yearRound ? styles.toggle24hActive : ""}`}
+                onClick={() => setYearRound(!yearRound)}
+              >
+                Year-round
+              </button>
+            )}
           </div>
-          {!yearRound && <MonthsGrid value={openingMonths} onChange={setOpeningMonths} />}
+          {hasSeasonalHours ? (
+            <p className={styles.helperText}>
+              Derived from your Seasonal Hours ranges below: open {formatOpeningMonthsLabel(derivedOpeningMonths)}.
+            </p>
+          ) : (
+            !yearRound && <MonthsGrid value={openingMonths} onChange={setOpeningMonths} />
+          )}
         </div>
       )}
 

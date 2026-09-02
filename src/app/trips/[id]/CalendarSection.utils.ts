@@ -38,8 +38,12 @@ function getClosedAlert(a: Attraction): ScheduleAlert | null {
   const plannedDateObj = new Date(a.plannedDate);
   // A seasonal-hours entry whose date range covers plannedDate overrides the base weekly
   // schedule for this check — e.g. longer summer hours shouldn't false-positive a "closed"
-  // alert for an evening slot that's only open during that season.
-  const effectiveHours = resolveOpeningHoursForDate(a.openingHours, a.seasonalHours, plannedDateObj) ?? a.openingHours;
+  // alert for an evening slot that's only open during that season. Once any seasonal-hours
+  // entry exists, the base schedule is never used as a fallback (see
+  // resolveOpeningHoursForDate) — a planned date outside every defined range has no known
+  // hours to check against, so the alert is skipped rather than guessed from the base.
+  const effectiveHours = resolveOpeningHoursForDate(a.openingHours, a.seasonalHours, plannedDateObj);
+  if (!effectiveHours) return null;
 
   const dow = DOW_KEYS[plannedDateObj.getUTCDay()];
   const hours = effectiveHours[dow];

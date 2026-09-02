@@ -76,6 +76,7 @@ export {
   isMonthDayInRange,
   formatSeasonalRangeLabel,
   resolveOpeningHoursForDate,
+  deriveOpeningMonthsFromSeasonalHours,
 } from "./seasonalHours";
 export type { MonthDay, SeasonalHoursEntry } from "./seasonalHours";
 

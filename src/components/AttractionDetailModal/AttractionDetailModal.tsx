@@ -164,18 +164,16 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   // seasonally-open place like Gardaland still has real per-day hours worth showing).
   const hoursCoveredByChip = statusChips.some((c) => c.key === "open-24-7" || c.key === "permanently-closed");
   const uniformHoursLabel = attraction.openingHours ? getUniformHoursLabel(attraction.openingHours) : null;
-  // "Default" + one tab per seasonal-hours override, so a venue with e.g. longer summer
-  // hours shows both schedules instead of only ever displaying the base weekly hours.
-  const hoursTabs = [
-    { key: "Default", hours: attraction.openingHours },
-    ...(attraction.seasonalHours ?? []).map((h) => ({
-      key: formatSeasonalRangeLabel(h.start, h.end),
-      hours: h.hours,
-    })),
-  ];
+  // Once any seasonal-hours entry exists, the base weekly schedule is never shown/used —
+  // only the seasonal tabs (matching resolveOpeningHoursForDate's "no default once
+  // seasonal hours exist" rule). Otherwise it's a single implicit "Default" tab (no tab
+  // strip rendered — showHoursTabs only turns on with 2+ tabs).
+  const hoursTabs = attraction.seasonalHours?.length
+    ? attraction.seasonalHours.map((h) => ({ key: formatSeasonalRangeLabel(h.start, h.end), hours: h.hours }))
+    : [{ key: "Default", hours: attraction.openingHours }];
   const showHoursTabs = hoursTabs.length > 1;
   const activeHoursIndex = Math.min(activeHoursTab, hoursTabs.length - 1);
-  const effectiveOpeningHours = hoursTabs[activeHoursIndex]?.hours ?? attraction.openingHours;
+  const effectiveOpeningHours = hoursTabs[activeHoursIndex]?.hours;
   const hasMultiplePriceTiers = (attraction.prices?.length ?? 0) > 1;
   // A nested attraction (e.g. a specific ride inside a theme park) often has no photo of
   // its own — fall back to the parent's photo rather than showing no photo at all.
@@ -772,7 +770,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
               Types row instead — the day-by-day table and its heading would be
               redundant, so this section is skipped entirely. Same-every-day hours are
               shown as a compact info item above instead of this full table. */}
-          {!isResidence && !isFlight && attraction.openingHours && !hoursCoveredByChip && (!uniformHoursLabel || showHoursTabs) && (
+          {!isResidence && !isFlight && (attraction.openingHours || attraction.seasonalHours?.length) && !hoursCoveredByChip && (!uniformHoursLabel || !!attraction.seasonalHours?.length) && (
             <div className={styles.section}>
               <h3 className={styles.sectionTitle}>
                 <Clock size={14} aria-hidden="true" />
