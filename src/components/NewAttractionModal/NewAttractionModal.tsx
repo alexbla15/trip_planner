@@ -242,6 +242,15 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     return "custom";
   }
 
+  function getDaysSummary(tier: PriceTierDraft): string {
+    const mode = getDaysModeForTier(tier);
+    if (mode === "any") return "Any day";
+    if (mode === "weekday") return "Weekdays";
+    if (mode === "weekend") return "Weekends";
+    if (tier.days.length === 0) return "Select days";
+    return tier.days.map((d) => d.slice(0, 3)).join(", ");
+  }
+
   function setDaysMode(tierIndex: number, mode: "any" | "weekday" | "weekend" | "custom") {
     setPriceTiers((prev) =>
       prev.map((t, ti) =>
@@ -755,50 +764,23 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
                     aria-label="Price amount"
                   />
                   <div className={`${styles.priceTierDaysCell} ${styles.desktopOnly}`}>
-                    <div className={styles.daysModeButtons}>
-                      <button
-                        type="button"
-                        className={`${styles.daysModeBtn} ${daysMode === "any" ? styles.dayModeBtnActive : ""}`}
-                        onClick={() => setDaysMode(i, "any")}
-                        aria-pressed={daysMode === "any"}
-                      >
-                        Any
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.daysModeBtn} ${daysMode === "weekday" ? styles.dayModeBtnActive : ""}`}
-                        onClick={() => setDaysMode(i, "weekday")}
-                        aria-pressed={daysMode === "weekday"}
-                      >
-                        Weekday
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.daysModeBtn} ${daysMode === "weekend" ? styles.dayModeBtnActive : ""}`}
-                        onClick={() => setDaysMode(i, "weekend")}
-                        aria-pressed={daysMode === "weekend"}
-                      >
-                        Weekend
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.daysModeBtn} ${daysMode === "custom" ? styles.dayModeBtnActive : ""}`}
-                        onClick={() => {
-                          setDaysMode(i, "custom");
-                          setCustomDaysPopupIndex(i);
-                        }}
-                        aria-pressed={daysMode === "custom"}
-                      >
-                        Custom
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      className={styles.daysTriggerBtn}
+                      onClick={() => setCustomDaysPopupIndex(i)}
+                      aria-haspopup="dialog"
+                      aria-expanded={customDaysPopupIndex === i}
+                    >
+                      <Calendar size={13} aria-hidden="true" />
+                      <span className={styles.daysTriggerText}>{getDaysSummary(tier)}</span>
+                    </button>
                   </div>
                   {customDaysPopupIndex === i && (
                     <>
                       <div className={styles.customDaysOverlay} onClick={() => setCustomDaysPopupIndex(null)} />
                       <div className={styles.customDaysPopup}>
                       <div className={styles.customDaysPopupHeader}>
-                        <h3 className={styles.customDaysPopupTitle}>Select Days</h3>
+                        <h3 className={styles.customDaysPopupTitle}>Days</h3>
                         <button
                           type="button"
                           className={styles.customDaysPopupClose}
@@ -808,18 +790,49 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
                           <X size={16} />
                         </button>
                       </div>
-                      <div className={styles.customDaysPopupGrid}>
-                        {DAY_OPTIONS.map((day) => (
-                          <label key={day} className={styles.dayCheckboxLabel}>
-                            <input
-                              type="checkbox"
-                              checked={tier.days.includes(day)}
-                              onChange={() => toggleDayInCustom(i, day)}
-                              aria-label={day}
-                            />
-                            {day}
-                          </label>
-                        ))}
+                      <div className={styles.customDaysPopupBody}>
+                        <div className={styles.daysModeButtons}>
+                          <button
+                            type="button"
+                            className={`${styles.daysModeBtn} ${daysMode === "any" ? styles.dayModeBtnActive : ""}`}
+                            onClick={() => setDaysMode(i, "any")}
+                            aria-pressed={daysMode === "any"}
+                          >
+                            Any day
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.daysModeBtn} ${daysMode === "weekday" ? styles.dayModeBtnActive : ""}`}
+                            onClick={() => setDaysMode(i, "weekday")}
+                            aria-pressed={daysMode === "weekday"}
+                          >
+                            Weekdays
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.daysModeBtn} ${daysMode === "weekend" ? styles.dayModeBtnActive : ""}`}
+                            onClick={() => setDaysMode(i, "weekend")}
+                            aria-pressed={daysMode === "weekend"}
+                          >
+                            Weekends
+                          </button>
+                        </div>
+                        <div className={styles.customDaysPopupDivider}>
+                          <span>or pick specific days</span>
+                        </div>
+                        <div className={styles.customDaysPopupGrid}>
+                          {DAY_OPTIONS.map((day) => (
+                            <label key={day} className={styles.dayCheckboxLabel}>
+                              <input
+                                type="checkbox"
+                                checked={tier.days.includes(day)}
+                                onChange={() => toggleDayInCustom(i, day)}
+                                aria-label={day}
+                              />
+                              {day}
+                            </label>
+                          ))}
+                        </div>
                       </div>
                       <div className={styles.customDaysPopupFooter}>
                         <button
@@ -874,15 +887,22 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
                       aria-expanded={isExpanded}
                       aria-label={`Price tier: ${tier.product || tier.label}`}
                     >
-                      <span className={styles.cardSummaryText}>
-                        {tier.product || tier.label}
-                        {tier.product && tier.label && ` · ${tier.label}`}
-                        {tier.amount != null && ` · ${currency} ${tier.amount.toFixed(2)}`}
-                        {tier.visitorType && ` · ${tier.visitorType}`}
-                      </span>
+                      <div className={styles.cardSummaryMain}>
+                        <span className={styles.cardSummaryTitle}>
+                          {tier.product || tier.label || "New tier"}
+                        </span>
+                        <span className={styles.cardSummaryMeta}>
+                          {[tier.label, tier.visitorType, getDaysSummary(tier)].filter(Boolean).join(" · ")}
+                        </span>
+                      </div>
+                      {tier.amount != null && (
+                        <span className={styles.cardSummaryPrice}>
+                          {currency} {tier.amount.toFixed(2)}
+                        </span>
+                      )}
                       {tier.isPrimary && <span className={styles.primaryBadge}>Primary</span>}
                       <ChevronDown
-                        size={16}
+                        size={18}
                         className={`${styles.cardExpandIcon} ${isExpanded ? styles.cardExpandIconOpen : ""}`}
                         aria-hidden="true"
                       />
@@ -891,123 +911,83 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
                     {/* Expanded card - full fields */}
                     {isExpanded && (
                       <div className={styles.priceTierCardContent}>
-                        {/* Product */}
-                        <div className={styles.cardFieldGroup}>
-                          <label className={styles.cardFieldLabel}>Product</label>
-                          <input
-                            type="text"
-                            value={tier.product}
-                            onChange={(e) =>
-                              setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, product: e.target.value } : t)))
-                            }
-                            placeholder="e.g. Galaxy"
-                            className={styles.cardInput}
-                            aria-label="Product name"
-                          />
-                        </div>
-
-                        {/* Tier/Label */}
-                        <div className={styles.cardFieldGroup}>
-                          <label className={styles.cardFieldLabel}>Tier</label>
-                          <input
-                            type="text"
-                            value={tier.label}
-                            onChange={(e) =>
-                              setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, label: e.target.value } : t)))
-                            }
-                            placeholder="e.g. 3h"
-                            className={styles.cardInput}
-                            aria-label="Tier description"
-                          />
-                        </div>
-
-                        {/* Price */}
-                        <div className={styles.cardFieldGroup}>
-                          <label className={styles.cardFieldLabel}>Price ({currency})</label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            placeholder="0.00"
-                            value={tier.amount ?? ""}
-                            onChange={(e) =>
-                              setPriceTiers((prev) =>
-                                prev.map((t, ti) => (ti === i ? { ...t, amount: e.target.value === "" ? null : parseFloat(e.target.value) } : t))
-                              )
-                            }
-                            className={styles.cardInput}
-                            aria-label="Price amount"
-                          />
-                        </div>
-
-                        {/* Visitor Type */}
-                        <div className={styles.cardFieldGroup}>
-                          <label className={styles.cardFieldLabel}>Visitor Type</label>
-                          <input
-                            type="text"
-                            value={tier.visitorType}
-                            onChange={(e) =>
-                              setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, visitorType: e.target.value } : t)))
-                            }
-                            placeholder="e.g. Adult"
-                            className={styles.cardInput}
-                            aria-label="Visitor type"
-                          />
-                        </div>
-
-                        {/* Days */}
-                        <div className={styles.cardFieldGroup}>
-                          <label className={styles.cardFieldLabel}>Days</label>
-                          <div className={styles.daysModeButtons}>
-                            <button
-                              type="button"
-                              className={`${styles.daysModeBtn} ${daysMode === "any" ? styles.dayModeBtnActive : ""}`}
-                              onClick={() => setDaysMode(i, "any")}
-                              aria-pressed={daysMode === "any"}
-                            >
-                              Any
-                            </button>
-                            <button
-                              type="button"
-                              className={`${styles.daysModeBtn} ${daysMode === "weekday" ? styles.dayModeBtnActive : ""}`}
-                              onClick={() => setDaysMode(i, "weekday")}
-                              aria-pressed={daysMode === "weekday"}
-                            >
-                              Weekday
-                            </button>
-                            <button
-                              type="button"
-                              className={`${styles.daysModeBtn} ${daysMode === "weekend" ? styles.dayModeBtnActive : ""}`}
-                              onClick={() => setDaysMode(i, "weekend")}
-                              aria-pressed={daysMode === "weekend"}
-                            >
-                              Weekend
-                            </button>
-                            <button
-                              type="button"
-                              className={`${styles.daysModeBtn} ${daysMode === "custom" ? styles.dayModeBtnActive : ""}`}
-                              onClick={() => setDaysMode(i, "custom")}
-                              aria-pressed={daysMode === "custom"}
-                            >
-                              Custom
-                            </button>
+                        <div className={styles.cardFieldRow}>
+                          <div className={styles.cardFieldGroup}>
+                            <label className={styles.cardFieldLabel}>Product</label>
+                            <input
+                              type="text"
+                              value={tier.product}
+                              onChange={(e) =>
+                                setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, product: e.target.value } : t)))
+                              }
+                              placeholder="e.g. Galaxy"
+                              className={styles.cardInput}
+                              aria-label="Product name"
+                            />
                           </div>
-                          {daysMode === "custom" && (
-                            <div className={styles.daysCheckboxes}>
-                              {DAY_OPTIONS.map((day) => (
-                                <label key={day} className={styles.dayCheckboxLabel}>
-                                  <input
-                                    type="checkbox"
-                                    checked={tier.days.includes(day)}
-                                    onChange={() => toggleDayInCustom(i, day)}
-                                    aria-label={day}
-                                  />
-                                  {day.slice(0, 3)}
-                                </label>
-                              ))}
-                            </div>
-                          )}
+                          <div className={styles.cardFieldGroup}>
+                            <label className={styles.cardFieldLabel}>Tier</label>
+                            <input
+                              type="text"
+                              value={tier.label}
+                              onChange={(e) =>
+                                setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, label: e.target.value } : t)))
+                              }
+                              placeholder="e.g. 3h"
+                              className={styles.cardInput}
+                              aria-label="Tier description"
+                            />
+                          </div>
                         </div>
+
+                        <div className={styles.cardFieldRow}>
+                          <div className={styles.cardFieldGroup}>
+                            <label className={styles.cardFieldLabel}>Price ({currency})</label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={tier.amount ?? ""}
+                              onChange={(e) =>
+                                setPriceTiers((prev) =>
+                                  prev.map((t, ti) => (ti === i ? { ...t, amount: e.target.value === "" ? null : parseFloat(e.target.value) } : t))
+                                )
+                              }
+                              className={styles.cardInput}
+                              aria-label="Price amount"
+                            />
+                          </div>
+                          <div className={styles.cardFieldGroup}>
+                            <label className={styles.cardFieldLabel}>Visitor Type</label>
+                            <input
+                              type="text"
+                              value={tier.visitorType}
+                              onChange={(e) =>
+                                setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, visitorType: e.target.value } : t)))
+                              }
+                              placeholder="e.g. Adult"
+                              className={styles.cardInput}
+                              aria-label="Visitor type"
+                            />
+                          </div>
+                        </div>
+
+                        <div className={`${styles.cardFieldGroup} ${styles.cardDaysGroup}`}>
+                          <label className={styles.cardFieldLabel}>Days</label>
+                          <button
+                            type="button"
+                            className={styles.cardDaysButton}
+                            onClick={() => setCustomDaysPopupIndex(i)}
+                            aria-haspopup="dialog"
+                            aria-expanded={customDaysPopupIndex === i}
+                          >
+                            <span>{getDaysSummary(tier)}</span>
+                            <Calendar size={16} aria-hidden="true" />
+                          </button>
+                        </div>
+
+                        <hr className={styles.cardDivider} />
 
                         {/* Actions */}
                         <div className={styles.cardActions}>
