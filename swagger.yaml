@@ -1033,6 +1033,37 @@ components:
           type: string
           example: Sushi
 
+    AdminMessage:
+      type: object
+      properties:
+        _id:
+          type: string
+        attractionId:
+          type: string
+        attractionName:
+          type: string
+        editedBy:
+          type: string
+          description: User id of whoever saved the edit
+        editedByName:
+          type: string
+        editedAt:
+          type: string
+          format: date-time
+        changes:
+          type: array
+          description: One entry per top-level attraction field that changed
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: openingHours
+              oldValue: {}
+              newValue: {}
+        read:
+          type: boolean
+
 security:
   - BearerAuth: []
 
@@ -2460,6 +2491,79 @@ paths:
           description: Forbidden — admin only
         404:
           description: Food style not found
+
+  # ==========================================
+  # 🔔 Admin Messages
+  # ==========================================
+  /api/admin/messages:
+    get:
+      summary: List attraction-edit notifications (admin only) — newest first
+      description: |
+        Generated automatically whenever an existing attraction is edited: records the
+        editor and a per-field old-value/new-value diff. Pass `?unread=1` to filter to
+        unread messages only (used for the navbar bell's badge count).
+      tags: [Admin Messages]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: unread
+          required: false
+          schema:
+            type: string
+            enum: ["1"]
+          description: Pass "1" to return only unread messages
+      responses:
+        200:
+          description: Array of admin messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminMessage'
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden — admin only
+
+  /api/admin/messages/{id}:
+    patch:
+      summary: Mark a message read or unread (admin only)
+      tags: [Admin Messages]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [read]
+              properties:
+                read:
+                  type: boolean
+      responses:
+        200:
+          description: Updated message
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminMessage'
+        400:
+          description: Validation error — `read` must be a boolean
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden — admin only
+        404:
+          description: Message not found
 
   # ==========================================
   # 🗺️ Geo

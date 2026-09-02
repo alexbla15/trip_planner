@@ -1,4 +1,5 @@
 export { Navbar } from "./Navbar";
+export { AdminMessagesBell } from "./AdminMessagesBell";
 export { Footer } from "./Footer";
 export { ThemeToggle } from "./ThemeToggle";
 export { RouteGuard } from "./RouteGuard";

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Plane, MapPinned, Menu, X, Compass, Map, LogIn, LogOut, BarChart2, User, Shield } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { AdminMessagesBell } from "@/components/AdminMessagesBell";
 import { useAuth } from "@/contexts/AuthContext";
 import styles from "./Navbar.module.css";
 
@@ -87,6 +88,7 @@ export function Navbar() {
           </ul>
 
           <div className={styles.actions}>
+            <AdminMessagesBell />
             <ThemeToggle />
 
             {user ? (
