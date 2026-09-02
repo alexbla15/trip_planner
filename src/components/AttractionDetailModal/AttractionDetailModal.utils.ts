@@ -1,23 +1,10 @@
 import type { PriceTier } from "@/types/attraction";
 
-function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 /** Derives a grouping key identifying "which product/brand this tier belongs to" from
- *  its `label`, WITHOUT ever changing the stored `label` itself (see docs/LEARNINGS.md —
- *  `label` is a de-facto foreign key via `Trip.schedules.priceTierQuantities` and must
- *  stay byte-for-byte stable). Strips the day-range parenthetical (only when `dayType` is
- *  set) and the tier's own `visitorType` word, so "Galaxy 3h Adult (Mon-Thu)" and
- *  "Galaxy 3h Child (Fri-Sun & holidays)" both resolve to "Galaxy 3h" and become one tab.
- *  This is a best-effort heuristic — a tier whose leftover text doesn't match any sibling
- *  simply becomes its own tab instead. */
+ *  its `product` field (user-entered) or falls back to the `label` if no product is set.
+ *  This determines which tab the tier appears under in the detail modal. */
 export function getPriceProductKey(tier: PriceTier): string {
-  let key = tier.label;
-  if (tier.dayType) key = key.replace(/\s*\([^)]*\)\s*$/, "");
-  if (tier.visitorType) key = key.replace(new RegExp(`\\b${escapeRegExp(tier.visitorType)}\\b`, "i"), " ");
-  key = key.replace(/\s+/g, " ").trim();
-  return key || tier.label;
+  return tier.product || tier.label;
 }
 
 export interface PriceTierTab {

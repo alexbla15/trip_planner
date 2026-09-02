@@ -469,9 +469,12 @@ components:
           items:
             type: object
             properties:
-              label: { type: string, example: Adult }
+              product: { type: string, nullable: true, example: "Galaxy 3h", description: "Product/brand name used for tab grouping in the detail modal" }
+              label: { type: string, example: "Adult" }
               amount: { type: number, example: 16.00 }
               isPrimary: { type: boolean, example: true }
+              visitorType: { type: string, nullable: true, example: "Adult", description: "Optional visitor category (Adult, Child, Senior, Student)" }
+              days: { type: array, items: { type: string }, nullable: true, example: ["Monday", "Tuesday", "Wednesday", "Thursday"], description: "Days this tier applies to (individual days or special values: 'weekday', 'weekend'). Empty/absent means any day." }
         priceTierQuantities:
           type: array
           description: >
@@ -674,9 +677,12 @@ components:
             type: object
             required: [label, amount]
             properties:
-              label: { type: string, example: Adult }
+              product: { type: string, nullable: true, example: "Galaxy 3h", description: "Product/brand name used for tab grouping in the detail modal" }
+              label: { type: string, example: "Adult" }
               amount: { type: number, example: 16.00 }
               isPrimary: { type: boolean, description: "Exactly one tier should be true; the first tier is promoted automatically if none is marked." }
+              visitorType: { type: string, nullable: true, example: "Adult", description: "Optional visitor category (Adult, Child, Senior, Student)" }
+              days: { type: array, items: { type: string }, nullable: true, example: ["Monday", "Tuesday"], description: "Days this tier applies to (individual days or special values: 'weekday', 'weekend'). Empty/absent means any day." }
         currency:
           type: string
           default: USD

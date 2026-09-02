@@ -60,15 +60,16 @@ export interface Coordinates {
   lng: number;
 }
 
-/** In-progress form state for one price-tier row — `visitorType`/`dayType` use `""` as
- *  the "not set" sentinel (vs. `undefined` in the submitted shape) so controlled
- *  `<select>`/`<input>` elements always have a defined value. */
+/** In-progress form state for one price-tier row — `product`/`visitorType` use `""` as
+ *  the "not set" sentinel (vs. `undefined` in the submitted shape) so controlled inputs
+ *  always have a defined value. `days` is always an array (empty = "Any day"). */
 export interface PriceTierDraft {
+  product: string;
   label: string;
   amount: number | null;
   isPrimary: boolean;
   visitorType: string;
-  dayType: "" | "weekday" | "weekend";
+  days: string[];
 }
 
 export interface AttractionFormData {
@@ -80,7 +81,7 @@ export interface AttractionFormData {
   /** Only meaningful for dining-type attractions — admin-managed food style names. */
   foodStyles?: string[];
   /** Named price tiers — when set (non-empty), overrides `price` on submit. */
-  prices?: { label: string; amount: number; isPrimary: boolean; visitorType?: string; dayType?: "weekday" | "weekend" }[];
+  prices?: { product?: string; label: string; amount: number; isPrimary: boolean; visitorType?: string; days?: string[] }[];
   durationValue: string;
   durationUnit: DurationUnit;
   price: number | null;

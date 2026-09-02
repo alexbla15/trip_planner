@@ -117,7 +117,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   const [durationValue, setDurationValue] = useState("");
   const [durationUnit, setDurationUnit] = useState<DurationUnit>("hours");
   const [priceTiers, setPriceTiers] = useState<PriceTierDraft[]>([
-    { label: "Regular", amount: null, isPrimary: true, visitorType: "", dayType: "" },
+    { product: "", label: "Regular", amount: null, isPrimary: true, visitorType: "", days: [] },
   ]);
   const [currency, setCurrency] = useState("USD");
   const [openingHours, setOpeningHours] = useState<OpeningHours>(buildInitialHours);
@@ -150,13 +150,14 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setPriceTiers(
       initialData?.prices?.length
         ? initialData.prices.map((t) => ({
+            product: t.product ?? "",
             label: t.label,
             amount: t.amount,
             isPrimary: t.isPrimary,
             visitorType: t.visitorType ?? "",
-            dayType: t.dayType ?? "",
+            days: t.days ?? [],
           }))
-        : [{ label: "Regular", amount: initialData?.price ?? null, isPrimary: true, visitorType: "", dayType: "" }]
+        : [{ product: "", label: "Regular", amount: initialData?.price ?? null, isPrimary: true, visitorType: "", days: [] }]
     );
     setCurrency(initialData?.currency ?? "USD");
     const isResidence = initialData?.subtype === "residence";
@@ -226,6 +227,53 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     );
   }
 
+  // Helpers for managing days in price tiers
+  const DAY_OPTIONS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+  function getDaysModeForTier(tier: PriceTierDraft): "any" | "weekday" | "weekend" | "custom" {
+    if (tier.days.length === 0) return "any";
+    if (tier.days.length === 1) {
+      if (tier.days[0] === "weekday") return "weekday";
+      if (tier.days[0] === "weekend") return "weekend";
+    }
+    return "custom";
+  }
+
+  function setDaysMode(tierIndex: number, mode: "any" | "weekday" | "weekend" | "custom") {
+    setPriceTiers((prev) =>
+      prev.map((t, ti) =>
+        ti === tierIndex
+          ? {
+              ...t,
+              days:
+                mode === "any"
+                  ? []
+                  : mode === "weekday"
+                    ? ["weekday"]
+                    : mode === "weekend"
+                      ? ["weekend"]
+                      : t.days,
+            }
+          : t
+      )
+    );
+  }
+
+  function toggleDayInCustom(tierIndex: number, day: string) {
+    setPriceTiers((prev) =>
+      prev.map((t, ti) =>
+        ti === tierIndex
+          ? {
+              ...t,
+              days: t.days.includes(day)
+                ? t.days.filter((d) => d !== day)
+                : [...t.days, day],
+            }
+          : t
+      )
+    );
+  }
+
   async function handleSave() {
     const allTouched = { name: true, country: true, types: true, websiteUrl: true };
     setTouched(allTouched);
@@ -248,11 +296,12 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       price: primaryTier?.amount ?? null,
       prices: validTiers.length
         ? validTiers.map((t) => ({
+            product: t.product.trim() || undefined,
             label: t.label.trim(),
             amount: t.amount!,
             isPrimary: t === primaryTier,
             visitorType: t.visitorType.trim() || undefined,
-            dayType: t.dayType || undefined,
+            days: t.days.length > 0 ? t.days : undefined,
           }))
         : undefined,
       currency,
@@ -279,7 +328,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setSelectedTypes([]);
     setDurationValue("");
     setDurationUnit("hours");
-    setPriceTiers([{ label: "Regular", amount: null, isPrimary: true, visitorType: "", dayType: "" }]);
+    setPriceTiers([{ product: "", label: "Regular", amount: null, isPrimary: true, visitorType: "", days: [] }]);
     setCurrency("USD");
     setOpeningHours(buildInitialHours());
     setOpeningMonths(ALL_MONTHS);
@@ -592,32 +641,55 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           <div className={styles.priceRow}>
             <CurrencySelect value={currency} onChange={setCurrency} />
           </div>
-          <div className={styles.priceTierList}>
-            {priceTiers.map((tier, i) => (
-              <div key={i} className={styles.priceTierGroup}>
-                <div className={styles.priceTierRow}>
-                  <button
-                    type="button"
-                    className={`${styles.priceTierPrimaryBtn} ${tier.isPrimary ? styles.priceTierPrimaryBtnActive : ""}`}
-                    onClick={() =>
-                      setPriceTiers((prev) => prev.map((t, ti) => ({ ...t, isPrimary: ti === i })))
+          <div className={styles.priceTierEditor}>
+            {/* Grid header */}
+            <div className={styles.priceTierHeader}>
+              <div className={styles.priceTierHeaderCell}>Product</div>
+              <div className={styles.priceTierHeaderCell}>Tier</div>
+              <div className={styles.priceTierHeaderCell}>Visitor Type</div>
+              <div className={styles.priceTierHeaderCell}>Price</div>
+              <div className={styles.priceTierHeaderCell}>Days</div>
+              <div className={styles.priceTierHeaderCell}></div>
+            </div>
+            {/* Grid rows */}
+            {priceTiers.map((tier, i) => {
+              const daysMode = getDaysModeForTier(tier);
+              return (
+                <div key={i} className={styles.priceTierRow}>
+                  {/* Product */}
+                  <input
+                    type="text"
+                    value={tier.product}
+                    onChange={(e) =>
+                      setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, product: e.target.value } : t)))
                     }
-                    title={tier.isPrimary ? "Primary rate" : "Set as primary rate"}
-                    aria-pressed={tier.isPrimary}
-                    aria-label={tier.isPrimary ? "Primary rate" : "Set as primary rate"}
-                  >
-                    <Check size={12} aria-hidden="true" />
-                  </button>
+                    placeholder="e.g. Galaxy"
+                    className={styles.priceTierCell}
+                    aria-label="Product name"
+                  />
+                  {/* Tier/Label */}
                   <input
                     type="text"
                     value={tier.label}
                     onChange={(e) =>
                       setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, label: e.target.value } : t)))
                     }
-                    placeholder="e.g. Galaxy 3h"
-                    className={styles.priceTierLabelInput}
-                    aria-label="Price tier label"
+                    placeholder="e.g. 3h"
+                    className={styles.priceTierCell}
+                    aria-label="Tier description"
                   />
+                  {/* Visitor Type */}
+                  <input
+                    type="text"
+                    value={tier.visitorType}
+                    onChange={(e) =>
+                      setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, visitorType: e.target.value } : t)))
+                    }
+                    placeholder="e.g. Adult"
+                    className={styles.priceTierCell}
+                    aria-label="Visitor type"
+                  />
+                  {/* Price */}
                   <input
                     type="number"
                     min="0"
@@ -629,61 +701,100 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
                         prev.map((t, ti) => (ti === i ? { ...t, amount: e.target.value === "" ? null : parseFloat(e.target.value) } : t))
                       )
                     }
-                    className={styles.priceInput}
-                    aria-label="Price tier amount"
+                    className={`${styles.priceTierCell} ${styles.priceInput}`}
+                    aria-label="Price amount"
                   />
-                  {priceTiers.length > 1 && (
+                  {/* Days */}
+                  <div className={styles.priceTierDaysCell}>
+                    <div className={styles.daysModeButtons}>
+                      <button
+                        type="button"
+                        className={`${styles.daysModeBtn} ${daysMode === "any" ? styles.dayModeBtnActive : ""}`}
+                        onClick={() => setDaysMode(i, "any")}
+                        aria-pressed={daysMode === "any"}
+                      >
+                        Any
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.daysModeBtn} ${daysMode === "weekday" ? styles.dayModeBtnActive : ""}`}
+                        onClick={() => setDaysMode(i, "weekday")}
+                        aria-pressed={daysMode === "weekday"}
+                      >
+                        Weekday
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.daysModeBtn} ${daysMode === "weekend" ? styles.dayModeBtnActive : ""}`}
+                        onClick={() => setDaysMode(i, "weekend")}
+                        aria-pressed={daysMode === "weekend"}
+                      >
+                        Weekend
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.daysModeBtn} ${daysMode === "custom" ? styles.dayModeBtnActive : ""}`}
+                        onClick={() => setDaysMode(i, "custom")}
+                        aria-pressed={daysMode === "custom"}
+                      >
+                        Custom
+                      </button>
+                    </div>
+                    {daysMode === "custom" && (
+                      <div className={styles.daysCheckboxes}>
+                        {DAY_OPTIONS.map((day) => (
+                          <label key={day} className={styles.dayCheckboxLabel}>
+                            <input
+                              type="checkbox"
+                              checked={tier.days.includes(day)}
+                              onChange={() => toggleDayInCustom(i, day)}
+                              aria-label={day}
+                            />
+                            {day.slice(0, 3)}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {/* Actions */}
+                  <div className={styles.priceTierActions}>
                     <button
                       type="button"
-                      className={styles.iconBtn}
+                      className={`${styles.priceTierPrimaryBtn} ${tier.isPrimary ? styles.priceTierPrimaryBtnActive : ""}`}
                       onClick={() =>
-                        setPriceTiers((prev) => {
-                          const next = prev.filter((_, ti) => ti !== i);
-                          if (prev[i].isPrimary && next.length > 0) next[0] = { ...next[0], isPrimary: true };
-                          return next;
-                        })
+                        setPriceTiers((prev) => prev.map((t, ti) => ({ ...t, isPrimary: ti === i })))
                       }
-                      aria-label={`Remove ${tier.label || "tier"}`}
+                      title={tier.isPrimary ? "Primary rate" : "Set as primary rate"}
+                      aria-pressed={tier.isPrimary}
+                      aria-label={tier.isPrimary ? "Primary rate" : "Set as primary rate"}
                     >
-                      <X size={14} aria-hidden="true" />
+                      <Check size={12} aria-hidden="true" />
                     </button>
-                  )}
+                    {priceTiers.length > 1 && (
+                      <button
+                        type="button"
+                        className={styles.iconBtn}
+                        onClick={() =>
+                          setPriceTiers((prev) => {
+                            const next = prev.filter((_, ti) => ti !== i);
+                            if (prev[i].isPrimary && next.length > 0) next[0] = { ...next[0], isPrimary: true };
+                            return next;
+                          })
+                        }
+                        aria-label={`Remove ${tier.label || "tier"}`}
+                      >
+                        <X size={14} aria-hidden="true" />
+                      </button>
+                    )}
+                  </div>
                 </div>
-                {/* Optional grouping metadata — lets the attraction detail page group/filter
-                    tiers by visitor type and day-type once there are several of them. */}
-                <div className={styles.priceTierMetaRow}>
-                  <input
-                    type="text"
-                    value={tier.visitorType}
-                    onChange={(e) =>
-                      setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, visitorType: e.target.value } : t)))
-                    }
-                    placeholder="Visitor type (e.g. Adult) — optional"
-                    className={styles.priceTierMetaInput}
-                    aria-label="Price tier visitor type"
-                  />
-                  <select
-                    value={tier.dayType}
-                    onChange={(e) =>
-                      setPriceTiers((prev) =>
-                        prev.map((t, ti) => (ti === i ? { ...t, dayType: e.target.value as PriceTierDraft["dayType"] } : t))
-                      )
-                    }
-                    className={styles.priceTierMetaSelect}
-                    aria-label="Price tier day type"
-                  >
-                    <option value="">Any day</option>
-                    <option value="weekday">Weekday (Mon–Thu)</option>
-                    <option value="weekend">Weekend (Fri–Sun & holidays)</option>
-                  </select>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             <button
               type="button"
               className={styles.addTierBtn}
               onClick={() =>
-                setPriceTiers((prev) => [...prev, { label: "", amount: null, isPrimary: prev.length === 0, visitorType: "", dayType: "" }])
+                setPriceTiers((prev) => [...prev, { product: "", label: "", amount: null, isPrimary: prev.length === 0, visitorType: "", days: [] }])
               }
             >
               + Add price tier

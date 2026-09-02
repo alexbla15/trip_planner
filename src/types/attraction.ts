@@ -14,15 +14,18 @@ export interface PriceTier {
   label: string;
   amount: number;
   isPrimary: boolean;
+  /** Product/brand name (e.g. "Galaxy 3h", "Entrance") — used to group tiers into tabs in
+   *  the detail modal. User-entered, replaces heuristic parsing. */
+  product?: string;
   /** Who this tier applies to (e.g. "Adult", "Child", "Senior", "Student") — free-form so
    *  unusual venues aren't blocked, but the detail modal groups/filters distinct values
    *  it recognizes among a tier set. Absent means this tier can't be grouped by visitor
    *  type (falls into the ungrouped/flat list alongside other tiers missing it). */
   visitorType?: string;
-  /** Which days this tier's rate applies to — "weekday" for Mon-Thu, "weekend" for
-   *  Fri-Sun & holidays (the split actually seen in real pricing data, not literal
-   *  Mon-Fri/Sat-Sun). Absent means this tier can't be grouped by day-type. */
-  dayType?: "weekday" | "weekend";
+  /** Which days/day-types this tier's rate applies to — array of individual day names
+   *  ("Monday", "Tuesday", ..., "Sunday") or special values ("weekday" for Mon-Thu,
+   *  "weekend" for Fri-Sun & holidays). Empty/absent means "Any day" (applies to all days). */
+  days?: string[];
 }
 
 export interface Attraction {

@@ -30,18 +30,19 @@ function throwIfDuplicateKeyError(err: unknown): never {
  *  business rule the client can violate meaningfully). Returns the normalized tiers plus
  *  the primary tier's amount, which callers sync onto the legacy `price` field so every
  *  existing single-price consumer (cards, budget calculations) keeps working unchanged. */
-function normalizePriceTiers(tiers: { label: string; amount: number; isPrimary?: boolean; visitorType?: string; dayType?: "weekday" | "weekend" }[]): {
+function normalizePriceTiers(tiers: { product?: string; label: string; amount: number; isPrimary?: boolean; visitorType?: string; days?: string[] }[]): {
   prices: IPriceTier[];
   primaryAmount: number;
 } {
   if (tiers.length === 0) throw badRequest("At least one price tier is required");
   const hasPrimary = tiers.some((t) => t.isPrimary);
   const prices: IPriceTier[] = tiers.map((t, i) => ({
+    product: t.product?.trim() || undefined,
     label: t.label.trim(),
     amount: t.amount,
     isPrimary: hasPrimary ? !!t.isPrimary : i === 0,
     visitorType: t.visitorType?.trim() || undefined,
-    dayType: t.dayType,
+    days: t.days?.length ? t.days : undefined,
   }));
   const primary = prices.find((t) => t.isPrimary)!;
   return { prices, primaryAmount: primary.amount };
