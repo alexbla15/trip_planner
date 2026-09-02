@@ -367,7 +367,7 @@
 
 .priceTierHeader {
   display: grid;
-  grid-template-columns: 1.2fr 1.1fr 1.2fr 110px 140px auto;
+  grid-template-columns: 0.8fr 0.8fr 0.9fr 110px 140px auto;
   gap: 12px;
   padding: 14px 16px;
   background: var(--color-bg-subtle);
@@ -388,13 +388,14 @@
 
 .priceTierRow {
   display: grid;
-  grid-template-columns: 1.2fr 1.1fr 1.2fr 110px 140px auto;
+  grid-template-columns: 0.8fr 0.8fr 0.9fr 110px 140px auto;
   gap: 12px;
   padding: 12px 16px;
   align-items: start;
   border-bottom: 1px solid var(--color-border-subtle);
   background: var(--color-surface);
   transition: background var(--duration-fast) var(--easing-out);
+  position: relative;
 }
 
 .priceTierRow:hover {
@@ -1059,5 +1060,181 @@
 .parentChipBtn:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* Expandable Text Fields */
+.expandableFieldWrapper {
+  position: relative;
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.expandableFieldTrigger {
+  width: 100%;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 13px;
+  color: var(--color-text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--easing-out);
+  font-family: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.expandableFieldTrigger:hover {
+  border-color: var(--color-primary);
+  background: var(--color-bg-subtle);
+}
+
+.expandableFieldTrigger:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+.expandableTextarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--color-text-primary);
+  resize: none;
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.expandableTextarea:focus {
+  outline: none;
+}
+
+.expandableTextarea::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+/* Custom Days Popup */
+.customDaysOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  z-index: 1000;
+  animation: fadeIn var(--duration-fast) var(--easing-out);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.customDaysPopup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1001;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  min-width: 320px;
+  max-width: 400px;
+  animation: popupIn var(--duration-base) var(--easing-out);
+}
+
+@keyframes popupIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.customDaysPopupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.customDaysPopupTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.customDaysPopupClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all var(--duration-fast) var(--easing-out);
+}
+
+.customDaysPopupClose:hover {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-primary);
+}
+
+.customDaysPopupGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 16px;
+}
+
+.customDaysPopupFooter {
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.customDaysPopupDone {
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--easing-out);
+}
+
+.customDaysPopupDone:hover {
+  background: var(--color-primary-dark);
+}
+
+.customDaysPopupDone:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Backdrop for popup */
+.backdrop.customDaysOpen {
+  background: rgba(15, 23, 42, 0.4);
 }
 

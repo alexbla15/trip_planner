@@ -120,6 +120,8 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     { product: "", label: "Regular", amount: null, isPrimary: true, visitorType: "", days: [] },
   ]);
   const [expandedTierIndex, setExpandedTierIndex] = useState<number | null>(null);
+  const [customDaysPopupIndex, setCustomDaysPopupIndex] = useState<number | null>(null);
+  const [expandedTextField, setExpandedTextField] = useState<string | null>(null);
   const [currency, setCurrency] = useState("USD");
   const [openingHours, setOpeningHours] = useState<OpeningHours>(buildInitialHours);
   const [is24h, setIs24h]               = useState(false);
@@ -663,36 +665,81 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
                   className={`${styles.priceTierRow} ${isExpanded ? styles.priceTierRowExpanded : ""}`}
                 >
                   {/* DESKTOP LAYOUT (≥768px) - Grid columns */}
-                  <input
-                    type="text"
-                    value={tier.product}
-                    onChange={(e) =>
-                      setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, product: e.target.value } : t)))
-                    }
-                    placeholder="e.g. Galaxy"
-                    className={`${styles.priceTierCell} ${styles.desktopOnly}`}
-                    aria-label="Product name"
-                  />
-                  <input
-                    type="text"
-                    value={tier.label}
-                    onChange={(e) =>
-                      setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, label: e.target.value } : t)))
-                    }
-                    placeholder="e.g. 3h"
-                    className={`${styles.priceTierCell} ${styles.desktopOnly}`}
-                    aria-label="Tier description"
-                  />
-                  <input
-                    type="text"
-                    value={tier.visitorType}
-                    onChange={(e) =>
-                      setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, visitorType: e.target.value } : t)))
-                    }
-                    placeholder="e.g. Adult"
-                    className={`${styles.priceTierCell} ${styles.desktopOnly}`}
-                    aria-label="Visitor type"
-                  />
+                  {/* Product - Expandable */}
+                  <div className={`${styles.expandableFieldWrapper} ${styles.desktopOnly}`}>
+                    {expandedTextField === `product-${i}` ? (
+                      <textarea
+                        value={tier.product}
+                        onChange={(e) =>
+                          setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, product: e.target.value } : t)))
+                        }
+                        placeholder="e.g. Galaxy 3-hour tour"
+                        className={styles.expandableTextarea}
+                        aria-label="Product name"
+                        onBlur={() => setExpandedTextField(null)}
+                        autoFocus
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.expandableFieldTrigger}
+                        onClick={() => setExpandedTextField(`product-${i}`)}
+                        aria-label="Edit product"
+                      >
+                        {tier.product || "Product"}
+                      </button>
+                    )}
+                  </div>
+                  {/* Tier - Expandable */}
+                  <div className={`${styles.expandableFieldWrapper} ${styles.desktopOnly}`}>
+                    {expandedTextField === `tier-${i}` ? (
+                      <textarea
+                        value={tier.label}
+                        onChange={(e) =>
+                          setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, label: e.target.value } : t)))
+                        }
+                        placeholder="e.g. 3h, Half-day"
+                        className={styles.expandableTextarea}
+                        aria-label="Tier description"
+                        onBlur={() => setExpandedTextField(null)}
+                        autoFocus
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.expandableFieldTrigger}
+                        onClick={() => setExpandedTextField(`tier-${i}`)}
+                        aria-label="Edit tier"
+                      >
+                        {tier.label || "Tier"}
+                      </button>
+                    )}
+                  </div>
+                  {/* Visitor Type - Expandable */}
+                  <div className={`${styles.expandableFieldWrapper} ${styles.desktopOnly}`}>
+                    {expandedTextField === `visitorType-${i}` ? (
+                      <textarea
+                        value={tier.visitorType}
+                        onChange={(e) =>
+                          setPriceTiers((prev) => prev.map((t, ti) => (ti === i ? { ...t, visitorType: e.target.value } : t)))
+                        }
+                        placeholder="e.g. Adult, Child"
+                        className={styles.expandableTextarea}
+                        aria-label="Visitor type"
+                        onBlur={() => setExpandedTextField(null)}
+                        autoFocus
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.expandableFieldTrigger}
+                        onClick={() => setExpandedTextField(`visitorType-${i}`)}
+                        aria-label="Edit visitor type"
+                      >
+                        {tier.visitorType || "Visitor type"}
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="number"
                     min="0"
@@ -736,14 +783,32 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
                       <button
                         type="button"
                         className={`${styles.daysModeBtn} ${daysMode === "custom" ? styles.dayModeBtnActive : ""}`}
-                        onClick={() => setDaysMode(i, "custom")}
+                        onClick={() => {
+                          setDaysMode(i, "custom");
+                          setCustomDaysPopupIndex(i);
+                        }}
                         aria-pressed={daysMode === "custom"}
                       >
                         Custom
                       </button>
                     </div>
-                    {daysMode === "custom" && (
-                      <div className={styles.daysCheckboxes}>
+                  </div>
+                  {customDaysPopupIndex === i && (
+                    <>
+                      <div className={styles.customDaysOverlay} onClick={() => setCustomDaysPopupIndex(null)} />
+                      <div className={styles.customDaysPopup}>
+                      <div className={styles.customDaysPopupHeader}>
+                        <h3 className={styles.customDaysPopupTitle}>Select Days</h3>
+                        <button
+                          type="button"
+                          className={styles.customDaysPopupClose}
+                          onClick={() => setCustomDaysPopupIndex(null)}
+                          aria-label="Close"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                      <div className={styles.customDaysPopupGrid}>
                         {DAY_OPTIONS.map((day) => (
                           <label key={day} className={styles.dayCheckboxLabel}>
                             <input
@@ -752,12 +817,22 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
                               onChange={() => toggleDayInCustom(i, day)}
                               aria-label={day}
                             />
-                            {day.slice(0, 3)}
+                            {day}
                           </label>
                         ))}
                       </div>
-                    )}
-                  </div>
+                      <div className={styles.customDaysPopupFooter}>
+                        <button
+                          type="button"
+                          className={styles.customDaysPopupDone}
+                          onClick={() => setCustomDaysPopupIndex(null)}
+                        >
+                          Done
+                        </button>
+                      </div>
+                    </div>
+                    </>
+                  )}
                   <div className={`${styles.priceTierActions} ${styles.desktopOnly}`}>
                     <button
                       type="button"
