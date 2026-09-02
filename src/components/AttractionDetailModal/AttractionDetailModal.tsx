@@ -711,7 +711,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
               )}
               {priceTabs.length > 0 && (
                 <div className={styles.hoursCard}>
-                  <table className={styles.priceTable} aria-label={`${priceTabs[activeTab].key} pricing`}>
+                  <table key={priceTabs[activeTab].key} className={styles.priceTable} aria-label={`${priceTabs[activeTab].key} pricing`}>
                     <thead>
                       <tr>
                         <th className={styles.priceColField} scope="col">Tier</th>
@@ -720,8 +720,8 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                       </tr>
                     </thead>
                     <tbody>
-                      {priceTabs[activeTab].tiers.map((tier) => (
-                        <tr key={tier.label} className={`${styles.priceRow} ${tier.isPrimary ? styles.priceRowPrimary : ""}`}>
+                      {priceTabs[activeTab].tiers.map((tier, ti) => (
+                        <tr key={`${tier.label}-${tier.visitorType ?? ""}-${ti}`} className={`${styles.priceRow} ${tier.isPrimary ? styles.priceRowPrimary : ""}`}>
                           <td className={styles.priceColField}>
                             <span className={styles.priceLabel}>
                               {tier.label}

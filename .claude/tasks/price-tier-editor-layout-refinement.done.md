@@ -1,6 +1,6 @@
 # Task: Refine price tier editor layout for desktop & mobile
 
-Status: reviewing
+Status: done
 
 Track: A
 
@@ -264,3 +264,6 @@ Design a responsive price tier editor that:
 - Animations: 200ms smooth expand/collapse, 150ms hover feedback
 - Touch targets: All inputs 44px height, all buttons ≥44×44px hit area
 - Accessibility: Keyboard navigation (Tab order preserved), screen reader labels on all inputs
+
+## Completion Summary
+Delivered a fully responsive price tier editor after several rounds of user-driven iteration beyond the original Design Brief: full-width modal, expandable textarea fields for Product/Tier/Visitor Type (replacing cramped fixed inputs), fixed a grid-overflow bug where long unbroken text blew out row width, aligned the header/Actions column, and — most significantly — replaced the originally-specced inline quick-buttons + checkbox Days picker (which had a derived-state bug making "Custom" mode unreachable) with a single "Days" trigger button opening one shared popup for both desktop and mobile. Mobile cards were redesigned with a title/meta/price summary layout and 2-column field grouping. Confirmed working by user on 2026-09-02.

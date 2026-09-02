@@ -1,6 +1,6 @@
 # Task: Group price tiers by visitor type and day-type/season
 
-Status: reviewing
+Status: done
 Track: A
 Track reason: New UI interaction (grouping/toggling within the Prices card) not covered by existing design-system tokens, plus a data-model change.
 
@@ -84,3 +84,6 @@ User reported "data lost" on Gardaland and the table "not reflecting all pricing
 - Fix: removed pagination from the Prices table entirely (`AttractionDetailModal.tsx` — removed `pricesPage` state, the page-clamping logic, and the Prev/Next controls). The visitor-type filter chips and day-type grouping already keep long tier lists scannable, so paginating on top of them was actively harmful, not helpful.
 - `tsc --noEmit` and `eslint` re-run clean (no new warnings/errors) after the fix; verified Gardaland's full 8-tier list renders via a local dev server hitting the real DB.
 - Committed and pushed to `origin/master` as a follow-up commit after the user confirmed the direction.
+
+## Completion Summary
+Closing as done. The original problem (flat, unscannable price list) is solved, but the shipped shape diverged substantially from what's documented above in later, undocumented follow-up work: the data model moved from a single `dayType: "weekday"|"weekend"` field to a multi-day `days: string[]` array (see [[feedback-price-tier-editor-redesign]]), and the detail-modal UI moved from day-type-grouped table + visitor-type filter chips to product-based tabs (`buildPriceTierTabs` in `AttractionDetailModal.utils.ts`) with per-tab pagination (see commits `b4ae4e6`, `442885b`). This file's Implementation Notes reflect an intermediate state, not the current code — do not use it as a reference for the present `AttractionDetailModal` Prices behavior. Closed 2026-09-02.
