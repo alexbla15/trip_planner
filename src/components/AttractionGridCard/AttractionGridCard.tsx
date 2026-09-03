@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, ArrowUpRight, Calendar, BadgeCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
 import { renderTypeIcon } from "@/components/IconPicker";
@@ -34,6 +34,39 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
   const [children, setChildren] = useState<Attraction[] | null>(null);
   const [childrenPage, setChildrenPage] = useState(1);
   const [parentLoading, setParentLoading] = useState(false);
+
+  // Touch-only equivalent of the desktop hover/focus-within reveal — a left or right
+  // swipe on the card toggles the action buttons visible, since touch devices have no
+  // hover state to trigger them. touchStartXRef tracks the gesture; suppressClickRef
+  // stops the swipe's ending touch from also firing onClick (which would otherwise
+  // navigate into the attraction right as the user was just trying to reveal actions).
+  const [actionsRevealed, setActionsRevealed] = useState(false);
+  const touchStartXRef = useRef<number | null>(null);
+  const suppressClickRef = useRef(false);
+  const SWIPE_THRESHOLD_PX = 30;
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartXRef.current = e.touches[0].clientX;
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    const startX = touchStartXRef.current;
+    touchStartXRef.current = null;
+    if (startX == null) return;
+    const deltaX = e.changedTouches[0].clientX - startX;
+    if (Math.abs(deltaX) > SWIPE_THRESHOLD_PX) {
+      setActionsRevealed((prev) => !prev);
+      suppressClickRef.current = true;
+    }
+  }
+
+  function handleCardClick() {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
+    onClick(attraction);
+  }
 
   function stopAnd(handler: (attraction: Attraction) => void) {
     return (e: React.MouseEvent) => {
@@ -79,7 +112,9 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
       role="button"
       tabIndex={0}
       className={styles.card}
-      onClick={() => onClick(attraction)}
+      onClick={handleCardClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
@@ -134,7 +169,7 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
         </div>
 
         {showActions && (
-          <div className={styles.actions}>
+          <div className={`${styles.actions} ${actionsRevealed ? styles.actionsRevealed : ""}`}>
             <WebsiteLinkButton
               url={attraction.websiteUrl}
               variant="compact"

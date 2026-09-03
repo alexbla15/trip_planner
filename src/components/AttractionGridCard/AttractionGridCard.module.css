@@ -135,6 +135,13 @@
   transform: translateY(0);
 }
 
+/* Touch-device equivalent of the hover reveal above — toggled by a left/right swipe on
+   the card (see AttractionGridCard.tsx's touch handlers), since touch has no hover state. */
+.actionsRevealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .actionBtn {
   display: flex;
   align-items: center;
