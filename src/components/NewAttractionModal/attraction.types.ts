@@ -64,6 +64,9 @@ export interface MonthDay {
  *  `hours` grid that applies only between `start` and `end` (month/day, no year — recurs
  *  annually). */
 export interface SeasonalHoursEntryInput {
+  /** Optional user-given name (e.g. "Summer", "Ramadan"). Falls back to the formatted
+   *  date range for display when unset. */
+  title?: string;
   start: MonthDay;
   end: MonthDay;
   hours: OpeningHours;
@@ -74,6 +77,7 @@ export interface SeasonalHoursEntryInput {
  *  API. Narrows to `SeasonalHoursEntryInput` on submit once both dates are set. */
 export interface SeasonalHoursEntry {
   id: string;
+  title?: string;
   start: MonthDay | null;
   end: MonthDay | null;
   hours: OpeningHours;

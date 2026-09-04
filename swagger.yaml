@@ -269,6 +269,37 @@ components:
           items:
             $ref: '#/components/schemas/OpeningHoursRange'
 
+    MonthDay:
+      type: object
+      properties:
+        month: { type: integer, minimum: 1, maximum: 12 }
+        day: { type: integer, minimum: 1, maximum: 31 }
+
+    SeasonalHoursEntry:
+      type: object
+      required: [start, end, hours]
+      description: A date-scoped opening-hours override recurring annually (no year attached).
+      properties:
+        title:
+          type: string
+          nullable: true
+          description: Optional user-given name for this season (e.g. "Summer", "Ramadan"). When absent, clients display the formatted start-end date range instead.
+          example: Summer
+        start:
+          $ref: '#/components/schemas/MonthDay'
+        end:
+          $ref: '#/components/schemas/MonthDay'
+        hours:
+          type: object
+          properties:
+            Mon: { $ref: '#/components/schemas/OpeningHoursDay' }
+            Tue: { $ref: '#/components/schemas/OpeningHoursDay' }
+            Wed: { $ref: '#/components/schemas/OpeningHoursDay' }
+            Thu: { $ref: '#/components/schemas/OpeningHoursDay' }
+            Fri: { $ref: '#/components/schemas/OpeningHoursDay' }
+            Sat: { $ref: '#/components/schemas/OpeningHoursDay' }
+            Sun: { $ref: '#/components/schemas/OpeningHoursDay' }
+
     # Trip-specific scheduling for one attraction
     AttractionSchedule:
       type: object
@@ -511,6 +542,12 @@ components:
           nullable: true
           description: Months (1-12) this attraction is open in. Absent/empty means open year-round.
           example: [3, 4, 5, 6, 7, 8, 9]
+        seasonalHours:
+          type: array
+          nullable: true
+          description: Date-scoped hours overrides (e.g. different hours in summer vs. winter). `openingHours` above is the base/default schedule used for any date that doesn't fall inside one of these ranges, or when this is empty/absent (the common, non-seasonal case).
+          items:
+            $ref: '#/components/schemas/SeasonalHoursEntry'
         notes:
           type: string
           nullable: true
@@ -707,6 +744,12 @@ components:
           nullable: true
           description: Months (1-12) this attraction is open in. Absent/empty means open year-round.
           example: [3, 4, 5, 6, 7, 8, 9]
+        seasonalHours:
+          type: array
+          nullable: true
+          description: Date-scoped hours overrides (e.g. different hours in summer vs. winter). `openingHours` above is the base/default schedule used for any date that doesn't fall inside one of these ranges, or when this is empty/absent (the common, non-seasonal case).
+          items:
+            $ref: '#/components/schemas/SeasonalHoursEntry'
         notes:
           type: string
           nullable: true

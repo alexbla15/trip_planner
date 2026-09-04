@@ -187,6 +187,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
         ? []
         : (initialData?.seasonalHours ?? []).map((entry, i) => ({
             id: `existing-${i}`,
+            title: entry.title,
             start: entry.start,
             end: entry.end,
             hours: entry.hours,
@@ -229,6 +230,10 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
 
   function updateSeasonalHoursRange(id: string, start: SeasonalHoursEntry["start"], end: SeasonalHoursEntry["end"]) {
     setSeasonalHours((prev) => prev.map((entry) => (entry.id === id ? { ...entry, start, end } : entry)));
+  }
+
+  function updateSeasonalHoursTitle(id: string, title: string) {
+    setSeasonalHours((prev) => prev.map((entry) => (entry.id === id ? { ...entry, title: title || undefined } : entry)));
   }
 
   function updateSeasonalHoursGrid(id: string, hours: OpeningHours) {
@@ -281,7 +286,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     const completeSeasonalHours = seasonalHours
       .filter((entry): entry is typeof entry & { start: NonNullable<typeof entry.start>; end: NonNullable<typeof entry.end> } =>
         entry.start !== null && entry.end !== null)
-      .map((entry) => ({ start: entry.start, end: entry.end, hours: entry.hours }));
+      .map((entry) => ({ title: entry.title, start: entry.start, end: entry.end, hours: entry.hours }));
     const data: AttractionFormData = {
       name: name.trim(),
       country,
@@ -744,6 +749,14 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
                   <X size={14} aria-hidden="true" />
                 </button>
               </div>
+              <input
+                type="text"
+                className={styles.input}
+                placeholder="Title (optional) — e.g. Summer, Ramadan"
+                value={entry.title ?? ""}
+                onChange={(e) => updateSeasonalHoursTitle(entry.id, e.target.value)}
+                aria-label={`Title for season ${i + 1}`}
+              />
               <SeasonalRangePicker
                 start={entry.start}
                 end={entry.end}

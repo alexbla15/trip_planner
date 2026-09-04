@@ -685,6 +685,14 @@
   overflow: hidden;
 }
 
+/* Date range shown inline when the tab is labeled with a custom title instead of the
+   range itself, so the dates are still visible somewhere. */
+.seasonalRangeInline {
+  margin: 0;
+  padding: 8px 12px 0;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
 
 .hoursTable {
   width: 100%;

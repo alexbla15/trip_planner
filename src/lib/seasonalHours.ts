@@ -6,6 +6,9 @@ export interface MonthDay {
 }
 
 export interface SeasonalHoursEntry {
+  /** Optional user-given name for this season (e.g. "Summer", "Ramadan"). When unset, the
+   *  date range itself (via `formatSeasonalRangeLabel`) is used as the display label. */
+  title?: string;
   start: MonthDay;
   end: MonthDay;
   hours: OpeningHours;

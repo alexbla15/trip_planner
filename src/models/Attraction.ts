@@ -115,6 +115,7 @@ const MonthDaySchema = new Schema(
 );
 
 interface ISeasonalHoursEntry {
+  title?: string;
   start: { month: number; day: number };
   end: { month: number; day: number };
   hours: Record<string, IOpeningHoursDay>;
@@ -122,6 +123,7 @@ interface ISeasonalHoursEntry {
 
 const SeasonalHoursEntrySchema = new Schema<ISeasonalHoursEntry>(
   {
+    title: { type: String },
     start: { type: MonthDaySchema, required: true },
     end: { type: MonthDaySchema, required: true },
     hours: { type: WeeklyHoursSchema, required: true },

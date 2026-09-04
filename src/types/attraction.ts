@@ -94,7 +94,7 @@ export interface Attraction {
    *  annually) window it applies to. `openingHours` above is still the base/default
    *  schedule used for any date that doesn't fall inside one of these ranges (or when this
    *  is empty/absent — the common, non-seasonal case). */
-  seasonalHours?: { start: { month: number; day: number }; end: { month: number; day: number }; hours: OpeningHours }[];
+  seasonalHours?: { title?: string; start: { month: number; day: number }; end: { month: number; day: number }; hours: OpeningHours }[];
   notes?: string;
   photoUrl?: string;
   /** Official venue website — user-editable, separate from photoUrl. */

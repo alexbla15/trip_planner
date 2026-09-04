@@ -22,6 +22,7 @@ export function attractionToFormData(a: Attraction): AttractionFormData {
       : buildInitialHours(),
     openingMonths: a.openingMonths,
     seasonalHours: a.seasonalHours?.map((entry) => ({
+      title: entry.title,
       start: entry.start,
       end: entry.end,
       hours: hasOpeningHoursData(entry.hours) ? normalizeOpeningHours(entry.hours) : buildInitialHours(),

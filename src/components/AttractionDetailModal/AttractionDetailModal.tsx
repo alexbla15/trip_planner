@@ -169,8 +169,18 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   // seasonal hours exist" rule). Otherwise it's a single implicit "Default" tab (no tab
   // strip rendered — showHoursTabs only turns on with 2+ tabs).
   const hoursTabs = attraction.seasonalHours?.length
-    ? attraction.seasonalHours.map((h) => ({ key: formatSeasonalRangeLabel(h.start, h.end), hours: h.hours }))
-    : [{ key: "Default", hours: attraction.openingHours }];
+    ? attraction.seasonalHours.map((h, i) => {
+        const rangeLabel = formatSeasonalRangeLabel(h.start, h.end);
+        // When a title is set, it becomes the tab label and the date range (no longer
+        // visible in the tab strip) is shown explicitly inside the tab's content instead.
+        return {
+          key: h.title ? `${h.title}-${i}` : rangeLabel,
+          label: h.title || rangeLabel,
+          rangeLabel: h.title ? rangeLabel : null,
+          hours: h.hours,
+        };
+      })
+    : [{ key: "Default", label: "Default", rangeLabel: null, hours: attraction.openingHours }];
   const showHoursTabs = hoursTabs.length > 1;
   const activeHoursIndex = Math.min(activeHoursTab, hoursTabs.length - 1);
   const effectiveOpeningHours = hoursTabs[activeHoursIndex]?.hours;
@@ -786,12 +796,15 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                       className={`${styles.priceTab} ${i === activeHoursIndex ? styles.priceTabActive : ""}`}
                       onClick={() => setActiveHoursTab(i)}
                     >
-                      {tab.key}
+                      {tab.label}
                     </button>
                   ))}
                 </div>
               )}
               <div className={styles.hoursCard}>
+                {hoursTabs[activeHoursIndex]?.rangeLabel && (
+                  <p className={styles.seasonalRangeInline}>{hoursTabs[activeHoursIndex]?.rangeLabel}</p>
+                )}
                 <table key={hoursTabs[activeHoursIndex]?.key} className={styles.hoursTable} aria-label="Opening hours">
                   <tbody>
                     {DAY_KEYS.map((day) => {

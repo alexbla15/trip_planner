@@ -192,7 +192,7 @@ export interface CreateAttractionInput {
   currency?: string;
   openingHours?: OpeningHours;
   openingMonths?: number[];
-  seasonalHours?: { start: { month: number; day: number }; end: { month: number; day: number }; hours: OpeningHours }[];
+  seasonalHours?: { title?: string; start: { month: number; day: number }; end: { month: number; day: number }; hours: OpeningHours }[];
   notes?: string;
   photoUrl?: string;
   websiteUrl?: string;
