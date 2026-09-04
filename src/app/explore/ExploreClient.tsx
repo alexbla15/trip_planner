@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo, useCallback, useRef, useId } from "react";
 import { Globe, Plus, ChevronLeft, ChevronDown, SlidersHorizontal, X, Ruler, Footprints, Car, Bus, Loader2, Search, Check, Map as MapIcon, LayoutGrid, ChevronRight, Luggage, BadgeCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +21,7 @@ import type { Attraction } from "@/types/attraction";
 import type { Trip } from "@/types/trip";
 import { matchesVerifiedFilter, type VerifiedFilterValue } from "@/lib";
 import { EXPLORE_GRID_CARD_MIN_WIDTH_PX, EXPLORE_GRID_GAP_PX, EXPLORE_GRID_ROWS_PER_PAGE, EXPLORE_GRID_MIN_PAGE_SIZE } from "@/config/ui";
+import { parseExploreUrlState, buildExploreSearchParams } from "./ExploreClient.utils";
 import styles from "./ExploreClient.module.css";
 
 interface LocationSearchResult {
@@ -81,6 +83,17 @@ export function ExploreClient() {
   const { user, token } = useAuth();
   const toast = useToast();
   const { types, categories, byCategory } = useAttractionTypes();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // Parsed once, on first render only — the source of truth for restoring state on
+  // refresh/direct load. Read via a ref rather than a hook dependency so that our own
+  // router.replace() calls below (which change the URL) never re-trigger this parse.
+  const initialUrlStateRef = useRef<ReturnType<typeof parseExploreUrlState> | null>(null);
+  if (initialUrlStateRef.current === null) {
+    initialUrlStateRef.current = parseExploreUrlState(searchParams);
+  }
+  const initialUrlState = initialUrlStateRef.current;
 
   // Data
   const [cities, setCities]                       = useState<CityEntry[]>([]);
@@ -93,8 +106,8 @@ export function ExploreClient() {
   const [pageError, setPageError] = useState<string | null>(null);
 
   // View state — 3 levels: world → country → city
-  const [selectedCountry, setSelectedCountry]     = useState<string | null>(null);
-  const [selectedCity, setSelectedCity]           = useState<string | null>(null);
+  const [selectedCountry, setSelectedCountry]     = useState<string | null>(initialUrlState.country);
+  const [selectedCity, setSelectedCity]           = useState<string | null>(initialUrlState.city);
   const [selectedAttraction, setSelectedAttraction] = useState<Attraction | null>(null);
   const [editingAttraction, setEditingAttraction] = useState<Attraction | null>(null);
   const [addModalOpen, setAddModalOpen]           = useState(false);
@@ -111,12 +124,12 @@ export function ExploreClient() {
   const gridRef = useRef<HTMLDivElement>(null);
 
   // Filters (only active in city view)
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedTypes, setSelectedTypes]           = useState<string[]>([]);
-  const [selectedFoodStyles, setSelectedFoodStyles] = useState<string[]>([]);
-  const [visitedFilter, setVisitedFilter]           = useState<"all" | "visited" | "unvisited">("all");
-  const [tripUsageFilter, setTripUsageFilter]       = useState<"all" | "used" | "unused">("all");
-  const [verifiedFilter, setVerifiedFilter]         = useState<VerifiedFilterValue>("all");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(initialUrlState.categories);
+  const [selectedTypes, setSelectedTypes]           = useState<string[]>(initialUrlState.types);
+  const [selectedFoodStyles, setSelectedFoodStyles] = useState<string[]>(initialUrlState.foodStyles);
+  const [visitedFilter, setVisitedFilter]           = useState<"all" | "visited" | "unvisited">(initialUrlState.visited);
+  const [tripUsageFilter, setTripUsageFilter]       = useState<"all" | "used" | "unused">(initialUrlState.used);
+  const [verifiedFilter, setVerifiedFilter]         = useState<VerifiedFilterValue>(initialUrlState.verified);
   // Default open only if a filter is already active — never hide active filter state
   // from the user, but otherwise keep the sidebar compact by default.
   const [visitedPickerOpen, setVisitedPickerOpen]   = useState(false);
@@ -411,6 +424,24 @@ export function ExploreClient() {
   // Reset to page 1 whenever the underlying filtered set changes shape, so the user
   // never lands on a stale, now-out-of-range page after narrowing a filter.
   useEffect(() => { setGridPage(1); }, [selectedCountry, selectedCity, selectedCategories, selectedTypes, visitedFilter, tripUsageFilter, verifiedFilter]);
+
+  // Keep the URL in sync with the selected country/city and active filters, so refreshing
+  // or loading this URL directly restores the exact same view. router.replace (not push)
+  // so every filter tweak doesn't spam browser history; the default "world view, no
+  // filters" state produces no query string at all.
+  useEffect(() => {
+    const qs = buildExploreSearchParams({
+      country: selectedCountry,
+      city: selectedCity,
+      categories: selectedCategories,
+      types: selectedTypes,
+      foodStyles: selectedFoodStyles,
+      visited: visitedFilter,
+      used: tripUsageFilter,
+      verified: verifiedFilter,
+    }).toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [selectedCountry, selectedCity, selectedCategories, selectedTypes, selectedFoodStyles, visitedFilter, tripUsageFilter, verifiedFilter, pathname, router]);
 
   // Safety clamp for cases the position-preserving resize logic above doesn't cover
   // (e.g. the filtered item count itself shrinks) — never a no-op relative to it since
