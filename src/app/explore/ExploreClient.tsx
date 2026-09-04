@@ -578,7 +578,9 @@ export function ExploreClient() {
       return;
     }
     setEditingAttraction(null);
-    setSelectedAttraction(null);
+    // Drop back into the read-only detail card for the attraction just edited, instead of
+    // leaving the user staring at the grid after the edit modal closes.
+    setSelectedAttraction(updated);
 
     // City/country view arrays are scoped by a filter (selectedCity/selectedCountry) —
     // an in-place map alone leaves a stale entry behind when the edit moves the
