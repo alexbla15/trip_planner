@@ -7,7 +7,7 @@ Region optional so unset attractions keep behaving exactly like today's Country 
 
 ## Tasks
 - [x] .claude/tasks/attraction-region-data-model.done.md
-- [ ] .claude/tasks/attraction-region-migration.md
+- [x] .claude/tasks/attraction-region-migration.done.md
 - [ ] .claude/tasks/new-attraction-region-field.md
 - [ ] .claude/tasks/explore-region-drilldown.md
 
