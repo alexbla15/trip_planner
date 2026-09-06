@@ -15,6 +15,13 @@ export async function getCountryBoundary(name: string): Promise<unknown> {
   return parseOrThrow<unknown>(res);
 }
 
+export async function getRegionBoundary(name: string, country?: string): Promise<unknown> {
+  const params = new URLSearchParams({ name });
+  if (country) params.set("country", country);
+  const res = await fetch(`/api/geo/region?${params}`);
+  return parseOrThrow<unknown>(res);
+}
+
 export async function getWorldCountriesGeoJson(): Promise<unknown> {
   const res = await fetch(WORLD_COUNTRIES_GEOJSON_URL);
   return parseOrThrow<unknown>(res);

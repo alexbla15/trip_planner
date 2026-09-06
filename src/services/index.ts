@@ -68,7 +68,7 @@ export {
   deleteFoodStyle,
 } from "./foodStyles.service";
 
-export { getCityBoundary, getCountryBoundary, getWorldCountriesGeoJson } from "./geo.service";
+export { getCityBoundary, getCountryBoundary, getRegionBoundary, getWorldCountriesGeoJson } from "./geo.service";
 
 export { reverseGeocode, searchLocation } from "./geocoding.service";
 

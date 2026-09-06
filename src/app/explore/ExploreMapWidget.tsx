@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker, Tooltip, Circle, Polyline, GeoJSON as 
 import type { LatLngBounds } from "leaflet";
 import type { GeoJsonObject } from "geojson";
 import { useAttractionTypes } from "@/hooks";
-import { getCityBoundary, getCountryBoundary } from "@/services";
+import { getCityBoundary, getCountryBoundary, getRegionBoundary } from "@/services";
 import type { TravelMode, RouteLeg } from "@/services";
 import { makeAttractionMarkerIcon, makeCustomPinIcon, makeCityMarkerIcon, makeCityClusterIcon } from "@/lib/mapIcons";
 import { CLUSTER_MARKER_BASE_SIZE_PX, CLUSTER_MARKER_MAX_SIZE_PX } from "@/lib/mapIcons.constants";
@@ -264,6 +264,7 @@ export function ExploreMapWidget({
   const { findType } = useAttractionTypes();
 
   const [cityBoundary, setCityBoundary] = useState<GeoJsonObject | null>(null);
+  const [regionBoundary, setRegionBoundary] = useState<GeoJsonObject | null>(null);
   // Keyed by country name; populated in parallel when the countries list loads
   const [countryBoundaries, setCountryBoundaries] = useState<Map<string, GeoJsonObject | null>>(
     new Map()
@@ -281,6 +282,13 @@ export function ExploreMapWidget({
         );
     });
   }, [countries]);
+
+  useEffect(() => {
+    if (!selectedRegion) { setRegionBoundary(null); return; }
+    getRegionBoundary(selectedRegion, selectedCountry ?? undefined)
+      .then((data) => setRegionBoundary(data as GeoJsonObject | null))
+      .catch(() => setRegionBoundary(null));
+  }, [selectedRegion, selectedCountry]);
 
   useEffect(() => {
     if (!selectedCity) { setCityBoundary(null); return; }
@@ -443,10 +451,25 @@ export function ExploreMapWidget({
           />
         ) : null;
       })()}
-      {/* ── Region view: no real boundary source for a region (it's a user-labeled
-          cluster, not a Nominatim-resolvable admin area) — always a circle, same amber
-          treatment as the country-level circle fallback above. ── */}
-      {view === "region" && regionEntry && (
+      {/* ── Region view: real boundary when the region name resolves to a Nominatim
+          place (e.g. "Black Forest", "US-NY", "Lake Garda"), circle fallback otherwise
+          (e.g. an invented composite label like "Kazbegi / Georgian Military Highway")
+          — same amber treatment as the country-level circle fallback above, same
+          real-vs-fallback pattern as the city view below. ── */}
+      {view === "region" && regionBoundary && (
+        <GeoJSONLayer
+          key={selectedRegion ?? ""}
+          data={regionBoundary}
+          style={() => ({
+            color: "#B45309",
+            fillColor: "#F59E0B",
+            fillOpacity: 0.22,
+            weight: 3,
+            opacity: 1,
+          })}
+        />
+      )}
+      {view === "region" && !regionBoundary && regionEntry && (
         <Circle
           center={[regionEntry.lat, regionEntry.lng]}
           radius={regionEntry.radius}

@@ -2672,6 +2672,40 @@ paths:
                 type: object
                 nullable: true
 
+  /api/geo/region:
+    get:
+      summary: Look up an attraction region's boundary polygon (for map display)
+      description: |
+        Same caching/proxy behavior as /api/geo/city. `region` is free text (see
+        `Attraction.region`), not a fixed administrative unit — some values resolve to a
+        real Nominatim place (e.g. "Black Forest", "US-NY", "Lake Garda") and others are
+        invented composite labels that resolve to nothing (e.g. "Kazbegi / Georgian
+        Military Highway"); the client falls back to a plain circle around the region's
+        centroid when this returns null.
+      tags: [Geo]
+      security: []
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+          example: Black Forest
+        - name: country
+          in: query
+          required: false
+          schema:
+            type: string
+          example: Germany
+      responses:
+        '200':
+          description: A GeoJSON Polygon/MultiPolygon feature, or null if not found
+          content:
+            application/json:
+              schema:
+                type: object
+                nullable: true
+
   # ==========================================
   # 🚗 Routing
   # ==========================================
