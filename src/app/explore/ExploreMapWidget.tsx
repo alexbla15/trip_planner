@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, type MutableRefObject } from "react";
+import { useEffect, useState, useMemo, useRef, type MutableRefObject } from "react";
 import { MapContainer, TileLayer, Marker, Tooltip, Circle, Polyline, GeoJSON as GeoJSONLayer, useMap, useMapEvents } from "react-leaflet";
 import type { LatLngBounds } from "leaflet";
 import type { GeoJsonObject } from "geojson";
@@ -57,7 +57,22 @@ fixLeafletDefaultIcon();
 
 // ── Map controller ────────────────────────────────────────────────────────────
 
-function MapController({ mapRef }: { mapRef: MutableRefObject<MapHandle | null> }) {
+interface MapTarget {
+  lat: number;
+  lng: number;
+  zoom: number;
+}
+
+function MapController({
+  mapRef,
+  initialTarget,
+}: {
+  mapRef: MutableRefObject<MapHandle | null>;
+  // Wherever the current country/region/city selection already points, computed by the
+  // parent from props — used to catch this fresh map instance up to a selection that was
+  // made while grid view was active (see the didInitialSync effect below).
+  initialTarget: MapTarget | null;
+}) {
   const map = useMap();
   useEffect(() => {
     mapRef.current = {
@@ -76,6 +91,22 @@ function MapController({ mapRef }: { mapRef: MutableRefObject<MapHandle | null> 
       mapRef.current = null;
     };
   }, [map, mapRef]);
+
+  // A country/region/city selected while grid view was active called mapRef.current?.
+  // flyToX against a null ref (the map wasn't mounted yet) — that call silently no-oped,
+  // so this fresh map instance would otherwise start at the default world view instead of
+  // the place already selected. Once, on mount, jump straight there (setView, not an
+  // animated flyTo — this is catching up to existing state, not a live navigation).
+  // Waits for `initialTarget` to actually resolve (the cities/countries data it's derived
+  // from may still be loading) rather than consuming the one-time sync on a still-null
+  // value — didInitialSync only latches once a real target is available.
+  const didInitialSync = useRef(false);
+  useEffect(() => {
+    if (didInitialSync.current || !initialTarget) return;
+    didInitialSync.current = true;
+    map.setView([initialTarget.lat, initialTarget.lng], initialTarget.zoom);
+  }, [map, initialTarget]);
+
   return null;
 }
 
@@ -305,6 +336,16 @@ export function ExploreMapWidget({
   const view = selectedCity ? "city" : selectedRegion ? "region" : selectedCountry ? "country" : "world";
   const showCityPins = (view === "country" || view === "region") && zoom < CITY_PIN_ZOOM_THRESHOLD;
 
+  // Whatever's already selected when this map instance mounts — passed to MapController
+  // so it can catch up a selection made while grid view was active (see its doc comment).
+  // Same zoom levels as the live flyToX calls, just resolved from props instead of a click.
+  const initialMapTarget = useMemo<MapTarget | null>(() => {
+    if (selectedCity && cityEntry) return { lat: cityEntry.lat, lng: cityEntry.lng, zoom: 13 };
+    if (selectedRegion && regionEntry) return { lat: regionEntry.lat, lng: regionEntry.lng, zoom: 8 };
+    if (selectedCountry && countryEntry) return { lat: countryEntry.lat, lng: countryEntry.lng, zoom: 5 };
+    return null;
+  }, [selectedCity, cityEntry, selectedRegion, regionEntry, selectedCountry, countryEntry]);
+
   // Once zoomed in (city-pin threshold crossed, or already in city view), only render
   // attractions actually within the visible map area — not every attraction in the
   // whole country — so panning/zooming around a region shows just that region's pins.
@@ -327,7 +368,7 @@ export function ExploreMapWidget({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
       />
-      <MapController mapRef={mapRef} />
+      <MapController mapRef={mapRef} initialTarget={initialMapTarget} />
       <MeasureClickWatcher active={measureMode} onMapClick={onMeasureMapClick} />
       <ViewportWatcher onChange={(z, b) => { setZoom(z); setBounds(b); }} />
 
