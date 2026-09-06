@@ -75,6 +75,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
 
   const [name, setName] = useState("");
   const [country, setCountry] = useState(defaultCountry ?? "");
+  const [region, setRegion] = useState("");
   const [city, setCity] = useState("");
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [parentAttractionId, setParentAttractionId] = useState<string | null>(null);
@@ -148,6 +149,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     if (!isOpen) return;
     setName(initialData?.name ?? "");
     setCountry(initialData?.country ?? defaultCountry ?? prefillCountry ?? "");
+    setRegion(initialData?.region ?? "");
     setCity(initialData?.city ?? prefillCity ?? "");
     setCoordinates(initialData?.coordinates ?? null);
     setParentAttractionId(initialData?.parentAttractionId ?? null);
@@ -290,6 +292,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     const data: AttractionFormData = {
       name: name.trim(),
       country,
+      region: region.trim() || undefined,
       city: city.trim(),
       coordinates,
       types: selectedTypes,
@@ -321,6 +324,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   function handleReset() {
     setName("");
     setCountry(defaultCountry ?? "");
+    setRegion("");
     setCity("");
     setCoordinates(null);
     setParentAttractionId(null);
@@ -503,6 +507,25 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
                 {errors.country}
               </p>
             )}
+          </div>
+
+          {/* Region — optional grouping level between country and city (e.g. "Black
+              Forest", "US-NY"). Free text, no suggestions list: unlike city, there's no
+              existing "known regions" endpoint to source options from, and forcing one for
+              this narrower use case isn't worth the extra API surface. */}
+          <div className={styles.field}>
+            <label htmlFor="attraction-region" className={styles.labelWithIcon}>
+              <Globe size={14} aria-hidden="true" />
+              Region (optional)
+            </label>
+            <input
+              id="attraction-region"
+              type="text"
+              className={styles.input}
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              placeholder="e.g. Black Forest, US-NY"
+            />
           </div>
 
           {/* City */}
