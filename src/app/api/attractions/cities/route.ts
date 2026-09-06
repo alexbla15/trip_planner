@@ -62,6 +62,10 @@ export const GET = withApiHandler("GET /api/attractions/cities", async (req: Req
     {
       $group: {
         _id: { city: "$city", country: "$country" },
+        // A city's attractions share the same region in practice (region is assigned
+        // per-city by the migration/editor, not per-attraction) — $first is enough to
+        // surface it without an extra grouping dimension.
+        region: { $first: "$region" },
         lat:   { $avg: "$effectiveCoordinates.lat" },
         lng:   { $avg: "$effectiveCoordinates.lng" },
         count: { $sum: 1 },
@@ -90,6 +94,7 @@ export const GET = withApiHandler("GET /api/attractions/cities", async (req: Req
         _id: 0,
         name:    "$_id.city",
         country: "$_id.country",
+        region: 1,
         lat: 1,
         lng: 1,
         count: 1,

@@ -14,7 +14,7 @@ import { fixLeafletDefaultIcon } from "@/lib/leafletIconFix";
 import { TRAVEL_MODE_COLORS } from "@/lib/travelModeColors";
 import { filterTopLevelMapPins } from "@/lib";
 import type { Attraction } from "@/types/attraction";
-import type { CityEntry, CountryEntry, MapHandle, MeasurePoint } from "./ExploreClient";
+import type { CityEntry, CountryEntry, RegionEntry, MapHandle, MeasurePoint } from "./ExploreClient";
 import styles from "./ExploreMapWidget.module.css";
 import "leaflet/dist/leaflet.css";
 
@@ -63,6 +63,9 @@ function MapController({ mapRef }: { mapRef: MutableRefObject<MapHandle | null> 
     mapRef.current = {
       flyToWorld:   ()          => map.flyTo([20, 0], 2, { duration: 1.2 }),
       flyToCountry: (lat, lng)  => map.flyTo([lat, lng], 5, { duration: 1.2 }),
+      // Between country (5) and city (13) — a region is a city cluster, smaller-scale
+      // than a country but usually spanning more than one city's immediate area.
+      flyToRegion:  (lat, lng)  => map.flyTo([lat, lng], 8, { duration: 1.2 }),
       flyToCity:    (lat, lng)  => map.flyTo([lat, lng], 13, { duration: 1.2 }),
     };
     // ExploreMapWidget (and this Leaflet map instance) unmounts whenever grid view is
@@ -87,7 +90,18 @@ const CLUSTER_PIXEL_RADIUS = 45;
  *  so it has to live in its own component rendered inside `<MapContainer>`, same as
  *  `MapController`/`ViewportWatcher` above. Only re-clusters on zoom, not on pan — the
  *  pixel distance between two fixed lat/lngs only changes with zoom, not with panning. */
-function CityPinsLayer({ cities, zoom, onCityClick }: { cities: CityEntry[]; zoom: number; onCityClick: (city: CityEntry) => void }) {
+interface MapPinEntry {
+  name: string;
+  lat: number;
+  lng: number;
+  count: number;
+}
+
+// Generic over the pin shape so this same clustering layer renders both city pins
+// (CityEntry) and region pins (RegionEntry) — same visual treatment either way, only the
+// click target differs (see Design Brief: "a pin doesn't announce whether it's a region
+// or a city").
+function CityPinsLayer<T extends MapPinEntry>({ cities, zoom, onCityClick }: { cities: T[]; zoom: number; onCityClick: (city: T) => void }) {
   const map = useMap();
 
   const clusters = useMemo(() => {
@@ -178,10 +192,13 @@ function isFallbackBoundary(boundary: GeoJsonObject): boolean {
 interface ExploreMapWidgetProps {
   countries: CountryEntry[];
   selectedCountry: string | null;
+  regions: RegionEntry[];
+  selectedRegion: string | null;
   selectedCity: string | null;
   cities: CityEntry[];
   attractions: Attraction[];
   onCountryClick: (country: CountryEntry) => void;
+  onRegionClick: (region: RegionEntry) => void;
   onCityClick: (city: CityEntry) => void;
   onAttractionClick: (attraction: Attraction) => void;
   mapRef: MutableRefObject<MapHandle | null>;
@@ -196,10 +213,13 @@ interface ExploreMapWidgetProps {
 export function ExploreMapWidget({
   countries,
   selectedCountry,
+  regions,
+  selectedRegion,
   selectedCity,
   cities,
   attractions,
   onCountryClick,
+  onRegionClick,
   onCityClick,
   onAttractionClick,
   mapRef,
@@ -243,6 +263,14 @@ export function ExploreMapWidget({
     [countries, selectedCountry]
   );
 
+  const regionEntry = useMemo(
+    () =>
+      selectedRegion
+        ? regions.find((r) => r.name === selectedRegion && r.country === selectedCountry) ?? null
+        : null,
+    [regions, selectedRegion, selectedCountry]
+  );
+
   const cityEntry = useMemo(
     () =>
       selectedCity
@@ -256,11 +284,26 @@ export function ExploreMapWidget({
     [cities, selectedCountry]
   );
 
+  // Country-level pins split into "has a region" (rendered via `regions`, its own pin
+  // group) vs. standalone — both shown together at once (see Design Brief).
+  const unregionedCitiesInSelectedCountry = useMemo(
+    () => citiesInSelectedCountry.filter((c) => !c.region),
+    [citiesInSelectedCountry]
+  );
+
+  const citiesInSelectedRegion = useMemo(
+    () =>
+      selectedRegion
+        ? citiesInSelectedCountry.filter((c) => c.region === selectedRegion)
+        : [],
+    [citiesInSelectedCountry, selectedRegion]
+  );
+
   const [zoom, setZoom] = useState(2);
   const [bounds, setBounds] = useState<LatLngBounds | null>(null);
 
-  const view = selectedCity ? "city" : selectedCountry ? "country" : "world";
-  const showCityPins = view === "country" && zoom < CITY_PIN_ZOOM_THRESHOLD;
+  const view = selectedCity ? "city" : selectedRegion ? "region" : selectedCountry ? "country" : "world";
+  const showCityPins = (view === "country" || view === "region") && zoom < CITY_PIN_ZOOM_THRESHOLD;
 
   // Once zoomed in (city-pin threshold crossed, or already in city view), only render
   // attractions actually within the visible map area — not every attraction in the
@@ -359,6 +402,22 @@ export function ExploreMapWidget({
           />
         ) : null;
       })()}
+      {/* ── Region view: no real boundary source for a region (it's a user-labeled
+          cluster, not a Nominatim-resolvable admin area) — always a circle, same amber
+          treatment as the country-level circle fallback above. ── */}
+      {view === "region" && regionEntry && (
+        <Circle
+          center={[regionEntry.lat, regionEntry.lng]}
+          radius={regionEntry.radius}
+          pathOptions={{
+            color: "#B45309",
+            fillColor: "#F59E0B",
+            fillOpacity: 0.22,
+            weight: 3,
+            opacity: 1,
+          }}
+        />
+      )}
       {/* ── City view: city boundary (real polygon, municipality fallback, or 8 km circle) ── */}
       {view === "city" && cityBoundary && (
         <GeoJSONLayer
@@ -387,12 +446,24 @@ export function ExploreMapWidget({
           }}
         />
       )}
-      {/* ── Country view, zoomed out: one aggregate square pin per city instead of
-          every individual attraction pin — crossing CITY_PIN_ZOOM_THRESHOLD reveals
-          the attraction pins below instead. Pins that would visually overlap/crowd at
-          the current zoom merge into a cluster marker (CityPinsLayer). ── */}
-      {showCityPins && <CityPinsLayer cities={citiesInSelectedCountry} zoom={zoom} onCityClick={onCityClick} />}
-      {(view === "city" || (view === "country" && !showCityPins)) &&
+      {/* ── Country/region view, zoomed out: one aggregate pin per city (or region, at
+          the country level) instead of every individual attraction pin — crossing
+          CITY_PIN_ZOOM_THRESHOLD reveals the attraction pins below instead. Pins that
+          would visually overlap/crowd at the current zoom merge into a cluster marker
+          (CityPinsLayer). At the country level, regions and standalone (unregioned)
+          cities render as two independent pin groups shown together — a pin doesn't
+          announce whether it's a region or a city, only which list/click-handler it
+          came from (see Design Brief). ── */}
+      {showCityPins && view === "country" && (
+        <>
+          <CityPinsLayer cities={regions} zoom={zoom} onCityClick={onRegionClick} />
+          <CityPinsLayer cities={unregionedCitiesInSelectedCountry} zoom={zoom} onCityClick={onCityClick} />
+        </>
+      )}
+      {showCityPins && view === "region" && (
+        <CityPinsLayer cities={citiesInSelectedRegion} zoom={zoom} onCityClick={onCityClick} />
+      )}
+      {(view === "city" || ((view === "country" || view === "region") && !showCityPins)) &&
         visibleAttractions.map((a) => {
           if (!a.coordinates) return null;
           const typeRecord = findType(a.types?.[0] ?? "");

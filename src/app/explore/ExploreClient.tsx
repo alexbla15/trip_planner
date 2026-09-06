@@ -53,6 +53,9 @@ const ExploreMapWidget = dynamic(
 export interface CityEntry {
   name: string;
   country: string;
+  /** Region this city belongs to, if any (e.g. "Black Forest", "US-NY") — absent for a
+   *  city with no region set. Uniform across a city's attractions in practice. */
+  region?: string;
   lat: number;
   lng: number;
   count: number;
@@ -73,8 +76,22 @@ export interface CountryEntry {
   radius: number; // metres — based on max city spread, min 150 km
 }
 
+/** A region groups a cluster of cities within one country (e.g. "Black Forest" inside
+ *  Germany) — same shape as CountryEntry (centroid + radius derived from member cities),
+ *  one level down. Derived client-side from `citiesInCountry`, same pattern `countries` is
+ *  already derived from `visibleCities`. */
+export interface RegionEntry {
+  name: string;
+  country: string;
+  lat: number;
+  lng: number;
+  count: number;
+  radius: number; // metres — based on max city spread, min 25 km (a region is smaller-scale than a country)
+}
+
 export type MapHandle = {
   flyToCity: (lat: number, lng: number) => void;
+  flyToRegion: (lat: number, lng: number) => void;
   flyToCountry: (lat: number, lng: number) => void;
   flyToWorld: () => void;
 };
@@ -105,8 +122,9 @@ export function ExploreClient() {
   const [attractionsLoading, setAttractionsLoading] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
 
-  // View state — 3 levels: world → country → city
+  // View state — 4 levels: world → country → region (optional) → city
   const [selectedCountry, setSelectedCountry]     = useState<string | null>(initialUrlState.country);
+  const [selectedRegion, setSelectedRegion]       = useState<string | null>(initialUrlState.region);
   const [selectedCity, setSelectedCity]           = useState<string | null>(initialUrlState.city);
   const [selectedAttraction, setSelectedAttraction] = useState<Attraction | null>(null);
   const [editingAttraction, setEditingAttraction] = useState<Attraction | null>(null);
@@ -317,6 +335,60 @@ export function ExploreClient() {
     [visibleCities, selectedCountry]
   );
 
+  // Regions derived from citiesInCountry — same centroid/radius aggregation `countries`
+  // already does from `visibleCities`, just one level down (grouping by region instead of
+  // by country). A country with no regioned cities produces an empty array here, so the
+  // "Regions" section simply never renders — no extra branching needed to "know" a country
+  // has no regions (see Design Brief).
+  const regionsInCountry = useMemo(() => {
+    if (!selectedCountry) return [];
+    const map = new Map<string, { count: number; latSum: number; lngSum: number; cityList: CityEntry[] }>();
+    for (const city of citiesInCountry) {
+      if (!city.region) continue;
+      const cityCount = countFor(city);
+      const existing = map.get(city.region);
+      if (existing) {
+        existing.count += cityCount;
+        existing.latSum += city.lat;
+        existing.lngSum += city.lng;
+        existing.cityList.push(city);
+      } else {
+        map.set(city.region, { count: cityCount, latSum: city.lat, lngSum: city.lng, cityList: [city] });
+      }
+    }
+    return [...map.entries()]
+      .map(([name, d]): RegionEntry => {
+        const numCities = d.cityList.length;
+        const lat = d.latSum / numCities;
+        const lng = d.lngSum / numCities;
+        const maxDist = d.cityList.reduce((mx, c) => {
+          const dlat = (c.lat - lat) * 111_000;
+          const dlng = (c.lng - lng) * 111_000 * Math.cos((lat * Math.PI) / 180);
+          return Math.max(mx, Math.sqrt(dlat * dlat + dlng * dlng));
+        }, 0);
+        return { name, country: selectedCountry, lat, lng, count: d.count, radius: Math.max(25_000, maxDist * 1.4) };
+      })
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [citiesInCountry, selectedCountry, visitedFilter, tripUsageFilter, verifiedFilter]);
+
+  // Standalone cities at the country level — cities with no region only. A region's own
+  // cities are reached by drilling into the region first, not also listed flat here.
+  const unregionedCitiesInCountry = useMemo(
+    () => citiesInCountry.filter((c) => !c.region),
+    [citiesInCountry]
+  );
+
+  // Cities within the currently selected region, reusing the same shape/sort as
+  // citiesInCountry — this is what the region-view sidebar/map scope down to.
+  const citiesInRegion = useMemo(
+    () =>
+      selectedRegion
+        ? citiesInCountry.filter((c) => c.region === selectedRegion)
+        : [],
+    [citiesInCountry, selectedRegion]
+  );
+
   function passesVisitedFilter(a: Attraction): boolean {
     return visitedFilter === "all" || (visitedFilter === "visited" ? !!a.isVisited : !a.isVisited);
   }
@@ -366,13 +438,23 @@ export function ExploreClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countryAttractions, selectedCategories, selectedTypes, selectedFoodStyles, visitedFilter, tripUsageFilter, verifiedFilter, byCategory]);
 
+  // Region-view attraction pins — countryAttractions already covers the whole country (see
+  // the fetch effect above, which only checks "country selected, no city yet" — region
+  // doesn't change that condition), narrowed further to just this region's attractions.
+  const filteredRegionAttractions = useMemo(() => {
+    if (!selectedRegion) return [];
+    return filteredCountryAttractions.filter((a) => a.region === selectedRegion);
+  }, [filteredCountryAttractions, selectedRegion]);
+
   // Grid view renders from the exact same filtered list the map's pins already use —
   // no separate fetch, no separate filter logic. Page size is however many cards
   // actually fit per row (measured) × a fixed number of rows, not a flat constant —
   // otherwise a wide viewport fits far more than one page's worth per row and paginates
   // after showing only a sliver of unused space. Floored at EXPLORE_GRID_MIN_PAGE_SIZE so
   // a narrow viewport (few columns) doesn't paginate after only a handful of cards.
-  const gridAttractions = selectedCity ? filteredAttractions : filteredCountryAttractions;
+  const gridAttractions = selectedCity
+    ? filteredAttractions
+    : selectedRegion ? filteredRegionAttractions : filteredCountryAttractions;
   const gridPageSize = Math.max(EXPLORE_GRID_MIN_PAGE_SIZE, gridColumns * EXPLORE_GRID_ROWS_PER_PAGE);
   const gridTotalPages = Math.max(1, Math.ceil(gridAttractions.length / gridPageSize));
   const paginatedGridAttractions = gridAttractions.slice(
@@ -423,7 +505,7 @@ export function ExploreClient() {
 
   // Reset to page 1 whenever the underlying filtered set changes shape, so the user
   // never lands on a stale, now-out-of-range page after narrowing a filter.
-  useEffect(() => { setGridPage(1); }, [selectedCountry, selectedCity, selectedCategories, selectedTypes, visitedFilter, tripUsageFilter, verifiedFilter]);
+  useEffect(() => { setGridPage(1); }, [selectedCountry, selectedRegion, selectedCity, selectedCategories, selectedTypes, visitedFilter, tripUsageFilter, verifiedFilter]);
 
   // Keep the URL in sync with the selected country/city and active filters, so refreshing
   // or loading this URL directly restores the exact same view. router.replace (not push)
@@ -432,6 +514,7 @@ export function ExploreClient() {
   useEffect(() => {
     const qs = buildExploreSearchParams({
       country: selectedCountry,
+      region: selectedRegion,
       city: selectedCity,
       categories: selectedCategories,
       types: selectedTypes,
@@ -441,7 +524,7 @@ export function ExploreClient() {
       verified: verifiedFilter,
     }).toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  }, [selectedCountry, selectedCity, selectedCategories, selectedTypes, selectedFoodStyles, visitedFilter, tripUsageFilter, verifiedFilter, pathname, router]);
+  }, [selectedCountry, selectedRegion, selectedCity, selectedCategories, selectedTypes, selectedFoodStyles, visitedFilter, tripUsageFilter, verifiedFilter, pathname, router]);
 
   // Safety clamp for cases the position-preserving resize logic above doesn't cover
   // (e.g. the filtered item count itself shrinks) — never a no-op relative to it since
@@ -454,10 +537,12 @@ export function ExploreClient() {
   // showing, so e.g. "Unvisited" doesn't leave a category chip visible that would produce
   // zero results if also selected (every match already visited).
   const chipScopedAttractions = useMemo(() => {
-    const pool = selectedCity ? cityAttractions : countryAttractions;
+    const pool = selectedCity
+      ? cityAttractions
+      : selectedRegion ? countryAttractions.filter((a) => a.region === selectedRegion) : countryAttractions;
     return pool.filter((a) => passesVisitedFilter(a) && passesTripUsageFilter(a) && passesVerifiedFilter(a));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCity, cityAttractions, countryAttractions, visitedFilter, tripUsageFilter, verifiedFilter]);
+  }, [selectedCity, selectedRegion, cityAttractions, countryAttractions, visitedFilter, tripUsageFilter, verifiedFilter]);
 
   // Categories present in the current scope (honoring the visited filter)
   const availableCategories = useMemo(() => {
@@ -500,6 +585,7 @@ export function ExploreClient() {
   const handleCountrySelect = useCallback(
     (country: CountryEntry) => {
       setSelectedCountry(country.name);
+      setSelectedRegion(null);
       setSelectedCity(null);
       setCityAttractions([]);
       setSelectedCategories([]);
@@ -511,6 +597,17 @@ export function ExploreClient() {
     []
   );
 
+  const handleRegionSelect = useCallback((region: RegionEntry) => {
+    setSelectedRegion(region.name);
+    setSelectedCity(null);
+    setCityAttractions([]);
+    setSelectedCategories([]);
+    setSelectedTypes([]);
+    setSelectedFoodStyles([]);
+    setSidebarOpen(false);
+    mapRef.current?.flyToRegion(region.lat, region.lng);
+  }, []);
+
   const handleCitySelect = useCallback((city: CityEntry) => {
     setSelectedCity(city.name);
     setSelectedCategories([]);
@@ -520,9 +617,26 @@ export function ExploreClient() {
     mapRef.current?.flyToCity(city.lat, city.lng);
   }, []);
 
-  const handleBackToCountry = useCallback(() => {
+  // From city view: back goes to the region if this city was reached via one, otherwise
+  // straight to the country — the back-button chain must always land where the user
+  // actually came from (see Design Brief).
+  const handleBackFromCity = useCallback(() => {
     setSelectedCity(null);
     setCityAttractions([]);
+    setSelectedCategories([]);
+    setSelectedTypes([]);
+    setSelectedFoodStyles([]);
+    if (selectedRegion) {
+      const region = regionsInCountry.find((r) => r.name === selectedRegion);
+      if (region) mapRef.current?.flyToRegion(region.lat, region.lng);
+    } else {
+      const country = countries.find((c) => c.name === selectedCountry);
+      if (country) mapRef.current?.flyToCountry(country.lat, country.lng);
+    }
+  }, [countries, regionsInCountry, selectedCountry, selectedRegion]);
+
+  const handleBackFromRegion = useCallback(() => {
+    setSelectedRegion(null);
     setSelectedCategories([]);
     setSelectedTypes([]);
     setSelectedFoodStyles([]);
@@ -532,6 +646,7 @@ export function ExploreClient() {
 
   const handleBackToWorld = useCallback(() => {
     setSelectedCountry(null);
+    setSelectedRegion(null);
     setSelectedCity(null);
     setCityAttractions([]);
     setSelectedCategories([]);
@@ -899,7 +1014,7 @@ export function ExploreClient() {
   }
 
   // Current view level
-  const view = selectedCity ? "city" : selectedCountry ? "country" : "world";
+  const view = selectedCity ? "city" : selectedRegion ? "region" : selectedCountry ? "country" : "world";
 
   return (
     <div className={styles.page}>
@@ -917,6 +1032,8 @@ export function ExploreClient() {
         <span className={styles.mobileBarLabel}>
           {view === "city"
             ? (selectedCity ?? "")
+            : view === "region"
+            ? (selectedRegion ?? "")
             : view === "country"
             ? (selectedCountry ?? "")
             : "Explore"}
@@ -1262,7 +1379,9 @@ export function ExploreClient() {
               </button>
               <h2 className={styles.cityHeading}>{selectedCountry}</h2>
               <p className={styles.cityCount}>
-                {citiesInCountry.length} cit{citiesInCountry.length !== 1 ? "ies" : "y"}
+                {regionsInCountry.length > 0
+                  ? `${regionsInCountry.length} region${regionsInCountry.length !== 1 ? "s" : ""} · ${unregionedCitiesInCountry.length} cit${unregionedCitiesInCountry.length !== 1 ? "ies" : "y"}`
+                  : `${citiesInCountry.length} cit${citiesInCountry.length !== 1 ? "ies" : "y"}`}
               </p>
 
               {countryAttractions.length > 0 && (
@@ -1272,9 +1391,61 @@ export function ExploreClient() {
                 </p>
               )}
 
+              {regionsInCountry.length > 0 && (
+                <div className={styles.cityList}>
+                  <span className={styles.cityListLabel}>Regions</span>
+                  {regionsInCountry.map((r) => (
+                    <button
+                      key={r.name}
+                      type="button"
+                      className={styles.cityPill}
+                      onClick={() => handleRegionSelect(r)}
+                    >
+                      {r.name}
+                      <span className={styles.cityPillCount}>{r.count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <div className={styles.cityList}>
                 <span className={styles.cityListLabel}>Cities</span>
-                {citiesInCountry.map((c) => (
+                {(regionsInCountry.length > 0 ? unregionedCitiesInCountry : citiesInCountry).map((c) => (
+                  <button
+                    key={c.name}
+                    type="button"
+                    className={styles.cityPill}
+                    onClick={() => handleCitySelect(c)}
+                  >
+                    {c.name}
+                    <span className={styles.cityPillCount}>{countFor(c)}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Region view — mirrors country view exactly, one level scoped down */}
+          {view === "region" && (
+            <>
+              <button type="button" className={styles.backBtn} onClick={handleBackFromRegion}>
+                <ChevronLeft size={15} aria-hidden="true" />
+                {selectedCountry}
+              </button>
+              <h2 className={styles.cityHeading}>{selectedRegion}</h2>
+              <p className={styles.cityCount}>
+                {citiesInRegion.length} cit{citiesInRegion.length !== 1 ? "ies" : "y"}
+              </p>
+
+              {filteredRegionAttractions.length > 0 && (
+                <p className={styles.cityCount}>
+                  {filteredRegionAttractions.length} attraction{filteredRegionAttractions.length !== 1 ? "s" : ""}
+                </p>
+              )}
+
+              <div className={styles.cityList}>
+                <span className={styles.cityListLabel}>Cities</span>
+                {citiesInRegion.map((c) => (
                   <button
                     key={c.name}
                     type="button"
@@ -1292,9 +1463,9 @@ export function ExploreClient() {
           {/* City view — scrollable content only (footer is below, outside scroll) */}
           {view === "city" && (
             <>
-              <button type="button" className={styles.backBtn} onClick={handleBackToCountry}>
+              <button type="button" className={styles.backBtn} onClick={handleBackFromCity}>
                 <ChevronLeft size={15} aria-hidden="true" />
-                {selectedCountry}
+                {selectedRegion ?? selectedCountry}
               </button>
               <h2 className={styles.cityHeading}>{selectedCity}</h2>
               <p className={styles.cityCount}>
@@ -1309,8 +1480,8 @@ export function ExploreClient() {
           )}
         </div>
 
-        {/* ── Measure-distance panel: shown once a country is selected, either view ── */}
-        {(view === "country" || view === "city") && measureMode && (
+        {/* ── Measure-distance panel: shown once a country is selected, any deeper view ── */}
+        {(view === "country" || view === "region" || view === "city") && measureMode && (
           <div className={styles.measurePanel}>
             <div className={styles.measureSearchWrapper}>
               <Search size={14} aria-hidden="true" className={styles.measureSearchIcon} />
@@ -1412,9 +1583,9 @@ export function ExploreClient() {
         )}
 
         {/* ── Footer: pinned at the bottom outside scroll ── */}
-        {(view === "world" || view === "country" || view === "city") && (
+        {(view === "world" || view === "country" || view === "region" || view === "city") && (
           <div className={styles.sidebarFooter}>
-            {hasActiveFilters && (view === "city" || view === "country") && (
+            {hasActiveFilters && (view === "city" || view === "region" || view === "country") && (
               <button
                 type="button"
                 className={styles.clearBtn}
@@ -1423,9 +1594,9 @@ export function ExploreClient() {
                 Clear filters
               </button>
             )}
-            {/* Available at every step (world/country/city) — the form reflects whichever
-                of country/city is currently selected, editable rather than locked, since
-                Explore isn't scoped to one destination the way a trip is. */}
+            {/* Available at every step (world/country/region/city) — the form reflects
+                whichever of country/city is currently selected, editable rather than
+                locked, since Explore isn't scoped to one destination the way a trip is. */}
             {user && (
               <button
                 type="button"
@@ -1436,7 +1607,7 @@ export function ExploreClient() {
                 Add Attraction
               </button>
             )}
-            {(view === "country" || view === "city") && (
+            {(view === "country" || view === "region" || view === "city") && (
               <button
                 type="button"
                 className={`${styles.addBtn} ${measureMode ? styles.addBtnActive : ""}`}
@@ -1460,8 +1631,8 @@ export function ExploreClient() {
         )}
 
         {/* Map/grid toggle — only meaningful once individual attractions are loaded
-            (country or city view); world view has no such list to switch layouts for. */}
-        {(view === "country" || view === "city") && (
+            (country/region/city view); world view has no such list to switch layouts for. */}
+        {(view === "country" || view === "region" || view === "city") && (
           <div className={styles.viewModeToggle} role="group" aria-label="Map or grid view">
             <button
               type="button"
@@ -1488,10 +1659,17 @@ export function ExploreClient() {
           <ExploreMapWidget
             countries={countries}
             selectedCountry={selectedCountry}
+            regions={regionsInCountry}
+            selectedRegion={selectedRegion}
             selectedCity={selectedCity}
             cities={mapCities}
-            attractions={view === "country" ? filteredCountryAttractions : filteredAttractions}
+            attractions={
+              view === "region" ? filteredRegionAttractions
+              : view === "country" ? filteredCountryAttractions
+              : filteredAttractions
+            }
             onCountryClick={handleCountrySelect}
+            onRegionClick={handleRegionSelect}
             onCityClick={handleCitySelect}
             onAttractionClick={handleAttractionMarkerClick}
             mapRef={mapRef}

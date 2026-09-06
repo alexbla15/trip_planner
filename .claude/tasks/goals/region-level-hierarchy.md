@@ -1,6 +1,6 @@
 # Goal: Add an optional Region level between Country and City
 
-Status: in progress
+Status: done
 
 Adds a fourth drill-down level to Explore (Country → Region → City → Attraction), with
 Region optional so unset attractions keep behaving exactly like today's Country → City.
@@ -9,7 +9,7 @@ Region optional so unset attractions keep behaving exactly like today's Country 
 - [x] .claude/tasks/attraction-region-data-model.done.md
 - [x] .claude/tasks/attraction-region-migration.done.md
 - [x] .claude/tasks/new-attraction-region-field.done.md
-- [ ] .claude/tasks/explore-region-drilldown.md
+- [x] .claude/tasks/explore-region-drilldown.done.md
 
 ## Plan
 1. **attraction-region-data-model** — add the optional `region` field to the schema/type/

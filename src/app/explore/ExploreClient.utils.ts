@@ -2,6 +2,7 @@ import type { VerifiedFilterValue } from "@/lib";
 
 export interface ExploreUrlState {
   country: string | null;
+  region: string | null;
   city: string | null;
   categories: string[];
   types: string[];
@@ -26,6 +27,7 @@ export function parseExploreUrlState(searchParams: URLSearchParams): ExploreUrlS
 
   return {
     country: searchParams.get("country"),
+    region: searchParams.get("region"),
     city: searchParams.get("city"),
     categories: splitOrEmpty("categories"),
     types: splitOrEmpty("types"),
@@ -42,6 +44,7 @@ export function parseExploreUrlState(searchParams: URLSearchParams): ExploreUrlS
 export function buildExploreSearchParams(state: ExploreUrlState): URLSearchParams {
   const params = new URLSearchParams();
   if (state.country) params.set("country", state.country);
+  if (state.region) params.set("region", state.region);
   if (state.city) params.set("city", state.city);
   if (state.categories.length) params.set("categories", state.categories.join(","));
   if (state.types.length) params.set("types", state.types.join(","));
