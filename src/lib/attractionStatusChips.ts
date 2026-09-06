@@ -35,7 +35,12 @@ export function getStatusChips(
 ): StatusChipDescriptor[] {
   if (!openingHours) return [];
 
-  if (isPermanentlyClosed(openingHours)) {
+  // Once any seasonalHours entry exists, the base `openingHours` is never authoritative
+  // (see resolveOpeningHoursForDate's same "no default once seasonal hours exist" rule) —
+  // it's commonly just the neutral all-closed placeholder convention documents, real hours
+  // live entirely in seasonalHours. Checking isPermanentlyClosed against the base alone
+  // would misreport a place with real seasonal hours as permanently closed.
+  if (!seasonalHours?.length && isPermanentlyClosed(openingHours)) {
     return [{ key: "permanently-closed", icon: Ban, label: "Permanently closed", tone: "danger" }];
   }
 
