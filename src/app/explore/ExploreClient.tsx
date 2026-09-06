@@ -446,6 +446,56 @@ export function ExploreClient() {
     return filteredCountryAttractions.filter((a) => a.region === selectedRegion);
   }, [filteredCountryAttractions, selectedRegion]);
 
+  // City/region pill counts, keyed by name — derived from the SAME already-filtered
+  // attraction lists the header total and grid/map already use (matchesChipFilters +
+  // visited/tripUsage/verified), unlike the `cities` aggregate's buckets (countFor),
+  // which only cover visited/usedInTrip/verified and have no category/type/foodStyle
+  // dimension. Only meaningful once countryAttractions has actually loaded — see
+  // cityCountFor/regionCountFor below, which fall back to the bucket estimate until then.
+  const cityAttractionCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const a of filteredCountryAttractions) {
+      if (!a.city) continue;
+      map.set(a.city, (map.get(a.city) ?? 0) + 1);
+    }
+    return map;
+  }, [filteredCountryAttractions]);
+
+  const regionAttractionCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const a of filteredCountryAttractions) {
+      if (!a.region) continue;
+      map.set(a.region, (map.get(a.region) ?? 0) + 1);
+    }
+    return map;
+  }, [filteredCountryAttractions]);
+
+  const cityAttractionCountsInRegion = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const a of filteredRegionAttractions) {
+      if (!a.city) continue;
+      map.set(a.city, (map.get(a.city) ?? 0) + 1);
+    }
+    return map;
+  }, [filteredRegionAttractions]);
+
+  // Country/region-view pill count — accurate once countryAttractions has loaded (honors
+  // every active filter, including category/type/foodStyle); the bucket-based `countFor`
+  // estimate is used only as a fast-first-paint fallback before that fetch completes.
+  function cityCountFor(city: CityEntry): number {
+    return countryAttractions.length > 0 ? cityAttractionCounts.get(city.name) ?? 0 : countFor(city);
+  }
+
+  function regionCountFor(region: RegionEntry): number {
+    // region.count is already a bucket-summed estimate (see regionsInCountry) — reused
+    // as-is for the same fast-first-paint fallback the city/country pills also use.
+    return countryAttractions.length > 0 ? regionAttractionCounts.get(region.name) ?? 0 : region.count;
+  }
+
+  function cityCountForInRegion(city: CityEntry): number {
+    return countryAttractions.length > 0 ? cityAttractionCountsInRegion.get(city.name) ?? 0 : countFor(city);
+  }
+
   // Grid view renders from the exact same filtered list the map's pins already use —
   // no separate fetch, no separate filter logic. Page size is however many cards
   // actually fit per row (measured) × a fixed number of rows, not a flat constant —
@@ -1402,7 +1452,7 @@ export function ExploreClient() {
                       onClick={() => handleRegionSelect(r)}
                     >
                       {r.name}
-                      <span className={styles.cityPillCount}>{r.count}</span>
+                      <span className={styles.cityPillCount}>{regionCountFor(r)}</span>
                     </button>
                   ))}
                 </div>
@@ -1418,7 +1468,7 @@ export function ExploreClient() {
                     onClick={() => handleCitySelect(c)}
                   >
                     {c.name}
-                    <span className={styles.cityPillCount}>{countFor(c)}</span>
+                    <span className={styles.cityPillCount}>{cityCountFor(c)}</span>
                   </button>
                 ))}
               </div>
@@ -1453,7 +1503,7 @@ export function ExploreClient() {
                     onClick={() => handleCitySelect(c)}
                   >
                     {c.name}
-                    <span className={styles.cityPillCount}>{countFor(c)}</span>
+                    <span className={styles.cityPillCount}>{cityCountForInRegion(c)}</span>
                   </button>
                 ))}
               </div>
