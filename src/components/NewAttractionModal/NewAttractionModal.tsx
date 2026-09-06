@@ -752,7 +752,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
               <input
                 type="text"
                 className={styles.input}
-                placeholder="Title (optional) — e.g. Summer, Ramadan"
+                placeholder="Title (optional) — e.g. Summer / Winter"
                 value={entry.title ?? ""}
                 onChange={(e) => updateSeasonalHoursTitle(entry.id, e.target.value)}
                 aria-label={`Title for season ${i + 1}`}

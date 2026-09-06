@@ -35,6 +35,53 @@ and matches the existing precedent (`scripts/migrate-attraction-categories.mjs`)
 
 **Always add both the lower and upper station as two separate Attraction documents**, not one record for the whole ride. Give each station its own real name (e.g. `"<Ride Name> (Lower Station)"` / `"<Ride Name> (Upper Station)"` if the ride has no distinct official station names, or the real station names if the source gives them) and its own real, distinct `coordinates`. Every other field — `country`, `city`, `price`, `currency`, `openingHours`, `websiteUrl`, `photoUrl`, `durationValue`/`durationUnit`, `notes` — should be the same on both records, since they describe the same ride/ticket/schedule. This mirrors existing precedent in the DB (e.g. `Rike - Narikala Cable Car (Upper Station)`, `Merkur Mountain Funicular (Summit station)`). Do not nest one station under the other via `parentAttractionId` — they're peers, not parent/child.
 
+## Complex multi-dimensional pricing (spas, water parks, venues with zones/packages)
+
+Some venues (large spas/thermal parks, water parks, multi-zone attractions) publish pricing that
+varies along several independent axes at once: package/zone (e.g. "Galaxy" vs "The Palm" vs
+"Elysium"), duration/session length (3h / 4.5h / full day), day type (weekday vs weekend),
+visitor type (adult/child/senior/student), and named time-of-day specials (morning/afternoon/evening
+rates), plus add-on extras (towel rental, zone upgrades) and combo/group passes. Model every one of
+these as its own `IPriceTier` row rather than collapsing them — use `product` for the
+package/zone/category (e.g. `"Galaxy"`, `"Extras"`, `"Zone Upgrades"`), `label` for the
+session/pass name (e.g. `"Weekday (3h)"`, `"Smart pass (2+1) (full day)"`, `"Towel rental"`),
+`visitorType` for the demographic or pass-tier (`"Adult"`, `"Child 3-14"`, `"Smart pass 1+1 (3h)"`),
+and `days` for applicability (`["weekday"]`, `["weekend"]`, specific weekday names, or `[]` when
+day-independent). This produces dozens of tiers for one venue — that's correct, not over-modeling,
+when the venue's own official pricing page genuinely has that many rows (see the `Therme Bucharest`
+document in the DB, `db.attractions.findOne({name:"Therme Bucharest"})`, as a reference example of
+this pattern done right). Only `isPrimary: true` on the single cheapest standard adult walk-in rate;
+every other combination is `isPrimary: false`. `product` should be a **broad grouping category** the
+venue itself would recognize as one purchase family — e.g. `"Entry"` covering base admission *and*
+every combo/multi-day/season pass that gets you into the same core experience, `"Extras"` for optional
+add-ons (guided tours, audio guides, photography/filming fees, rentals) — not a restatement of each
+row's own `label`; two rows with different `label`s (`"Entry"` vs `"48-Hour Combined Pass"`) can and
+often should share the same `product` (`"Entry"`) when they're variations on getting into the same
+venue, so a UI grouping by `product` shows a sensible small set of purchase categories rather than
+one group per row. Set `visitorType: "All"` explicitly on rows that apply to every visitor type (a
+flat-rate guided tour, a rental fee) rather than omitting the field — an explicit `"All"` is
+self-documenting where an absent field just looks incomplete. Likewise always write `days: []`
+(not an omitted key) when a tier isn't day-restricted, for the same reason. Don't invent a `dayType`
+field — the schema field is `days` (a string array), not `dayType`; a stray `dayType: null` key is
+dead data that doesn't match
+`IPriceTier` and won't render. Never insert the same `label`+`visitorType` combination twice in one
+`prices` array (see the top-level dedup rule) — if you paste in a maintenance/backfill pass on top of
+existing tiers, dedupe against the existing array first.
+
+## Adding a venue's children
+
+When a venue being added is itself a container — a mall, market, museum with distinct in-building
+shops/restaurants/exhibits, a castle/palace complex with separately notable sub-sites, a food court,
+etc. — research and add its known children (`parentAttractionId` pointing at the new parent) in the
+same pass, not just the parent record on its own. Use judgment on depth/breadth: a handful of the
+venue's real, individually notable tenants/sub-attractions (shops, restaurants, named galleries,
+towers) is the goal, not an exhaustive scrape of every possible unit. If a venue's official site or
+research turns up no distinct named children (a plain landmark, a single-room church), it's fine to
+add just the parent — don't invent generic children to satisfy this step. Children follow every other
+rule in this doc (their own real research for price/hours/website/photo, `parentAttractionId` nesting
+rules above, dining ones need `foodStyles`, etc.) — this is an addition to scope, not an exemption
+from the per-field requirements.
+
 ## Workflow
 
 1. **Explore first** (or reuse knowledge if already established this session): confirm the Mongoose/DB choice, `Attraction`/`AttractionType`/`User` schemas, and read `.env.local` for `MONGODB_URI` (don't print the secret).

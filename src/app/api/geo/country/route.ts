@@ -24,10 +24,13 @@ export const GET = withApiHandler("GET /api/geo/country", async (req: Request) =
   if (cached.hit) return NextResponse.json(cached.data);
 
   try {
+    // No `featureType=country` restriction here — some attractions store a US state
+    // (e.g. "New York State") in this field rather than a nation, and Nominatim tags
+    // states as featureType=state/admin_level=4, which that filter would exclude
+    // outright, leaving state-level entries with no real boundary polygon ever.
     const url =
       `https://nominatim.openstreetmap.org/search` +
-      `?q=${encodeURIComponent(country)}&format=geojson&polygon_geojson=1&limit=5` +
-      `&featureType=country`;
+      `?q=${encodeURIComponent(country)}&format=geojson&polygon_geojson=1&limit=5`;
 
     const res = await queueNominatimFetch(url, {
       headers: { "User-Agent": "TripPlanner/1.0 (educational project)" },
