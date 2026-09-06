@@ -24,7 +24,7 @@ import {
 } from "./attraction.constants";
 import { CurrencySelect } from "@/components/CurrencySelect";
 import { SearchableSelect } from "@/components/SearchableSelect";
-import { getCities } from "@/services";
+import { getCities, searchLocation } from "@/services";
 import { AttractionTypePicker } from "@/components/AttractionTypePicker";
 import { CoverImageField } from "@/components";
 import { ModalShell } from "@/components/Modal";
@@ -39,6 +39,7 @@ import { useReverseGeocodeAutofill, useAttractionTypes, useFoodStyles } from "@/
 import { filterCityOptions, emptyPriceTab, flatPriceTiersToTabs, tabsToFlatPriceTiers } from "./NewAttractionModal.utils";
 import type { Attraction } from "@/types/attraction";
 import styles from "./NewAttractionModal.module.css";
+import mapPickerStyles from "./MapPicker.module.css";
 
 const HEADING_ID = "new-attraction-modal-title";
 
@@ -76,6 +77,11 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   const [name, setName] = useState("");
   const [country, setCountry] = useState(defaultCountry ?? "");
   const [region, setRegion] = useState("");
+  // OpenStreetMap-backed suggestions for the Region field — same debounced-search pattern
+  // as LeafletMapWidget's/the Explore measure tool's location search, just without a map.
+  const [regionSuggestions, setRegionSuggestions] = useState<{ display_name: string }[]>([]);
+  const [regionSearching, setRegionSearching] = useState(false);
+  const regionSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [city, setCity] = useState("");
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [parentAttractionId, setParentAttractionId] = useState<string | null>(null);
@@ -321,10 +327,38 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     onClose();
   }
 
+  function handleRegionChange(val: string) {
+    setRegion(val);
+    if (regionSearchDebounceRef.current) clearTimeout(regionSearchDebounceRef.current);
+    if (!val.trim()) {
+      setRegionSuggestions([]);
+      return;
+    }
+    regionSearchDebounceRef.current = setTimeout(async () => {
+      setRegionSearching(true);
+      try {
+        const query = country ? `${val}, ${country}` : val;
+        const results = (await searchLocation(query)) as { display_name: string }[];
+        setRegionSuggestions(results);
+      } catch {
+        setRegionSuggestions([]);
+      } finally {
+        setRegionSearching(false);
+      }
+    }, 400);
+  }
+
+  function handleRegionSuggestionSelect(result: { display_name: string }) {
+    const label = result.display_name.split(",").slice(0, 2).join(", ").trim();
+    setRegion(label);
+    setRegionSuggestions([]);
+  }
+
   function handleReset() {
     setName("");
     setCountry(defaultCountry ?? "");
     setRegion("");
+    setRegionSuggestions([]);
     setCity("");
     setCoordinates(null);
     setParentAttractionId(null);
@@ -510,22 +544,47 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           </div>
 
           {/* Region — optional grouping level between country and city (e.g. "Black
-              Forest", "US-NY"). Free text, no suggestions list: unlike city, there's no
-              existing "known regions" endpoint to source options from, and forcing one for
-              this narrower use case isn't worth the extra API surface. */}
+              Forest", "US-NY"). Free text, with OpenStreetMap-backed suggestions as the
+              user types (same debounced-search pattern as LeafletMapWidget's/the Explore
+              measure tool's location search) — picking one fills a clean, resolvable
+              label, but typing/leaving arbitrary text still works since region has no
+              fixed value set. */}
           <div className={styles.field}>
             <label htmlFor="attraction-region" className={styles.labelWithIcon}>
               <Globe size={14} aria-hidden="true" />
               Region (optional)
             </label>
-            <input
-              id="attraction-region"
-              type="text"
-              className={styles.input}
-              value={region}
-              onChange={(e) => setRegion(e.target.value)}
-              placeholder="e.g. Black Forest, US-NY"
-            />
+            <div className={mapPickerStyles.searchWrapper}>
+              <Search size={14} aria-hidden="true" className={mapPickerStyles.searchIconEl} />
+              <input
+                id="attraction-region"
+                type="text"
+                className={mapPickerStyles.searchInput}
+                value={region}
+                onChange={(e) => handleRegionChange(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Escape") setRegionSuggestions([]); }}
+                placeholder="e.g. Black Forest, US-NY"
+                autoComplete="off"
+                aria-autocomplete="list"
+                aria-expanded={regionSuggestions.length > 0}
+              />
+              {regionSearching && <span className={mapPickerStyles.searchSpinner} aria-label="Searching…" />}
+              {regionSuggestions.length > 0 && (
+                <ul className={mapPickerStyles.suggestions} role="listbox" aria-label="Region suggestions">
+                  {regionSuggestions.map((r, i) => (
+                    <li key={i} role="option" aria-selected={false}>
+                      <button
+                        type="button"
+                        className={mapPickerStyles.suggestionItem}
+                        onClick={() => handleRegionSuggestionSelect(r)}
+                      >
+                        {r.display_name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
 
           {/* City */}
