@@ -29,6 +29,8 @@ export interface IAttraction extends Document {
   ownerId: Types.ObjectId;
   name: string;
   country: string;
+  /** See `Attraction.region` in `src/types/attraction.ts` — same contract. */
+  region?: string;
   /** Required for all subtypes except "flight" (see schema `required` function). */
   city?: string;
   coordinates?: { lat: number; lng: number } | null;
@@ -148,6 +150,7 @@ const AttractionSchema = new Schema<IAttraction>(
     ownerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     name: { type: String, required: true, trim: true },
     country: { type: String, required: true, trim: true },
+    region: { type: String, trim: true },
     // Flights don't have a single city (they span a departure/arrival airport pair),
     // so city is only required for other subtypes.
     city: {
@@ -279,6 +282,7 @@ export function formatAttraction(
     ownerId: doc.ownerId?.toString(),
     name: doc.name,
     country: doc.country,
+    region: doc.region,
     city: doc.city,
     coordinates: doc.coordinates ?? null,
     types: (doc.types as unknown[]).map((t) =>

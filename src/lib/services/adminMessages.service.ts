@@ -9,7 +9,7 @@ import type { JwtPayload } from "@/lib/auth";
  *  excludes bookkeeping fields (ownerId, timestamps, per-instance trip-schedule fields) that
  *  either never change via an edit or aren't meaningful to an admin reviewing a diff. */
 const TRACKED_FIELDS = [
-  "name", "country", "city", "coordinates", "parentAttractionId", "types", "foodStyles",
+  "name", "country", "region", "city", "coordinates", "parentAttractionId", "types", "foodStyles",
   "durationValue", "durationUnit", "price", "prices", "currency", "openingHours",
   "openingMonths", "seasonalHours", "notes", "photoUrl", "websiteUrl",
   "verified", "subtype", "residenceType", "checkInDate", "checkOutDate",

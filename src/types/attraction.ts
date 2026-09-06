@@ -66,6 +66,11 @@ export interface Attraction {
   ownerId?: string;
   name: string;
   country: string;
+  /** Optional grouping level between country and city (e.g. "Black Forest", "US-NY") —
+   *  free text, not a fixed enum, since it covers both cultural regions and state/province
+   *  codes. Absent means the attraction groups directly under its country, unchanged from
+   *  before this field existed. */
+  region?: string;
   /** Required for all subtypes except "flight" — flights don't have a single city. */
   city?: string;
   coordinates?: { lat: number; lng: number } | null;

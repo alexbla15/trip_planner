@@ -450,6 +450,11 @@ components:
         country:
           type: string
           example: Italy
+        region:
+          type: string
+          nullable: true
+          description: Optional grouping level between country and city (e.g. "Black Forest", "US-NY"). Absent means the attraction groups directly under its country.
+          example: "Black Forest"
         city:
           type: string
           example: Rome
@@ -667,6 +672,10 @@ components:
           type: string
         country:
           type: string
+        region:
+          type: string
+          nullable: true
+          description: Optional grouping level between country and city (e.g. "Black Forest", "US-NY"). Absent means the attraction groups directly under its country.
         city:
           type: string
         coordinates:

@@ -196,10 +196,11 @@ export interface CreateAttractionInput {
   notes?: string;
   photoUrl?: string;
   websiteUrl?: string;
+  region?: string;
 }
 
 export async function createAttraction(payload: JwtPayload, body: CreateAttractionInput): Promise<IAttraction> {
-  const { name, country, city, coordinates, parentAttractionId, types, foodStyles, durationValue, durationUnit,
+  const { name, country, region, city, coordinates, parentAttractionId, types, foodStyles, durationValue, durationUnit,
     price, prices: priceTiersInput, currency, openingHours, openingMonths, seasonalHours, notes, photoUrl, websiteUrl } = body;
 
   if (!name?.trim() || (!parentAttractionId && (!country?.trim() || !city?.trim()))) {
@@ -230,6 +231,7 @@ export async function createAttraction(payload: JwtPayload, body: CreateAttracti
   // silently overridden rather than rejected, since the location is defined by the parent.
   const parent = parentAttractionId ? await resolveParentLink(parentAttractionId, country) : null;
   const resolvedCountry = parent?.country ?? country!.trim();
+  const resolvedRegion = parent ? parent.region : (region?.trim() || undefined);
   const resolvedCity = parent?.city ?? city!.trim();
   const resolvedCoordinates = parent ? parent.coordinates ?? null : coordinates ?? null;
   const normalizedTiers = priceTiersInput?.length ? normalizePriceTiers(priceTiersInput) : null;
@@ -239,6 +241,7 @@ export async function createAttraction(payload: JwtPayload, body: CreateAttracti
       ownerId: payload.userId,
       name: name.trim(),
       country: resolvedCountry,
+      region: resolvedRegion,
       city: resolvedCity,
       coordinates: resolvedCoordinates,
       parentAttractionId: parent?._id ?? null,
@@ -349,16 +352,18 @@ export async function updateAttraction(
       parentJustSet = await resolveParentLink(body.parentAttractionId as string, body.country as string | undefined, id);
       attraction.parentAttractionId = parentJustSet._id as IAttraction["parentAttractionId"];
       attraction.country = parentJustSet.country;
+      attraction.region = parentJustSet.region;
       attraction.city = parentJustSet.city;
       attraction.coordinates = parentJustSet.coordinates ?? null;
     }
   }
 
-  // Core fields — country/city/coordinates only apply here when a parent wasn't just set
-  // above (which already resolved and applied them from the parent).
+  // Core fields — country/region/city/coordinates only apply here when a parent wasn't
+  // just set above (which already resolved and applied them from the parent).
   if (body.name) attraction.name = body.name as string;
   if (!parentJustSet) {
     if (body.country) attraction.country = body.country as string;
+    if (body.region !== undefined) attraction.region = (body.region as string)?.trim() || undefined;
     if (body.city) attraction.city = body.city as string;
     if (body.coordinates !== undefined) attraction.coordinates = body.coordinates as { lat: number; lng: number } | null;
   }

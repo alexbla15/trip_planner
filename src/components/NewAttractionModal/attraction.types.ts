@@ -128,6 +128,8 @@ export interface PrimaryCellRef {
 export interface AttractionFormData {
   name: string;
   country: string;
+  /** Optional grouping level between country and city (e.g. "Black Forest", "US-NY"). */
+  region?: string;
   city: string;
   coordinates: Coordinates | null;
   types: string[];

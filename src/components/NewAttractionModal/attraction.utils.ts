@@ -8,6 +8,7 @@ export function attractionToFormData(a: Attraction): AttractionFormData {
   return {
     name: a.name,
     country: a.country,
+    region: a.region,
     city: a.city ?? "",
     coordinates: a.coordinates ?? null,
     types: (a.types ?? []) as AttractionFormData["types"],
