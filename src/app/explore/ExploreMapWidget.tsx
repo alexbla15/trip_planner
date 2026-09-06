@@ -269,6 +269,12 @@ export function ExploreMapWidget({
   const [countryBoundaries, setCountryBoundaries] = useState<Map<string, GeoJsonObject | null>>(
     new Map()
   );
+  // Keyed by region name; populated in parallel when the country-view regions list loads —
+  // same pattern as countryBoundaries, so country view can draw each region as a real
+  // shape (or circle fallback) instead of a pin, mirroring how world view draws countries.
+  const [regionBoundaries, setRegionBoundaries] = useState<Map<string, GeoJsonObject | null>>(
+    new Map()
+  );
   // Keyed by city name; populated in parallel when the country-view city list loads
   useEffect(() => {
     if (countries.length === 0) return;
@@ -282,6 +288,19 @@ export function ExploreMapWidget({
         );
     });
   }, [countries]);
+
+  useEffect(() => {
+    if (regions.length === 0) return;
+    regions.forEach((r) => {
+      getRegionBoundary(r.name, r.country)
+        .then((data) =>
+          setRegionBoundaries((prev) => new Map(prev).set(r.name, data as GeoJsonObject | null))
+        )
+        .catch(() =>
+          setRegionBoundaries((prev) => new Map(prev).set(r.name, null))
+        );
+    });
+  }, [regions]);
 
   useEffect(() => {
     if (!selectedRegion) { setRegionBoundary(null); return; }
@@ -451,6 +470,52 @@ export function ExploreMapWidget({
           />
         ) : null;
       })()}
+      {/* ── Country view: each region drawn as its own real boundary (or circle
+          fallback) directly on the map — same treatment as world view's country
+          shapes, categorically colored so multiple regions in one country are
+          visually distinct from each other and from the amber country/single-region
+          outline. Regions are area-shaped, not points, so they're drawn here instead
+          of being clustered into pins with the standalone cities below. ── */}
+      {view === "country" &&
+        regions.map((region, i) => {
+          const boundary = regionBoundaries.get(region.name) ?? null;
+          const color = colorForBoundaryIndex(i);
+          const tooltipLabel = `<strong>${region.name}</strong> · ${region.count} attraction${region.count !== 1 ? "s" : ""}`;
+          return boundary ? (
+            <GeoJSONLayer
+              key={region.name}
+              data={boundary}
+              style={() => ({
+                color,
+                fillColor: color,
+                fillOpacity: 0.25,
+                weight: 2.5,
+                opacity: 1,
+              })}
+              onEachFeature={(_, layer) => layer.bindTooltip(tooltipLabel, { direction: "top" })}
+              eventHandlers={{ click: () => onRegionClick(region) }}
+            />
+          ) : (
+            <Circle
+              key={region.name}
+              center={[region.lat, region.lng]}
+              radius={region.radius}
+              pathOptions={{
+                color,
+                fillColor: color,
+                fillOpacity: 0.25,
+                weight: 2.5,
+                opacity: 1,
+              }}
+              eventHandlers={{ click: () => onRegionClick(region) }}
+            >
+              <Tooltip direction="top" offset={[0, -12]}>
+                <strong>{region.name}</strong>
+                {" · "}{region.count} attraction{region.count !== 1 ? "s" : ""}
+              </Tooltip>
+            </Circle>
+          );
+        })}
       {/* ── Region view: real boundary when the region name resolves to a Nominatim
           place (e.g. "Black Forest", "US-NY", "Lake Garda"), circle fallback otherwise
           (e.g. an invented composite label like "Kazbegi / Georgian Military Highway")
@@ -510,19 +575,14 @@ export function ExploreMapWidget({
           }}
         />
       )}
-      {/* ── Country/region view, zoomed out: one aggregate pin per city (or region, at
-          the country level) instead of every individual attraction pin — crossing
-          CITY_PIN_ZOOM_THRESHOLD reveals the attraction pins below instead. Pins that
-          would visually overlap/crowd at the current zoom merge into a cluster marker
-          (CityPinsLayer). At the country level, regions and standalone (unregioned)
-          cities render as two independent pin groups shown together — a pin doesn't
-          announce whether it's a region or a city, only which list/click-handler it
-          came from (see Design Brief). ── */}
+      {/* ── Country/region view, zoomed out: one aggregate pin per city instead of
+          every individual attraction pin — crossing CITY_PIN_ZOOM_THRESHOLD reveals
+          the attraction pins below instead. Pins that would visually overlap/crowd at
+          the current zoom merge into a cluster marker (CityPinsLayer). Regions are
+          drawn as boundary shapes above instead of pins (see the country-view region
+          block) — only standalone (unregioned) cities use pins at the country level. ── */}
       {showCityPins && view === "country" && (
-        <>
-          <CityPinsLayer cities={regions} zoom={zoom} onCityClick={onRegionClick} />
-          <CityPinsLayer cities={unregionedCitiesInSelectedCountry} zoom={zoom} onCityClick={onCityClick} />
-        </>
+        <CityPinsLayer cities={unregionedCitiesInSelectedCountry} zoom={zoom} onCityClick={onCityClick} />
       )}
       {showCityPins && view === "region" && (
         <CityPinsLayer cities={citiesInSelectedRegion} zoom={zoom} onCityClick={onCityClick} />

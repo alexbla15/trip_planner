@@ -38,6 +38,23 @@ function firstPolygon(data: FeatureCollection | null): GeoFeature | null {
   );
 }
 
+// A handful of the region-migration's chosen display labels don't match how Nominatim's
+// gazetteer actually names the same real place — English tourism-style names for Iceland's
+// regions resolve to unrelated POIs (a guesthouse, a tourist info office) instead of the
+// administrative boundary, which is only indexed under its native Icelandic name; Georgia's
+// invented "Kazbegi / Georgian Military Highway" corridor label has no place of that name
+// at all, but the real administrative region it's describing (Mtskheta-Mtianeti) does.
+// Maps the *search term* only — the stored `region` field and everything the user sees
+// (tab labels, filters) keeps the original display label unchanged.
+const REGION_SEARCH_OVERRIDES: Record<string, string> = {
+  "Capital Region": "Höfuðborgarsvæðið",
+  "West Iceland": "Vesturland",
+  "Northwest Iceland": "Norðurland vestra",
+  "North Iceland": "Norðurland eystra",
+  "South Iceland": "Suðurland",
+  "Kazbegi / Georgian Military Highway": "Mtskheta-Mtianeti",
+};
+
 // A `region` on an attraction is a free-text grouping label (see `Attraction.region`),
 // not a fixed administrative unit — some resolve cleanly to a real Nominatim place
 // (e.g. "Black Forest", "US-NY" as a US state code, "Lake Garda"), others are invented
@@ -55,15 +72,17 @@ export const GET = withApiHandler("GET /api/geo/region", async (req: Request) =>
   const cached = await getCachedBoundary(cacheKey);
   if (cached.hit) return NextResponse.json(cached.data);
 
+  const searchTerm = REGION_SEARCH_OVERRIDES[region] ?? region;
+
   try {
-    const scopedData = country ? await searchNominatim(`${region}, ${country}`) : null;
+    const scopedData = country ? await searchNominatim(`${searchTerm}, ${country}`) : null;
     if (country && !scopedData) return NextResponse.json(null); // transient — don't cache
     let polygon = firstPolygon(scopedData);
 
     // Some region names (e.g. a US state code, or a composite label with a comma) resolve
     // better without the country suffix — retry bare before giving up.
     if (!polygon) {
-      const bareData = await searchNominatim(region);
+      const bareData = await searchNominatim(searchTerm);
       if (!bareData) return NextResponse.json(null); // transient — don't cache
       polygon = firstPolygon(bareData);
     }
