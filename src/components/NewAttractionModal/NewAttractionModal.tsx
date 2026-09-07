@@ -3,7 +3,6 @@
 import {
   useState,
   useEffect,
-  useMemo,
   useRef,
   type ChangeEvent,
 } from "react";
@@ -24,7 +23,7 @@ import {
 } from "./attraction.constants";
 import { CurrencySelect } from "@/components/CurrencySelect";
 import { SearchableSelect } from "@/components/SearchableSelect";
-import { getCities, searchLocation } from "@/services";
+import { searchLocation } from "@/services";
 import { AttractionTypePicker } from "@/components/AttractionTypePicker";
 import { CoverImageField } from "@/components";
 import { ModalShell } from "@/components/Modal";
@@ -36,7 +35,7 @@ import { ParentAttractionPicker } from "./ParentAttractionPicker";
 import { PriceTierEditor } from "./PriceTierEditor";
 import { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h, isValidUrl, isYearRound, ALL_MONTHS, deriveOpeningMonthsFromSeasonalHours, formatOpeningMonthsLabel } from "@/lib";
 import { useReverseGeocodeAutofill, useAttractionTypes, useFoodStyles } from "@/hooks";
-import { filterCityOptions, emptyPriceTab, flatPriceTiersToTabs, tabsToFlatPriceTiers } from "./NewAttractionModal.utils";
+import { emptyPriceTab, flatPriceTiersToTabs, tabsToFlatPriceTiers } from "./NewAttractionModal.utils";
 import type { Attraction } from "@/types/attraction";
 import styles from "./NewAttractionModal.module.css";
 import mapPickerStyles from "./MapPicker.module.css";
@@ -83,30 +82,15 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   const [regionSearching, setRegionSearching] = useState(false);
   const regionSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [city, setCity] = useState("");
+  // OpenStreetMap-backed suggestions for the City field — same debounced-search pattern
+  // as the Region field/LeafletMapWidget's/the Explore measure tool's location search.
+  const [citySuggestions, setCitySuggestions] = useState<{ display_name: string }[]>([]);
+  const [citySearching, setCitySearching] = useState(false);
+  const citySearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [parentAttractionId, setParentAttractionId] = useState<string | null>(null);
   const [parentAttractionName, setParentAttractionName] = useState<string | null>(null);
   const [parentPickerOpen, setParentPickerOpen] = useState(false);
-  const [knownCities, setKnownCities] = useState<{ name: string; country: string }[]>([]);
-  const [citiesLoading, setCitiesLoading] = useState(false);
-
-  // Load existing DB cities once per modal open, so the city field can suggest places
-  // already in use — never blocks/required, a brand-new city is still a valid entry.
-  useEffect(() => {
-    if (!isOpen) return;
-    setCitiesLoading(true);
-    getCities()
-      .then((data) => setKnownCities((data as { cities: { name: string; country: string }[] }).cities ?? []))
-      .catch(() => setKnownCities([]))
-      .finally(() => setCitiesLoading(false));
-  }, [isOpen]);
-
-  // Only suggest cities within the selected country (once one is chosen) — otherwise
-  // every city in the DB would show, which isn't useful once a country is picked.
-  const cityOptions = useMemo(
-    () => filterCityOptions(knownCities, country),
-    [knownCities, country],
-  );
 
   const handleCoordinatesChange = useReverseGeocodeAutofill({
     name,
@@ -354,12 +338,40 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setRegionSuggestions([]);
   }
 
+  function handleCityChange(val: string) {
+    setCity(val);
+    if (citySearchDebounceRef.current) clearTimeout(citySearchDebounceRef.current);
+    if (!val.trim()) {
+      setCitySuggestions([]);
+      return;
+    }
+    citySearchDebounceRef.current = setTimeout(async () => {
+      setCitySearching(true);
+      try {
+        const query = country ? `${val}, ${country}` : val;
+        const results = (await searchLocation(query)) as { display_name: string }[];
+        setCitySuggestions(results);
+      } catch {
+        setCitySuggestions([]);
+      } finally {
+        setCitySearching(false);
+      }
+    }, 400);
+  }
+
+  function handleCitySuggestionSelect(result: { display_name: string }) {
+    const label = result.display_name.split(",").slice(0, 2).join(", ").trim();
+    setCity(label);
+    setCitySuggestions([]);
+  }
+
   function handleReset() {
     setName("");
     setCountry(defaultCountry ?? "");
     setRegion("");
     setRegionSuggestions([]);
     setCity("");
+    setCitySuggestions([]);
     setCoordinates(null);
     setParentAttractionId(null);
     setParentAttractionName(null);
@@ -587,23 +599,45 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
             </div>
           </div>
 
-          {/* City */}
+          {/* City — OpenStreetMap-backed suggestions as the user types (same pattern as
+              Region), free text still accepted when nothing is picked. */}
           <div className={styles.field}>
             <label htmlFor="attraction-city" className={styles.labelWithIcon}>
               <Building size={14} aria-hidden="true" />
               City
             </label>
-            <SearchableSelect
-              id="attraction-city"
-              value={city}
-              onChange={setCity}
-              options={cityOptions}
-              loading={citiesLoading}
-              allowFreeText
-              placeholder="e.g. Paris"
-              ariaLabel="City"
-              emptyMessage="No existing cities match — type to add a new one"
-            />
+            <div className={mapPickerStyles.searchWrapper}>
+              <Search size={14} aria-hidden="true" className={mapPickerStyles.searchIconEl} />
+              <input
+                id="attraction-city"
+                type="text"
+                className={mapPickerStyles.searchInput}
+                value={city}
+                onChange={(e) => handleCityChange(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Escape") setCitySuggestions([]); }}
+                placeholder="e.g. Paris"
+                autoComplete="off"
+                aria-autocomplete="list"
+                aria-expanded={citySuggestions.length > 0}
+                aria-label="City"
+              />
+              {citySearching && <span className={mapPickerStyles.searchSpinner} aria-label="Searching…" />}
+              {citySuggestions.length > 0 && (
+                <ul className={mapPickerStyles.suggestions} role="listbox" aria-label="City suggestions">
+                  {citySuggestions.map((r, i) => (
+                    <li key={i} role="option" aria-selected={false}>
+                      <button
+                        type="button"
+                        className={mapPickerStyles.suggestionItem}
+                        onClick={() => handleCitySuggestionSelect(r)}
+                      >
+                        {r.display_name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         </>
       )}

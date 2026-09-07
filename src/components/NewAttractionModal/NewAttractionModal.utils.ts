@@ -1,19 +1,5 @@
 import type { PriceTabDraft, PrimaryCellRef } from "./attraction.types";
 
-/**
- * Narrows the known-cities list to the selected country (if any) and returns
- * a deduped, alphabetically sorted list of city names for the searchable select.
- */
-export function filterCityOptions(
-  knownCities: { name: string; country: string }[],
-  country: string,
-): string[] {
-  const scoped = country
-    ? knownCities.filter((c) => c.country.toLowerCase() === country.toLowerCase())
-    : knownCities;
-  return [...new Set(scoped.map((c) => c.name))].sort((a, b) => a.localeCompare(b));
-}
-
 let draftIdCounter = 0;
 /** Generates a client-only id for a new tab/row/column — never sent to/received from the
  *  API. Counter-based (not random) so ids stay stable/readable across a session and don't
