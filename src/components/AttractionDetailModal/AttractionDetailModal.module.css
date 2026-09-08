@@ -700,6 +700,18 @@
   font-size: 13px;
 }
 
+/* Collapsed single-line replacement for the 7-row table when a tab's hours are the same
+   every day (e.g. "Every day: 7:00 – 17:00", already a complete string from
+   getUniformHoursLabel) — mirrors a single .hoursRow's padding/weight so it reads as the
+   same visual tier, just one line instead of seven identical ones. */
+.hoursUniform {
+  margin: 0;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
 .hoursRow {
   border-bottom: 1px solid var(--color-border-subtle);
 }

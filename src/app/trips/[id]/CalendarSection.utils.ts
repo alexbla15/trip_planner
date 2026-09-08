@@ -1,5 +1,5 @@
 import type { Attraction } from "@/types/attraction";
-import { timeToMins, isYearRound, formatOpeningMonthsLabel } from "@/lib";
+import { timeToMins, isYearRound, formatOpeningMonthsLabel, deriveOpeningMonthsFromSeasonalHours } from "@/lib";
 import { resolveOpeningHoursForDate } from "@/lib/seasonalHours";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -81,15 +81,25 @@ function getClosedAlert(a: Attraction): ScheduleAlert | null {
 // ── Condition A2: venue out of season at planned date ─────────────────────────
 
 function getOutOfSeasonAlert(a: Attraction): ScheduleAlert | null {
-  if (!a.plannedDate || isYearRound(a.openingMonths)) return null;
+  if (!a.plannedDate) return null;
+
+  // Once seasonalHours exist, they're the sole source of truth for "which months" — the
+  // persisted openingMonths is always year-round in that case (see NewAttractionModal's
+  // handleSave), so this alert must derive live from seasonalHours instead, or it would
+  // silently stop catching out-of-season bookings for any seasonal-hours attraction.
+  const effectiveOpeningMonths = a.seasonalHours?.length
+    ? deriveOpeningMonthsFromSeasonalHours(a.seasonalHours)
+    : a.openingMonths;
+
+  if (isYearRound(effectiveOpeningMonths)) return null;
 
   const month = new Date(a.plannedDate).getUTCMonth() + 1; // 1–12
-  if (a.openingMonths!.includes(month)) return null;
+  if (effectiveOpeningMonths!.includes(month)) return null;
 
   return {
     id:      `season-${a._id}`,
     type:    "season",
-    message: `"${a.name}" is scheduled on ${a.plannedDate} but is only open ${formatOpeningMonthsLabel(a.openingMonths!)}.`,
+    message: `"${a.name}" is scheduled on ${a.plannedDate} but is only open ${formatOpeningMonthsLabel(effectiveOpeningMonths!)}.`,
   };
 }
 

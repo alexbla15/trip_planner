@@ -184,6 +184,10 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   const showHoursTabs = hoursTabs.length > 1;
   const activeHoursIndex = Math.min(activeHoursTab, hoursTabs.length - 1);
   const effectiveOpeningHours = hoursTabs[activeHoursIndex]?.hours;
+  // Same "collapse to one line" treatment the base (non-seasonal) hours already get via
+  // uniformHoursLabel above — a seasonal tab whose own hours happen to be the same every
+  // day (e.g. "open daily 7:00–17:00") shouldn't repeat that value in a 7-row table either.
+  const activeHoursUniformLabel = effectiveOpeningHours ? getUniformHoursLabel(effectiveOpeningHours) : null;
   const hasMultiplePriceTiers = (attraction.prices?.length ?? 0) > 1;
   // A nested attraction (e.g. a specific ride inside a theme park) often has no photo of
   // its own — fall back to the parent's photo rather than showing no photo at all.
@@ -805,31 +809,35 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                 {hoursTabs[activeHoursIndex]?.rangeLabel && (
                   <p className={styles.seasonalRangeInline}>{hoursTabs[activeHoursIndex]?.rangeLabel}</p>
                 )}
-                <table key={hoursTabs[activeHoursIndex]?.key} className={styles.hoursTable} aria-label="Opening hours">
-                  <tbody>
-                    {DAY_KEYS.map((day) => {
-                      const row = effectiveOpeningHours?.[day];
-                      const isToday = day === todayKey;
-                      return (
-                        <tr key={day} className={`${styles.hoursRow} ${isToday ? styles.hoursRowToday : ""}`}>
-                          <td className={styles.hoursDay}>
-                            <span className={styles.hoursDayInner}>
-                              {day}
-                              {isToday && <span className={styles.todayPill}>Today</span>}
-                            </span>
-                          </td>
-                          <td className={styles.hoursTime}>
-                            {row?.closed || !row?.ranges?.length ? (
-                              <span className={styles.closed}>Closed</span>
-                            ) : (
-                              row.ranges.map((r) => `${r.open} – ${r.close}`).join(", ")
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                {activeHoursUniformLabel ? (
+                  <p className={styles.hoursUniform}>{activeHoursUniformLabel}</p>
+                ) : (
+                  <table key={hoursTabs[activeHoursIndex]?.key} className={styles.hoursTable} aria-label="Opening hours">
+                    <tbody>
+                      {DAY_KEYS.map((day) => {
+                        const row = effectiveOpeningHours?.[day];
+                        const isToday = day === todayKey;
+                        return (
+                          <tr key={day} className={`${styles.hoursRow} ${isToday ? styles.hoursRowToday : ""}`}>
+                            <td className={styles.hoursDay}>
+                              <span className={styles.hoursDayInner}>
+                                {day}
+                                {isToday && <span className={styles.todayPill}>Today</span>}
+                              </span>
+                            </td>
+                            <td className={styles.hoursTime}>
+                              {row?.closed || !row?.ranges?.length ? (
+                                <span className={styles.closed}>Closed</span>
+                              ) : (
+                                row.ranges.map((r) => `${r.open} – ${r.close}`).join(", ")
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
           )}

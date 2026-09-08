@@ -293,11 +293,13 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       prices: flatTiers.length ? flatTiers : undefined,
       currency,
       openingHours,
-      // Once any seasonal-hours entry exists, openingMonths is derived from their date
-      // ranges — never independently set by the Opening Months toggle in that case (see
-      // deriveOpeningMonthsFromSeasonalHours).
+      // Once any seasonal-hours entry exists, openingMonths is always stored as year-round
+      // (undefined) — it is never restricted to the seasonal entries' own date ranges.
+      // "Which months are actually open" is derived from seasonalHours live, for display
+      // only (deriveOpeningMonthsFromSeasonalHours), never persisted as a separate
+      // restricted value here.
       openingMonths: completeSeasonalHours.length
-        ? deriveOpeningMonthsFromSeasonalHours(completeSeasonalHours)
+        ? undefined
         : yearRound ? undefined : openingMonths,
       seasonalHours: completeSeasonalHours.length ? completeSeasonalHours : undefined,
       notes,
@@ -805,8 +807,11 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       )}
 
       {/* Opening Months — omitted for a residence: always treated as year-round. When
-          Seasonal Hours entries exist, this is derived from their date ranges instead of
-          being independently set — see deriveOpeningMonthsFromSeasonalHours. */}
+          Seasonal Hours entries exist, the STORED value is always year-round (see the
+          openingMonths line in handleSave) — this helper text is a live, display-only
+          preview of which months the seasonal entries actually cover, computed via
+          deriveOpeningMonthsFromSeasonalHours, never persisted as its own restricted
+          value. */}
       {!isEditingResidence && (
         <div className={styles.field}>
           <div className={styles.labelRow}>

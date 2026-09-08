@@ -1,7 +1,7 @@
 import { Ban, CalendarDays, Clock, type LucideIcon } from "lucide-react";
 import { isAllDay24h, isPermanentlyClosed } from "./openingHours";
 import { isYearRound, formatOpeningMonthsLabel } from "./openingMonths";
-import type { SeasonalHoursEntry } from "./seasonalHours";
+import { deriveOpeningMonthsFromSeasonalHours, type SeasonalHoursEntry } from "./seasonalHours";
 import type { OpeningHours } from "@/types/attraction";
 
 export interface StatusChipDescriptor {
@@ -50,8 +50,16 @@ export function getStatusChips(
     chips.push({ key: "open-24-7", icon: Clock, label: "Open 24/7" });
   }
 
-  if (!isYearRound(openingMonths)) {
-    chips.push({ key: "seasonal", icon: CalendarDays, label: `Open ${formatOpeningMonthsLabel(openingMonths!)}` });
+  // Once seasonalHours exist, they're the sole source of truth for "which months" — the
+  // persisted `openingMonths` is always year-round in that case (see NewAttractionModal's
+  // handleSave), so deriving live from seasonalHours here is what actually reflects reality
+  // (and self-heals any pre-existing attraction saved before that convention).
+  const effectiveOpeningMonths = seasonalHours?.length
+    ? deriveOpeningMonthsFromSeasonalHours(seasonalHours)
+    : openingMonths;
+
+  if (!isYearRound(effectiveOpeningMonths)) {
+    chips.push({ key: "seasonal", icon: CalendarDays, label: `Open ${formatOpeningMonthsLabel(effectiveOpeningMonths!)}` });
   }
 
   // Independent of the whole-month restriction above — this flags that hours themselves

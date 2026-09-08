@@ -1,4 +1,5 @@
 import type { OpeningHours } from "@/types/attraction";
+import { isPermanentlyClosed } from "./openingHours";
 
 export interface MonthDay {
   month: number; // 1–12
@@ -54,15 +55,17 @@ function monthsInRange(start: MonthDay, end: MonthDay): number[] {
   return months;
 }
 
-/** Derives `openingMonths` (whole months the attraction is open in) as the union of every
- *  seasonal-hours entry's date range. Once any seasonal-hours entry exists, this is the
- *  ONLY source of `openingMonths` — it is never independently set by the user (the
- *  Opening Months toggle/grid is hidden in the form in that case) and never falls back to
- *  a manually-picked month set, matching `resolveOpeningHoursForDate`'s "no default once
- *  seasonal hours exist" rule. */
+/** Derives which whole months the attraction is genuinely open in, as the union of every
+ *  seasonal-hours entry's date range — excluding any entry whose own `hours` are entirely
+ *  closed (e.g. a "closed for the off-season" seasonal entry), since that range isn't
+ *  actually open. This is DISPLAY-only (status chips, calendar out-of-season alerts,
+ *  editor helper text): the persisted `openingMonths` field is never derived from this once
+ *  seasonalHours exist — it stays year-round, and this function is the live source of truth
+ *  for "which months" wherever that needs to be shown. */
 export function deriveOpeningMonthsFromSeasonalHours(entries: SeasonalHoursEntry[]): number[] {
   const months = new Set<number>();
   for (const entry of entries) {
+    if (isPermanentlyClosed(entry.hours)) continue;
     for (const m of monthsInRange(entry.start, entry.end)) months.add(m);
   }
   return [...months].sort((a, b) => a - b);
