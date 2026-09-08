@@ -9,7 +9,6 @@ import { Trip, type ITrip, type IScheduleEntry } from "@/models/Trip";
 import { getVisitedIdSet, isAttractionVisited } from "@/lib/services/visited.service";
 import { getUsedInTripsMap, getUsedInTripNames } from "@/lib/services/usedInTrips.service";
 import { getParentNameMap, getParentName, getParentPhotoMap, getParentPhoto, getChildCountMap, getChildCount, resolveParentLink } from "@/lib/services/nestedAttractions.service";
-import { snapshotAttraction, createAttractionEditMessage } from "@/lib/services/adminMessages.service";
 import type { JwtPayload } from "@/lib/auth";
 import type { Attraction as AttractionShape, OpeningHours } from "@/types/attraction";
 
@@ -298,10 +297,6 @@ export async function updateAttraction(
     throw notFound("Attraction not found");
   }
 
-  // Captured before any field below mutates the document in place, so the admin
-  // notification (fired after save) can diff old vs. new values.
-  const beforeSnapshot = snapshotAttraction(attraction);
-
   const isAttractionOwner = attraction.ownerId.toString() === payload.userId;
   if (!isAttractionOwner) {
     const hasTripAccess = await Trip.exists({
@@ -441,11 +436,6 @@ export async function updateAttraction(
   } catch (err) {
     throwIfDuplicateKeyError(err);
   }
-
-  // Best-effort — a notification failure must never fail the edit itself.
-  try {
-    await createAttractionEditMessage(payload, attraction, beforeSnapshot);
-  } catch { /* non-critical */ }
 
   await attraction.populate(["types", "foodStyles"]);
   return attraction;

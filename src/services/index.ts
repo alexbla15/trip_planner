@@ -80,6 +80,3 @@ export {
   formatStepDuration,
 } from "./routeTransit.service";
 export type { TravelMode, RouteLeg, RouteStep } from "./routeTransit.service";
-
-export { getAdminMessages, setAdminMessageRead } from "./adminMessages.service";
-export type { AdminMessage, AdminMessageFieldChange } from "./adminMessages.service";
