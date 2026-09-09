@@ -68,7 +68,7 @@ export { getNightsCount } from "./residence";
 export { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h, isPermanentlyClosed, getUniformHoursLabel } from "./openingHours";
 
 export type { StatusChipDescriptor } from "./attractionStatusChips";
-export { getStatusChips } from "./attractionStatusChips";
+export { getStatusChips, isAttractionPermanentlyClosed } from "./attractionStatusChips";
 
 export { ALL_MONTHS, isYearRound, formatOpeningMonthsLabel } from "./openingMonths";
 

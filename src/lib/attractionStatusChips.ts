@@ -13,6 +13,22 @@ export interface StatusChipDescriptor {
   tone?: "primary" | "danger";
 }
 
+/** True when an attraction is genuinely permanently closed — the base `openingHours` is
+ *  every day closed AND there's no seasonalHours to override it. Once any seasonalHours
+ *  entry exists, the base `openingHours` is never authoritative (see
+ *  resolveOpeningHoursForDate's same "no default once seasonal hours exist" rule) — it's
+ *  commonly just the neutral all-closed placeholder convention documents, real hours live
+ *  entirely in seasonalHours. Checking isPermanentlyClosed against the base alone would
+ *  misreport a place with real seasonal hours as permanently closed. Shared by the status
+ *  chip below and any other UI (grid card, map marker) that needs to flag this prominently
+ *  without pulling in the full chip list. */
+export function isAttractionPermanentlyClosed(
+  openingHours: OpeningHours | undefined,
+  seasonalHours?: SeasonalHoursEntry[]
+): boolean {
+  return !!openingHours && !seasonalHours?.length && isPermanentlyClosed(openingHours);
+}
+
 /** Derives every applicable status chip (24/7, seasonal restriction, permanently
  *  closed) from an attraction's opening-hours/opening-months data. Callers just render
  *  whatever this returns — adding a new status concept later is a one-line addition
@@ -35,12 +51,7 @@ export function getStatusChips(
 ): StatusChipDescriptor[] {
   if (!openingHours) return [];
 
-  // Once any seasonalHours entry exists, the base `openingHours` is never authoritative
-  // (see resolveOpeningHoursForDate's same "no default once seasonal hours exist" rule) —
-  // it's commonly just the neutral all-closed placeholder convention documents, real hours
-  // live entirely in seasonalHours. Checking isPermanentlyClosed against the base alone
-  // would misreport a place with real seasonal hours as permanently closed.
-  if (!seasonalHours?.length && isPermanentlyClosed(openingHours)) {
+  if (isAttractionPermanentlyClosed(openingHours, seasonalHours)) {
     return [{ key: "permanently-closed", icon: Ban, label: "Permanently closed", tone: "danger" }];
   }
 

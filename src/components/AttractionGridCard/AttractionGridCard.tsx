@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, ArrowUpRight, Calendar, BadgeCheck, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, ArrowUpRight, Calendar, BadgeCheck, ChevronLeft, ChevronRight, Ban } from "lucide-react";
 import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
 import { Spinner } from "@/components/Spinner";
 import { getAttraction, getChildAttractions } from "@/services";
 import { useAttractionTypes } from "@/hooks";
-import { formatDisplayDate, getNightsCount } from "@/lib";
+import { formatDisplayDate, getNightsCount, isAttractionPermanentlyClosed } from "@/lib";
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
 import type { Attraction } from "@/types/attraction";
 import styles from "./AttractionGridCard.module.css";
@@ -26,6 +26,7 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
   const hasPhoto = !!displayPhotoUrl;
   const icon = renderTypeIcon(findType(attraction.types?.[0] ?? "")?.icon ?? "Globe");
   const canEdit = !!currentUserId && attraction.ownerId === currentUserId;
+  const permanentlyClosed = isAttractionPermanentlyClosed(attraction.openingHours, attraction.seasonalHours);
   const isResidence = attraction.subtype === "residence";
   const nights = isResidence ? getNightsCount(attraction.checkInDate, attraction.checkOutDate) : null;
 
@@ -121,9 +122,9 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
           onClick(attraction);
         }
       }}
-      aria-label={`View details for ${attraction.name}`}
+      aria-label={`View details for ${attraction.name}${permanentlyClosed ? " (permanently closed)" : ""}`}
     >
-      <div className={styles.photoArea}>
+      <div className={`${styles.photoArea} ${permanentlyClosed ? styles.photoAreaClosed : ""}`}>
         {hasPhoto ? (
           <ImageWithSkeleton
             src={displayPhotoUrl!}
@@ -136,6 +137,15 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
           />
         ) : (
           <div className={styles.photoFallback} aria-hidden="true">{icon}</div>
+        )}
+
+        {permanentlyClosed && (
+          <div className={styles.closedOverlay}>
+            <span className={styles.closedBanner}>
+              <Ban size={12} aria-hidden="true" />
+              Permanently closed
+            </span>
+          </div>
         )}
 
         <div className={styles.badges}>

@@ -3,6 +3,9 @@ export const MARKER_ICON_WHITE = "#ffffff";
 export const COUNTRY_MARKER_COLOR = "#0284C7";
 export const ACCENT_MARKER_COLOR = "#D97706";
 export const VISITED_BORDER_COLOR = "#059669";
+// Matches docs/DESIGN_SYSTEM.md's --color-error (red-600) — reused here so a permanently
+// closed attraction reads as unmistakably different from every type-colored pin on the map.
+export const CLOSED_MARKER_COLOR = "#DC2626";
 
 export const ATTRACTION_MARKER_SIZE_PX = 30;
 export const CUSTOM_PIN_SIZE_PX = 32;

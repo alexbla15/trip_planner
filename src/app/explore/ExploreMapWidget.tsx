@@ -12,7 +12,7 @@ import { CLUSTER_MARKER_BASE_SIZE_PX, CLUSTER_MARKER_MAX_SIZE_PX } from "@/lib/m
 import { colorForBoundaryIndex } from "@/lib/mapBoundaryColors";
 import { fixLeafletDefaultIcon } from "@/lib/leafletIconFix";
 import { TRAVEL_MODE_COLORS } from "@/lib/travelModeColors";
-import { filterTopLevelMapPins } from "@/lib";
+import { filterTopLevelMapPins, isAttractionPermanentlyClosed } from "@/lib";
 import type { Attraction } from "@/types/attraction";
 import type { CityEntry, CountryEntry, RegionEntry, MapHandle, MeasurePoint } from "./ExploreClient";
 import styles from "./ExploreMapWidget.module.css";
@@ -594,16 +594,18 @@ export function ExploreMapWidget({
           const color    = typeRecord?.color   ?? "#64748B";
           const iconName = typeRecord?.icon    ?? "MapPin";
           const isMeasureSelected = measurePoints.some((p) => p.kind === "attraction" && p.attraction._id === a._id);
+          const permanentlyClosed = isAttractionPermanentlyClosed(a.openingHours, a.seasonalHours);
           return (
             <Marker
               key={a._id}
               position={[a.coordinates.lat, a.coordinates.lng]}
-              icon={makeAttractionMarkerIcon(color, iconName, isMeasureSelected, a.isVisited)}
+              icon={makeAttractionMarkerIcon(color, iconName, isMeasureSelected, a.isVisited, permanentlyClosed)}
               eventHandlers={{ click: () => onAttractionClick(a) }}
             >
               <Tooltip direction="top" offset={[0, -17]}>
                 <strong>{a.name}</strong>
                 {a.types?.[0] ? ` · ${a.types[0]}` : ""}
+                {permanentlyClosed ? " · Permanently closed" : ""}
                 {isMeasureSelected ? " · Selected for measuring" : ""}
                 {a.isVisited ? " · Visited" : ""}
               </Tooltip>

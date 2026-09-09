@@ -1,12 +1,13 @@
 import L from "leaflet";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MapPin, Building2 } from "lucide-react";
+import { MapPin, Building2, Ban } from "lucide-react";
 import { getIconComponent } from "@/components/IconPicker";
 import {
   MARKER_ICON_WHITE,
   COUNTRY_MARKER_COLOR,
   ACCENT_MARKER_COLOR,
   VISITED_BORDER_COLOR,
+  CLOSED_MARKER_COLOR,
   ATTRACTION_MARKER_SIZE_PX,
   CUSTOM_PIN_SIZE_PX,
   CITY_MARKER_SIZE_PX,
@@ -15,22 +16,31 @@ import {
   CLUSTER_MARKER_MAX_SIZE_PX,
 } from "./mapIcons.constants";
 
-export function makeAttractionMarkerIcon(color: string, iconName: string, selected = false, isVisited = false): L.DivIcon {
+export function makeAttractionMarkerIcon(color: string, iconName: string, selected = false, isVisited = false, permanentlyClosed = false): L.DivIcon {
+  // Permanently closed overrides the type color/icon entirely — a Ban glyph on a solid
+  // red pin reads as "don't bother visiting" at a glance, distinct from every other
+  // type-colored pin on the map, rather than relying on a subtle border/badge that would
+  // blend into a busy map full of colored markers.
   let svg = "";
   try {
-    const IconComp = getIconComponent(iconName);
+    const IconComp = permanentlyClosed ? Ban : getIconComponent(iconName);
     svg = renderToStaticMarkup(<IconComp size={14} color={MARKER_ICON_WHITE} aria-hidden="true" />);
   } catch { /* */ }
+  const fill = permanentlyClosed ? CLOSED_MARKER_COLOR : color;
   // Measure-tool selection outranks visited status (it's a temporary, in-the-moment
   // state); visited status gets its own border color (--color-success) so a marked
-  // place stays visually distinguishable from unvisited ones at a glance.
-  const border = selected
-    ? `3px solid ${ACCENT_MARKER_COLOR}`
-    : isVisited
-      ? `3px solid ${VISITED_BORDER_COLOR}`
-      : "2px solid #fff";
+  // place stays visually distinguishable from unvisited ones at a glance. Permanently
+  // closed outranks both — a closed place being "selected" or "visited" is secondary to
+  // the fact it can't be visited at all.
+  const border = permanentlyClosed
+    ? "3px solid #fff"
+    : selected
+      ? `3px solid ${ACCENT_MARKER_COLOR}`
+      : isVisited
+        ? `3px solid ${VISITED_BORDER_COLOR}`
+        : "2px solid #fff";
   return L.divIcon({
-    html: `<div style="width:${ATTRACTION_MARKER_SIZE_PX}px;height:${ATTRACTION_MARKER_SIZE_PX}px;border-radius:50%;background:${color};border:${border};box-shadow:0 2px 6px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center">${svg}</div>`,
+    html: `<div style="width:${ATTRACTION_MARKER_SIZE_PX}px;height:${ATTRACTION_MARKER_SIZE_PX}px;border-radius:50%;background:${fill};border:${border};box-shadow:0 2px 6px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center">${svg}</div>`,
     iconSize: [ATTRACTION_MARKER_SIZE_PX, ATTRACTION_MARKER_SIZE_PX] as [number, number],
     iconAnchor: [ATTRACTION_MARKER_SIZE_PX / 2, ATTRACTION_MARKER_SIZE_PX / 2] as [number, number],
     className: "",
