@@ -43,7 +43,7 @@ const LocationViewMap = dynamic(
 );
 import type { AttractionType } from "@/components/NewAttractionModal";
 import type { Attraction } from "@/types/attraction";
-import { formatDisplayDate, formatPrice, getStatusChips, getUniformHoursLabel, formatSeasonalRangeLabel } from "@/lib";
+import { formatDisplayDate, formatPrice, getStatusChips, getUniformHoursLabel, formatSeasonalRangeLabel, sortSeasonalHoursByStart } from "@/lib";
 import { buildPriceTierTabs, buildPricePivot } from "./AttractionDetailModal.utils";
 import styles from "./AttractionDetailModal.module.css";
 
@@ -168,8 +168,12 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   // only the seasonal tabs (matching resolveOpeningHoursForDate's "no default once
   // seasonal hours exist" rule). Otherwise it's a single implicit "Default" tab (no tab
   // strip rendered — showHoursTabs only turns on with 2+ tabs).
+  // Tabs read left-to-right in calendar order (Jan → Dec) regardless of the order the
+  // seasons were entered in — a display-only sort (sortSeasonalHoursByStart), the
+  // underlying attraction.seasonalHours array itself stays in its original stored order
+  // since resolveOpeningHoursForDate's overlap resolution depends on that order.
   const hoursTabs = attraction.seasonalHours?.length
-    ? attraction.seasonalHours.map((h, i) => {
+    ? sortSeasonalHoursByStart(attraction.seasonalHours).map((h, i) => {
         const rangeLabel = formatSeasonalRangeLabel(h.start, h.end);
         // When a title is set, it becomes the tab label and the date range (no longer
         // visible in the tab strip) is shown explicitly inside the tab's content instead.

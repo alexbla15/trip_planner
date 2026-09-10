@@ -29,6 +29,21 @@ export function isAttractionPermanentlyClosed(
   return !!openingHours && !seasonalHours?.length && isPermanentlyClosed(openingHours);
 }
 
+/** True when a seasonal-hours attraction is genuinely open 24/7 all year — every
+ *  seasonal entry that isn't itself a "closed this season" placeholder is all-day-24/7,
+ *  AND those entries collectively cover all 12 months (no gap where hours are unknown).
+ *  Mirrors `isAllDay24h(openingHours)` for the non-seasonal case: the base `openingHours`
+ *  can't answer this for a seasonal attraction (it's just the neutral all-closed
+ *  placeholder once seasonalHours exist), so this checks the real source of truth instead
+ *  — without it, a seasonal attraction that's actually 24/7 year-round would never get the
+ *  same "Open 24/7" chip a regular attraction with identical real-world hours would. */
+function isSeasonalOpen247AllYear(seasonalHours: SeasonalHoursEntry[]): boolean {
+  const openEntries = seasonalHours.filter((e) => !isPermanentlyClosed(e.hours));
+  if (openEntries.length === 0) return false;
+  const months = deriveOpeningMonthsFromSeasonalHours(seasonalHours);
+  return isYearRound(months) && openEntries.every((e) => isAllDay24h(e.hours));
+}
+
 /** Derives every applicable status chip (24/7, seasonal restriction, permanently
  *  closed) from an attraction's opening-hours/opening-months data. Callers just render
  *  whatever this returns — adding a new status concept later is a one-line addition
@@ -57,7 +72,10 @@ export function getStatusChips(
 
   const chips: StatusChipDescriptor[] = [];
 
-  if (isAllDay24h(openingHours)) {
+  const open247 = seasonalHours?.length
+    ? isSeasonalOpen247AllYear(seasonalHours)
+    : isAllDay24h(openingHours);
+  if (open247) {
     chips.push({ key: "open-24-7", icon: Clock, label: "Open 24/7" });
   }
 

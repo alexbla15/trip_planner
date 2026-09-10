@@ -41,6 +41,17 @@ export function formatSeasonalRangeLabel(start: MonthDay, end: MonthDay): string
   return `${MONTH_ABBR[start.month - 1]} ${start.day} – ${MONTH_ABBR[end.month - 1]} ${end.day}`;
 }
 
+/** Sorts a copy of `entries` by start date, January 1st first through December 31st last
+ *  — for DISPLAY only (e.g. ordering the read-mode tab strip so a reader scans them in
+ *  calendar order regardless of the order they were entered in). Never mutates the input,
+ *  and must never be used to change the actual STORED array order: `resolveOpeningHoursForDate`
+ *  intentionally resolves overlapping ranges by user-entered order ("first match wins") —
+ *  re-sorting the persisted array would silently change which entry wins for a date two
+ *  ranges both cover. */
+export function sortSeasonalHoursByStart<T extends { start: MonthDay }>(entries: T[]): T[] {
+  return [...entries].sort((a, b) => monthDayToOrdinal(a.start) - monthDayToOrdinal(b.start));
+}
+
 /** Derives the set of whole months (1–12) touched by a single [start, end] range,
  *  inclusive of any month it only partially covers, handling New-Year wraparound. */
 function monthsInRange(start: MonthDay, end: MonthDay): number[] {
