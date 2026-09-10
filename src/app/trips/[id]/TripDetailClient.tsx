@@ -1211,21 +1211,23 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                               aria-label={`View details for ${attraction.name}`}
                               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setViewingAttraction(attraction); } }}
                             >
-                              <div className={styles.attractionIconCircle} aria-hidden="true">
-                                {icon}
-                              </div>
-                              <div className={styles.attractionInfo}>
-                                <span className={styles.attractionName}>{attraction.name}</span>
-                                <span className={styles.attractionMeta}>{metaLine}</span>
-                                {attraction.notes && (
-                                  <span className={styles.attractionNotes}>{attraction.notes}</span>
+                              <div className={styles.attractionMain}>
+                                <div className={styles.attractionIconCircle} aria-hidden="true">
+                                  {icon}
+                                </div>
+                                <div className={styles.attractionInfo}>
+                                  <span className={styles.attractionName}>{attraction.name}</span>
+                                  <span className={styles.attractionMeta}>{metaLine}</span>
+                                  {attraction.notes && (
+                                    <span className={styles.attractionNotes}>{attraction.notes}</span>
+                                  )}
+                                </div>
+                                {attraction.photoUrl?.startsWith("http") && (
+                                  <div className={styles.attractionThumb} aria-hidden="true">
+                                    <ImageWithSkeleton src={attraction.photoUrl} alt="" width={52} height={52} unoptimized className={styles.attractionThumbImg} />
+                                  </div>
                                 )}
                               </div>
-                              {attraction.photoUrl?.startsWith("http") && (
-                                <div className={styles.attractionThumb} aria-hidden="true">
-                                  <ImageWithSkeleton src={attraction.photoUrl} alt="" width={52} height={52} unoptimized className={styles.attractionThumbImg} />
-                                </div>
-                              )}
                               <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
                                 <span className={styles.websiteSlot}>
                                   <WebsiteLinkButton url={attraction.websiteUrl} variant="compact" />

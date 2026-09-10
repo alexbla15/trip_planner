@@ -686,6 +686,7 @@
 .attractionItem {
   display: flex;
   align-items: flex-start;
+  justify-content: space-between;
   gap: 12px;
   padding: 12px;
   border: 1px solid var(--color-border);
@@ -694,6 +695,41 @@
   cursor: pointer;
   transition: border-color var(--duration-fast) var(--easing-out),
     background var(--duration-fast) var(--easing-out);
+}
+
+/* Icon + title/meta + thumbnail, grouped so .attractionItem only has to arrange 2 flex
+   children (this + .rowActions) — lets the mobile breakpoint below stack them into two
+   full-width rows instead of cramming icon/title/thumb/4-icon-toolbar into one line. */
+.attractionMain {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* A phone-width row has nowhere near enough space for icon + title + thumbnail + up to 4
+   action buttons side by side — that's what was producing mid-word-truncated meta text
+   ("Freiburg im Br...") and a cramped, illegible row. Stack the actions onto their own
+   full-width row below instead of fighting for horizontal space.
+   Selectors are doubled (`.rowActions.rowActions` etc.) to outrank the base rules on
+   specificity regardless of CSS bundle concatenation order — Next's CSS Modules output can
+   place a media-query block before the plain rule it's meant to override in the final
+   bundle, in which case equal specificity would let the plain rule win even at a matching
+   viewport width (same fix already used for `.photoWrapper` in AttractionGridCard). */
+@media (max-width: 480px) {
+  .attractionItem.attractionItem {
+    flex-wrap: wrap;
+  }
+  .rowActions.rowActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .attractionMeta.attractionMeta {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
 }
 
 .attractionItem:hover {
