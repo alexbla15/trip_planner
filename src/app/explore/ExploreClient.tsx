@@ -193,23 +193,32 @@ export function ExploreClient() {
   // Load cities on mount (re-fetches on auth change too — visitedCount/unvisitedCount
   // per city depend on who's asking).
   useEffect(() => {
+    let cancelled = false;
     setCitiesLoading(true);
     setCitiesLoadError(false);
     getCities(token)
-      .then((data) => setCities((data as { cities: CityEntry[] }).cities ?? []))
-      .catch(() => setCitiesLoadError(true))
-      .finally(() => setCitiesLoading(false));
+      .then((data) => { if (!cancelled) setCities((data as { cities: CityEntry[] }).cities ?? []); })
+      .catch(() => { if (!cancelled) setCitiesLoadError(true); })
+      .finally(() => { if (!cancelled) setCitiesLoading(false); });
+    // token flips from null to its real value once auth hydrates, re-running this effect
+    // while the anonymous request may still be in flight — without this guard, whichever
+    // response lands last wins even if it's the stale (anonymous) one.
+    return () => { cancelled = true; };
   }, [citiesReloadKey, token]);
 
   // Load attractions when city changes
   useEffect(() => {
     if (!selectedCity) { setCityAttractions([]); return; }
+    let cancelled = false;
     setAttractionsLoading(true);
     setPageError(null);
     getAttractionsByCity(selectedCity, token)
-      .then((data) => setCityAttractions(Array.isArray(data) ? (data as Attraction[]) : []))
-      .catch(() => setPageError("Couldn't load attractions for this city. Please try again."))
-      .finally(() => setAttractionsLoading(false));
+      .then((data) => { if (!cancelled) setCityAttractions(Array.isArray(data) ? (data as Attraction[]) : []); })
+      .catch(() => { if (!cancelled) setPageError("Couldn't load attractions for this city. Please try again."); })
+      .finally(() => { if (!cancelled) setAttractionsLoading(false); });
+    // Same stale-response guard as above — also covers quickly switching cities before the
+    // previous city's request has resolved.
+    return () => { cancelled = true; };
   }, [selectedCity, token]);
 
   // Load every attraction in the country when a country is selected but no city yet —
@@ -226,8 +235,19 @@ export function ExploreClient() {
     if (!selectedCountry || selectedCity) { setCountryAttractions([]); return; }
     setAttractionsLoading(true);
     setPageError(null);
+    let cancelled = false;
     let firstPage = true;
     getAttractionsByCountry(selectedCountry, token, (page) => {
+      // Without this guard, a stale request (e.g. superseded when `token` flips from null
+      // to its real value once auth hydrates, re-running this effect mid-fetch) keeps
+      // streaming pages into `countryAttractions` right alongside the new request's own —
+      // their page callbacks interleave, each appending to the same array, so the count
+      // transiently balloons past the real total. That inflated count could make grid
+      // pagination briefly report an extra page; when the stale request's very last page
+      // finally lands (or the new request's first page resets the array), the count drops
+      // back and gridTotalPages shrinks, clamping the user back to page 1 — "next page"
+      // appearing to silently undo itself. This was a real, reproduced bug, not a guess.
+      if (cancelled) return;
       const items = page as Attraction[];
       if (firstPage) {
         firstPage = false;
@@ -237,8 +257,9 @@ export function ExploreClient() {
         setCountryAttractions((prev) => [...prev, ...items]);
       }
     })
-      .catch(() => setPageError("Couldn't load attractions for this country. Please try again."))
-      .finally(() => setAttractionsLoading(false));
+      .catch(() => { if (!cancelled) setPageError("Couldn't load attractions for this country. Please try again."); })
+      .finally(() => { if (!cancelled) setAttractionsLoading(false); });
+    return () => { cancelled = true; };
   }, [selectedCountry, selectedCity, token]);
 
   // Exact count of a city's attractions matching ALL currently-active filters at once,
