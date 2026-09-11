@@ -44,7 +44,7 @@ const LocationViewMap = dynamic(
 import type { AttractionType } from "@/components/NewAttractionModal";
 import type { Attraction } from "@/types/attraction";
 import { formatDisplayDate, formatPrice, getStatusChips, getUniformHoursLabel, formatSeasonalRangeLabel, sortSeasonalHoursByStart } from "@/lib";
-import { buildPriceTierTabs, buildPricePivot } from "./AttractionDetailModal.utils";
+import { buildPriceTierTabs, buildPricePivot, stripParenthetical } from "./AttractionDetailModal.utils";
 import styles from "./AttractionDetailModal.module.css";
 
 const DAY_KEYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
@@ -125,12 +125,17 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
     }
     const { _id, name, city } = attraction;
     let cancelled = false;
-    getOtherLocationsInCity(name, city)
+    // Search and match on the name with any parenthetical branch disambiguator stripped
+    // (e.g. "Levain Bakery (Williamsburg)" -> "Levain Bakery") so every branch of the same
+    // chain is found and recognized as one, not just attractions sharing this exact branch's
+    // full name (which — with the parenthetical intact — would never match another branch).
+    const baseName = stripParenthetical(name);
+    getOtherLocationsInCity(baseName, city)
       .then((data) => {
         if (cancelled) return;
-        const normalizedName = name.trim().toLowerCase();
+        const normalizedName = baseName.toLowerCase();
         const matches = (data as Attraction[]).filter(
-          (a) => a._id !== _id && a.name.trim().toLowerCase() === normalizedName
+          (a) => a._id !== _id && stripParenthetical(a.name).toLowerCase() === normalizedName
         );
         setOtherLocations(matches);
       })

@@ -1,5 +1,16 @@
 import type { PriceTier } from "@/types/attraction";
 
+/** Strips any parenthetical segment (typically a neighborhood/mall/branch disambiguator)
+ *  from an attraction name, collapsing whatever whitespace is left behind — e.g. "Levain
+ *  Bakery (Williamsburg)" becomes "Levain Bakery". Other branches of the same chain are
+ *  otherwise only distinguished by exactly this kind of parenthetical suffix (each
+ *  branch's own full name is unique — "Levain Bakery (Williamsburg)" vs. "Levain Bakery
+ *  (UWS)" — but the chain itself isn't), so both the "other locations" search query and
+ *  its result-matching need to compare on this stripped base name, not the full name. */
+export function stripParenthetical(name: string): string {
+  return name.replace(/\s*\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+}
+
 /** Derives a grouping key identifying "which product/brand this tier belongs to" from
  *  its `product` field (user-entered) or falls back to the `label` if no product is set.
  *  This determines which tab the tier appears under in the detail modal. */
