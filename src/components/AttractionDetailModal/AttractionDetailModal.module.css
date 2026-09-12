@@ -348,6 +348,7 @@
 }
 
 .childrenLoading {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -392,11 +393,13 @@
 .childRowIcon svg { width: 13px; height: 13px; }
 
 .childrenPagination {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   padding: 8px 12px;
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .childrenPageBtn {
