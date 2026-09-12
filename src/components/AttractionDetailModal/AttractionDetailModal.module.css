@@ -337,6 +337,9 @@
 }
 
 .childrenList {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  width: 100%;
   margin-top: 6px;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
