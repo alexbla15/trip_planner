@@ -1,13 +1,10 @@
 :root {
-  /* Brand — coral (primary) + teal (accent), warmer/younger than the prior
-     sky-blue + amber pairing. --color-warning intentionally stays amber
-     (#d97706) rather than following the accent to teal, so warning states
-     stay visually distinct from the brand accent. */
-  --color-primary:       #e2521f;   /* coral-700-ish; ~4.5-4.7:1 white-on-fill and text-on-white */
-  --color-primary-dark:  #b8410f;   /* darker coral for hover/active states */
-  --color-primary-light: #ffe4d9;   /* coral-100 tint for active/hover backgrounds, icon circles */
-  --color-accent:        #0d9488;   /* teal-600; ~4.6:1 white-on-fill */
-  --color-accent-dark:   #0f766e;   /* teal-700; ~5.9:1 white-on-fill */
+  /* Brand — sky-600/700 for WCAG AA (white on primary = 5.2:1) */
+  --color-primary:       #0284c7;   /* sky-600 */
+  --color-primary-dark:  #0369a1;   /* sky-700 */
+  --color-primary-light: #e0f2fe;   /* sky-100 */
+  --color-accent:        #d97706;   /* amber-600 */
+  --color-accent-dark:   #b45309;   /* amber-700 */
 
   /* Surfaces — clear visual layers */
   --color-bg:            #ffffff;
@@ -33,7 +30,7 @@
   --shadow-md:        0 3px 8px rgba(0, 0, 0, 0.10), 0 1px 4px rgba(0, 0, 0, 0.06);
   --shadow-lg:        0 8px 20px rgba(0, 0, 0, 0.10), 0 3px 8px rgba(0, 0, 0, 0.06);
   --shadow-xl:        0 16px 36px rgba(0, 0, 0, 0.12), 0 6px 14px rgba(0, 0, 0, 0.07);
-  --shadow-card-hover: 0 20px 44px rgba(226, 82, 31, 0.18), 0 6px 16px rgba(0, 0, 0, 0.08);
+  --shadow-card-hover: 0 20px 44px rgba(2, 132, 199, 0.18), 0 6px 16px rgba(0, 0, 0, 0.08);
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -53,7 +50,7 @@
 
   /* Layout-specific tokens */
   --navbar-bg:     rgba(255, 255, 255, 0.97);
-  --hero-gradient: linear-gradient(135deg, #ffe4d9 0%, #ccfbf1 55%, #ffffff 100%);
+  --hero-gradient: linear-gradient(135deg, #e0f2fe 0%, #f1f5f9 60%, #ffffff 100%);
   --color-overlay: rgba(15, 23, 42, 0.6);   /* matches the value hardcoded in modal backdrops; not yet wired in */
 }
 
@@ -71,12 +68,10 @@
   --color-text-tertiary: #64748b;
   --color-text-inverse: #0c1a2e;
 
-  /* Brand — lighter coral + teal so they read on dark surfaces */
-  --color-primary: #ff7a4d;
-  --color-primary-dark: #ff5c2e;
-  --color-primary-light: #4a2416;
-  --color-accent: #2dd4bf;
-  --color-accent-dark: #14b8a6;
+  /* Brand — lighter blue so it reads on dark surfaces */
+  --color-primary: #38bdf8;
+  --color-primary-dark: #0ea5e9;
+  --color-primary-light: #0c4a6e;
   --color-error-light: #4c1d1d;
 
   /* Shadows — heavier on dark */
@@ -84,12 +79,12 @@
   --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 4px 6px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.4);
   --shadow-xl: 0 10px 15px rgba(0, 0, 0, 0.6), 0 4px 6px rgba(0, 0, 0, 0.4);
-  --shadow-card-hover: 0 8px 25px rgba(255, 122, 77, 0.18),
+  --shadow-card-hover: 0 8px 25px rgba(56, 189, 248, 0.18),
     0 3px 8px rgba(0, 0, 0, 0.4);
 
   /* Layout-specific tokens */
   --navbar-bg: rgba(15, 23, 42, 0.95);
-  --hero-gradient: linear-gradient(135deg, #241108 0%, #042f2e 55%, #0f172a 100%);
+  --hero-gradient: linear-gradient(135deg, #0c1829 0%, #0f172a 60%);
   --color-overlay: rgba(0, 0, 0, 0.7);
 }
 
