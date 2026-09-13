@@ -46,6 +46,9 @@ export function HomeClient() {
           <p className={styles.heroSubline}>
             Where will your next adventure take you?
           </p>
+          <Link href="/new-trip" className={styles.heroCta}>
+            Plan a new trip <ArrowRight size={16} aria-hidden="true" />
+          </Link>
         </div>
       </section>
 
