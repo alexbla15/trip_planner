@@ -11,21 +11,26 @@ export function stripParenthetical(name: string): string {
   return name.replace(/\s*\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
 }
 
+/** Grouping key used for tiers with no `product` set, so they all share a single
+ *  tab instead of each distinct label (Adult/Child/etc.) splintering into its own tab. */
+const DEFAULT_PRODUCT_KEY = "__default__";
+
 /** Derives a grouping key identifying "which product/brand this tier belongs to" from
- *  its `product` field (user-entered) or falls back to the `label` if no product is set.
- *  This determines which tab the tier appears under in the detail modal. */
+ *  its `product` field (user-entered), falling back to a shared default key when no
+ *  product is set. This determines which tab the tier appears under in the detail modal. */
 export function getPriceProductKey(tier: PriceTier): string {
-  return tier.product || tier.label;
+  return tier.product || DEFAULT_PRODUCT_KEY;
 }
 
 export interface PriceTierTab {
   key: string;
+  label: string;
   tiers: PriceTier[];
 }
 
 /** Groups `tiers` by product key (Galaxy, Entrance, etc.), in first-seen order. Each tab
  *  contains one product's tiers, pivoted into a Tier x Visitor Type grid via
- *  `buildPricePivot`. */
+ *  `buildPricePivot`. Tiers with no `product` set share one tab labeled "General". */
 export function buildPriceTierTabs(tiers: PriceTier[]): PriceTierTab[] {
   const keyOrder: string[] = [];
   const byKey = new Map<string, PriceTier[]>();
@@ -37,7 +42,11 @@ export function buildPriceTierTabs(tiers: PriceTier[]): PriceTierTab[] {
     }
     byKey.get(key)!.push(tier);
   }
-  return keyOrder.map((key) => ({ key, tiers: byKey.get(key)! }));
+  return keyOrder.map((key) => ({
+    key,
+    label: key === DEFAULT_PRODUCT_KEY ? "General" : key,
+    tiers: byKey.get(key)!,
+  }));
 }
 
 const NO_VISITOR_TYPE = "__general__";

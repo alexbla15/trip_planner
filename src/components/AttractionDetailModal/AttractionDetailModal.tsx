@@ -740,7 +740,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                       className={`${styles.priceTab} ${i === activeTab ? styles.priceTabActive : ""}`}
                       onClick={() => setActivePriceTab(i)}
                     >
-                      {tab.key}
+                      {tab.label}
                     </button>
                   ))}
                 </div>
@@ -748,7 +748,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
               {pricePivot && (
                 <div className={styles.hoursCard}>
                   <div className={styles.priceTableScroll}>
-                    <table key={priceTabs[activeTab].key} className={styles.priceTable} aria-label={`${priceTabs[activeTab].key} pricing`}>
+                    <table key={priceTabs[activeTab].key} className={styles.priceTable} aria-label={`${priceTabs[activeTab].label} pricing`}>
                       <thead>
                         <tr>
                           <th className={styles.priceColField} scope="col">Tier</th>
