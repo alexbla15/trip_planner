@@ -1,5 +1,7 @@
 import jwt from "jsonwebtoken";
-import { unauthorized } from "@/lib/apiError";
+import { unauthorized, forbidden } from "@/lib/apiError";
+import { dbConnect } from "@/lib/mongoose";
+import { User } from "@/models/User";
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 
@@ -33,4 +35,20 @@ export function getUserFromRequest(req: Request): JwtPayload {
   } catch {
     throw unauthorized("Invalid or expired token");
   }
+}
+
+/**
+ * Verifies the caller's JWT and confirms they're an admin, re-checked against the DB
+ * since the JWT payload doesn't carry role (a client-supplied role can't be trusted).
+ * Throws ApiError(401) via getUserFromRequest if unauthenticated, or 403 if
+ * authenticated but not an admin.
+ */
+export async function requireAdmin(req: Request) {
+  const payload = getUserFromRequest(req);
+  await dbConnect();
+  const caller = await User.findById(payload.userId).select("role");
+  if (caller?.role !== "admin") {
+    throw forbidden("Forbidden");
+  }
+  return caller;
 }

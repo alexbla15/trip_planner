@@ -191,6 +191,7 @@
 }
 
 .avatar {
+  position: relative;
   width: 36px;
   height: 36px;
   border-radius: var(--radius-full);
@@ -215,6 +216,35 @@
   object-fit: cover;
   border-radius: var(--radius-full);
   display: block;
+}
+
+/* Small badge on the avatar itself, so an admin notices a backup is needed
+   without having to open the dropdown first. */
+.avatarBackupDot {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-error);
+  border: 2px solid var(--color-surface);
+}
+
+/* Matching indicator inside the "Download Backup" menu item's icon. */
+.backupIconWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.backupDot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: var(--color-error);
 }
 
 .avatar:focus-visible {
@@ -320,6 +350,21 @@
 .logoutBtn:focus-visible {
   outline: 2px solid var(--color-error);
   outline-offset: 2px;
+}
+
+button.dropdownLink,
+button.mobileNavLink {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+button.dropdownLink:disabled,
+button.mobileNavLink:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .menuButton {

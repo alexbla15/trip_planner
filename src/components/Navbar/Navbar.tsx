@@ -4,18 +4,42 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Plane, MapPinned, Menu, X, Compass, Map, LogIn, LogOut, BarChart2, User, Shield } from "lucide-react";
+import { Plane, MapPinned, Menu, X, Compass, Map, LogIn, LogOut, BarChart2, User, Shield, Download } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import styles from "./Navbar.module.css";
 
 export function Navbar() {
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
+  const { error: showError } = useToast();
   const pathname = usePathname();
   const isAdminPage = pathname === "/admin";
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [backupNeeded, setBackupNeeded] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const LAST_BACKUP_KEY = "tp_last_backup_at";
+
+  // Admin only — lets the backup button visibly flag when attractions have changed
+  // since the last backup, so the admin knows a fresh one is needed rather than
+  // having to guess or re-download speculatively.
+  useEffect(() => {
+    if (!token || user?.role !== "admin") return;
+    let cancelled = false;
+    fetch("/api/admin/backup/status", { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { latestAttractionChangeAt: string | null } | null) => {
+        if (cancelled || !data) return;
+        const lastBackupAt = localStorage.getItem(LAST_BACKUP_KEY);
+        const latestChange = data.latestAttractionChangeAt;
+        setBackupNeeded(!!latestChange && (!lastBackupAt || new Date(latestChange) > new Date(lastBackupAt)));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [token, user?.role]);
 
   // Close dropdown on click-outside and Escape
   useEffect(() => {
@@ -43,6 +67,34 @@ export function Navbar() {
     logout();
     setDropdownOpen(false);
     setMenuOpen(false);
+  }
+
+  async function handleDownloadBackup() {
+    if (!token || backupLoading) return;
+    setBackupLoading(true);
+    try {
+      const res = await fetch("/api/admin/backup", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Backup request failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `tripplanner-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString());
+      setBackupNeeded(false);
+    } catch {
+      showError("Failed to download backup. Please try again.");
+    } finally {
+      setBackupLoading(false);
+      setDropdownOpen(false);
+      setMenuOpen(false);
+    }
   }
 
   const userInitial = user?.name?.[0]?.toUpperCase() ?? "?";
@@ -102,7 +154,7 @@ export function Navbar() {
                 <div className={styles.avatarWrapper} ref={dropdownRef}>
                   <button
                     className={styles.avatar}
-                    aria-label={`Account menu for ${user.name}`}
+                    aria-label={`Account menu for ${user.name}${backupNeeded ? " (backup needed)" : ""}`}
                     aria-expanded={dropdownOpen}
                     aria-haspopup="true"
                     onClick={() => setDropdownOpen((v) => !v)}
@@ -117,6 +169,13 @@ export function Navbar() {
                       />
                     ) : (
                       userInitial
+                    )}
+                    {backupNeeded && (
+                      <span
+                        className={styles.avatarBackupDot}
+                        aria-hidden="true"
+                        title="Attractions have changed since the last backup"
+                      />
                     )}
                   </button>
 
@@ -145,6 +204,25 @@ export function Navbar() {
                           <Shield size={15} aria-hidden="true" />
                           Manager Panel
                         </Link>
+                      )}
+                      {user.role === "admin" && (
+                        <button
+                          className={styles.dropdownLink}
+                          role="menuitem"
+                          onClick={handleDownloadBackup}
+                          disabled={backupLoading}
+                          title={backupNeeded ? "Attractions have changed since the last backup" : undefined}
+                        >
+                          <span className={styles.backupIconWrap}>
+                            <Download size={15} aria-hidden="true" />
+                            {backupNeeded && <span className={styles.backupDot} aria-hidden="true" />}
+                          </span>
+                          {backupLoading
+                            ? "Preparing backup…"
+                            : backupNeeded
+                              ? "Download Backup (new changes)"
+                              : "Download Backup"}
+                        </button>
                       )}
                       <div className={styles.dropdownDivider} aria-hidden="true" />
                       <button
@@ -239,6 +317,23 @@ export function Navbar() {
                   <Shield size={18} aria-hidden="true" />
                   Manager Panel
                 </Link>
+              )}
+              {user.role === "admin" && (
+                <button
+                  className={styles.mobileNavLink}
+                  onClick={handleDownloadBackup}
+                  disabled={backupLoading}
+                >
+                  <span className={styles.backupIconWrap}>
+                    <Download size={18} aria-hidden="true" />
+                    {backupNeeded && <span className={styles.backupDot} aria-hidden="true" />}
+                  </span>
+                  {backupLoading
+                    ? "Preparing backup…"
+                    : backupNeeded
+                      ? "Download Backup (new changes)"
+                      : "Download Backup"}
+                </button>
               )}
               <button
                 className={styles.mobileLogoutBtn}
