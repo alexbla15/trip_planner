@@ -217,11 +217,7 @@ export function Navbar() {
                             <Download size={15} aria-hidden="true" />
                             {backupNeeded && <span className={styles.backupDot} aria-hidden="true" />}
                           </span>
-                          {backupLoading
-                            ? "Preparing backup…"
-                            : backupNeeded
-                              ? "Download Backup (new changes)"
-                              : "Download Backup"}
+                          {backupLoading ? "Preparing backup…" : "Download Backup"}
                         </button>
                       )}
                       <div className={styles.dropdownDivider} aria-hidden="true" />
@@ -328,11 +324,7 @@ export function Navbar() {
                     <Download size={18} aria-hidden="true" />
                     {backupNeeded && <span className={styles.backupDot} aria-hidden="true" />}
                   </span>
-                  {backupLoading
-                    ? "Preparing backup…"
-                    : backupNeeded
-                      ? "Download Backup (new changes)"
-                      : "Download Backup"}
+                  {backupLoading ? "Preparing backup…" : "Download Backup"}
                 </button>
               )}
               <button
