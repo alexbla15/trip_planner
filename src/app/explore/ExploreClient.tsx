@@ -549,10 +549,21 @@ export function ExploreClient() {
     const el = gridRef.current;
     if (!el) return;
     const compute = () => {
+      // Use the border-box width (getBoundingClientRect), not el.clientWidth: .gridArea
+      // has overflow-y: auto, so clientWidth shrinks whenever ITS OWN vertical scrollbar
+      // is showing — and different pages have different content heights (a full page vs.
+      // a short last page), so paginating alone can toggle the scrollbar and shrink/grow
+      // clientWidth with no real viewport resize. That falsely re-triggered this effect's
+      // "preserve reading position" recompute using the just-navigated page as the old
+      // anchor, snapping the page back down — reproduced as "stuck on page 2, can't reach
+      // page 3" (classic scrollbars only; not reproducible with overlay scrollbars, which
+      // is why this didn't show up in headless-browser testing). getBoundingClientRect().width
+      // is the element's own box size and isn't affected by its own scrollbar.
+      //
       // .gridArea has 20px horizontal padding on each side (see .gridArea in
       // ExploreClient.module.css) — subtract it so column math matches the actual
       // track width available to .grid, not the padded container's own width.
-      const width = el.clientWidth - 40;
+      const width = el.getBoundingClientRect().width - 40;
       const cols = Math.max(1, Math.floor(
         (width + EXPLORE_GRID_GAP_PX) / (EXPLORE_GRID_CARD_MIN_WIDTH_PX + EXPLORE_GRID_GAP_PX)
       ));
