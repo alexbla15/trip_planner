@@ -8,6 +8,7 @@ import { Plane, MapPinned, Menu, X, Compass, Map, LogIn, LogOut, BarChart2, User
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
+import { ATTRACTIONS_CHANGED_EVENT } from "@/services";
 import styles from "./Navbar.module.css";
 
 export function Navbar() {
@@ -25,20 +26,29 @@ export function Navbar() {
 
   // Admin only — lets the backup button visibly flag when attractions have changed
   // since the last backup, so the admin knows a fresh one is needed rather than
-  // having to guess or re-download speculatively.
+  // having to guess or re-download speculatively. Re-checks on mount and whenever
+  // an attraction is created/updated anywhere in the app (see ATTRACTIONS_CHANGED_EVENT),
+  // not just on the next page load, so the indicator appears immediately.
   useEffect(() => {
     if (!token || user?.role !== "admin") return;
     let cancelled = false;
-    fetch("/api/admin/backup/status", { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { latestAttractionChangeAt: string | null } | null) => {
-        if (cancelled || !data) return;
-        const lastBackupAt = localStorage.getItem(LAST_BACKUP_KEY);
-        const latestChange = data.latestAttractionChangeAt;
-        setBackupNeeded(!!latestChange && (!lastBackupAt || new Date(latestChange) > new Date(lastBackupAt)));
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
+    function checkBackupStatus() {
+      fetch("/api/admin/backup/status", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: { latestAttractionChangeAt: string | null } | null) => {
+          if (cancelled || !data) return;
+          const lastBackupAt = localStorage.getItem(LAST_BACKUP_KEY);
+          const latestChange = data.latestAttractionChangeAt;
+          setBackupNeeded(!!latestChange && (!lastBackupAt || new Date(latestChange) > new Date(lastBackupAt)));
+        })
+        .catch(() => {});
+    }
+    checkBackupStatus();
+    window.addEventListener(ATTRACTIONS_CHANGED_EVENT, checkBackupStatus);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(ATTRACTIONS_CHANGED_EVENT, checkBackupStatus);
+    };
   }, [token, user?.role]);
 
   // Close dropdown on click-outside and Escape

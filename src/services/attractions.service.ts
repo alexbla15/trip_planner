@@ -124,7 +124,9 @@ export async function createAttraction(token: string, data: unknown): Promise<un
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(data),
   });
-  return parseOrThrow<unknown>(res);
+  const result = await parseOrThrow<unknown>(res);
+  notifyAttractionsChanged();
+  return result;
 }
 
 export async function updateAttraction(id: string, token: string, data: unknown): Promise<unknown> {
@@ -133,7 +135,19 @@ export async function updateAttraction(id: string, token: string, data: unknown)
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(data),
   });
-  return parseOrThrow<unknown>(res);
+  const result = await parseOrThrow<unknown>(res);
+  notifyAttractionsChanged();
+  return result;
+}
+
+// Broadcasts that an attraction was created/updated, so any listener (e.g. the Navbar's
+// admin "backup needed" indicator) can react immediately instead of only picking up the
+// change on next mount/reload.
+export const ATTRACTIONS_CHANGED_EVENT = "tp:attractions-changed";
+function notifyAttractionsChanged(): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(ATTRACTIONS_CHANGED_EVENT));
+  }
 }
 
 // Deletes the shared Attraction document globally (owner-only, enforced server-side) — not

@@ -36,6 +36,7 @@ export {
   removeAttractionFromTrip,
   markAttractionVisited,
   unmarkAttractionVisited,
+  ATTRACTIONS_CHANGED_EVENT,
 } from "./attractions.service";
 
 export {
