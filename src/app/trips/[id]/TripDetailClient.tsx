@@ -918,6 +918,13 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     return matchesDay && matchesCategory && matchesType && matchesVerified;
   });
 
+  // Residences active on any of the currently selected explore days — "Unscheduled"
+  // isn't a real calendar day, so it never matches a residence's check-in/out range.
+  const exploreFilteredResidences = residenceAttractions.filter((r) => {
+    if (!r.coordinates || !r.checkInDate || !r.checkOutDate) return false;
+    return exploreDays.some((d) => activeExploreDays.has(d) && r.checkInDate! <= d && d <= r.checkOutDate!);
+  });
+
   return (
     <>
       <main className={styles.page}>
@@ -1373,6 +1380,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                 <div className={styles.exploreMapWrapper}>
                   <TripExploreMapWidget
                     attractions={exploreFilteredAttractions}
+                    residences={exploreFilteredResidences}
                     onAttractionClick={(a) => setViewingAttraction(a)}
                     dayColors={exploreUseDayColors ? exploreDayColors : undefined}
                     unscheduledColor={UNSCHEDULED_DAY_COLOR}

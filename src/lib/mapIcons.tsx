@@ -1,6 +1,6 @@
 import L from "leaflet";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MapPin, Building2, Ban } from "lucide-react";
+import { MapPin, Building2, Ban, BedDouble } from "lucide-react";
 import { getIconComponent } from "@/components/IconPicker";
 import {
   MARKER_ICON_WHITE,
@@ -73,6 +73,20 @@ export function makeCityClusterIcon(cityCount: number, totalAttractions: number)
     html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${CLUSTER_MARKER_COLOR};border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.28);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:${MARKER_ICON_WHITE};font-family:inherit"><div style="font-size:${Math.round(size * 0.34)}px;font-weight:700;line-height:1">${cityCount}</div><div style="font-size:${Math.round(size * 0.16)}px;font-weight:600;line-height:1;opacity:0.9;margin-top:2px">cities</div></div>`,
     iconSize: [size, size] as [number, number],
     iconAnchor: [size / 2, size / 2] as [number, number],
+    className: "",
+  });
+}
+
+// "Home base" pin for a residence (subtype "residence") active on the day being viewed —
+// amber and bed-shaped so it reads as "where you're staying" rather than one more
+// type-colored attraction pin.
+export function makeResidenceMarkerIcon(): L.DivIcon {
+  let svg = "";
+  try { svg = renderToStaticMarkup(<BedDouble size={13} color={MARKER_ICON_WHITE} aria-hidden="true" />); } catch { /* */ }
+  return L.divIcon({
+    html: `<div style="width:32px;height:32px;border-radius:50%;background:#D97706;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(217,119,6,0.4);display:flex;align-items:center;justify-content:center">${svg}</div>`,
+    iconSize: [32, 32] as [number, number],
+    iconAnchor: [16, 16] as [number, number],
     className: "",
   });
 }

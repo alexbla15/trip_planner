@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Tooltip, useMap } from "react-leaflet";
 import { useAttractionTypes } from "@/hooks";
-import { makeAttractionMarkerIcon } from "@/lib/mapIcons";
+import { makeAttractionMarkerIcon, makeResidenceMarkerIcon } from "@/lib/mapIcons";
 import { fixLeafletDefaultIcon } from "@/lib/leafletIconFix";
 import { filterTopLevelMapPins } from "@/lib";
 import type { Attraction } from "@/types/attraction";
@@ -14,6 +14,9 @@ fixLeafletDefaultIcon();
 
 interface TripExploreMapWidgetProps {
   attractions: Attraction[];
+  /** Residences (subtype "residence") active on the currently selected day(s) — rendered
+   *  as their own "home base" pins alongside the regular attraction pins. */
+  residences?: Attraction[];
   onAttractionClick: (attraction: Attraction) => void;
   /** Maps a plannedDate key to a color; undefined falls back to type-based coloring
    *  (single-day trip, or the day filter has been narrowed to one day). */
@@ -43,14 +46,16 @@ function BoundsFitter({ attractions }: { attractions: Attraction[] }) {
   return null;
 }
 
-export function TripExploreMapWidget({ attractions, onAttractionClick, dayColors, unscheduledColor }: TripExploreMapWidgetProps) {
+export function TripExploreMapWidget({ attractions, residences = [], onAttractionClick, dayColors, unscheduledColor }: TripExploreMapWidgetProps) {
   const { findType } = useAttractionTypes();
   const withCoords = attractions.filter((a) => !!a.coordinates);
+  const residencesWithCoords = residences.filter((r) => !!r.coordinates);
+  const allPinned = [...withCoords, ...residencesWithCoords];
   const initialCenter = useRef<[number, number]>(
-    withCoords[0]?.coordinates ? [withCoords[0].coordinates.lat, withCoords[0].coordinates.lng] : [20, 0]
+    allPinned[0]?.coordinates ? [allPinned[0].coordinates.lat, allPinned[0].coordinates.lng] : [20, 0]
   );
 
-  if (withCoords.length === 0) {
+  if (allPinned.length === 0) {
     return (
       <div className={styles.emptyState}>
         No attractions with a location match the current filters.
@@ -65,7 +70,7 @@ export function TripExploreMapWidget({ attractions, onAttractionClick, dayColors
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
-        <BoundsFitter attractions={withCoords} />
+        <BoundsFitter attractions={allPinned} />
         {filterTopLevelMapPins(withCoords).map((a) => {
           const typeRecord = findType(a.types?.[0] ?? "");
           const color = dayColors
@@ -86,6 +91,19 @@ export function TripExploreMapWidget({ attractions, onAttractionClick, dayColors
             </Marker>
           );
         })}
+        {residencesWithCoords.map((r) => (
+          <Marker
+            key={r._id}
+            position={[r.coordinates!.lat, r.coordinates!.lng]}
+            icon={makeResidenceMarkerIcon()}
+          >
+            <Tooltip direction="top" offset={[0, -16]}>
+              <strong>{r.name}</strong>
+              {" · "}Staying here
+              {r.checkInDate && r.checkOutDate ? ` (${r.checkInDate} – ${r.checkOutDate})` : ""}
+            </Tooltip>
+          </Marker>
+        ))}
       </MapContainer>
     </div>
   );
