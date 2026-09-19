@@ -1604,6 +1604,12 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
             ? () => handleToggleVisited(viewingAttraction)
             : undefined
         }
+        canEdit={effectiveCanEdit && viewingAttractionInTrip}
+        onEdit={
+          effectiveCanEdit && viewingAttractionInTrip && viewingAttraction
+            ? () => setEditingAttraction(viewingAttraction)
+            : undefined
+        }
         onRemoveFromTrip={
           effectiveCanEdit && viewingAttractionInTrip && viewingAttraction
             ? () => handleRemoveAttraction(viewingAttraction._id)
