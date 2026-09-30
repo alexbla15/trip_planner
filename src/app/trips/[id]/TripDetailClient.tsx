@@ -1091,6 +1091,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                   onAttractionsChange={setAttractions}
                   token={token ?? ""}
                   canEdit={effectiveCanEdit}
+                  onEditAttraction={setEditingAttraction}
                 />
               </>
             )}

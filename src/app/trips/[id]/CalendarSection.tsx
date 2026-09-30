@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useMemo, useRef, useId } from "react";
 import dynamic from "next/dynamic";
-import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, Plus, Coffee, ArrowLeftRight } from "lucide-react";
-import { renderTypeIcon, AttractionDetailModal, AddCustomSlotModal, SwapDaysModal } from "@/components";
+import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, Plus, Coffee, ArrowLeftRight, Pencil } from "lucide-react";
+import { renderTypeIcon, AttractionDetailModal, AddCustomSlotModal, SwapDaysModal, ImageWithSkeleton } from "@/components";
 import type { CustomSlotFormData } from "@/components";
 import { useAttractionTypes } from "@/hooks";
 import { useToast } from "@/contexts/ToastContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   getFxRate,
   addAttractionToTrip,
@@ -37,7 +38,7 @@ import {
 import type { Trip } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
 import { computeAlerts, computeScheduleHourBounds } from "./CalendarSection.utils";
-import type { ScheduleAlert } from "./CalendarSection.utils";
+import type { ScheduleAlert, AlertType } from "./CalendarSection.utils";
 import { ScheduleAlertList } from "./ScheduleAlertList";
 import { CalendarEmptyState } from "./CalendarEmptyState";
 import { SidebarAttractionCard } from "./SidebarAttractionCard";
@@ -57,6 +58,17 @@ const TripDayMapWidget = dynamic(
 
 type SidebarFilter = "all" | "scheduled" | "unscheduled";
 
+// Order/labels for the alert-type filter chips — "conflict" reads as "Overlap" to
+// match the alert's own message text ("... overlap in time"), which is more
+// meaningful to a reader than the internal type name.
+const ALERT_TYPE_ORDER: AlertType[] = ["conflict", "closed", "season", "overflow"];
+const ALERT_TYPE_LABELS: Record<AlertType, string> = {
+  conflict: "Overlap",
+  closed:   "Closed",
+  season:   "Season",
+  overflow: "Overflow",
+};
+
 // ── Popup state type ──────────────────────────────────────────────────────────
 
 interface PopupState {
@@ -68,6 +80,8 @@ interface PopupState {
   plannedTime: string;
   durationValue: string;
   durationUnit: "minutes" | "hours";
+  photoUrl?: string;
+  ownerId?: string;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -78,10 +92,15 @@ interface CalendarSectionProps {
   onAttractionsChange: (updated: Attraction[]) => void;
   token: string;
   canEdit: boolean;
+  /** Opens the full attraction editor (owned by the parent, which already has the
+   *  NewAttractionModal + save/update wiring built for the "Attractions" tab) — only
+   *  called for attractions the current user owns (see the popup's edit button). */
+  onEditAttraction?: (a: Attraction) => void;
 }
 
-export function CalendarSection({ trip, attractions, onAttractionsChange, token, canEdit }: CalendarSectionProps) {
+export function CalendarSection({ trip, attractions, onAttractionsChange, token, canEdit, onEditAttraction }: CalendarSectionProps) {
   const { colorForType, findType } = useAttractionTypes();
+  const { user } = useAuth();
   const toast = useToast();
   const [local, setLocal]         = useState<Attraction[]>(attractions);
   const [pending, setPending]     = useState<Map<string, Partial<Attraction>>>(new Map());
@@ -92,6 +111,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
 
   const [showMap, setShowMap]                  = useState(false);
   const [dismissedAlerts, setDismissedAlerts]  = useState<Set<string>>(new Set());
+  const [hiddenAlertTypes, setHiddenAlertTypes] = useState<Set<AlertType>>(new Set());
   const [viewingAttraction, setViewingAttraction] = useState<Attraction | null>(null);
   const [customSlotModalOpen, setCustomSlotModalOpen] = useState(false);
   const [editingCustomSlot, setEditingCustomSlot]     = useState<Attraction | null>(null);
@@ -193,7 +213,10 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
     () => (canEdit ? computeAlerts(local, dayStart, dayEnd) : []),
     [local, dayStart, dayEnd, canEdit]
   );
-  const visibleAlerts = alerts.filter((a) => !dismissedAlerts.has(a.id));
+  // Present alert types only, so the filter row doesn't show empty/irrelevant chips
+  // (e.g. "Season" when nothing in this trip has seasonal hours).
+  const presentAlertTypes = ALERT_TYPE_ORDER.filter((t) => alerts.some((a) => a.type === t));
+  const visibleAlerts = alerts.filter((a) => !dismissedAlerts.has(a.id) && !hiddenAlertTypes.has(a.type));
 
   // ── API ───────────────────────────────────────────────────────────────────
 
@@ -349,6 +372,8 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
       plannedTime:   a.plannedTime   ?? "",
       durationValue: a.actualDurationValue ?? a.durationValue ?? "",
       durationUnit:  a.actualDurationUnit  ?? a.durationUnit  ?? "hours",
+      photoUrl:      a.photoUrl,
+      ownerId:       a.ownerId,
     });
   }
 
@@ -504,6 +529,28 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
         {saveError && <p className={styles.saveError} role="alert">{saveError}</p>}
         {canEdit && hasPending && !saving && (
           <p className={styles.pendingHint}>{pending.size} unsaved change{pending.size > 1 ? "s" : ""} — click Save to persist.</p>
+        )}
+
+        {presentAlertTypes.length > 1 && (
+          <div className={`${styles.filterChips} ${styles.alertTypeFilter}`} role="group" aria-label="Filter alerts by type">
+            {presentAlertTypes.map((t) => {
+              const count = alerts.filter((a) => a.type === t).length;
+              const shown = !hiddenAlertTypes.has(t);
+              return (
+                <button key={t} type="button"
+                  className={`${styles.filterChip} ${shown ? styles.filterChipActive : ""}`}
+                  aria-pressed={shown}
+                  onClick={() => setHiddenAlertTypes((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(t)) next.delete(t); else next.add(t);
+                    return next;
+                  })}
+                >
+                  {ALERT_TYPE_LABELS[t]} ({count})
+                </button>
+              );
+            })}
+          </div>
         )}
 
         <ScheduleAlertList
@@ -822,7 +869,33 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                 <X size={14} aria-hidden="true" />
               </button>
             </div>
+            {popup.photoUrl && (
+              <div className={styles.popupPhoto}>
+                <ImageWithSkeleton
+                  src={popup.photoUrl}
+                  alt=""
+                  fill
+                  unoptimized
+                  className={styles.popupPhotoImg}
+                  sizes="230px"
+                />
+              </div>
+            )}
             <div className={styles.popupBody}>
+              {onEditAttraction && popup.ownerId === user?._id && (
+                <button
+                  type="button"
+                  className={styles.popupEditBtn}
+                  onClick={() => {
+                    const attraction = local.find((a) => a._id === popup.attractionId);
+                    if (attraction) onEditAttraction(attraction);
+                    setPopup(null);
+                  }}
+                >
+                  <Pencil size={12} aria-hidden="true" />
+                  Edit attraction details
+                </button>
+              )}
               <label className={styles.popupLabel} htmlFor="popup-time">Start time</label>
               <input
                 id="popup-time"
