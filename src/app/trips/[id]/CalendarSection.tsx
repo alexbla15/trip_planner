@@ -92,13 +92,20 @@ interface CalendarSectionProps {
   onAttractionsChange: (updated: Attraction[]) => void;
   token: string;
   canEdit: boolean;
+  /** True whenever the viewer has real edit permission (owner/collaborator), regardless
+   *  of the page's read-only/edit view-mode toggle — unlike `canEdit` above, which is
+   *  already ANDed with that toggle. Alerts are informational, not an editing action, so
+   *  they should be visible in read-only mode too for anyone who'd otherwise be able to
+   *  edit; only actual scheduling actions stay gated on `canEdit`. Defaults to `canEdit`
+   *  so callers that don't have a separate permission/view-mode split keep working. */
+  hasEditPermission?: boolean;
   /** Opens the full attraction editor (owned by the parent, which already has the
    *  NewAttractionModal + save/update wiring built for the "Attractions" tab) — only
    *  called for attractions the current user owns (see the popup's edit button). */
   onEditAttraction?: (a: Attraction) => void;
 }
 
-export function CalendarSection({ trip, attractions, onAttractionsChange, token, canEdit, onEditAttraction }: CalendarSectionProps) {
+export function CalendarSection({ trip, attractions, onAttractionsChange, token, canEdit, hasEditPermission = canEdit, onEditAttraction }: CalendarSectionProps) {
   const { colorForType, findType } = useAttractionTypes();
   const { user } = useAuth();
   const toast = useToast();
@@ -210,8 +217,8 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   }, [sidebarList]);
 
   const alerts: ScheduleAlert[] = useMemo(
-    () => (canEdit ? computeAlerts(local, dayStart, dayEnd) : []),
-    [local, dayStart, dayEnd, canEdit]
+    () => (hasEditPermission ? computeAlerts(local, dayStart, dayEnd) : []),
+    [local, dayStart, dayEnd, hasEditPermission]
   );
   // Present alert types only, so the filter row doesn't show empty/irrelevant chips
   // (e.g. "Season" when nothing in this trip has seasonal hours).
