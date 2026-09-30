@@ -865,6 +865,21 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
           >
             <div className={styles.popupHeader} style={{ ["--popup-color" as string]: popup.color }}>
               <span className={styles.popupTitle}>{popup.name}</span>
+              {onEditAttraction && popup.ownerId === user?._id && (
+                <button
+                  type="button"
+                  className={styles.popupEditIconBtn}
+                  onClick={() => {
+                    const attraction = local.find((a) => a._id === popup.attractionId);
+                    if (attraction) onEditAttraction(attraction);
+                    setPopup(null);
+                  }}
+                  aria-label="Edit attraction details"
+                  title="Edit attraction details"
+                >
+                  <Pencil size={13} aria-hidden="true" />
+                </button>
+              )}
               <button type="button" className={styles.popupClose} onClick={() => setPopup(null)} aria-label="Close">
                 <X size={14} aria-hidden="true" />
               </button>
@@ -882,20 +897,6 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
               </div>
             )}
             <div className={styles.popupBody}>
-              {onEditAttraction && popup.ownerId === user?._id && (
-                <button
-                  type="button"
-                  className={styles.popupEditBtn}
-                  onClick={() => {
-                    const attraction = local.find((a) => a._id === popup.attractionId);
-                    if (attraction) onEditAttraction(attraction);
-                    setPopup(null);
-                  }}
-                >
-                  <Pencil size={12} aria-hidden="true" />
-                  Edit attraction details
-                </button>
-              )}
               <label className={styles.popupLabel} htmlFor="popup-time">Start time</label>
               <input
                 id="popup-time"
