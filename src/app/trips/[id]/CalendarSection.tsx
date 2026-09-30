@@ -538,7 +538,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
           <p className={styles.pendingHint}>{pending.size} unsaved change{pending.size > 1 ? "s" : ""} — click Save to persist.</p>
         )}
 
-        {presentAlertTypes.length > 1 && (
+        {presentAlertTypes.length > 0 && (
           <div className={`${styles.filterChips} ${styles.alertTypeFilter}`} role="group" aria-label="Filter alerts by type">
             {presentAlertTypes.map((t) => {
               const count = alerts.filter((a) => a.type === t).length;
