@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
-import { Types } from "mongoose";
+import { Types, type PipelineStage } from "mongoose";
 import { dbConnect } from "@/lib/mongoose";
 import { Attraction } from "@/models/Attraction";
+import { AttractionCategory } from "@/models/AttractionCategory";
+import { AttractionType } from "@/models/AttractionType";
 import { withApiHandler } from "@/lib/withApiHandler";
 import { corsPreflight } from "@/lib/cors";
 import { getUserFromRequest } from "@/lib/auth";
@@ -18,6 +20,24 @@ export const GET = withApiHandler("GET /api/attractions/cities", async (req: Req
   try { userId = getUserFromRequest(req).userId; } catch { /* unauthenticated */ }
 
   await dbConnect();
+
+  // Optional category filter — lets the Explore world view (no country picked yet) narrow
+  // which countries/cities are shown, same as the existing visited/usedInTrip/verified
+  // filters already do via the buckets below. Category has no direct field on Attraction
+  // (only `types`), so it's resolved here: category name(s) -> AttractionCategory ids ->
+  // AttractionType ids under those categories -> $match on Attraction.types.
+  const { searchParams } = new URL(req.url);
+  const categoryParam = searchParams.get("category");
+  const categoryNames = categoryParam
+    ? categoryParam.split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+
+  let typeIds: Types.ObjectId[] = [];
+  if (categoryNames.length > 0) {
+    const categoryIds = await AttractionCategory.find({ name: { $in: categoryNames } }).distinct("_id");
+    typeIds = await AttractionType.find({ categoryId: { $in: categoryIds } }).distinct("_id");
+  }
+
   const [visitedIds, usedInTripIds] = await Promise.all([
     getVisitedIdSet(userId),
     getUsedInTripIdSet(userId),
@@ -25,7 +45,7 @@ export const GET = withApiHandler("GET /api/attractions/cities", async (req: Req
   const visitedObjectIds = [...visitedIds].map((id) => new Types.ObjectId(id));
   const usedInTripObjectIds = [...usedInTripIds].map((id) => new Types.ObjectId(id));
 
-  const result = await Attraction.aggregate([
+  const pipeline: PipelineStage[] = [
     // Some nested children (mainly bulk-seeded ones) were never given their own
     // `coordinates` even though the live create/edit API always copies them from the
     // parent — rather than excluding those children from the map/counts entirely, fall
@@ -53,6 +73,18 @@ export const GET = withApiHandler("GET /api/attractions/cities", async (req: Req
         "effectiveCoordinates.lng": { $exists: true, $ne: null },
       },
     },
+  ];
+
+  if (typeIds.length > 0) {
+    pipeline.push({ $match: { types: { $in: typeIds } } });
+  } else if (categoryNames.length > 0) {
+    // Category name(s) given but resolved to zero types (typo/unknown category) — match
+    // nothing, not everything, so the filter behaves predictably rather than silently
+    // falling back to unfiltered results.
+    pipeline.push({ $match: { _id: null } });
+  }
+
+  pipeline.push(
     {
       $addFields: {
         isVisited: { $in: ["$_id", visitedObjectIds] },
@@ -102,7 +134,9 @@ export const GET = withApiHandler("GET /api/attractions/cities", async (req: Req
       },
     },
     { $sort: { count: -1 } },
-  ]);
+  );
+
+  const result = await Attraction.aggregate(pipeline);
 
   // Collapse each city's flat bucket-key array (one entry per attraction) into counts
   // per key, e.g. { "000": 3, "101": 2 } — done in JS rather than a $group-of-$group

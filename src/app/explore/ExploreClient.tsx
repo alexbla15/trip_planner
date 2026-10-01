@@ -191,12 +191,15 @@ export function ExploreClient() {
   }, [measurePoints, measureLegMode]);
 
   // Load cities on mount (re-fetches on auth change too — visitedCount/unvisitedCount
-  // per city depend on who's asking).
+  // per city depend on who's asking). Also re-fetches on a world-view category selection
+  // (narrows which countries/cities even show up) — only sent while no country is picked
+  // yet, since `cities`/`countries` aren't read by anything once a country is selected
+  // (country/city views use the separate cityAttractions/countryAttractions fetches).
   useEffect(() => {
     let cancelled = false;
     setCitiesLoading(true);
     setCitiesLoadError(false);
-    getCities(token)
+    getCities(token, selectedCountry ? undefined : selectedCategories)
       .then((data) => { if (!cancelled) setCities((data as { cities: CityEntry[] }).cities ?? []); })
       .catch(() => { if (!cancelled) setCitiesLoadError(true); })
       .finally(() => { if (!cancelled) setCitiesLoading(false); });
@@ -204,7 +207,7 @@ export function ExploreClient() {
     // while the anonymous request may still be in flight — without this guard, whichever
     // response lands last wins even if it's the stale (anonymous) one.
     return () => { cancelled = true; };
-  }, [citiesReloadKey, token]);
+  }, [citiesReloadKey, token, selectedCountry, selectedCategories]);
 
   // Load attractions when city changes
   useEffect(() => {
@@ -1324,20 +1327,24 @@ export function ExploreClient() {
             </div>
           </div>
 
-          {/* Category/type filter chips — scoped to the current country/city selection
-              (empty categories/types hide it automatically at world view). Rendered once
-              here, right under the visited/trip-status picker, instead of duplicated
-              inside both the country- and city-view blocks below. */}
-          {(availableCategories.length > 0 || availableTypes.length > 0) && (
+          {/* Category/type filter chips. At world view (no country picked yet), there's no
+              fetched attraction list to scope categories to, so this uses the global
+              category list instead and skips type filtering (types are only meaningful
+              once attractions are actually loaded) — selecting a category here re-fetches
+              `cities` filtered server-side (see the cities effect above). At country/city
+              view, scoped to the current selection as before. Rendered once here, right
+              under the visited/trip-status picker, instead of duplicated inside both the
+              country- and city-view blocks below. */}
+          {(view === "world" ? categories.length > 0 : availableCategories.length > 0 || availableTypes.length > 0) && (
             <AttractionFilter
               hideSearch
               collapsible
               collapsibleLabel="Category & type"
-              categories={availableCategories}
+              categories={view === "world" ? categories : availableCategories}
               selectedCategories={selectedCategories}
               onCategoriesChange={handleCategoriesChange}
               categoryLabel="Categories"
-              types={availableTypes}
+              types={view === "world" ? [] : availableTypes}
               selectedTypes={selectedTypes}
               onTypesChange={setSelectedTypes}
               typeLabel="Types"

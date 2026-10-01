@@ -2,8 +2,11 @@ import { parseOrThrow } from "./http";
 
 // token is optional (works for anonymous visitors) but must be sent when present —
 // otherwise the server can't compute per-city visitedCount/unvisitedCount for the caller.
-export async function getCities(token?: string | null): Promise<unknown> {
-  const res = await fetch("/api/attractions/cities", {
+export async function getCities(token?: string | null, categories?: string[]): Promise<unknown> {
+  const qs = categories && categories.length > 0
+    ? `?category=${encodeURIComponent(categories.join(","))}`
+    : "";
+  const res = await fetch(`/api/attractions/cities${qs}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
   return parseOrThrow<unknown>(res);
