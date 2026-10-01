@@ -14,13 +14,18 @@
   flex-direction: column;
   background: var(--color-surface);
   border-right: 1px solid var(--color-border-subtle);
-  overflow: hidden;
-}
-
-.sidebarScrollArea {
-  flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+/* The sidebar itself is now the scroll container (above) — previously only this
+   inner area scrolled while .sidebarHeader stayed fixed, which clipped everything
+   below the filters with no way to reach it whenever the filter toggles (Visited/
+   Verified/Category & type/Food style) expanded tall enough to fill the sidebar on
+   their own, e.g. several filter sections open at once. No longer a separate scroll
+   region, just a plain flex child. */
+.sidebarScrollArea {
+  flex: 1;
   min-height: 0;
 }
 
