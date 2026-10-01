@@ -21,21 +21,32 @@ export const GET = withApiHandler("GET /api/attractions/cities", async (req: Req
 
   await dbConnect();
 
-  // Optional category filter — lets the Explore world view (no country picked yet) narrow
-  // which countries/cities are shown, same as the existing visited/usedInTrip/verified
-  // filters already do via the buckets below. Category has no direct field on Attraction
-  // (only `types`), so it's resolved here: category name(s) -> AttractionCategory ids ->
-  // AttractionType ids under those categories -> $match on Attraction.types.
+  // Optional category/type filters — let the Explore world view (no country picked yet)
+  // narrow which countries/cities are shown, same as the existing visited/usedInTrip/
+  // verified filters already do via the buckets below. Category has no direct field on
+  // Attraction (only `types`), so it's resolved here: category name(s) -> AttractionCategory
+  // ids -> AttractionType ids under those categories -> $match on Attraction.types. Type
+  // resolves directly by name (AttractionType.name is globally unique). Both filters AND
+  // together when given simultaneously, matching the existing client-side
+  // matchesChipFilters semantics (passCategory && passType) used once a country is picked.
   const { searchParams } = new URL(req.url);
   const categoryParam = searchParams.get("category");
   const categoryNames = categoryParam
     ? categoryParam.split(",").map((s) => s.trim()).filter(Boolean)
     : [];
+  const typeParam = searchParams.get("type");
+  const typeNames = typeParam
+    ? typeParam.split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
 
-  let typeIds: Types.ObjectId[] = [];
+  let categoryTypeIds: Types.ObjectId[] = [];
   if (categoryNames.length > 0) {
     const categoryIds = await AttractionCategory.find({ name: { $in: categoryNames } }).distinct("_id");
-    typeIds = await AttractionType.find({ categoryId: { $in: categoryIds } }).distinct("_id");
+    categoryTypeIds = await AttractionType.find({ categoryId: { $in: categoryIds } }).distinct("_id");
+  }
+  let selectedTypeIds: Types.ObjectId[] = [];
+  if (typeNames.length > 0) {
+    selectedTypeIds = await AttractionType.find({ name: { $in: typeNames } }).distinct("_id");
   }
 
   const [visitedIds, usedInTripIds] = await Promise.all([
@@ -75,12 +86,17 @@ export const GET = withApiHandler("GET /api/attractions/cities", async (req: Req
     },
   ];
 
-  if (typeIds.length > 0) {
-    pipeline.push({ $match: { types: { $in: typeIds } } });
+  if (categoryTypeIds.length > 0) {
+    pipeline.push({ $match: { types: { $in: categoryTypeIds } } });
   } else if (categoryNames.length > 0) {
     // Category name(s) given but resolved to zero types (typo/unknown category) — match
     // nothing, not everything, so the filter behaves predictably rather than silently
     // falling back to unfiltered results.
+    pipeline.push({ $match: { _id: null } });
+  }
+  if (selectedTypeIds.length > 0) {
+    pipeline.push({ $match: { types: { $in: selectedTypeIds } } });
+  } else if (typeNames.length > 0) {
     pipeline.push({ $match: { _id: null } });
   }
 

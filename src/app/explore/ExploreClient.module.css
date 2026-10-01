@@ -14,16 +14,26 @@
   flex-direction: column;
   background: var(--color-surface);
   border-right: 1px solid var(--color-border-subtle);
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
-/* The sidebar itself is now the scroll container (above) — previously only this
-   inner area scrolled while .sidebarHeader stayed fixed, which clipped everything
-   below the filters with no way to reach it whenever the filter toggles (Visited/
-   Verified/Category & type/Food style) expanded tall enough to fill the sidebar on
-   their own, e.g. several filter sections open at once. No longer a separate scroll
-   region, just a plain flex child. */
+/* Header + scroll area share one scroll region (see the JSX comment at the wrapping
+   div) — previously .sidebarHeader was fixed outside the only scrollable region
+   (.sidebarScrollArea alone), which clipped everything below the filters with no way
+   to reach it whenever the filter toggles (Visited/Verified/Category & type/Food
+   style) expanded tall enough to fill the sidebar on their own. Scoping the scroll to
+   just this wrapper (not the whole .sidebar) keeps .sidebarFooter (Add Attraction/
+   Measure distance) a separate, always-pinned sibling below it, instead of scrolling
+   away into the middle of the list. */
+.sidebarScrollWrapper {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .sidebarScrollArea {
   flex: 1;
   min-height: 0;

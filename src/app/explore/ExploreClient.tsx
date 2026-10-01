@@ -191,15 +191,20 @@ export function ExploreClient() {
   }, [measurePoints, measureLegMode]);
 
   // Load cities on mount (re-fetches on auth change too — visitedCount/unvisitedCount
-  // per city depend on who's asking). Also re-fetches on a world-view category selection
-  // (narrows which countries/cities even show up) — only sent while no country is picked
-  // yet, since `cities`/`countries` aren't read by anything once a country is selected
-  // (country/city views use the separate cityAttractions/countryAttractions fetches).
+  // per city depend on who's asking). Also re-fetches on a world-view category/type
+  // selection (narrows which countries/cities even show up) — only sent while no country
+  // is picked yet, since `cities`/`countries` aren't read by anything once a country is
+  // selected (country/city views use the separate cityAttractions/countryAttractions
+  // fetches).
   useEffect(() => {
     let cancelled = false;
     setCitiesLoading(true);
     setCitiesLoadError(false);
-    getCities(token, selectedCountry ? undefined : selectedCategories)
+    getCities(
+      token,
+      selectedCountry ? undefined : selectedCategories,
+      selectedCountry ? undefined : selectedTypes
+    )
       .then((data) => { if (!cancelled) setCities((data as { cities: CityEntry[] }).cities ?? []); })
       .catch(() => { if (!cancelled) setCitiesLoadError(true); })
       .finally(() => { if (!cancelled) setCitiesLoading(false); });
@@ -207,7 +212,7 @@ export function ExploreClient() {
     // while the anonymous request may still be in flight — without this guard, whichever
     // response lands last wins even if it's the stale (anonymous) one.
     return () => { cancelled = true; };
-  }, [citiesReloadKey, token, selectedCountry, selectedCategories]);
+  }, [citiesReloadKey, token, selectedCountry, selectedCategories, selectedTypes]);
 
   // Load attractions when city changes
   useEffect(() => {
@@ -650,6 +655,16 @@ export function ExploreClient() {
       return inScope && inCategory;
     });
   }, [types, byCategory, chipScopedAttractions, selectedCategories]);
+
+  // World-view equivalent of availableTypes — no fetched attraction list to scope
+  // against yet, so this just narrows the global `types` list by selected categories
+  // (same "inCategory" rule above, minus the "inScope" check that needs real attractions).
+  const worldViewTypes = useMemo(() => {
+    return types.filter((t) =>
+      selectedCategories.length === 0 ||
+      selectedCategories.some((cat) => (byCategory[cat] ?? []).some((bt) => bt.name === t.name))
+    );
+  }, [types, byCategory, selectedCategories]);
 
   // Food styles are only a meaningful filter dimension once "Dining" is one of the
   // selected categories — otherwise there's nothing dining-specific in scope to filter by.
@@ -1146,6 +1161,11 @@ export function ExploreClient() {
         className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : ""}`}
         aria-label="Explore filters"
       >
+        {/* Header + scroll area share one scroll region, so filter toggles that expand
+            tall (e.g. Category & type + Food style both open) don't get clipped with no
+            way to reach the content below — only the footer (Add Attraction/Measure
+            distance) stays pinned outside this, as a sibling after it. */}
+        <div className={styles.sidebarScrollWrapper}>
         <div className={styles.sidebarHeader}>
           <div className={styles.sidebarHeaderTop}>
             <h1 className={styles.sidebarTitle}>
@@ -1328,13 +1348,13 @@ export function ExploreClient() {
           </div>
 
           {/* Category/type filter chips. At world view (no country picked yet), there's no
-              fetched attraction list to scope categories to, so this uses the global
-              category list instead and skips type filtering (types are only meaningful
-              once attractions are actually loaded) — selecting a category here re-fetches
-              `cities` filtered server-side (see the cities effect above). At country/city
-              view, scoped to the current selection as before. Rendered once here, right
-              under the visited/trip-status picker, instead of duplicated inside both the
-              country- and city-view blocks below. */}
+              fetched attraction list to scope categories/types to, so this uses the global
+              category/type lists instead (worldViewTypes narrows by selected category the
+              same way availableTypes does, minus the "already loaded" check) — selecting
+              either re-fetches `cities` filtered server-side (see the cities effect above).
+              At country/city view, scoped to the current selection as before. Rendered once
+              here, right under the visited/trip-status picker, instead of duplicated inside
+              both the country- and city-view blocks below. */}
           {(view === "world" ? categories.length > 0 : availableCategories.length > 0 || availableTypes.length > 0) && (
             <AttractionFilter
               hideSearch
@@ -1344,7 +1364,7 @@ export function ExploreClient() {
               selectedCategories={selectedCategories}
               onCategoriesChange={handleCategoriesChange}
               categoryLabel="Categories"
-              types={view === "world" ? [] : availableTypes}
+              types={view === "world" ? worldViewTypes : availableTypes}
               selectedTypes={selectedTypes}
               onTypesChange={setSelectedTypes}
               typeLabel="Types"
@@ -1670,6 +1690,8 @@ export function ExploreClient() {
             )}
           </div>
         )}
+
+        </div>
 
         {/* ── Footer: pinned at the bottom outside scroll ── */}
         {(view === "world" || view === "country" || view === "region" || view === "city") && (
