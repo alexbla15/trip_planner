@@ -4,4 +4,4 @@
 TripPlanner
 
 ## Concept
-Website for easy planning and visualizing itineraries of trips around the globe
+Plan and visualize your trips around the globe.

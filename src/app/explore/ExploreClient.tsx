@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo, useCallback, useRef, useId } from "react"
 import { Globe, Plus, ChevronLeft, ChevronDown, SlidersHorizontal, X, Ruler, Footprints, Car, Bus, Loader2, Search, Check, Map as MapIcon, LayoutGrid, ChevronRight, Luggage, BadgeCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { useAttractionTypes } from "@/hooks";
+import { useAttractionTypes, useFoodStyles } from "@/hooks";
 import {
   getCities, getAttractionsByCity, getAttractionsByCountry, getAttraction, createAttraction, updateAttraction, deleteAttraction,
   fetchRouteLeg, formatLegDuration, formatStepDuration,
@@ -100,6 +100,7 @@ export function ExploreClient() {
   const { user, token } = useAuth();
   const toast = useToast();
   const { types, categories, byCategory } = useAttractionTypes();
+  const { styles: foodStyleRecords } = useFoodStyles();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -191,11 +192,11 @@ export function ExploreClient() {
   }, [measurePoints, measureLegMode]);
 
   // Load cities on mount (re-fetches on auth change too — visitedCount/unvisitedCount
-  // per city depend on who's asking). Also re-fetches on a world-view category/type
-  // selection (narrows which countries/cities even show up) — only sent while no country
-  // is picked yet, since `cities`/`countries` aren't read by anything once a country is
-  // selected (country/city views use the separate cityAttractions/countryAttractions
-  // fetches).
+  // per city depend on who's asking). Also re-fetches on a world-view category/type/
+  // food-style selection (narrows which countries/cities even show up) — only sent while
+  // no country is picked yet, since `cities`/`countries` aren't read by anything once a
+  // country is selected (country/city views use the separate cityAttractions/
+  // countryAttractions fetches).
   useEffect(() => {
     let cancelled = false;
     setCitiesLoading(true);
@@ -203,7 +204,8 @@ export function ExploreClient() {
     getCities(
       token,
       selectedCountry ? undefined : selectedCategories,
-      selectedCountry ? undefined : selectedTypes
+      selectedCountry ? undefined : selectedTypes,
+      selectedCountry ? undefined : selectedFoodStyles
     )
       .then((data) => { if (!cancelled) setCities((data as { cities: CityEntry[] }).cities ?? []); })
       .catch(() => { if (!cancelled) setCitiesLoadError(true); })
@@ -212,7 +214,7 @@ export function ExploreClient() {
     // while the anonymous request may still be in flight — without this guard, whichever
     // response lands last wins even if it's the stale (anonymous) one.
     return () => { cancelled = true; };
-  }, [citiesReloadKey, token, selectedCountry, selectedCategories, selectedTypes]);
+  }, [citiesReloadKey, token, selectedCountry, selectedCategories, selectedTypes, selectedFoodStyles]);
 
   // Load attractions when city changes
   useEffect(() => {
@@ -674,6 +676,13 @@ export function ExploreClient() {
     const namesInScope = new Set(chipScopedAttractions.flatMap((a) => a.foodStyles ?? []));
     return [...namesInScope].sort((a, b) => a.localeCompare(b));
   }, [isDiningSelected, chipScopedAttractions]);
+
+  // World-view equivalent of availableFoodStyles — no fetched attraction list to scope
+  // against yet, so this just uses the global food style list (same "Dining selected" gate).
+  const worldViewFoodStyles = useMemo(() => {
+    if (!isDiningSelected) return [];
+    return foodStyleRecords.map((fs) => fs.name).sort((a, b) => a.localeCompare(b));
+  }, [isDiningSelected, foodStyleRecords]);
 
   const hasActiveFilters = selectedCategories.length > 0 || selectedTypes.length > 0 || selectedFoodStyles.length > 0 || visitedFilter !== "all" || tripUsageFilter !== "all" || verifiedFilter !== "all";
   const activeFilterCount = selectedCategories.length + selectedTypes.length + selectedFoodStyles.length + (visitedFilter !== "all" ? 1 : 0) + (tripUsageFilter !== "all" ? 1 : 0) + (verifiedFilter !== "all" ? 1 : 0);
@@ -1371,8 +1380,10 @@ export function ExploreClient() {
             />
           )}
 
-          {/* Food style filter — only meaningful once "Dining" is a selected category */}
-          {isDiningSelected && availableFoodStyles.length > 0 && (
+          {/* Food style filter — only meaningful once "Dining" is a selected category. At
+              world view, uses the global food style list (worldViewFoodStyles) same as
+              category/type above. */}
+          {isDiningSelected && (view === "world" ? worldViewFoodStyles : availableFoodStyles).length > 0 && (
             <div>
               <button
                 type="button"
@@ -1398,7 +1409,7 @@ export function ExploreClient() {
               >
                 <div className={styles.chipFilterInner}>
                   <div className={styles.chipGroup} role="group" aria-label="Filter by food style">
-                    {availableFoodStyles.map((fs) => {
+                    {(view === "world" ? worldViewFoodStyles : availableFoodStyles).map((fs) => {
                       const active = selectedFoodStyles.includes(fs);
                       return (
                         <button
@@ -1503,7 +1514,7 @@ export function ExploreClient() {
               {regionsInCountry.length > 0 && (
                 <div className={styles.cityList}>
                   <span className={styles.cityListLabel}>Regions</span>
-                  {regionsInCountry.map((r) => (
+                  {regionsInCountry.filter((r) => regionCountFor(r) > 0).map((r) => (
                     <button
                       key={r.name}
                       type="button"
@@ -1519,7 +1530,7 @@ export function ExploreClient() {
 
               <div className={styles.cityList}>
                 <span className={styles.cityListLabel}>Cities</span>
-                {(regionsInCountry.length > 0 ? unregionedCitiesInCountry : citiesInCountry).map((c) => (
+                {(regionsInCountry.length > 0 ? unregionedCitiesInCountry : citiesInCountry).filter((c) => cityCountFor(c) > 0).map((c) => (
                   <button
                     key={c.name}
                     type="button"
@@ -1554,7 +1565,7 @@ export function ExploreClient() {
 
               <div className={styles.cityList}>
                 <span className={styles.cityListLabel}>Cities</span>
-                {citiesInRegion.map((c) => (
+                {citiesInRegion.filter((c) => cityCountForInRegion(c) > 0).map((c) => (
                   <button
                     key={c.name}
                     type="button"

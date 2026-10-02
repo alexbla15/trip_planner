@@ -4,6 +4,7 @@ import { dbConnect } from "@/lib/mongoose";
 import { Attraction } from "@/models/Attraction";
 import { AttractionCategory } from "@/models/AttractionCategory";
 import { AttractionType } from "@/models/AttractionType";
+import { FoodStyle } from "@/models/FoodStyle";
 import { withApiHandler } from "@/lib/withApiHandler";
 import { corsPreflight } from "@/lib/cors";
 import { getUserFromRequest } from "@/lib/auth";
@@ -21,14 +22,14 @@ export const GET = withApiHandler("GET /api/attractions/cities", async (req: Req
 
   await dbConnect();
 
-  // Optional category/type filters — let the Explore world view (no country picked yet)
-  // narrow which countries/cities are shown, same as the existing visited/usedInTrip/
-  // verified filters already do via the buckets below. Category has no direct field on
-  // Attraction (only `types`), so it's resolved here: category name(s) -> AttractionCategory
-  // ids -> AttractionType ids under those categories -> $match on Attraction.types. Type
-  // resolves directly by name (AttractionType.name is globally unique). Both filters AND
-  // together when given simultaneously, matching the existing client-side
-  // matchesChipFilters semantics (passCategory && passType) used once a country is picked.
+  // Optional category/type/foodStyle filters — let the Explore world view (no country
+  // picked yet) narrow which countries/cities are shown, same as the existing visited/
+  // usedInTrip/verified filters already do via the buckets below. Category has no direct
+  // field on Attraction (only `types`), so it's resolved here: category name(s) ->
+  // AttractionCategory ids -> AttractionType ids under those categories -> $match on
+  // Attraction.types. Type and foodStyle each resolve directly by name (both are globally
+  // unique). All given filters AND together, matching the existing client-side
+  // matchesChipFilters/passFoodStyle semantics used once a country is picked.
   const { searchParams } = new URL(req.url);
   const categoryParam = searchParams.get("category");
   const categoryNames = categoryParam
@@ -47,6 +48,14 @@ export const GET = withApiHandler("GET /api/attractions/cities", async (req: Req
   let selectedTypeIds: Types.ObjectId[] = [];
   if (typeNames.length > 0) {
     selectedTypeIds = await AttractionType.find({ name: { $in: typeNames } }).distinct("_id");
+  }
+  const foodStyleParam = searchParams.get("foodStyle");
+  const foodStyleNames = foodStyleParam
+    ? foodStyleParam.split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+  let foodStyleIds: Types.ObjectId[] = [];
+  if (foodStyleNames.length > 0) {
+    foodStyleIds = await FoodStyle.find({ name: { $in: foodStyleNames } }).distinct("_id");
   }
 
   const [visitedIds, usedInTripIds] = await Promise.all([
@@ -97,6 +106,11 @@ export const GET = withApiHandler("GET /api/attractions/cities", async (req: Req
   if (selectedTypeIds.length > 0) {
     pipeline.push({ $match: { types: { $in: selectedTypeIds } } });
   } else if (typeNames.length > 0) {
+    pipeline.push({ $match: { _id: null } });
+  }
+  if (foodStyleIds.length > 0) {
+    pipeline.push({ $match: { foodStyles: { $in: foodStyleIds } } });
+  } else if (foodStyleNames.length > 0) {
     pipeline.push({ $match: { _id: null } });
   }
 
