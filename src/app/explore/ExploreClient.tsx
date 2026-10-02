@@ -139,6 +139,7 @@ export function ExploreClient() {
   // individual-attraction list, only aggregated city/country pins).
   const [viewMode, setViewMode]                   = useState<"map" | "grid">("grid");
   const [gridPage, setGridPage]                   = useState(1);
+  const [gridSearchQuery, setGridSearchQuery]     = useState("");
   const [gridColumns, setGridColumns]             = useState(4);
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -533,9 +534,15 @@ export function ExploreClient() {
   // otherwise a wide viewport fits far more than one page's worth per row and paginates
   // after showing only a sliver of unused space. Floored at EXPLORE_GRID_MIN_PAGE_SIZE so
   // a narrow viewport (few columns) doesn't paginate after only a handful of cards.
-  const gridAttractions = selectedCity
+  const gridAttractionsBeforeSearch = selectedCity
     ? filteredAttractions
     : selectedRegion ? filteredRegionAttractions : filteredCountryAttractions;
+  // Free-text search within the grid — narrows whatever the chip filters already scoped
+  // to, by name. Client-side only (the list is already fetched/filtered down to a
+  // country/region/city at most, never the whole world), no debounce needed.
+  const gridAttractions = gridSearchQuery.trim()
+    ? gridAttractionsBeforeSearch.filter((a) => a.name.toLowerCase().includes(gridSearchQuery.trim().toLowerCase()))
+    : gridAttractionsBeforeSearch;
   const gridPageSize = Math.max(EXPLORE_GRID_MIN_PAGE_SIZE, gridColumns * EXPLORE_GRID_ROWS_PER_PAGE);
   const gridTotalPages = Math.max(1, Math.ceil(gridAttractions.length / gridPageSize));
   const paginatedGridAttractions = gridAttractions.slice(
@@ -597,7 +604,12 @@ export function ExploreClient() {
 
   // Reset to page 1 whenever the underlying filtered set changes shape, so the user
   // never lands on a stale, now-out-of-range page after narrowing a filter.
-  useEffect(() => { setGridPage(1); }, [selectedCountry, selectedRegion, selectedCity, selectedCategories, selectedTypes, visitedFilter, tripUsageFilter, verifiedFilter]);
+  useEffect(() => { setGridPage(1); }, [selectedCountry, selectedRegion, selectedCity, selectedCategories, selectedTypes, visitedFilter, tripUsageFilter, verifiedFilter, gridSearchQuery]);
+
+  // Grid search is scoped to whichever country/region/city is currently selected (same as
+  // the chip filters it layers on top of) — clear it when that scope changes so a query
+  // typed in one city doesn't silently keep narrowing an unrelated one.
+  useEffect(() => { setGridSearchQuery(""); }, [selectedCountry, selectedRegion, selectedCity]);
 
   // Keep the URL in sync with the selected country/city and active filters, so refreshing
   // or loading this URL directly restores the exact same view. router.replace (not push)
@@ -1804,6 +1816,17 @@ export function ExploreClient() {
           />
         ) : (
           <div className={styles.gridArea} ref={gridRef}>
+            <div className={styles.gridSearchWrapper}>
+              <Search size={14} aria-hidden="true" className={styles.gridSearchIcon} />
+              <input
+                type="search"
+                value={gridSearchQuery}
+                onChange={(e) => setGridSearchQuery(e.target.value)}
+                placeholder="Search attractions by name…"
+                className={styles.gridSearchInput}
+                aria-label="Search attractions by name"
+              />
+            </div>
             {gridAttractions.length === 0 ? (
               <p className={styles.worldPrompt}>No attractions match the selected filters.</p>
             ) : (
