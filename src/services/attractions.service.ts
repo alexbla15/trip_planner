@@ -78,6 +78,34 @@ export async function getAttractionsByCountry(
   return [...first.page, ...rest.flatMap((r) => r.page)];
 }
 
+// World-view grid needs every attraction with no country scope at all — same
+// pagination approach as getAttractionsByCountry, just without the country param.
+export async function getAllAttractions(
+  token?: string | null,
+  onPage?: (page: unknown[]) => void,
+): Promise<unknown[]> {
+  const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+  const fetchPage = async (skip: number) => {
+    const res = await fetch(`/api/attractions?includeHidden=true&skip=${skip}`, { headers });
+    const total = Number(res.headers.get("X-Total-Count") ?? "0");
+    const limit = Number(res.headers.get("X-Limit") ?? "0") || 20;
+    const page = await parseOrThrow<unknown[]>(res);
+    return { page, total, limit };
+  };
+
+  const first = await fetchPage(0);
+  onPage?.(first.page);
+  if (first.page.length === 0 || first.limit >= first.total) return first.page;
+
+  const remainingSkips: number[] = [];
+  for (let skip = first.limit; skip < first.total; skip += first.limit) remainingSkips.push(skip);
+
+  const rest = await Promise.all(
+    remainingSkips.map((skip) => fetchPage(skip).then((r) => { onPage?.(r.page); return r; }))
+  );
+  return [...first.page, ...rest.flatMap((r) => r.page)];
+}
+
 /** Fetches one attraction by id — used to open a parent attraction's own detail view
  *  from a child's "Part of X" chip, where only the id/name is on hand. */
 export async function getAttraction(id: string, token?: string | null): Promise<unknown> {

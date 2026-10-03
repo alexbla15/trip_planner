@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useAttractionTypes, useFoodStyles } from "@/hooks";
 import {
-  getCities, getAttractionsByCity, getAttractionsByCountry, getAttraction, createAttraction, updateAttraction, deleteAttraction,
+  getCities, getAttractionsByCity, getAttractionsByCountry, getAllAttractions, getAttraction, createAttraction, updateAttraction, deleteAttraction,
   fetchRouteLeg, formatLegDuration, formatStepDuration,
   searchLocation, addAttractionToTrip,
   markAttractionVisited, unmarkAttractionVisited,
@@ -117,6 +117,8 @@ export function ExploreClient() {
   const [cities, setCities]                       = useState<CityEntry[]>([]);
   const [cityAttractions, setCityAttractions]     = useState<Attraction[]>([]);
   const [countryAttractions, setCountryAttractions] = useState<Attraction[]>([]);
+  const [worldAttractions, setWorldAttractions]   = useState<Attraction[]>([]);
+  const [worldAttractionsLoaded, setWorldAttractionsLoaded] = useState(false);
   const [citiesLoading, setCitiesLoading]         = useState(true);
   const [citiesLoadError, setCitiesLoadError]     = useState(false);
   const [citiesReloadKey, setCitiesReloadKey]     = useState(0);
@@ -135,8 +137,9 @@ export function ExploreClient() {
   const [attractionForTripPicker, setAttractionForTripPicker] = useState<Attraction | null>(null);
   const [sidebarOpen, setSidebarOpen]             = useState(false);
 
-  // Map vs grid view — only meaningful in country/city view (world view has no
-  // individual-attraction list, only aggregated city/country pins).
+  // Map vs grid view, available at every level including world view — world's grid
+  // renders from worldAttractions (fetched lazily, see the effect below) rather than the
+  // aggregated city/country pins the world map itself uses.
   const [viewMode, setViewMode]                   = useState<"map" | "grid">("grid");
   const [gridPage, setGridPage]                   = useState(1);
   const [gridSearchQuery, setGridSearchQuery]     = useState("");
@@ -272,6 +275,39 @@ export function ExploreClient() {
       .finally(() => { if (!cancelled) setAttractionsLoading(false); });
     return () => { cancelled = true; };
   }, [selectedCountry, selectedCity, token]);
+
+  // World-view grid needs the full, unscoped attraction list — fetched lazily (only once
+  // the user actually switches to grid while at world view, not just for landing on
+  // Explore) since it's the single heaviest possible fetch this page can make. Cached in
+  // worldAttractionsLoaded so flipping back to map and returning to grid doesn't re-fetch;
+  // category/type/foodStyle narrowing happens client-side afterwards (matchesChipFilters),
+  // same as the country-view list above.
+  useEffect(() => {
+    // World view is "no country selected" — computed inline here rather than reading the
+    // `view` derived constant below, since that's declared later in the component and this
+    // effect needs to run before it would be in scope.
+    const isWorldView = !selectedCountry && !selectedCity;
+    if (!isWorldView || viewMode !== "grid" || worldAttractionsLoaded) return;
+    setAttractionsLoading(true);
+    setPageError(null);
+    let cancelled = false;
+    let firstPage = true;
+    getAllAttractions(token, (page) => {
+      if (cancelled) return;
+      const items = page as Attraction[];
+      if (firstPage) {
+        firstPage = false;
+        setWorldAttractions(items);
+        setAttractionsLoading(false);
+      } else {
+        setWorldAttractions((prev) => [...prev, ...items]);
+      }
+    })
+      .then(() => { if (!cancelled) setWorldAttractionsLoaded(true); })
+      .catch(() => { if (!cancelled) setPageError("Couldn't load attractions. Please try again."); })
+      .finally(() => { if (!cancelled) setAttractionsLoading(false); });
+    return () => { cancelled = true; };
+  }, [selectedCountry, selectedCity, viewMode, worldAttractionsLoaded, token]);
 
   // Exact count of a city's attractions matching ALL currently-active filters at once,
   // by summing whichever of the 8 visited×usedInTrip×verified buckets are consistent with
@@ -470,6 +506,13 @@ export function ExploreClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countryAttractions, selectedCategories, selectedTypes, selectedFoodStyles, visitedFilter, tripUsageFilter, verifiedFilter, byCategory]);
 
+  // World-view grid — same client-side chip filtering as the city/country lists, applied
+  // to the lazily-fetched worldAttractions (empty/stale until that fetch resolves).
+  const filteredWorldAttractions = useMemo(() => {
+    return worldAttractions.filter((a) => matchesChipFilters(a) && passesVisitedFilter(a) && passesTripUsageFilter(a) && passesVerifiedFilter(a));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [worldAttractions, selectedCategories, selectedTypes, selectedFoodStyles, visitedFilter, tripUsageFilter, verifiedFilter, byCategory]);
+
   // Region-view attraction pins — countryAttractions already covers the whole country (see
   // the fetch effect above, which only checks "country selected, no city yet" — region
   // doesn't change that condition), narrowed further to just this region's attractions.
@@ -536,7 +579,9 @@ export function ExploreClient() {
   // a narrow viewport (few columns) doesn't paginate after only a handful of cards.
   const gridAttractionsBeforeSearch = selectedCity
     ? filteredAttractions
-    : selectedRegion ? filteredRegionAttractions : filteredCountryAttractions;
+    : selectedRegion ? filteredRegionAttractions
+    : selectedCountry ? filteredCountryAttractions
+    : filteredWorldAttractions;
   // Free-text search within the grid — narrows whatever the chip filters already scoped
   // to, by name. Client-side only (the list is already fetched/filtered down to a
   // country/region/city at most, never the whole world), no debounce needed.
@@ -1764,9 +1809,9 @@ export function ExploreClient() {
           </div>
         )}
 
-        {/* Map/grid toggle — only meaningful once individual attractions are loaded
-            (country/region/city view); world view has no such list to switch layouts for. */}
-        {(view === "country" || view === "region" || view === "city") && (
+        {/* Map/grid toggle — available at every level, world view included; world's grid
+            renders from the lazily-fetched worldAttractions (see the effect above). */}
+        {(view === "world" || view === "country" || view === "region" || view === "city") && (
           <div className={styles.viewModeToggle} role="group" aria-label="Map or grid view">
             <button
               type="button"
@@ -1789,7 +1834,7 @@ export function ExploreClient() {
           </div>
         )}
 
-        {viewMode === "map" || view === "world" ? (
+        {viewMode === "map" ? (
           <ExploreMapWidget
             countries={countries}
             selectedCountry={selectedCountry}
