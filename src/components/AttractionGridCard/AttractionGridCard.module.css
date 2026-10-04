@@ -175,6 +175,29 @@
   transform: translateY(0);
 }
 
+/* On phone-width viewports, the swipe-revealed actions are the ONLY way to reach them
+   (no hover) — the 24px buttons sized for a precise mouse pointer are below the 44×44px
+   minimum touch target and hard to tap accurately. Below ~480px the grid is effectively
+   one card per row (see ExploreClient.module.css's .grid, minmax(180px, 1fr)), so there's
+   always room for 4 buttons at this size without clipping against the card's own
+   `overflow: hidden`. Scoped to .actionsRevealed only — desktop's hover-revealed .actions
+   stays at the original compact size. */
+@media (max-width: 480px) {
+  .actionsRevealed {
+    gap: 8px;
+  }
+  .actionsRevealed .actionBtn,
+  .actionsRevealed .actionBtnLink.actionBtnLink {
+    width: 44px;
+    height: 44px;
+  }
+  .actionsRevealed .actionBtn svg,
+  .actionsRevealed .actionBtnLink.actionBtnLink svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
 .actionBtn {
   display: flex;
   align-items: center;
