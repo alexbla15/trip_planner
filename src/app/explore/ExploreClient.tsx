@@ -862,6 +862,10 @@ export function ExploreClient() {
     if (selectedCountry && newAttraction.country === selectedCountry) {
       setCountryAttractions((prev) => [...prev, newAttraction]);
     }
+    // World grid renders from this separate array too (see worldAttractions effect) —
+    // append here the same way, so a brand-new attraction shows up immediately instead of
+    // only after the next full worldAttractions re-fetch (which never happens once loaded).
+    setWorldAttractions((prev) => (worldAttractionsLoaded ? [...prev, newAttraction] : prev));
     // The world-view city/country list (names + per-city counts) is a separate fetch
     // (getCities) — a brand-new attraction always changes at least one city's count (or
     // adds a new city/country pin entirely), so always refresh it.
@@ -873,6 +877,7 @@ export function ExploreClient() {
           const freshParent = fresh as Attraction;
           setCityAttractions((prev) => prev.map((a) => (a._id === freshParent._id ? freshParent : a)));
           setCountryAttractions((prev) => prev.map((a) => (a._id === freshParent._id ? freshParent : a)));
+          setWorldAttractions((prev) => prev.map((a) => (a._id === freshParent._id ? freshParent : a)));
         })
         .catch(() => {});
     }
@@ -908,6 +913,9 @@ export function ExploreClient() {
         ? prev.filter((a) => a._id !== updated._id)
         : prev.map((a) => (a._id === updated._id ? updated : a))
     );
+    // worldAttractions is unscoped (every attraction, any city/country) — unlike the two
+    // arrays above, an edit never needs to drop a row from it, only patch it in place.
+    setWorldAttractions((prev) => prev.map((a) => (a._id === updated._id ? updated : a)));
 
     // The world-view city/country list (names + per-city counts) is a separate fetch
     // (getCities) that an in-place array update can't keep in sync — re-fetch it
@@ -930,6 +938,7 @@ export function ExploreClient() {
             const freshParent = fresh as Attraction;
             setCityAttractions((prev) => prev.map((a) => (a._id === freshParent._id ? freshParent : a)));
             setCountryAttractions((prev) => prev.map((a) => (a._id === freshParent._id ? freshParent : a)));
+            setWorldAttractions((prev) => prev.map((a) => (a._id === freshParent._id ? freshParent : a)));
           })
           .catch(() => {});
       }
@@ -959,6 +968,7 @@ export function ExploreClient() {
     setSelectedAttraction(null);
     setCityAttractions((prev) => prev.filter((a) => a._id !== attraction._id));
     setCountryAttractions((prev) => prev.filter((a) => a._id !== attraction._id));
+    setWorldAttractions((prev) => prev.filter((a) => a._id !== attraction._id));
     if (attraction.parentAttractionId) {
       const parentId = attraction.parentAttractionId;
       getAttraction(parentId, token)
@@ -966,6 +976,7 @@ export function ExploreClient() {
           const freshParent = fresh as Attraction;
           setCityAttractions((prev) => prev.map((a) => (a._id === freshParent._id ? freshParent : a)));
           setCountryAttractions((prev) => prev.map((a) => (a._id === freshParent._id ? freshParent : a)));
+          setWorldAttractions((prev) => prev.map((a) => (a._id === freshParent._id ? freshParent : a)));
         })
         .catch(() => {});
     }
@@ -1019,6 +1030,9 @@ export function ExploreClient() {
     setCountryAttractions((prev) =>
       prev.map((a) => (a.attractionId ?? a._id) === realId ? { ...a, isVisited: next } : a)
     );
+    setWorldAttractions((prev) =>
+      prev.map((a) => (a.attractionId ?? a._id) === realId ? { ...a, isVisited: next } : a)
+    );
     setSelectedAttraction((prev) =>
       prev && (prev.attractionId ?? prev._id) === realId ? { ...prev, isVisited: next } : prev
     );
@@ -1032,6 +1046,9 @@ export function ExploreClient() {
         prev.map((a) => (a.attractionId ?? a._id) === realId ? { ...a, isVisited: !next } : a)
       );
       setCountryAttractions((prev) =>
+        prev.map((a) => (a.attractionId ?? a._id) === realId ? { ...a, isVisited: !next } : a)
+      );
+      setWorldAttractions((prev) =>
         prev.map((a) => (a.attractionId ?? a._id) === realId ? { ...a, isVisited: !next } : a)
       );
       setSelectedAttraction((prev) =>
@@ -1059,6 +1076,7 @@ export function ExploreClient() {
       const patch = (a: Attraction) => ((a.attractionId ?? a._id) === realId ? { ...a, verified: next } : a);
       setCityAttractions((prev) => prev.map(patch));
       setCountryAttractions((prev) => prev.map(patch));
+      setWorldAttractions((prev) => prev.map(patch));
       setSelectedAttraction((prev) => (prev ? patch(prev) : prev));
       toast.success(next ? "Marked as verified" : "Unmarked as verified");
     } catch {
@@ -1117,6 +1135,7 @@ export function ExploreClient() {
     if (selectedCountry && newAttraction.country === selectedCountry) {
       setCountryAttractions((prev) => [...prev, newAttraction]);
     }
+    setWorldAttractions((prev) => (worldAttractionsLoaded ? [...prev, newAttraction] : prev));
     setCitiesReloadKey((k) => k + 1);
     toast.success("Attraction saved");
   }
@@ -1135,6 +1154,7 @@ export function ExploreClient() {
           : a;
       setCityAttractions((prev) => prev.map(appendTripName));
       setCountryAttractions((prev) => prev.map(appendTripName));
+      setWorldAttractions((prev) => prev.map(appendTripName));
       setSelectedAttraction((prev) => (prev ? appendTripName(prev) : prev));
     } catch {
       toast.error(`Couldn't add to ${trip.name}. Please try again.`);
