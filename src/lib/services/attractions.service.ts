@@ -70,6 +70,12 @@ export interface SearchAttractionsParams {
    *  where avoiding a private-trip-only attraction leaking into another user's search
    *  is still the right behavior. */
   includeHidden?: boolean | null;
+  /** Explicitly opts into a query with none of country/city/type/parentAttractionId set —
+   *  normally rejected below (see the "at least one filter" gate) to stop an accidental
+   *  unscoped full-table scan. Explore's world-view grid is the one legitimate caller that
+   *  really does want every attraction with no scope at all, paginated the same as the
+   *  country-level fetch — `all: true` is how it says so on purpose, not by omission. */
+  all?: boolean | null;
 }
 
 export interface SearchAttractionsResult {
@@ -86,10 +92,10 @@ export async function searchAttractions(
   userId: string | null,
   params: SearchAttractionsParams
 ): Promise<SearchAttractionsResult> {
-  const { country, city, q, type, ownerId, parentAttractionId, includeHidden } = params;
+  const { country, city, q, type, ownerId, parentAttractionId, includeHidden, all } = params;
 
-  if (!country?.trim() && !city?.trim() && !type?.trim() && !parentAttractionId?.trim()) {
-    throw badRequest("country, city, type, or parentAttractionId param is required");
+  if (!all && !country?.trim() && !city?.trim() && !type?.trim() && !parentAttractionId?.trim()) {
+    throw badRequest("country, city, type, parentAttractionId, or all param is required");
   }
 
   await dbConnect();

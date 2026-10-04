@@ -30,6 +30,7 @@ export const GET = withApiHandler("GET /api/attractions", async (req: Request) =
     skip: skipParam ? Number(skipParam) : null,
     limit: limitParam ? Number(limitParam) : null,
     includeHidden: searchParams.get("includeHidden") === "true",
+    all: searchParams.get("all") === "true",
   });
 
   const visitedIds = await getVisitedIdSet(userId);

@@ -754,9 +754,11 @@ export function ExploreClient() {
       setSelectedRegion(null);
       setSelectedCity(null);
       setCityAttractions([]);
-      setSelectedCategories([]);
-      setSelectedTypes([]);
-      setSelectedFoodStyles([]);
+      // Unlike region/city selection below, category/type/foodStyle are deliberately KEPT
+      // here: world view now supports picking a category before ever choosing a country
+      // (narrows which countries/cities even show up), so clearing it the moment a country
+      // is picked would throw away a selection the user just made on purpose, right as they
+      // act on it.
       setSidebarOpen(false);
       mapRef.current?.flyToCountry(country.lat, country.lng);
     },

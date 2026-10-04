@@ -86,7 +86,7 @@ export async function getAllAttractions(
 ): Promise<unknown[]> {
   const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
   const fetchPage = async (skip: number) => {
-    const res = await fetch(`/api/attractions?includeHidden=true&skip=${skip}`, { headers });
+    const res = await fetch(`/api/attractions?all=true&includeHidden=true&skip=${skip}`, { headers });
     const total = Number(res.headers.get("X-Total-Count") ?? "0");
     const limit = Number(res.headers.get("X-Limit") ?? "0") || 20;
     const page = await parseOrThrow<unknown[]>(res);
