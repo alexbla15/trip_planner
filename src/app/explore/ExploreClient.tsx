@@ -715,15 +715,48 @@ export function ExploreClient() {
     });
   }, [types, byCategory, chipScopedAttractions, selectedCategories]);
 
-  // World-view equivalent of availableTypes — no fetched attraction list to scope
-  // against yet, so this just narrows the global `types` list by selected categories
-  // (same "inCategory" rule above, minus the "inScope" check that needs real attractions).
+  // World-view attractions matching only the visited/trip-usage/verified filters — the
+  // world-view counterpart of chipScopedAttractions above, once worldAttractions has
+  // actually loaded (see the lazy fetch effect). Empty array (not worldAttractions itself)
+  // is the right "not loaded yet" value here: it falls back to the unscoped global lists
+  // below exactly like the genuinely-empty case would, rather than needing a separate
+  // "loaded?" branch in every list that reads it.
+  const worldChipScopedAttractions = useMemo(() => {
+    if (!worldAttractionsLoaded) return [];
+    return worldAttractions.filter((a) => passesVisitedFilter(a) && passesTripUsageFilter(a) && passesVerifiedFilter(a));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [worldAttractions, worldAttractionsLoaded, visitedFilter, tripUsageFilter, verifiedFilter]);
+
+  // World-view equivalent of availableCategories — only meaningful once worldAttractions has
+  // loaded (otherwise falls back to the full global list, same as before this existed): a
+  // category/verified combination with zero real matches (e.g. "Accommodation" + "Not
+  // verified" when every accommodation happens to be verified) should disappear from the
+  // chip list instead of staying selectable and always producing an empty grid.
+  const worldAvailableCategories = useMemo(() => {
+    if (worldChipScopedAttractions.length === 0) return categories;
+    const typeNamesInScope = new Set(worldChipScopedAttractions.flatMap((a) => a.types ?? []));
+    return categories.filter((cat) => (byCategory[cat] ?? []).some((t) => typeNamesInScope.has(t.name)));
+  }, [categories, byCategory, worldChipScopedAttractions]);
+
+  // World-view equivalent of availableTypes — scoped by worldChipScopedAttractions once
+  // loaded, same "inCategory" narrowing as before otherwise (global `types` list, minus the
+  // "inScope" check that needs real attractions).
   const worldViewTypes = useMemo(() => {
-    return types.filter((t) =>
-      selectedCategories.length === 0 ||
-      selectedCategories.some((cat) => (byCategory[cat] ?? []).some((bt) => bt.name === t.name))
-    );
-  }, [types, byCategory, selectedCategories]);
+    if (worldChipScopedAttractions.length === 0) {
+      return types.filter((t) =>
+        selectedCategories.length === 0 ||
+        selectedCategories.some((cat) => (byCategory[cat] ?? []).some((bt) => bt.name === t.name))
+      );
+    }
+    const typeNamesInScope = new Set(worldChipScopedAttractions.flatMap((a) => a.types ?? []));
+    return types.filter((t) => {
+      const inScope = typeNamesInScope.has(t.name);
+      const inCategory =
+        selectedCategories.length === 0 ||
+        selectedCategories.some((cat) => (byCategory[cat] ?? []).some((bt) => bt.name === t.name));
+      return inScope && inCategory;
+    });
+  }, [types, byCategory, selectedCategories, worldChipScopedAttractions]);
 
   // Food styles are only a meaningful filter dimension once "Dining" is one of the
   // selected categories — otherwise there's nothing dining-specific in scope to filter by.
@@ -734,12 +767,16 @@ export function ExploreClient() {
     return [...namesInScope].sort((a, b) => a.localeCompare(b));
   }, [isDiningSelected, chipScopedAttractions]);
 
-  // World-view equivalent of availableFoodStyles — no fetched attraction list to scope
-  // against yet, so this just uses the global food style list (same "Dining selected" gate).
+  // World-view equivalent of availableFoodStyles — scoped by worldChipScopedAttractions
+  // once loaded, same "Dining selected" gate otherwise (global food style list).
   const worldViewFoodStyles = useMemo(() => {
     if (!isDiningSelected) return [];
-    return foodStyleRecords.map((fs) => fs.name).sort((a, b) => a.localeCompare(b));
-  }, [isDiningSelected, foodStyleRecords]);
+    if (worldChipScopedAttractions.length === 0) {
+      return foodStyleRecords.map((fs) => fs.name).sort((a, b) => a.localeCompare(b));
+    }
+    const namesInScope = new Set(worldChipScopedAttractions.flatMap((a) => a.foodStyles ?? []));
+    return [...namesInScope].sort((a, b) => a.localeCompare(b));
+  }, [isDiningSelected, foodStyleRecords, worldChipScopedAttractions]);
 
   const hasActiveFilters = selectedCategories.length > 0 || selectedTypes.length > 0 || selectedFoodStyles.length > 0 || visitedFilter !== "all" || tripUsageFilter !== "all" || verifiedFilter !== "all";
   const activeFilterCount = selectedCategories.length + selectedTypes.length + selectedFoodStyles.length + (visitedFilter !== "all" ? 1 : 0) + (tripUsageFilter !== "all" ? 1 : 0) + (verifiedFilter !== "all" ? 1 : 0);
@@ -1435,20 +1472,21 @@ export function ExploreClient() {
             </div>
           </div>
 
-          {/* Category/type filter chips. At world view (no country picked yet), there's no
-              fetched attraction list to scope categories/types to, so this uses the global
-              category/type lists instead (worldViewTypes narrows by selected category the
-              same way availableTypes does, minus the "already loaded" check) — selecting
-              either re-fetches `cities` filtered server-side (see the cities effect above).
-              At country/city view, scoped to the current selection as before. Rendered once
-              here, right under the visited/trip-status picker, instead of duplicated inside
-              both the country- and city-view blocks below. */}
-          {(view === "world" ? categories.length > 0 : availableCategories.length > 0 || availableTypes.length > 0) && (
+          {/* Category/type filter chips. At world view (no country picked yet), these are
+              scoped by worldAvailableCategories/worldViewTypes once worldAttractions has
+              loaded (same visited/trip-usage/verified-aware narrowing as availableCategories/
+              availableTypes below), falling back to the full global list before that fetch
+              resolves — selecting a category also re-fetches `cities` filtered server-side
+              (see the cities effect above), independent of this local scoping. At country/
+              city view, scoped to the current selection as before. Rendered once here, right
+              under the visited/trip-status picker, instead of duplicated inside both the
+              country- and city-view blocks below. */}
+          {(view === "world" ? worldAvailableCategories.length > 0 : availableCategories.length > 0 || availableTypes.length > 0) && (
             <AttractionFilter
               hideSearch
               collapsible
               collapsibleLabel="Category & type"
-              categories={view === "world" ? categories : availableCategories}
+              categories={view === "world" ? worldAvailableCategories : availableCategories}
               selectedCategories={selectedCategories}
               onCategoriesChange={handleCategoriesChange}
               categoryLabel="Categories"
