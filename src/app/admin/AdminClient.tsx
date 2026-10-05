@@ -5,7 +5,7 @@ import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import {
   Shield, Plus, Pencil, Trash2,
-  Loader2, ChevronDown, Tag, Smile, Layers, RefreshCw, UtensilsCrossed,
+  Loader2, ChevronDown, Tag, Smile, Layers, RefreshCw, UtensilsCrossed, ShoppingBag,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
@@ -19,6 +19,8 @@ import {
   getMoodTagStyle,
   useFoodStyles,
   invalidateFoodStylesCache,
+  useShopStyles,
+  invalidateShopStylesCache,
 } from "@/hooks";
 import {
   createAttractionType,
@@ -35,6 +37,9 @@ import {
   createFoodStyle,
   updateFoodStyle,
   deleteFoodStyle,
+  createShopStyle,
+  updateShopStyle,
+  deleteShopStyle,
   ApiError,
 } from "@/services";
 import { getIconComponent, renderTypeIcon, IconPicker, SectionCard } from "@/components";
@@ -43,10 +48,12 @@ import {
   type CategoryFormState,
   type MoodTagFormState,
   type FoodStyleFormState,
+  type ShopStyleFormState,
   typeFormFromRecord,
   catFormFromRecord,
   moodFormFromRecord,
   foodStyleFormFromRecord,
+  shopStyleFormFromRecord,
 } from "@/lib";
 import type { AttractionCategoryRecord } from "@/types/attractionCategory";
 import { AdminEntityForm } from "./AdminEntityForm";
@@ -268,6 +275,59 @@ function FoodStyleForm({
   );
 }
 
+// ── Shop Style form ────────────────────────────────────────────────────────────
+
+const EMPTY_SHOP_STYLE_FORM: ShopStyleFormState = { name: "", icon: "ShoppingBag" };
+
+function ShopStyleForm({
+  initial, token, styleId, onDone, onCancel,
+}: {
+  initial: ShopStyleFormState;
+  token: string;
+  styleId?: string;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const [form, setForm] = useState<ShopStyleFormState>(initial);
+
+  function set(key: keyof ShopStyleFormState, value: string) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function validate(): string | null {
+    if (!form.name.trim() || !form.icon.trim()) {
+      return "Name and icon are required.";
+    }
+    return null;
+  }
+
+  async function handleSave() {
+    const payload = { name: form.name.trim(), icon: form.icon.trim() };
+    if (styleId) await updateShopStyle(styleId, token, payload);
+    else await createShopStyle(token, payload);
+    invalidateShopStylesCache();
+  }
+
+  return (
+    <AdminEntityForm validate={validate} onSave={handleSave} onDone={onDone} onCancel={onCancel} isEditing={!!styleId}>
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Name *</label>
+        <input
+          className={styles.input}
+          value={form.name}
+          onChange={(e) => set("name", e.target.value)}
+          placeholder="e.g. Fashion"
+        />
+      </div>
+
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Icon *</label>
+        <IconPicker value={form.icon} onChange={(v) => set("icon", v)} />
+      </div>
+    </AdminEntityForm>
+  );
+}
+
 // ── Mood Tag form ──────────────────────────────────────────────────────────────
 
 const EMPTY_MOOD_FORM: MoodTagFormState = {
@@ -374,6 +434,7 @@ export function AdminClient() {
   const { categories: catRecords, loading: catsLoading } = useAttractionCategories();
   const { tags: moodTags, loading: tagsLoading } = useMoodTags();
   const { styles: foodStyleRecords, loading: foodStylesLoading } = useFoodStyles();
+  const { styles: shopStyleRecords, loading: shopStylesLoading } = useShopStyles();
   const [collapsedTypeCategories, setCollapsedTypeCategories] = useState<Set<string>>(new Set());
 
   function toggleTypeCategory(cat: string) {
@@ -411,6 +472,12 @@ export function AdminClient() {
   const [foodStyleAdding, setFoodStyleAdding]       = useState(false);
   const [foodStyleDeleteId, setFoodStyleDeleteId]   = useState<string | null>(null);
   const [foodStyleDeleting, setFoodStyleDeleting]   = useState(false);
+
+  // Shop style CRUD state
+  const [shopStyleEditingId, setShopStyleEditingId] = useState<string | null>(null);
+  const [shopStyleAdding, setShopStyleAdding]       = useState(false);
+  const [shopStyleDeleteId, setShopStyleDeleteId]   = useState<string | null>(null);
+  const [shopStyleDeleting, setShopStyleDeleting]   = useState(false);
 
   const loading = authLoading || typesLoading;
 
@@ -523,6 +590,25 @@ export function AdminClient() {
     setFoodStyleAdding(false);
     setFoodStyleEditingId(null);
     toast.success(wasEditing ? "Food style updated" : "Food style created");
+  }
+
+  // ── Shop style handlers ──────────────────────────────────────────────────────
+
+  async function handleShopStyleDelete(id: string) {
+    if (!token) return;
+    setShopStyleDeleting(true);
+    await deleteShopStyle(id, token);
+    invalidateShopStylesCache();
+    setShopStyleDeleting(false);
+    setShopStyleDeleteId(null);
+    toast.success("Shop style deleted");
+  }
+
+  function handleShopStyleFormDone() {
+    const wasEditing = shopStyleEditingId !== null;
+    setShopStyleAdding(false);
+    setShopStyleEditingId(null);
+    toast.success(wasEditing ? "Shop style updated" : "Shop style created");
   }
 
   async function handleSeedMoodTags() {
@@ -951,6 +1037,90 @@ export function AdminClient() {
                         <button
                           className={`${styles.iconBtn} ${styles.deleteBtn}`}
                           onClick={() => setFoodStyleDeleteId(record._id)}
+                          aria-label={`Delete ${record.name}`}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              ))}
+            </div>
+          )}
+        </SectionCard>
+
+        {/* ── Shop Styles card ───────────────────────────────────────────────── */}
+        <SectionCard
+          icon={ShoppingBag}
+          title="Shop Styles"
+          headingCount={shopStyleRecords.length}
+          collapsible
+          actions={
+            !shopStyleAdding && !shopStyleEditingId && (
+              <button className={styles.addBtn} onClick={() => setShopStyleAdding(true)} aria-label="Add shop style">
+                <Plus size={14} aria-hidden="true" /> <span className={styles.addBtnLabel}>Add shop style</span>
+              </button>
+            )
+          }
+        >
+          {shopStyleAdding && token && (
+            <ShopStyleForm
+              key="new-shop-style"
+              initial={EMPTY_SHOP_STYLE_FORM}
+              token={token}
+              onDone={handleShopStyleFormDone}
+              onCancel={() => setShopStyleAdding(false)}
+            />
+          )}
+
+          {shopStylesLoading ? (
+            <div className={styles.center}><Loader2 size={24} className={styles.spin} /></div>
+          ) : (
+            <div className={styles.compactGrid}>
+              {shopStyleRecords.map((record, index) => (
+                shopStyleEditingId === record._id && token ? (
+                  <div key={record._id} className={styles.compactFormWrap}>
+                    <ShopStyleForm
+                      key={record._id}
+                      initial={shopStyleFormFromRecord(record)}
+                      token={token}
+                      styleId={record._id}
+                      onDone={handleShopStyleFormDone}
+                      onCancel={() => setShopStyleEditingId(null)}
+                    />
+                  </div>
+                ) : (
+                  <div key={record._id} className={styles.compactChip}>
+                    <span className={styles.compactIndex}>#{index + 1}</span>
+                    {renderTypeIcon(record.icon)}
+                    <span className={styles.typeName}>{record.name}</span>
+                    <div className={styles.typeActions}>
+                      <button
+                        className={styles.iconBtn}
+                        onClick={() => { setShopStyleEditingId(record._id); setShopStyleAdding(false); }}
+                        aria-label={`Edit ${record.name}`}
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      {shopStyleDeleteId === record._id ? (
+                        <div className={styles.confirmDelete}>
+                          <span>Delete?</span>
+                          <button
+                            className={styles.confirmYes}
+                            onClick={() => handleShopStyleDelete(record._id)}
+                            disabled={shopStyleDeleting}
+                          >
+                            Yes
+                          </button>
+                          <button className={styles.confirmNo} onClick={() => setShopStyleDeleteId(null)}>
+                            No
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          className={`${styles.iconBtn} ${styles.deleteBtn}`}
+                          onClick={() => setShopStyleDeleteId(record._id)}
                           aria-label={`Delete ${record.name}`}
                         >
                           <Trash2 size={13} />

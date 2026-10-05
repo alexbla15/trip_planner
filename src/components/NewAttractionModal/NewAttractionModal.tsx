@@ -6,7 +6,7 @@ import {
   useRef,
   type ChangeEvent,
 } from "react";
-import { MapPin, Clock, Calendar, ChevronDown, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check, FileText, X, Building2, Search, UtensilsCrossed, Plus } from "lucide-react";
+import { MapPin, Clock, Calendar, ChevronDown, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check, FileText, X, Building2, Search, UtensilsCrossed, ShoppingBag, Plus } from "lucide-react";
 import type {
   AttractionFormData,
   Coordinates,
@@ -34,7 +34,8 @@ import { SeasonalRangePicker } from "./SeasonalRangePicker";
 import { ParentAttractionPicker } from "./ParentAttractionPicker";
 import { PriceTierEditor } from "./PriceTierEditor";
 import { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h, isValidUrl, isYearRound, ALL_MONTHS, deriveOpeningMonthsFromSeasonalHours, formatOpeningMonthsLabel } from "@/lib";
-import { useReverseGeocodeAutofill, useAttractionTypes, useFoodStyles } from "@/hooks";
+import { useReverseGeocodeAutofill, useAttractionTypes, useFoodStyles, useShopStyles } from "@/hooks";
+import { renderTypeIcon } from "@/components/IconPicker";
 import { emptyPriceTab, flatPriceTiersToTabs, tabsToFlatPriceTiers } from "./NewAttractionModal.utils";
 import type { Attraction } from "@/types/attraction";
 import styles from "./NewAttractionModal.module.css";
@@ -46,6 +47,10 @@ const HEADING_ID = "new-attraction-modal-title";
 // meaningful "cuisine" concept for a bar, ice cream stand, or supermarket the way there
 // is for a restaurant, café, food truck, etc.
 const NO_FOOD_STYLE_TYPES = new Set(["Bar", "Ice Cream", "Supermarket"]);
+
+// Shopping-category types all get a shop-style/fashion-style picker — Mall, Store, and
+// Market are all broad enough that narrowing by style (e.g. "Fashion") is meaningful for
+// each of them, so no exclusion set is needed (unlike food styles' NO_FOOD_STYLE_TYPES).
 
 function build24hHours(): OpeningHours {
   return Object.fromEntries(
@@ -72,6 +77,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
 
   const { findType } = useAttractionTypes();
   const { styles: foodStyleOptions } = useFoodStyles();
+  const { styles: shopStyleOptions } = useShopStyles();
 
   const [name, setName] = useState("");
   const [country, setCountry] = useState(defaultCountry ?? "");
@@ -109,6 +115,10 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     if (NO_FOOD_STYLE_TYPES.has(t)) return false;
     return findType(t)?.category?.trim().toLowerCase() === "dining";
   });
+  const [selectedShopStyles, setSelectedShopStyles] = useState<string[]>([]);
+  // Shop styles only make sense for a shopping-type attraction — same category-driven
+  // gating as isDining above.
+  const isShopping = selectedTypes.some((t) => findType(t)?.category?.trim().toLowerCase() === "shopping");
   const [durationValue, setDurationValue] = useState("");
   const [durationUnit, setDurationUnit] = useState<DurationUnit>("hours");
   const [priceTabs, setPriceTabs] = useState<PriceTabDraft[]>(() => [emptyPriceTab()]);
@@ -146,6 +156,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setParentAttractionName(initialData?.parentAttractionName ?? null);
     setSelectedTypes(initialData?.types ?? []);
     setSelectedFoodStyles(initialData?.foodStyles ?? []);
+    setSelectedShopStyles(initialData?.shopStyles ?? []);
     setDurationValue(initialData?.durationValue ?? "");
     setDurationUnit(initialData?.durationUnit ?? "hours");
     if (initialData?.prices?.length) {
@@ -287,6 +298,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       coordinates,
       types: selectedTypes,
       foodStyles: isDining ? selectedFoodStyles : [],
+      shopStyles: isShopping ? selectedShopStyles : [],
       durationValue,
       durationUnit,
       price: primaryTier?.amount ?? null,
@@ -699,6 +711,43 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           ) : (
             <p className={styles.hint}>
               No food styles defined yet — add some from the Food Styles section in /admin.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Shop styles — only for shopping-type attractions */}
+      {isShopping && (
+        <div className={styles.field}>
+          <span className={styles.labelWithIcon}>
+            <ShoppingBag size={14} aria-hidden="true" />
+            Shop styles
+          </span>
+          {shopStyleOptions.length > 0 ? (
+            <div className={styles.foodStyleChips} role="group" aria-label="Shop styles">
+              {shopStyleOptions.map((ss) => {
+                const active = selectedShopStyles.includes(ss.name);
+                return (
+                  <button
+                    key={ss._id}
+                    type="button"
+                    className={`${styles.foodStyleChip} ${active ? styles.foodStyleChipActive : ""}`}
+                    aria-pressed={active}
+                    onClick={() =>
+                      setSelectedShopStyles((prev) =>
+                        active ? prev.filter((n) => n !== ss.name) : [...prev, ss.name]
+                      )
+                    }
+                  >
+                    {renderTypeIcon(ss.icon, 13)}
+                    {ss.name}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <p className={styles.hint}>
+              No shop styles defined yet — add some from the Shop Styles section in /admin.
             </p>
           )}
         </div>

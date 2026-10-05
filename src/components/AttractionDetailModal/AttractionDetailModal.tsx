@@ -34,7 +34,7 @@ import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
 import { Spinner } from "@/components/Spinner";
 import { getAttraction, getChildAttractions, getOtherLocationsInCity } from "@/services";
-import { useAttractionTypes } from "@/hooks";
+import { useAttractionTypes, useShopStyles } from "@/hooks";
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
 
 const LocationViewMap = dynamic(
@@ -82,6 +82,7 @@ interface AttractionDetailModalProps {
 
 export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit, onEdit, onAddToTrip, onRemoveFromTrip, onDelete, onToggleVisited, isVisited, onNavigateToAttraction, onToggleVerified, verifiedToggling }: AttractionDetailModalProps) {
   const { findType } = useAttractionTypes();
+  const { styles: shopStyleRecords } = useShopStyles();
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -348,7 +349,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
           {/* Types + status chips (24/7, and later year-round/permanently-closed) —
               rendered together in one row since they're both "chip" facts about the
               attraction, not two separate concepts needing their own sections. */}
-          {(attraction.types?.length > 0 || (attraction.foodStyles?.length ?? 0) > 0 || statusChips.length > 0) && (
+          {(attraction.types?.length > 0 || (attraction.foodStyles?.length ?? 0) > 0 || (attraction.shopStyles?.length ?? 0) > 0 || statusChips.length > 0) && (
             <div className={styles.section}>
               <div className={styles.chips}>
                 {attraction.types?.map((t) => (
@@ -360,6 +361,12 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                 {attraction.foodStyles?.map((style) => (
                   <span key={style} className={styles.chip}>
                     <UtensilsCrossed size={14} aria-hidden="true" />
+                    {style}
+                  </span>
+                ))}
+                {attraction.shopStyles?.map((style) => (
+                  <span key={style} className={styles.chip}>
+                    {renderTypeIcon(shopStyleRecords.find((s) => s.name === style)?.icon ?? "ShoppingBag")}
                     {style}
                   </span>
                 ))}

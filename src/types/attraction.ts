@@ -77,6 +77,8 @@ export interface Attraction {
   types: string[];
   /** Only meaningful for dining-type attractions — admin-managed food style names. */
   foodStyles?: string[];
+  /** Only meaningful for shopping-type attractions — admin-managed shop style names. */
+  shopStyles?: string[];
   durationValue?: string;
   durationUnit?: "minutes" | "hours";
   price?: number | null;

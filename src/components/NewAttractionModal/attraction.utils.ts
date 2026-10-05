@@ -13,6 +13,7 @@ export function attractionToFormData(a: Attraction): AttractionFormData {
     coordinates: a.coordinates ?? null,
     types: (a.types ?? []) as AttractionFormData["types"],
     foodStyles: a.foodStyles ?? [],
+    shopStyles: a.shopStyles ?? [],
     durationValue: a.durationValue ?? "",
     durationUnit: (a.durationUnit ?? "hours") as DurationUnit,
     price: a.price ?? null,

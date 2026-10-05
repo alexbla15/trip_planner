@@ -135,6 +135,8 @@ export interface AttractionFormData {
   types: string[];
   /** Only meaningful for dining-type attractions — admin-managed food style names. */
   foodStyles?: string[];
+  /** Only meaningful for shopping-type attractions — admin-managed shop style names. */
+  shopStyles?: string[];
   /** Named price tiers — when set (non-empty), overrides `price` on submit. */
   prices?: { product?: string; label: string; amount: number; isPrimary: boolean; visitorType?: string; days?: string[] }[];
   durationValue: string;

@@ -4,6 +4,7 @@ import { badRequest, notFound, conflict, forbidden } from "@/lib/apiError";
 import { Attraction, formatAttraction, type IAttraction, type IPriceTier } from "@/models/Attraction";
 import { AttractionType } from "@/models/AttractionType";
 import { FoodStyle } from "@/models/FoodStyle";
+import { ShopStyle } from "@/models/ShopStyle";
 import { User } from "@/models/User";
 import { Trip, type ITrip, type IScheduleEntry } from "@/models/Trip";
 import { getVisitedIdSet, isAttractionVisited } from "@/lib/services/visited.service";
@@ -155,7 +156,7 @@ export async function searchAttractions(
   // silently skipping another (found via a real 17-branch "Anni's Black Forest Secret"
   // repeating for many consecutive pages in the Explore grid).
   const [items, total] = await Promise.all([
-    Attraction.find(filter).populate(["types", "foodStyles"]).sort({ city: 1, name: 1, _id: 1 }).skip(skip).limit(limit),
+    Attraction.find(filter).populate(["types", "foodStyles", "shopStyles"]).sort({ city: 1, name: 1, _id: 1 }).skip(skip).limit(limit),
     Attraction.countDocuments(filter),
   ]);
 
@@ -169,7 +170,7 @@ export async function searchAttractions(
  *  since this is public discovery data, not a private trip-planning detail. */
 export async function getAttractionById(id: string): Promise<IAttraction> {
   await dbConnect();
-  const attraction = await Attraction.findById(id).populate(["types", "foodStyles"]);
+  const attraction = await Attraction.findById(id).populate(["types", "foodStyles", "shopStyles"]);
   if (!attraction) throw notFound("Attraction not found");
   return attraction;
 }
@@ -187,6 +188,8 @@ export interface CreateAttractionInput {
   types?: string[];
   /** Only meaningful for dining-type attractions — admin-managed food style names. */
   foodStyles?: string[];
+  /** Only meaningful for shopping-type attractions — admin-managed shop style names. */
+  shopStyles?: string[];
   durationValue?: string;
   durationUnit?: "minutes" | "hours";
   price?: number | null;
@@ -205,7 +208,7 @@ export interface CreateAttractionInput {
 }
 
 export async function createAttraction(payload: JwtPayload, body: CreateAttractionInput): Promise<IAttraction> {
-  const { name, country, region, city, coordinates, parentAttractionId, types, foodStyles, durationValue, durationUnit,
+  const { name, country, region, city, coordinates, parentAttractionId, types, foodStyles, shopStyles, durationValue, durationUnit,
     price, prices: priceTiersInput, currency, openingHours, openingMonths, seasonalHours, notes, photoUrl, websiteUrl } = body;
 
   if (!name?.trim() || (!parentAttractionId && (!country?.trim() || !city?.trim()))) {
@@ -231,6 +234,9 @@ export async function createAttraction(payload: JwtPayload, body: CreateAttracti
   const foodStyleIds = foodStyles?.length
     ? (await FoodStyle.find({ name: { $in: foodStyles } }).select("_id")).map((d) => d._id)
     : [];
+  const shopStyleIds = shopStyles?.length
+    ? (await ShopStyle.find({ name: { $in: shopStyles } }).select("_id")).map((d) => d._id)
+    : [];
 
   // A child's coordinates/city/country are inherited from the parent, not client-supplied —
   // silently overridden rather than rejected, since the location is defined by the parent.
@@ -252,6 +258,7 @@ export async function createAttraction(payload: JwtPayload, body: CreateAttracti
       parentAttractionId: parent?._id ?? null,
       types: typeIds,
       foodStyles: foodStyleIds,
+      shopStyles: shopStyleIds,
       durationValue: durationValue || undefined,
       durationUnit: durationUnit || undefined,
       price: normalizedTiers ? normalizedTiers.primaryAmount : (price ?? null),
@@ -265,7 +272,7 @@ export async function createAttraction(payload: JwtPayload, body: CreateAttracti
       websiteUrl: websiteUrl || undefined,
     });
 
-    await attraction.populate(["types", "foodStyles"]);
+    await attraction.populate(["types", "foodStyles", "shopStyles"]);
     return attraction;
   } catch (err) {
     throwIfDuplicateKeyError(err);
@@ -380,6 +387,13 @@ export async function updateAttraction(
       : [];
     attraction.foodStyles = foodStyleDocs.map((d) => d._id) as unknown as IAttraction["foodStyles"];
   }
+  if (body.shopStyles !== undefined) {
+    const names = body.shopStyles as string[];
+    const shopStyleDocs = names.length
+      ? await ShopStyle.find({ name: { $in: names } }).select("_id")
+      : [];
+    attraction.shopStyles = shopStyleDocs.map((d) => d._id) as unknown as IAttraction["shopStyles"];
+  }
   if (body.durationValue !== undefined) attraction.durationValue = body.durationValue as string;
   if (body.durationUnit !== undefined) attraction.durationUnit = body.durationUnit as "minutes" | "hours";
   if (body.prices !== undefined) {
@@ -443,7 +457,7 @@ export async function updateAttraction(
     throwIfDuplicateKeyError(err);
   }
 
-  await attraction.populate(["types", "foodStyles"]);
+  await attraction.populate(["types", "foodStyles", "shopStyles"]);
   return attraction;
 }
 
@@ -508,7 +522,7 @@ export async function listTripAttractions(
   }
 
   const docs = await Attraction.find(query)
-    .populate(["types", "foodStyles"])
+    .populate(["types", "foodStyles", "shopStyles"])
     .sort(sort === "price" ? { price: 1 } : undefined)
     .exec();
   const docsById = new Map(docs.map((doc) => [doc._id.toString(), doc]));
@@ -870,12 +884,12 @@ export async function addAttractionToTrip(
       await Trip.findByIdAndUpdate(tripId, {
         $set: { [`schedules.${instanceKey}`]: scheduleEntry },
       });
-      await attraction.populate(["types", "foodStyles"]);
+      await attraction.populate(["types", "foodStyles", "shopStyles"]);
       const usedInTripNames = await getUsedInTripNames(payload.userId, attractionId);
       return { status: 201, data: formatAttraction(attraction, scheduleEntry, instanceKey, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl) };
     }
     const schedule = trip.schedules?.get(attractionId);
-    await attraction.populate(["types", "foodStyles"]);
+    await attraction.populate(["types", "foodStyles", "shopStyles"]);
     const usedInTripNames = await getUsedInTripNames(payload.userId, attractionId);
     return { status: 200, data: formatAttraction(attraction, schedule ?? null, undefined, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl) };
   }
@@ -904,7 +918,7 @@ export async function addAttractionToTrip(
   trip.schedules.set(attractionId, scheduleEntry);
 
   await trip.save();
-  await attraction.populate(["types", "foodStyles"]);
+  await attraction.populate(["types", "foodStyles", "shopStyles"]);
 
   const usedInTripNames = await getUsedInTripNames(payload.userId, attractionId);
   return { status: 201, data: formatAttraction(attraction, scheduleEntry, undefined, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl) };

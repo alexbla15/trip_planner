@@ -44,6 +44,10 @@ export interface IAttraction extends Document {
    *  admin-managed food styles (e.g. "Sushi", "Fast Food"). Referenced by id (not a
    *  denormalized name snapshot), so renaming a FoodStyle doc is reflected automatically. */
   foodStyles?: Types.ObjectId[];
+  /** Only meaningful when the attraction's type/category is shopping-related — one or more
+   *  admin-managed shop styles (e.g. "Fashion"). Referenced by id, same contract as
+   *  `foodStyles`. */
+  shopStyles?: Types.ObjectId[];
   durationValue?: string;
   durationUnit?: "minutes" | "hours";
   price?: number | null;
@@ -165,6 +169,7 @@ const AttractionSchema = new Schema<IAttraction>(
     parentAttractionId: { type: Schema.Types.ObjectId, ref: "Attraction", default: null },
     types: [{ type: Schema.Types.ObjectId, ref: "AttractionType" }],
     foodStyles: [{ type: Schema.Types.ObjectId, ref: "FoodStyle" }],
+    shopStyles: [{ type: Schema.Types.ObjectId, ref: "ShopStyle" }],
     durationValue: { type: String },
     durationUnit: { type: String, enum: ["minutes", "hours"] },
     price: { type: Number, default: null },
@@ -293,6 +298,11 @@ export function formatAttraction(
     // Deleted FoodStyle docs leave a dangling ref that populate() resolves to null —
     // filter those out rather than rendering a stringified ObjectId/"null".
     foodStyles: ((doc.foodStyles as unknown[]) ?? [])
+      .filter((f) => f && typeof f === "object" && "name" in (f as Record<string, unknown>))
+      .map((f) => (f as { name: string }).name),
+    // Deleted ShopStyle docs leave a dangling ref that populate() resolves to null —
+    // filter those out rather than rendering a stringified ObjectId/"null".
+    shopStyles: ((doc.shopStyles as unknown[]) ?? [])
       .filter((f) => f && typeof f === "object" && "name" in (f as Record<string, unknown>))
       .map((f) => (f as { name: string }).name),
     durationValue: doc.durationValue,

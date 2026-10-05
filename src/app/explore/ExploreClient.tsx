@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo, useCallback, useRef, useId } from "react"
 import { Globe, Plus, ChevronLeft, ChevronDown, SlidersHorizontal, X, Ruler, Footprints, Car, Bus, Loader2, Search, Check, Map as MapIcon, LayoutGrid, ChevronRight, Luggage, BadgeCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { useAttractionTypes, useFoodStyles } from "@/hooks";
+import { useAttractionTypes, useFoodStyles, useShopStyles } from "@/hooks";
 import {
   getCities, getAttractionsByCity, getAttractionsByCountry, getAllAttractions, getAttraction, createAttraction, updateAttraction, deleteAttraction,
   fetchRouteLeg, formatLegDuration, formatStepDuration,
@@ -16,6 +16,7 @@ import {
 } from "@/services";
 import type { TravelMode, RouteLeg } from "@/services";
 import { AttractionDetailModal, NewAttractionModal, TripPickerModal, Spinner, FormErrorBanner, AttractionFilter, AttractionGridCard, attractionToFormData } from "@/components";
+import { renderTypeIcon } from "@/components/IconPicker";
 import type { AttractionFormData } from "@/components";
 import type { Attraction } from "@/types/attraction";
 import type { Trip } from "@/types/trip";
@@ -101,6 +102,7 @@ export function ExploreClient() {
   const toast = useToast();
   const { types, categories, byCategory } = useAttractionTypes();
   const { styles: foodStyleRecords } = useFoodStyles();
+  const { styles: shopStyleRecords } = useShopStyles();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -150,6 +152,7 @@ export function ExploreClient() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>(initialUrlState.categories);
   const [selectedTypes, setSelectedTypes]           = useState<string[]>(initialUrlState.types);
   const [selectedFoodStyles, setSelectedFoodStyles] = useState<string[]>(initialUrlState.foodStyles);
+  const [selectedShopStyles, setSelectedShopStyles] = useState<string[]>(initialUrlState.shopStyles);
   const [visitedFilter, setVisitedFilter]           = useState<"all" | "visited" | "unvisited">(initialUrlState.visited);
   const [tripUsageFilter, setTripUsageFilter]       = useState<"all" | "used" | "unused">(initialUrlState.used);
   const [verifiedFilter, setVerifiedFilter]         = useState<VerifiedFilterValue>(initialUrlState.verified);
@@ -157,6 +160,7 @@ export function ExploreClient() {
   // from the user, but otherwise keep the sidebar compact by default.
   const [visitedPickerOpen, setVisitedPickerOpen]   = useState(false);
   const [foodStylePickerOpen, setFoodStylePickerOpen] = useState(false);
+  const [shopStylePickerOpen, setShopStylePickerOpen] = useState(false);
   const [verifiedPickerOpen, setVerifiedPickerOpen] = useState(false);
 
   // Measure-distance tool (available once a country is selected — see view guard below)
@@ -177,6 +181,7 @@ export function ExploreClient() {
   const mapRef = useRef<MapHandle | null>(null);
   const visitedPickerCollapseId = useId();
   const foodStylePickerCollapseId = useId();
+  const shopStylePickerCollapseId = useId();
   const verifiedPickerCollapseId = useId();
 
   // Fetch the route between the two selected measure points whenever either the
@@ -489,14 +494,17 @@ export function ExploreClient() {
     const passFoodStyle =
       selectedFoodStyles.length === 0 ||
       (a.foodStyles ?? []).some((fs) => selectedFoodStyles.includes(fs));
-    return passCategory && passType && passFoodStyle;
+    const passShopStyle =
+      selectedShopStyles.length === 0 ||
+      (a.shopStyles ?? []).some((ss) => selectedShopStyles.includes(ss));
+    return passCategory && passType && passFoodStyle && passShopStyle;
   }
 
   // Client-side filtering of city attractions
   const filteredAttractions = useMemo(() => {
     return cityAttractions.filter((a) => matchesChipFilters(a) && passesVisitedFilter(a) && passesTripUsageFilter(a) && passesVerifiedFilter(a));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cityAttractions, selectedCategories, selectedTypes, selectedFoodStyles, visitedFilter, tripUsageFilter, verifiedFilter, byCategory]);
+  }, [cityAttractions, selectedCategories, selectedTypes, selectedFoodStyles, selectedShopStyles, visitedFilter, tripUsageFilter, verifiedFilter, byCategory]);
 
   // Country-view attraction pins — same category/type + visited/trip-usage/verified
   // filtering as city view, so selecting a type in country view narrows the map pins too,
@@ -504,14 +512,14 @@ export function ExploreClient() {
   const filteredCountryAttractions = useMemo(() => {
     return countryAttractions.filter((a) => matchesChipFilters(a) && passesVisitedFilter(a) && passesTripUsageFilter(a) && passesVerifiedFilter(a));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [countryAttractions, selectedCategories, selectedTypes, selectedFoodStyles, visitedFilter, tripUsageFilter, verifiedFilter, byCategory]);
+  }, [countryAttractions, selectedCategories, selectedTypes, selectedFoodStyles, selectedShopStyles, visitedFilter, tripUsageFilter, verifiedFilter, byCategory]);
 
   // World-view grid — same client-side chip filtering as the city/country lists, applied
   // to the lazily-fetched worldAttractions (empty/stale until that fetch resolves).
   const filteredWorldAttractions = useMemo(() => {
     return worldAttractions.filter((a) => matchesChipFilters(a) && passesVisitedFilter(a) && passesTripUsageFilter(a) && passesVerifiedFilter(a));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [worldAttractions, selectedCategories, selectedTypes, selectedFoodStyles, visitedFilter, tripUsageFilter, verifiedFilter, byCategory]);
+  }, [worldAttractions, selectedCategories, selectedTypes, selectedFoodStyles, selectedShopStyles, visitedFilter, tripUsageFilter, verifiedFilter, byCategory]);
 
   // Region-view attraction pins — countryAttractions already covers the whole country (see
   // the fetch effect above, which only checks "country selected, no city yet" — region
@@ -668,12 +676,13 @@ export function ExploreClient() {
       categories: selectedCategories,
       types: selectedTypes,
       foodStyles: selectedFoodStyles,
+      shopStyles: selectedShopStyles,
       visited: visitedFilter,
       used: tripUsageFilter,
       verified: verifiedFilter,
     }).toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  }, [selectedCountry, selectedRegion, selectedCity, selectedCategories, selectedTypes, selectedFoodStyles, visitedFilter, tripUsageFilter, verifiedFilter, pathname, router]);
+  }, [selectedCountry, selectedRegion, selectedCity, selectedCategories, selectedTypes, selectedFoodStyles, selectedShopStyles, visitedFilter, tripUsageFilter, verifiedFilter, pathname, router]);
 
   // Safety clamp for cases the position-preserving resize logic above doesn't cover
   // (e.g. the filtered item count itself shrinks) — never a no-op relative to it since
@@ -778,8 +787,28 @@ export function ExploreClient() {
     return [...namesInScope].sort((a, b) => a.localeCompare(b));
   }, [isDiningSelected, foodStyleRecords, worldChipScopedAttractions]);
 
-  const hasActiveFilters = selectedCategories.length > 0 || selectedTypes.length > 0 || selectedFoodStyles.length > 0 || visitedFilter !== "all" || tripUsageFilter !== "all" || verifiedFilter !== "all";
-  const activeFilterCount = selectedCategories.length + selectedTypes.length + selectedFoodStyles.length + (visitedFilter !== "all" ? 1 : 0) + (tripUsageFilter !== "all" ? 1 : 0) + (verifiedFilter !== "all" ? 1 : 0);
+  // Shop styles are only a meaningful filter dimension once "Shopping" is one of the
+  // selected categories — same gating as isDiningSelected/availableFoodStyles above.
+  const isShoppingSelected = selectedCategories.some((c) => c.trim().toLowerCase() === "shopping");
+  const availableShopStyles = useMemo(() => {
+    if (!isShoppingSelected) return [];
+    const namesInScope = new Set(chipScopedAttractions.flatMap((a) => a.shopStyles ?? []));
+    return [...namesInScope].sort((a, b) => a.localeCompare(b));
+  }, [isShoppingSelected, chipScopedAttractions]);
+
+  // World-view equivalent of availableShopStyles — scoped by worldChipScopedAttractions
+  // once loaded, same "Shopping selected" gate otherwise (global shop style list).
+  const worldViewShopStyles = useMemo(() => {
+    if (!isShoppingSelected) return [];
+    if (worldChipScopedAttractions.length === 0) {
+      return shopStyleRecords.map((ss) => ss.name).sort((a, b) => a.localeCompare(b));
+    }
+    const namesInScope = new Set(worldChipScopedAttractions.flatMap((a) => a.shopStyles ?? []));
+    return [...namesInScope].sort((a, b) => a.localeCompare(b));
+  }, [isShoppingSelected, shopStyleRecords, worldChipScopedAttractions]);
+
+  const hasActiveFilters = selectedCategories.length > 0 || selectedTypes.length > 0 || selectedFoodStyles.length > 0 || selectedShopStyles.length > 0 || visitedFilter !== "all" || tripUsageFilter !== "all" || verifiedFilter !== "all";
+  const activeFilterCount = selectedCategories.length + selectedTypes.length + selectedFoodStyles.length + selectedShopStyles.length + (visitedFilter !== "all" ? 1 : 0) + (tripUsageFilter !== "all" ? 1 : 0) + (verifiedFilter !== "all" ? 1 : 0);
 
   // Note: visitedFilter is deliberately NOT reset by any of these — it's a page-level
   // filter (applies to which countries/cities are even listed, via visibleCities), not a
@@ -809,6 +838,7 @@ export function ExploreClient() {
     setSelectedCategories([]);
     setSelectedTypes([]);
     setSelectedFoodStyles([]);
+    setSelectedShopStyles([]);
     setSidebarOpen(false);
     mapRef.current?.flyToRegion(region.lat, region.lng);
   }, []);
@@ -818,6 +848,7 @@ export function ExploreClient() {
     setSelectedCategories([]);
     setSelectedTypes([]);
     setSelectedFoodStyles([]);
+    setSelectedShopStyles([]);
     setSidebarOpen(false);
     mapRef.current?.flyToCity(city.lat, city.lng);
   }, []);
@@ -831,6 +862,7 @@ export function ExploreClient() {
     setSelectedCategories([]);
     setSelectedTypes([]);
     setSelectedFoodStyles([]);
+    setSelectedShopStyles([]);
     if (selectedRegion) {
       const region = regionsInCountry.find((r) => r.name === selectedRegion);
       if (region) mapRef.current?.flyToRegion(region.lat, region.lng);
@@ -845,6 +877,7 @@ export function ExploreClient() {
     setSelectedCategories([]);
     setSelectedTypes([]);
     setSelectedFoodStyles([]);
+    setSelectedShopStyles([]);
     const country = countries.find((c) => c.name === selectedCountry);
     if (country) mapRef.current?.flyToCountry(country.lat, country.lng);
   }, [countries, selectedCountry]);
@@ -857,6 +890,7 @@ export function ExploreClient() {
     setSelectedCategories([]);
     setSelectedTypes([]);
     setSelectedFoodStyles([]);
+    setSelectedShopStyles([]);
     mapRef.current?.flyToWorld();
   }, []);
 
@@ -877,6 +911,10 @@ export function ExploreClient() {
       // Food style selections are meaningless once "Dining" is no longer selected.
       if (removed.some((c) => c.trim().toLowerCase() === "dining")) {
         setSelectedFoodStyles([]);
+      }
+      // Shop style selections are meaningless once "Shopping" is no longer selected.
+      if (removed.some((c) => c.trim().toLowerCase() === "shopping")) {
+        setSelectedShopStyles([]);
       }
     }
   }
@@ -1549,6 +1587,62 @@ export function ExploreClient() {
               </div>
             </div>
           )}
+
+          {/* Shop style filter — only meaningful once "Shopping" is a selected category. At
+              world view, uses the global shop style list (worldViewShopStyles) same as
+              category/type above. Each chip shows its own per-style icon, unlike the
+              food-style chips above which share one generic icon. */}
+          {isShoppingSelected && (view === "world" ? worldViewShopStyles : availableShopStyles).length > 0 && (
+            <div>
+              <button
+                type="button"
+                className={styles.chipFilterToggle}
+                onClick={() => setShopStylePickerOpen((v) => !v)}
+                aria-expanded={shopStylePickerOpen}
+                aria-controls={shopStylePickerCollapseId}
+              >
+                <SlidersHorizontal size={14} aria-hidden="true" />
+                Shop style
+                {selectedShopStyles.length > 0 && (
+                  <span className={styles.chipFilterBadge}>{selectedShopStyles.length}</span>
+                )}
+                <ChevronDown
+                  size={14}
+                  aria-hidden="true"
+                  className={`${styles.chipFilterChevron} ${shopStylePickerOpen ? styles.chipFilterChevronOpen : ""}`}
+                />
+              </button>
+              <div
+                id={shopStylePickerCollapseId}
+                className={`${styles.chipFilterCollapse} ${shopStylePickerOpen ? styles.chipFilterCollapseOpen : ""}`}
+              >
+                <div className={styles.chipFilterInner}>
+                  <div className={styles.chipGroup} role="group" aria-label="Filter by shop style">
+                    {(view === "world" ? worldViewShopStyles : availableShopStyles).map((ss) => {
+                      const active = selectedShopStyles.includes(ss);
+                      const icon = shopStyleRecords.find((r) => r.name === ss)?.icon ?? "ShoppingBag";
+                      return (
+                        <button
+                          key={ss}
+                          type="button"
+                          className={`${styles.chip} ${active ? styles.chipActive : ""}`}
+                          aria-pressed={active}
+                          onClick={() =>
+                            setSelectedShopStyles((prev) =>
+                              active ? prev.filter((n) => n !== ss) : [...prev, ss]
+                            )
+                          }
+                        >
+                          {renderTypeIcon(icon, 14)}
+                          {ss}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Scrollable content area ── */}
@@ -1828,7 +1922,7 @@ export function ExploreClient() {
               <button
                 type="button"
                 className={styles.clearBtn}
-                onClick={() => { setSelectedCategories([]); setSelectedTypes([]); setSelectedFoodStyles([]); setVisitedFilter("all"); setTripUsageFilter("all"); }}
+                onClick={() => { setSelectedCategories([]); setSelectedTypes([]); setSelectedFoodStyles([]); setSelectedShopStyles([]); setVisitedFilter("all"); setTripUsageFilter("all"); }}
               >
                 Clear filters
               </button>

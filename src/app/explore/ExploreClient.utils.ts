@@ -7,6 +7,7 @@ export interface ExploreUrlState {
   categories: string[];
   types: string[];
   foodStyles: string[];
+  shopStyles: string[];
   visited: "all" | "visited" | "unvisited";
   used: "all" | "used" | "unused";
   verified: VerifiedFilterValue;
@@ -32,6 +33,7 @@ export function parseExploreUrlState(searchParams: URLSearchParams): ExploreUrlS
     categories: splitOrEmpty("categories"),
     types: splitOrEmpty("types"),
     foodStyles: splitOrEmpty("foodStyles"),
+    shopStyles: splitOrEmpty("shopStyles"),
     visited: oneOf("visited", ["all", "visited", "unvisited"] as const, "all"),
     used: oneOf("used", ["all", "used", "unused"] as const, "all"),
     verified: oneOf("verified", ["all", "verified", "unverified"] as const, "all"),
@@ -49,6 +51,7 @@ export function buildExploreSearchParams(state: ExploreUrlState): URLSearchParam
   if (state.categories.length) params.set("categories", state.categories.join(","));
   if (state.types.length) params.set("types", state.types.join(","));
   if (state.foodStyles.length) params.set("foodStyles", state.foodStyles.join(","));
+  if (state.shopStyles.length) params.set("shopStyles", state.shopStyles.join(","));
   if (state.visited !== "all") params.set("visited", state.visited);
   if (state.used !== "all") params.set("used", state.used);
   if (state.verified !== "all") params.set("verified", state.verified);

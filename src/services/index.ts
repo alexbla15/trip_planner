@@ -70,6 +70,13 @@ export {
   deleteFoodStyle,
 } from "./foodStyles.service";
 
+export {
+  fetchShopStyles,
+  createShopStyle,
+  updateShopStyle,
+  deleteShopStyle,
+} from "./shopStyles.service";
+
 export { getCityBoundary, getCountryBoundary, getRegionBoundary, getWorldCountriesGeoJson } from "./geo.service";
 
 export { reverseGeocode, searchLocation } from "./geocoding.service";

@@ -3,6 +3,8 @@ export { useAttractionCategories, invalidateAttractionCategoriesCache } from "./
 export { useMoodTags, getMoodTagStyle, invalidateMoodTagsCache } from "./useMoodTags";
 export { useFoodStyles, invalidateFoodStylesCache } from "./useFoodStyles";
 export type { FoodStyleRecord } from "./useFoodStyles";
+export { useShopStyles, invalidateShopStylesCache } from "./useShopStyles";
+export type { ShopStyleRecord } from "./useShopStyles";
 export { useDebounce } from "./useDebounce";
 export { useReverseGeocodeAutofill } from "./useReverseGeocodeAutofill";
 export { useAttractionCategoryTypeFilter } from "./useAttractionCategoryTypeFilter";

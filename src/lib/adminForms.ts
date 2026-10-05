@@ -64,3 +64,15 @@ export interface FoodStyleFormState {
 export function foodStyleFormFromRecord(r: { name: string }): FoodStyleFormState {
   return { name: r.name };
 }
+
+/** Editable form state for a shop style in the admin panel — mirrors FoodStyleFormState
+ *  but includes an icon, same as MoodTagFormState/AttractionTypeFormState's icon field. */
+export interface ShopStyleFormState {
+  name: string;
+  icon: string;
+}
+
+/** Converts a saved shop style into editable form state. */
+export function shopStyleFormFromRecord(r: { name: string; icon: string }): ShopStyleFormState {
+  return { name: r.name, icon: r.icon };
+}
