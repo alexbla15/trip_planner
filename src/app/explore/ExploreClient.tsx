@@ -16,7 +16,6 @@ import {
 } from "@/services";
 import type { TravelMode, RouteLeg } from "@/services";
 import { AttractionDetailModal, NewAttractionModal, TripPickerModal, Spinner, FormErrorBanner, AttractionFilter, AttractionGridCard, attractionToFormData } from "@/components";
-import { renderTypeIcon } from "@/components/IconPicker";
 import type { AttractionFormData } from "@/components";
 import type { Attraction } from "@/types/attraction";
 import type { Trip } from "@/types/trip";
@@ -1590,8 +1589,7 @@ export function ExploreClient() {
 
           {/* Shop style filter — only meaningful once "Shopping" is a selected category. At
               world view, uses the global shop style list (worldViewShopStyles) same as
-              category/type above. Each chip shows its own per-style icon, unlike the
-              food-style chips above which share one generic icon. */}
+              category/type above. Chips are plain text, matching the food-style chips above. */}
           {isShoppingSelected && (view === "world" ? worldViewShopStyles : availableShopStyles).length > 0 && (
             <div>
               <button
@@ -1620,7 +1618,6 @@ export function ExploreClient() {
                   <div className={styles.chipGroup} role="group" aria-label="Filter by shop style">
                     {(view === "world" ? worldViewShopStyles : availableShopStyles).map((ss) => {
                       const active = selectedShopStyles.includes(ss);
-                      const icon = shopStyleRecords.find((r) => r.name === ss)?.icon ?? "ShoppingBag";
                       return (
                         <button
                           key={ss}
@@ -1633,7 +1630,6 @@ export function ExploreClient() {
                             )
                           }
                         >
-                          {renderTypeIcon(icon, 14)}
                           {ss}
                         </button>
                       );
