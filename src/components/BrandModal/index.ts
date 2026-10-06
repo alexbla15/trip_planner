@@ -1,0 +1,1 @@
+export { BrandModal } from "./BrandModal";

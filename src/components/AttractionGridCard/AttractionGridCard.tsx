@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, ArrowUpRight, Calendar, BadgeCheck, ChevronLeft, ChevronRight, Ban } from "lucide-react";
+import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, ArrowUpRight, Calendar, BadgeCheck, ChevronLeft, ChevronRight, Ban, Store } from "lucide-react";
 import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
 import { Spinner } from "@/components/Spinner";
+import { BrandModal } from "@/components/BrandModal";
 import { getAttraction, getChildAttractions } from "@/services";
 import { useAttractionTypes } from "@/hooks";
 import { formatDisplayDate, getNightsCount, isAttractionPermanentlyClosed } from "@/lib";
@@ -35,6 +36,7 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
   const [children, setChildren] = useState<Attraction[] | null>(null);
   const [childrenPage, setChildrenPage] = useState(1);
   const [parentLoading, setParentLoading] = useState(false);
+  const [brandModalOpen, setBrandModalOpen] = useState(false);
 
   // Touch-only equivalent of the desktop hover/focus-within reveal — a left or right
   // swipe on the card toggles the action buttons visible, since touch devices have no
@@ -239,6 +241,18 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
             ({attraction.parentAttractionName})
           </button>
         )}
+        {attraction.brandId && attraction.brandName && (
+          <button
+            type="button"
+            className={styles.parentLine}
+            onClick={(e) => { e.stopPropagation(); setBrandModalOpen(true); }}
+            title={`View "${attraction.brandName}" brand details`}
+            aria-label={`View ${attraction.brandName} brand details`}
+          >
+            <Store size={11} aria-hidden="true" />
+            {attraction.brandName}
+          </button>
+        )}
         {attraction.city && (
           <span className={styles.meta}>
             <MapPin size={11} aria-hidden="true" />
@@ -317,6 +331,9 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
             </>
           )}
         </div>
+      )}
+      {attraction.brandId && (
+        <BrandModal isOpen={brandModalOpen} onClose={() => setBrandModalOpen(false)} brandId={attraction.brandId} />
       )}
     </div>
   );

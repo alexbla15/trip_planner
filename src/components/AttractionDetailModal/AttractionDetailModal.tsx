@@ -29,10 +29,12 @@ import {
   BadgeCheck,
   ChevronLeft,
   ChevronRight,
+  Store,
 } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
 import { Spinner } from "@/components/Spinner";
+import { BrandModal } from "@/components/BrandModal";
 import { getAttraction, getChildAttractions, getOtherLocationsInCity } from "@/services";
 import { useAttractionTypes, useShopStyles } from "@/hooks";
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
@@ -91,6 +93,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   const [children, setChildren] = useState<Attraction[] | null>(null);
   const [childrenPage, setChildrenPage] = useState(1);
   const [parentLoading, setParentLoading] = useState(false);
+  const [brandModalOpen, setBrandModalOpen] = useState(false);
 
   const [otherLocationsExpanded, setOtherLocationsExpanded] = useState(false);
   const [otherLocations, setOtherLocations] = useState<Attraction[] | null>(null);
@@ -415,6 +418,22 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                 Part of &quot;{attraction.parentAttractionName}&quot;
               </p>
             )
+          )}
+
+          {/* Brand/chain link — a different relationship from parent nesting above (not
+              physical containment; see `models/Brand.ts`), so its own chip rather than
+              reusing the parent one. Opens a small view/edit modal, not a navigation away
+              from this attraction. */}
+          {attraction.brandId && attraction.brandName && (
+            <button
+              type="button"
+              className={`${styles.parentBadge} ${styles.parentBadgeButton}`}
+              onClick={() => setBrandModalOpen(true)}
+              title={`View "${attraction.brandName}" brand details`}
+            >
+              <Store size={13} aria-hidden="true" />
+              {attraction.brandName}
+            </button>
           )}
           {!!attraction.childAttractionCount && attraction.childAttractionCount > 0 && (
             <div className={styles.childrenSection}>
@@ -944,5 +963,12 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
     </div>
   );
 
-  return createPortal(modal, document.body);
+  return (
+    <>
+      {createPortal(modal, document.body)}
+      {attraction.brandId && (
+        <BrandModal isOpen={brandModalOpen} onClose={() => setBrandModalOpen(false)} brandId={attraction.brandId} />
+      )}
+    </>
+  );
 }

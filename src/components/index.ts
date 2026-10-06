@@ -51,6 +51,7 @@ export { COUNTRIES, DEFAULT_OPENING_HOURS, DAY_KEYS } from "./NewAttractionModal
 
 export { AttractionPickerModal } from "./AttractionPickerModal";
 export { AttractionDetailModal } from "./AttractionDetailModal";
+export { BrandModal } from "./BrandModal";
 export { AttractionSearchModal } from "./AttractionSearchModal";
 export type { AttractionSearchModalProps } from "./AttractionSearchModal";
 export { NearbyAttractionsModal } from "./NearbyAttractionsModal";
