@@ -199,17 +199,20 @@
 }
 
 /* ── Photo ── */
+/* Same 4:3 padding-top percentage technique as AttractionGridCard's .photoArea/.photoImg
+   (not the `aspect-ratio` property — some Chromium versions round an aspect-ratio-derived
+   height to 0 at certain page-zoom levels inside a scrolling container, making the
+   fill-mode image disappear; percentage padding computes purely from width and doesn't
+   have that bug). Kept consistent so a card's photo and its detail view's photo show the
+   same crop, not two different ratios of the same image. */
 .photo {
   position: relative;
   width: 100%;
-  /* Fixed height, not aspect-ratio — some Chromium versions round an aspect-ratio-derived
-     height to 0 at certain browser zoom levels (page zoom, not devicePixelRatio) inside a
-     scrolling container, making the fill-mode image disappear. Matches .locationMapContainer
-     below, which uses the same fixed-height approach for the same reason. */
-  height: 220px;
+  height: 0;
+  padding-top: 75%;
   /* .body is a flex column — without this, flexbox's default flex-shrink:1 silently
-     compresses this below its specified height whenever the modal's content doesn't
-     fit the viewport, which also crushes the fill-mode image inside it. */
+     compresses this below its intrinsic height whenever the modal's content doesn't fit
+     the viewport, which also crushes the fill-mode image inside it. */
   flex-shrink: 0;
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -217,10 +220,21 @@
 }
 
 .photoImg {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+/* Doubled class to outrank ImageWithSkeleton's own `.wrapper` rule on specificity,
+   same fix (and same reason) as AttractionGridCard's `.photoWrapper.photoWrapper` —
+   its wrapper is normal-flow (height:100%), which resolves to 0 against this
+   `height:0; padding-top:75%` parent unless forced absolute here. */
+.photoWrapper.photoWrapper {
+  position: absolute;
+  inset: 0;
 }
 
 /* ── Types chips ── */
@@ -296,16 +310,38 @@
   margin: 0;
 }
 
+/* Header icon-button variant (clickable case, when onNavigateToAttraction is wired) — same
+   36px footprint/family as .closeBtn/.visitedToggleBtn so every header action reads as one
+   row of equally-weighted icon buttons, not a chip stranded among them. The plain-text
+   .parentBadge above is still used for the non-clickable (no onNavigateToAttraction) case,
+   rendered in the body instead. */
 .parentBadgeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid var(--color-border);
+  background: none;
   cursor: pointer;
-  transition: background-color var(--duration-fast) var(--easing-out);
+  color: var(--color-text-tertiary);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  transition: background var(--duration-fast) var(--easing-out),
+    color var(--duration-fast) var(--easing-out),
+    border-color var(--duration-fast) var(--easing-out);
 }
 .parentBadgeButton:hover {
-  background: color-mix(in srgb, var(--color-primary) 20%, transparent);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 .parentBadgeButton:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+.parentBadgeButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .childrenSection {

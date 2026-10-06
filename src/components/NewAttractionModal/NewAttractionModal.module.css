@@ -139,6 +139,49 @@
   gap: 6px;
 }
 
+/* Native <details>/<summary> collapsible section wrapper — zero extra state, works
+   without JS, and the browser's own open/close behavior is accessible by default. Each
+   major form section is wrapped in one of these; .field (above) still provides the
+   label/input layout inside. */
+.sectionDetails {
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding-bottom: 14px;
+}
+.sectionDetails:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.sectionSummary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  list-style: none;
+}
+.sectionSummary::-webkit-details-marker { display: none; }
+.sectionSummary::before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 5px solid var(--color-text-tertiary);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform var(--duration-fast) var(--easing-out);
+  flex-shrink: 0;
+}
+.sectionDetails[open] > .sectionSummary::before {
+  transform: rotate(90deg);
+}
+
+.sectionBody {
+  padding-top: 10px;
+}
+
 .label {
   font-size: 14px;
   font-weight: 500;
@@ -580,6 +623,16 @@
 .pickParentBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.brandRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.brandRow > *:first-child {
+  flex: 1;
+  min-width: 0;
 }
 
 .parentChip {

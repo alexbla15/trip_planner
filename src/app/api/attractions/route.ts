@@ -28,6 +28,7 @@ export const GET = withApiHandler("GET /api/attractions", async (req: Request) =
     type: searchParams.get("type"),
     ownerId: searchParams.get("ownerId"),
     parentAttractionId: searchParams.get("parentAttractionId"),
+    brandId: searchParams.get("brandId"),
     skip: skipParam ? Number(skipParam) : null,
     limit: limitParam ? Number(limitParam) : null,
     includeHidden: searchParams.get("includeHidden") === "true",

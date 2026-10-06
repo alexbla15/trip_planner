@@ -6,7 +6,7 @@ import {
   useRef,
   type ChangeEvent,
 } from "react";
-import { MapPin, Clock, Calendar, ChevronDown, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check, FileText, X, Building2, Search, UtensilsCrossed, ShoppingBag, Plus } from "lucide-react";
+import { MapPin, Clock, Calendar, ChevronDown, AlertCircle, Loader2, Tag, Globe, Building, Layers, Timer, Wallet, Check, FileText, X, Building2, Search, UtensilsCrossed, ShoppingBag, Plus, Image as ImageIcon } from "lucide-react";
 import type {
   AttractionFormData,
   Coordinates,
@@ -272,11 +272,12 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setParentAttractionName(null);
   }
 
-  // Selecting a brand fills in photoUrl/types/websiteUrl as DEFAULTS — only into fields
-  // that are still empty, so re-picking a brand (or picking one on an attraction that
-  // already has its own photo/types from a previous edit) never clobbers something real.
-  // The attraction's own value, once set, always wins server-side too (see
-  // `formatAttraction`'s brand fallback) — this is purely a time-saving starting point.
+  // Picking a brand applies its defaults (photo/website/categories, plus food/shop styles
+  // when relevant) directly — overwriting whatever was there, since picking a brand is a
+  // deliberate "use this chain's defaults" action, not a passive hint. Still just a
+  // starting point: every field stays freely editable afterwards, and the attraction's own
+  // value (once changed from the brand's) always wins server-side too (see
+  // `formatAttraction`'s brand fallback) — this only sets the initial values.
   function handleBrandNameChange(value: string) {
     setBrandNameInput(value);
     const match = brandOptions.find((b) => b.name.toLowerCase() === value.trim().toLowerCase());
@@ -285,9 +286,19 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       return;
     }
     setBrandId(match._id);
-    if (!photoUrl.trim() && match.photoUrl) setPhotoUrl(match.photoUrl);
-    if (!websiteUrl.trim() && match.websiteUrl) setWebsiteUrl(match.websiteUrl);
-    if (selectedTypes.length === 0 && match.types.length > 0) setSelectedTypes(match.types);
+    if (match.photoUrl) setPhotoUrl(match.photoUrl);
+    if (match.websiteUrl) setWebsiteUrl(match.websiteUrl);
+    if (match.types.length > 0) setSelectedTypes(match.types);
+    if (match.foodStyles.length > 0) setSelectedFoodStyles(match.foodStyles);
+    if (match.shopStyles.length > 0) setSelectedShopStyles(match.shopStyles);
+  }
+
+  // Unlinks the brand without touching whatever photo/types/website are currently in the
+  // form — those stay exactly as they are, just no longer sourced from (or falling back
+  // to) a brand.
+  function handleClearBrand() {
+    setBrandId(null);
+    setBrandNameInput("");
   }
 
   function handleBlur(field: keyof FieldErrors) {
@@ -496,64 +507,75 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       }
     >
       {/* Name */}
-      <div className={styles.field}>
-        <label htmlFor="attraction-name" className={styles.labelWithIcon}>
+      <details className={styles.sectionDetails} open>
+        <summary className={styles.sectionSummary}>
           <Tag size={14} aria-hidden="true" />
-          Attraction name{" "}
-          <span className={styles.required} aria-hidden="true">*</span>
-        </label>
-        <input
-          ref={firstInputRef}
-          id="attraction-name"
-          type="text"
-          placeholder="e.g. Louvre Museum"
-          value={name}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-          onBlur={() => handleBlur("name")}
-          className={`${styles.input} ${touched.name && errors.name ? styles.inputError : ""}`}
-          aria-required="true"
-          aria-describedby={touched.name && errors.name ? "error-name" : undefined}
-        />
-        {touched.name && errors.name && (
-          <p id="error-name" className={styles.errorMsg} role="alert">
-            <AlertCircle size={12} aria-hidden="true" />
-            {errors.name}
-          </p>
-        )}
-      </div>
+          Name
+        </summary>
+        <div className={styles.sectionBody}>
+          <div className={styles.field}>
+            <label htmlFor="attraction-name" className={styles.labelWithIcon}>
+              Attraction name{" "}
+              <span className={styles.required} aria-hidden="true">*</span>
+            </label>
+            <input
+              ref={firstInputRef}
+              id="attraction-name"
+              type="text"
+              placeholder="e.g. Louvre Museum"
+              value={name}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+              onBlur={() => handleBlur("name")}
+              className={`${styles.input} ${touched.name && errors.name ? styles.inputError : ""}`}
+              aria-required="true"
+              aria-describedby={touched.name && errors.name ? "error-name" : undefined}
+            />
+            {touched.name && errors.name && (
+              <p id="error-name" className={styles.errorMsg} role="alert">
+                <AlertCircle size={12} aria-hidden="true" />
+                {errors.name}
+              </p>
+            )}
+          </div>
+        </div>
+      </details>
 
       {/* Located inside (parent attraction) — only offered when there's a token to search
           with (e.g. not the new-trip inline picker, which has no DB-backed country context). */}
       {token && (
-        <div className={styles.field}>
-          <label className={styles.labelWithIcon}>
+        <details className={styles.sectionDetails} open>
+          <summary className={styles.sectionSummary}>
             <Building2 size={14} aria-hidden="true" />
-            Located inside (optional)
-          </label>
-          {parentAttractionId && parentAttractionName ? (
-            <div className={styles.parentChip}>
-              <Building2 size={14} aria-hidden="true" />
-              <span className={styles.parentChipName}>{parentAttractionName}</span>
-              <button type="button" className={styles.parentChipBtn} onClick={() => setParentPickerOpen(true)}>
-                Change
-              </button>
-              <button type="button" className={styles.parentChipBtn} onClick={handleClearParent}>
-                Remove
-              </button>
+            Located inside
+          </summary>
+          <div className={styles.sectionBody}>
+            <div className={styles.field}>
+              {parentAttractionId && parentAttractionName ? (
+                <div className={styles.parentChip}>
+                  <Building2 size={14} aria-hidden="true" />
+                  <span className={styles.parentChipName}>{parentAttractionName}</span>
+                  <button type="button" className={styles.parentChipBtn} onClick={() => setParentPickerOpen(true)}>
+                    Change
+                  </button>
+                  <button type="button" className={styles.parentChipBtn} onClick={handleClearParent}>
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.pickParentBtn}
+                  onClick={() => setParentPickerOpen(true)}
+                  disabled={!country && !defaultCountry}
+                  title={!country && !defaultCountry ? "Choose a country first" : undefined}
+                >
+                  <Search size={14} aria-hidden="true" />
+                  Choose existing attraction…
+                </button>
+              )}
             </div>
-          ) : (
-            <button
-              type="button"
-              className={styles.pickParentBtn}
-              onClick={() => setParentPickerOpen(true)}
-              disabled={!country && !defaultCountry}
-              title={!country && !defaultCountry ? "Choose a country first" : undefined}
-            >
-              <Search size={14} aria-hidden="true" />
-              Choose existing attraction…
-            </button>
-          )}
-        </div>
+          </div>
+        </details>
       )}
 
       {/* Country/City/Location are inherited from the parent once one is picked — a
@@ -561,40 +583,47 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       {!parentAttractionId && (
         <>
           {/* Country */}
-          <div className={styles.field}>
-            <label htmlFor="attraction-country" className={styles.labelWithIcon}>
+          <details className={styles.sectionDetails} open>
+            <summary className={styles.sectionSummary}>
               <Globe size={14} aria-hidden="true" />
-              Country{" "}
-              {!defaultCountry && <span className={styles.required} aria-hidden="true">*</span>}
-            </label>
-            {defaultCountry ? (
-              <div
-                className={styles.readOnlyField}
-                aria-label={`Country: ${defaultCountry} (locked to trip destination)`}
-              >
-                {defaultCountry}
+              Country
+            </summary>
+            <div className={styles.sectionBody}>
+              <div className={styles.field}>
+                <label htmlFor="attraction-country" className={styles.labelWithIcon}>
+                  Country{" "}
+                  {!defaultCountry && <span className={styles.required} aria-hidden="true">*</span>}
+                </label>
+                {defaultCountry ? (
+                  <div
+                    className={styles.readOnlyField}
+                    aria-label={`Country: ${defaultCountry} (locked to trip destination)`}
+                  >
+                    {defaultCountry}
+                  </div>
+                ) : (
+                  <SearchableSelect
+                    id="attraction-country"
+                    value={country}
+                    onChange={setCountry}
+                    onBlur={() => handleBlur("country")}
+                    options={COUNTRIES}
+                    placeholder="Search country…"
+                    error={touched.country && !!errors.country}
+                    ariaRequired
+                    ariaLabel="Country"
+                    ariaDescribedBy={touched.country && errors.country ? "error-country" : undefined}
+                  />
+                )}
+                {touched.country && errors.country && (
+                  <p id="error-country" className={styles.errorMsg} role="alert">
+                    <AlertCircle size={12} aria-hidden="true" />
+                    {errors.country}
+                  </p>
+                )}
               </div>
-            ) : (
-              <SearchableSelect
-                id="attraction-country"
-                value={country}
-                onChange={setCountry}
-                onBlur={() => handleBlur("country")}
-                options={COUNTRIES}
-                placeholder="Search country…"
-                error={touched.country && !!errors.country}
-                ariaRequired
-                ariaLabel="Country"
-                ariaDescribedBy={touched.country && errors.country ? "error-country" : undefined}
-              />
-            )}
-            {touched.country && errors.country && (
-              <p id="error-country" className={styles.errorMsg} role="alert">
-                <AlertCircle size={12} aria-hidden="true" />
-                {errors.country}
-              </p>
-            )}
-          </div>
+            </div>
+          </details>
 
           {/* Region — optional grouping level between country and city (e.g. "Black
               Forest", "US-NY"). Free text, with OpenStreetMap-backed suggestions as the
@@ -602,259 +631,255 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
               measure tool's location search) — picking one fills a clean, resolvable
               label, but typing/leaving arbitrary text still works since region has no
               fixed value set. */}
-          <div className={styles.field}>
-            <label htmlFor="attraction-region" className={styles.labelWithIcon}>
+          <details className={styles.sectionDetails} open>
+            <summary className={styles.sectionSummary}>
               <Globe size={14} aria-hidden="true" />
-              Region (optional)
-            </label>
-            <div className={mapPickerStyles.searchWrapper}>
-              <Search size={14} aria-hidden="true" className={mapPickerStyles.searchIconEl} />
-              <input
-                id="attraction-region"
-                type="text"
-                className={mapPickerStyles.searchInput}
-                value={region}
-                onChange={(e) => handleRegionChange(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Escape") setRegionSuggestions([]); }}
-                placeholder="e.g. Black Forest, US-NY"
-                autoComplete="off"
-                aria-autocomplete="list"
-                aria-expanded={regionSuggestions.length > 0}
-              />
-              {regionSearching && <span className={mapPickerStyles.searchSpinner} aria-label="Searching…" />}
-              {regionSuggestions.length > 0 && (
-                <ul className={mapPickerStyles.suggestions} role="listbox" aria-label="Region suggestions">
-                  {regionSuggestions.map((r, i) => (
-                    <li key={i} role="option" aria-selected={false}>
-                      <button
-                        type="button"
-                        className={mapPickerStyles.suggestionItem}
-                        onClick={() => handleRegionSuggestionSelect(r)}
-                      >
-                        {r.display_name}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              Region
+            </summary>
+            <div className={styles.sectionBody}>
+              <div className={styles.field}>
+                <label htmlFor="attraction-region" className={styles.labelWithIcon}>
+                  Region (optional)
+                </label>
+                <div className={mapPickerStyles.searchWrapper}>
+                  <Search size={14} aria-hidden="true" className={mapPickerStyles.searchIconEl} />
+                  <input
+                    id="attraction-region"
+                    type="text"
+                    className={mapPickerStyles.searchInput}
+                    value={region}
+                    onChange={(e) => handleRegionChange(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Escape") setRegionSuggestions([]); }}
+                    placeholder="e.g. Black Forest, US-NY"
+                    autoComplete="off"
+                    aria-autocomplete="list"
+                    aria-expanded={regionSuggestions.length > 0}
+                  />
+                  {regionSearching && <span className={mapPickerStyles.searchSpinner} aria-label="Searching…" />}
+                  {regionSuggestions.length > 0 && (
+                    <ul className={mapPickerStyles.suggestions} role="listbox" aria-label="Region suggestions">
+                      {regionSuggestions.map((r, i) => (
+                        <li key={i} role="option" aria-selected={false}>
+                          <button
+                            type="button"
+                            className={mapPickerStyles.suggestionItem}
+                            onClick={() => handleRegionSuggestionSelect(r)}
+                          >
+                            {r.display_name}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
+          </details>
 
           {/* City — OpenStreetMap-backed suggestions as the user types (same pattern as
               Region), free text still accepted when nothing is picked. */}
-          <div className={styles.field}>
-            <label htmlFor="attraction-city" className={styles.labelWithIcon}>
+          <details className={styles.sectionDetails} open>
+            <summary className={styles.sectionSummary}>
               <Building size={14} aria-hidden="true" />
               City
-            </label>
-            <div className={mapPickerStyles.searchWrapper}>
-              <Search size={14} aria-hidden="true" className={mapPickerStyles.searchIconEl} />
-              <input
-                id="attraction-city"
-                type="text"
-                className={mapPickerStyles.searchInput}
-                value={city}
-                onChange={(e) => handleCityChange(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Escape") setCitySuggestions([]); }}
-                placeholder="e.g. Paris"
-                autoComplete="off"
-                aria-autocomplete="list"
-                aria-expanded={citySuggestions.length > 0}
-                aria-label="City"
-              />
-              {citySearching && <span className={mapPickerStyles.searchSpinner} aria-label="Searching…" />}
-              {citySuggestions.length > 0 && (
-                <ul className={mapPickerStyles.suggestions} role="listbox" aria-label="City suggestions">
-                  {citySuggestions.map((r, i) => (
-                    <li key={i} role="option" aria-selected={false}>
-                      <button
-                        type="button"
-                        className={mapPickerStyles.suggestionItem}
-                        onClick={() => handleCitySuggestionSelect(r)}
-                      >
-                        {r.display_name}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+            </summary>
+            <div className={styles.sectionBody}>
+              <div className={styles.field}>
+                <div className={mapPickerStyles.searchWrapper}>
+                  <Search size={14} aria-hidden="true" className={mapPickerStyles.searchIconEl} />
+                  <input
+                    id="attraction-city"
+                    type="text"
+                    className={mapPickerStyles.searchInput}
+                    value={city}
+                    onChange={(e) => handleCityChange(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Escape") setCitySuggestions([]); }}
+                    placeholder="e.g. Paris"
+                    autoComplete="off"
+                    aria-autocomplete="list"
+                    aria-expanded={citySuggestions.length > 0}
+                    aria-label="City"
+                  />
+                  {citySearching && <span className={mapPickerStyles.searchSpinner} aria-label="Searching…" />}
+                  {citySuggestions.length > 0 && (
+                    <ul className={mapPickerStyles.suggestions} role="listbox" aria-label="City suggestions">
+                      {citySuggestions.map((r, i) => (
+                        <li key={i} role="option" aria-selected={false}>
+                          <button
+                            type="button"
+                            className={mapPickerStyles.suggestionItem}
+                            onClick={() => handleCitySuggestionSelect(r)}
+                          >
+                            {r.display_name}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
+          </details>
         </>
       )}
 
       {/* Type */}
-      <div className={styles.field}>
-        <span id="types-label" className={styles.labelWithIcon}>
+      <details className={styles.sectionDetails} open>
+        <summary className={styles.sectionSummary}>
           <Layers size={14} aria-hidden="true" />
-          Type{" "}
-          <span className={styles.required} aria-hidden="true">*</span>
-        </span>
-        <AttractionTypePicker
-          selectedTypes={selectedTypes}
-          onToggle={(t) => {
-            toggleType(t);
-            setTouched((prev) => ({ ...prev, types: true }));
-          }}
-          labelId="types-label"
-          errorId={touched.types && errors.types ? "error-types" : undefined}
-        />
-        {touched.types && errors.types && (
-          <p id="error-types" className={styles.errorMsg} role="alert">
-            <AlertCircle size={12} aria-hidden="true" />
-            {errors.types}
-          </p>
-        )}
-      </div>
+          Type
+        </summary>
+        <div className={styles.sectionBody}>
+          <div className={styles.field}>
+            <span id="types-label" className={styles.labelWithIcon}>
+              Type{" "}
+              <span className={styles.required} aria-hidden="true">*</span>
+            </span>
+            <AttractionTypePicker
+              selectedTypes={selectedTypes}
+              onToggle={(t) => {
+                toggleType(t);
+                setTouched((prev) => ({ ...prev, types: true }));
+              }}
+              labelId="types-label"
+              errorId={touched.types && errors.types ? "error-types" : undefined}
+            />
+            {touched.types && errors.types && (
+              <p id="error-types" className={styles.errorMsg} role="alert">
+                <AlertCircle size={12} aria-hidden="true" />
+                {errors.types}
+              </p>
+            )}
+          </div>
 
-      {/* Food styles — only for dining-type attractions */}
-      {isDining && (
-        <div className={styles.field}>
-          <span className={styles.labelWithIcon}>
-            <UtensilsCrossed size={14} aria-hidden="true" />
-            Food styles
-          </span>
-          {foodStyleOptions.length > 0 ? (
-            <div className={styles.foodStyleChips} role="group" aria-label="Food styles">
-              {foodStyleOptions.map((fs) => {
-                const active = selectedFoodStyles.includes(fs.name);
-                return (
-                  <button
-                    key={fs._id}
-                    type="button"
-                    className={`${styles.foodStyleChip} ${active ? styles.foodStyleChipActive : ""}`}
-                    aria-pressed={active}
-                    onClick={() =>
-                      setSelectedFoodStyles((prev) =>
-                        active ? prev.filter((n) => n !== fs.name) : [...prev, fs.name]
-                      )
-                    }
-                  >
-                    {fs.name}
-                  </button>
-                );
-              })}
+          {/* Food styles — only for dining-type attractions */}
+          {isDining && (
+            <div className={styles.field}>
+              <span className={styles.labelWithIcon}>
+                <UtensilsCrossed size={14} aria-hidden="true" />
+                Food styles
+              </span>
+              {foodStyleOptions.length > 0 ? (
+                <div className={styles.foodStyleChips} role="group" aria-label="Food styles">
+                  {foodStyleOptions.map((fs) => {
+                    const active = selectedFoodStyles.includes(fs.name);
+                    return (
+                      <button
+                        key={fs._id}
+                        type="button"
+                        className={`${styles.foodStyleChip} ${active ? styles.foodStyleChipActive : ""}`}
+                        aria-pressed={active}
+                        onClick={() =>
+                          setSelectedFoodStyles((prev) =>
+                            active ? prev.filter((n) => n !== fs.name) : [...prev, fs.name]
+                          )
+                        }
+                      >
+                        {fs.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className={styles.hint}>
+                  No food styles defined yet — add some from the Food Styles section in /admin.
+                </p>
+              )}
             </div>
-          ) : (
-            <p className={styles.hint}>
-              No food styles defined yet — add some from the Food Styles section in /admin.
-            </p>
+          )}
+
+          {/* Shop styles — only for shopping-type attractions */}
+          {isShopping && (
+            <div className={styles.field}>
+              <span className={styles.labelWithIcon}>
+                <ShoppingBag size={14} aria-hidden="true" />
+                Shop styles
+              </span>
+              {shopStyleOptions.length > 0 ? (
+                <div className={styles.foodStyleChips} role="group" aria-label="Shop styles">
+                  {shopStyleOptions.map((ss) => {
+                    const active = selectedShopStyles.includes(ss.name);
+                    return (
+                      <button
+                        key={ss._id}
+                        type="button"
+                        className={`${styles.foodStyleChip} ${active ? styles.foodStyleChipActive : ""}`}
+                        aria-pressed={active}
+                        onClick={() =>
+                          setSelectedShopStyles((prev) =>
+                            active ? prev.filter((n) => n !== ss.name) : [...prev, ss.name]
+                          )
+                        }
+                      >
+                        {renderTypeIcon(ss.icon, 13)}
+                        {ss.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className={styles.hint}>
+                  No shop styles defined yet — add some from the Shop Styles section in /admin.
+                </p>
+              )}
+            </div>
           )}
         </div>
-      )}
-
-      {/* Shop styles — only for shopping-type attractions */}
-      {isShopping && (
-        <div className={styles.field}>
-          <span className={styles.labelWithIcon}>
-            <ShoppingBag size={14} aria-hidden="true" />
-            Shop styles
-          </span>
-          {shopStyleOptions.length > 0 ? (
-            <div className={styles.foodStyleChips} role="group" aria-label="Shop styles">
-              {shopStyleOptions.map((ss) => {
-                const active = selectedShopStyles.includes(ss.name);
-                return (
-                  <button
-                    key={ss._id}
-                    type="button"
-                    className={`${styles.foodStyleChip} ${active ? styles.foodStyleChipActive : ""}`}
-                    aria-pressed={active}
-                    onClick={() =>
-                      setSelectedShopStyles((prev) =>
-                        active ? prev.filter((n) => n !== ss.name) : [...prev, ss.name]
-                      )
-                    }
-                  >
-                    {renderTypeIcon(ss.icon, 13)}
-                    {ss.name}
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <p className={styles.hint}>
-              No shop styles defined yet — add some from the Shop Styles section in /admin.
-            </p>
-          )}
-        </div>
-      )}
+      </details>
 
       {/* Location — inherited from the parent once one is picked, so there's nothing
           independent to place on a map. */}
       {!parentAttractionId && (
-        <div className={styles.field}>
-          <span className={styles.labelWithIcon}>
+        <details className={styles.sectionDetails} open>
+          <summary className={styles.sectionSummary}>
             <MapPin size={14} aria-hidden="true" />
             Location
-          </span>
-          <MapPicker
-            coordinates={coordinates}
-            onChange={handleCoordinatesChange}
-          />
-        </div>
-      )}
-
-      {/* Duration — omitted for a residence: duration is a per-trip stay concern
-          (see AddResidenceModal/IScheduleEntry), not a shared-document one. */}
-      {!isEditingResidence && (
-        <div className={styles.field}>
-          <label className={styles.labelWithIcon}>
-            <Timer size={14} aria-hidden="true" />
-            Duration
-          </label>
-          <div className={styles.durationRow}>
-            <input
-              id="attraction-duration"
-              type="number"
-              min="1"
-              placeholder="e.g. 2"
-              value={durationValue}
-              onChange={(e) => setDurationValue(e.target.value)}
-              className={styles.durationInput}
-              aria-label="Duration value"
-            />
-            <div className={styles.selectWrapper}>
-              <select
-                value={durationUnit}
-                onChange={(e) => setDurationUnit(e.target.value as DurationUnit)}
-                className={styles.durationSelect}
-                aria-label="Duration unit"
-              >
-                <option value="minutes">minutes</option>
-                <option value="hours">hours</option>
-              </select>
-              <ChevronDown
-                size={16}
-                className={styles.selectIcon}
-                aria-hidden="true"
+          </summary>
+          <div className={styles.sectionBody}>
+            <div className={styles.field}>
+              <MapPicker
+                coordinates={coordinates}
+                onChange={handleCoordinatesChange}
               />
             </div>
           </div>
-        </div>
+        </details>
       )}
 
-      {/* Price — omitted for a residence: price is a per-trip stay concern, edited via
-          AddResidenceModal within the trip, not here. One shared currency for every tier;
-          exactly one tier is the "primary" rate shown wherever a single price is displayed. */}
-      {!isEditingResidence && (
-        <div className={styles.field}>
-          <span className={styles.labelWithIcon}>
-            <Wallet size={14} aria-hidden="true" />
-            Price
-          </span>
-          <div className={styles.priceRow}>
-            <CurrencySelect value={currency} onChange={setCurrency} />
+      {/* Brand/chain — picking one applies photo/types/website below as defaults (plus
+          food/shop styles when relevant), still freely editable afterwards (see
+          handleBrandNameChange). Admin-managed list (see the Admin page's Brands section);
+          this field only selects among existing brands, it doesn't create new ones. */}
+      <details className={styles.sectionDetails} open>
+        <summary className={styles.sectionSummary}>
+          <Building2 size={14} aria-hidden="true" />
+          Chain / Brand
+        </summary>
+        <div className={styles.sectionBody}>
+          <div className={styles.field}>
+            <label htmlFor="attraction-brand" className={styles.labelWithIcon}>
+              Brand / chain (optional)
+            </label>
+            <div className={styles.brandRow}>
+              <SearchableSelect
+                id="attraction-brand"
+                value={brandNameInput}
+                onChange={handleBrandNameChange}
+                options={brandOptions.map((b) => b.name)}
+                placeholder="Search brands, e.g. Adidas…"
+                allowFreeText
+                ariaLabel="Brand or chain"
+                emptyMessage="No matching brand — managed from the Admin page"
+              />
+              {brandId && (
+                <button type="button" className={styles.parentChipBtn} onClick={handleClearBrand}>
+                  Remove
+                </button>
+              )}
+            </div>
           </div>
-          <PriceTierEditor
-            tabs={priceTabs}
-            onChange={setPriceTabs}
-            primary={primaryCell}
-            onPrimaryChange={setPrimaryCell}
-            currency={currency}
-          />
         </div>
-      )}
+      </details>
 
       {/* Opening Hours — omitted for a residence: always treated as open 24/7, no
           per-day pickers needed. Also omitted once any Seasonal Hours entry exists: each
@@ -862,24 +887,29 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           used once those exist (see resolveOpeningHoursForDate) — showing it would just
           be a dead-weight duplicate of the same UI. */}
       {!isEditingResidence && !hasSeasonalHours && (
-        <div className={styles.field}>
-          <div className={styles.labelRow}>
-            <span className={styles.labelWithIcon}>
-              <Clock size={14} aria-hidden="true" />
-              Opening Hours
-            </span>
-            <button
-              type="button"
-              role="checkbox"
-              aria-checked={is24h}
-              className={`${styles.toggle24h} ${is24h ? styles.toggle24hActive : ""}`}
-              onClick={() => handle24hToggle(!is24h)}
-            >
-              24/7
-            </button>
+        <details className={styles.sectionDetails} open>
+          <summary className={styles.sectionSummary}>
+            <Clock size={14} aria-hidden="true" />
+            Opening Hours
+          </summary>
+          <div className={styles.sectionBody}>
+            <div className={styles.field}>
+              <div className={styles.labelRow}>
+                <span className={styles.labelWithIcon}>Hours</span>
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={is24h}
+                  className={`${styles.toggle24h} ${is24h ? styles.toggle24hActive : ""}`}
+                  onClick={() => handle24hToggle(!is24h)}
+                >
+                  24/7
+                </button>
+              </div>
+              {!is24h && <OpeningHoursGrid value={openingHours} onChange={handleHoursChange} />}
+            </div>
           </div>
-          {!is24h && <OpeningHoursGrid value={openingHours} onChange={handleHoursChange} />}
-        </div>
+        </details>
       )}
 
       {/* Opening Months — omitted for a residence: always treated as year-round. When
@@ -889,32 +919,37 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           deriveOpeningMonthsFromSeasonalHours, never persisted as its own restricted
           value. */}
       {!isEditingResidence && (
-        <div className={styles.field}>
-          <div className={styles.labelRow}>
-            <span className={styles.labelWithIcon}>
-              <Calendar size={14} aria-hidden="true" />
-              Opening Months
-            </span>
-            {!hasSeasonalHours && (
-              <button
-                type="button"
-                role="checkbox"
-                aria-checked={yearRound}
-                className={`${styles.toggle24h} ${yearRound ? styles.toggle24hActive : ""}`}
-                onClick={() => setYearRound(!yearRound)}
-              >
-                Year-round
-              </button>
-            )}
+        <details className={styles.sectionDetails} open>
+          <summary className={styles.sectionSummary}>
+            <Calendar size={14} aria-hidden="true" />
+            Opening Months
+          </summary>
+          <div className={styles.sectionBody}>
+            <div className={styles.field}>
+              <div className={styles.labelRow}>
+                <span className={styles.labelWithIcon}>Months</span>
+                {!hasSeasonalHours && (
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={yearRound}
+                    className={`${styles.toggle24h} ${yearRound ? styles.toggle24hActive : ""}`}
+                    onClick={() => setYearRound(!yearRound)}
+                  >
+                    Year-round
+                  </button>
+                )}
+              </div>
+              {hasSeasonalHours ? (
+                <p className={styles.helperText}>
+                  Derived from your Seasonal Hours ranges below: open {formatOpeningMonthsLabel(derivedOpeningMonths)}.
+                </p>
+              ) : (
+                !yearRound && <MonthsGrid value={openingMonths} onChange={setOpeningMonths} />
+              )}
+            </div>
           </div>
-          {hasSeasonalHours ? (
-            <p className={styles.helperText}>
-              Derived from your Seasonal Hours ranges below: open {formatOpeningMonthsLabel(derivedOpeningMonths)}.
-            </p>
-          ) : (
-            !yearRound && <MonthsGrid value={openingMonths} onChange={setOpeningMonths} />
-          )}
-        </div>
+        </details>
       )}
 
       {/* Seasonal Hours — optional per-date-range overrides on top of the base Opening
@@ -922,124 +957,192 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           Hours/Months. Leaving this empty means Opening Hours applies to every date, all
           year, exactly as before this feature existed. */}
       {!isEditingResidence && (
-        <div className={styles.field}>
-          <div className={styles.labelRow}>
-            <span className={styles.labelWithIcon}>
-              <Calendar size={14} aria-hidden="true" />
-              Seasonal Hours (optional)
-            </span>
+        <details className={styles.sectionDetails} open>
+          <summary className={styles.sectionSummary}>
+            <Calendar size={14} aria-hidden="true" />
+            Seasonal Hours
+          </summary>
+          <div className={styles.sectionBody}>
+            <div className={styles.field}>
+              <p className={styles.helperText}>
+                Add a date range with different hours than usual (e.g. summer 9–20, rest of the year 10–18).
+                Leave empty if hours are the same all year.
+              </p>
+              {seasonalHours.map((entry, i) => (
+                <div key={entry.id} className={styles.seasonalHoursEntry}>
+                  <div className={styles.seasonalHoursEntryHeader}>
+                    <span className={styles.seasonalHoursEntryTitle}>Season {i + 1}</span>
+                    <button
+                      type="button"
+                      className={styles.iconBtn}
+                      onClick={() => removeSeasonalHoursEntry(entry.id)}
+                      aria-label={`Remove season ${i + 1}`}
+                    >
+                      <X size={14} aria-hidden="true" />
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    placeholder="Title (optional) — e.g. Summer / Winter"
+                    value={entry.title ?? ""}
+                    onChange={(e) => updateSeasonalHoursTitle(entry.id, e.target.value)}
+                    aria-label={`Title for season ${i + 1}`}
+                  />
+                  <SeasonalRangePicker
+                    start={entry.start}
+                    end={entry.end}
+                    onChange={(start, end) => updateSeasonalHoursRange(entry.id, start, end)}
+                  />
+                  <OpeningHoursGrid
+                    value={entry.hours}
+                    onChange={(hours) => updateSeasonalHoursGrid(entry.id, hours)}
+                  />
+                </div>
+              ))}
+              <button type="button" className={styles.addTierBtn} onClick={addSeasonalHoursEntry}>
+                <Plus size={14} aria-hidden="true" />
+                Add seasonal hours
+              </button>
+            </div>
           </div>
-          <p className={styles.helperText}>
-            Add a date range with different hours than usual (e.g. summer 9–20, rest of the year 10–18).
-            Leave empty if hours are the same all year.
-          </p>
-          {seasonalHours.map((entry, i) => (
-            <div key={entry.id} className={styles.seasonalHoursEntry}>
-              <div className={styles.seasonalHoursEntryHeader}>
-                <span className={styles.seasonalHoursEntryTitle}>Season {i + 1}</span>
-                <button
-                  type="button"
-                  className={styles.iconBtn}
-                  onClick={() => removeSeasonalHoursEntry(entry.id)}
-                  aria-label={`Remove season ${i + 1}`}
-                >
-                  <X size={14} aria-hidden="true" />
-                </button>
+        </details>
+      )}
+
+      {/* Price — omitted for a residence: price is a per-trip stay concern, edited via
+          AddResidenceModal within the trip, not here. One shared currency for every tier;
+          exactly one tier is the "primary" rate shown wherever a single price is displayed. */}
+      {!isEditingResidence && (
+        <details className={styles.sectionDetails} open>
+          <summary className={styles.sectionSummary}>
+            <Wallet size={14} aria-hidden="true" />
+            Price
+          </summary>
+          <div className={styles.sectionBody}>
+            <div className={styles.field}>
+              <div className={styles.priceRow}>
+                <CurrencySelect value={currency} onChange={setCurrency} />
               </div>
-              <input
-                type="text"
-                className={styles.input}
-                placeholder="Title (optional) — e.g. Summer / Winter"
-                value={entry.title ?? ""}
-                onChange={(e) => updateSeasonalHoursTitle(entry.id, e.target.value)}
-                aria-label={`Title for season ${i + 1}`}
-              />
-              <SeasonalRangePicker
-                start={entry.start}
-                end={entry.end}
-                onChange={(start, end) => updateSeasonalHoursRange(entry.id, start, end)}
-              />
-              <OpeningHoursGrid
-                value={entry.hours}
-                onChange={(hours) => updateSeasonalHoursGrid(entry.id, hours)}
+              <PriceTierEditor
+                tabs={priceTabs}
+                onChange={setPriceTabs}
+                primary={primaryCell}
+                onPrimaryChange={setPrimaryCell}
+                currency={currency}
               />
             </div>
-          ))}
-          <button type="button" className={styles.addTierBtn} onClick={addSeasonalHoursEntry}>
-            <Plus size={14} aria-hidden="true" />
-            Add seasonal hours
-          </button>
-        </div>
+          </div>
+        </details>
+      )}
+
+      {/* Duration — omitted for a residence: duration is a per-trip stay concern
+          (see AddResidenceModal/IScheduleEntry), not a shared-document one. */}
+      {!isEditingResidence && (
+        <details className={styles.sectionDetails} open>
+          <summary className={styles.sectionSummary}>
+            <Timer size={14} aria-hidden="true" />
+            Duration
+          </summary>
+          <div className={styles.sectionBody}>
+            <div className={styles.field}>
+              <div className={styles.durationRow}>
+                <input
+                  id="attraction-duration"
+                  type="number"
+                  min="1"
+                  placeholder="e.g. 2"
+                  value={durationValue}
+                  onChange={(e) => setDurationValue(e.target.value)}
+                  className={styles.durationInput}
+                  aria-label="Duration value"
+                />
+                <div className={styles.selectWrapper}>
+                  <select
+                    value={durationUnit}
+                    onChange={(e) => setDurationUnit(e.target.value as DurationUnit)}
+                    className={styles.durationSelect}
+                    aria-label="Duration unit"
+                  >
+                    <option value="minutes">minutes</option>
+                    <option value="hours">hours</option>
+                  </select>
+                  <ChevronDown
+                    size={16}
+                    className={styles.selectIcon}
+                    aria-hidden="true"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </details>
       )}
 
       {/* Notes / Comments */}
-      <div className={styles.field}>
-        <label htmlFor="attraction-notes" className={styles.labelWithIcon}>
+      <details className={styles.sectionDetails} open>
+        <summary className={styles.sectionSummary}>
           <FileText size={14} aria-hidden="true" />
           Notes
-        </label>
-        <textarea
-          id="attraction-notes"
-          rows={3}
-          placeholder="e.g. Book tickets in advance, best visited in the morning…"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          className={styles.textarea}
-        />
-      </div>
-
-      {/* Brand/chain — picking one fills in photo/types/website below as defaults, still
-          freely editable afterwards (see handleBrandNameChange). Admin-managed list (see
-          the Admin page's Brands section); this field only selects among existing brands,
-          it doesn't create new ones. */}
-      <div className={styles.field}>
-        <label htmlFor="attraction-brand" className={styles.labelWithIcon}>
-          <Building2 size={14} aria-hidden="true" />
-          Brand / chain (optional)
-        </label>
-        <SearchableSelect
-          id="attraction-brand"
-          value={brandNameInput}
-          onChange={handleBrandNameChange}
-          options={brandOptions.map((b) => b.name)}
-          placeholder="Search brands, e.g. Adidas…"
-          allowFreeText
-          ariaLabel="Brand or chain"
-          emptyMessage="No matching brand — managed from the Admin page"
-        />
-      </div>
+        </summary>
+        <div className={styles.sectionBody}>
+          <div className={styles.field}>
+            <textarea
+              id="attraction-notes"
+              rows={3}
+              placeholder="e.g. Book tickets in advance, best visited in the morning…"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className={styles.textarea}
+              aria-label="Notes"
+            />
+          </div>
+        </div>
+      </details>
 
       {/* Photo URL */}
-      <CoverImageField
-        id="attraction-photo"
-        label="Photo URL"
-        value={photoUrl}
-        onChange={setPhotoUrl}
-      />
+      <details className={styles.sectionDetails} open>
+        <summary className={styles.sectionSummary}>
+          <ImageIcon size={14} aria-hidden="true" />
+          Photo
+        </summary>
+        <div className={styles.sectionBody}>
+          <CoverImageField
+            id="attraction-photo"
+            label="Photo URL"
+            value={photoUrl}
+            onChange={setPhotoUrl}
+          />
+        </div>
+      </details>
 
       {/* Official website */}
-      <div className={styles.field}>
-        <label htmlFor="attraction-website" className={styles.labelWithIcon}>
+      <details className={styles.sectionDetails} open>
+        <summary className={styles.sectionSummary}>
           <Globe size={14} aria-hidden="true" />
-          Website (optional)
-        </label>
-        <input
-          id="attraction-website"
-          type="url"
-          placeholder="https://…"
-          value={websiteUrl}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setWebsiteUrl(e.target.value)}
-          onBlur={() => handleBlur("websiteUrl")}
-          className={`${styles.input} ${touched.websiteUrl && errors.websiteUrl ? styles.inputError : ""}`}
-          aria-describedby={touched.websiteUrl && errors.websiteUrl ? "error-website" : undefined}
-        />
-        {touched.websiteUrl && errors.websiteUrl && (
-          <p id="error-website" className={styles.errorMsg} role="alert">
-            <AlertCircle size={12} aria-hidden="true" />
-            {errors.websiteUrl}
-          </p>
-        )}
-      </div>
+          Website
+        </summary>
+        <div className={styles.sectionBody}>
+          <div className={styles.field}>
+            <input
+              id="attraction-website"
+              type="url"
+              placeholder="https://…"
+              value={websiteUrl}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setWebsiteUrl(e.target.value)}
+              onBlur={() => handleBlur("websiteUrl")}
+              className={`${styles.input} ${touched.websiteUrl && errors.websiteUrl ? styles.inputError : ""}`}
+              aria-label="Website"
+              aria-describedby={touched.websiteUrl && errors.websiteUrl ? "error-website" : undefined}
+            />
+            {touched.websiteUrl && errors.websiteUrl && (
+              <p id="error-website" className={styles.errorMsg} role="alert">
+                <AlertCircle size={12} aria-hidden="true" />
+                {errors.websiteUrl}
+              </p>
+            )}
+          </div>
+        </div>
+      </details>
     </ModalShell>
 
     {token && (

@@ -7,13 +7,25 @@ export interface ResolvedBrand {
   photoUrl?: string;
   websiteUrl?: string;
   typeNames?: string[];
+  foodStyleNames?: string[];
+  shopStyleNames?: string[];
+}
+
+function namesOf(arr: unknown[]): string[] {
+  return (arr ?? [])
+    .filter((t) => t && typeof t === "object" && "name" in (t as Record<string, unknown>))
+    .map((t) => (t as { name: string }).name);
 }
 
 function toResolvedBrand(doc: IBrand): ResolvedBrand {
-  const typeNames = (doc.types as unknown[])
-    .filter((t) => t && typeof t === "object" && "name" in (t as Record<string, unknown>))
-    .map((t) => (t as { name: string }).name);
-  return { name: doc.name, photoUrl: doc.photoUrl, websiteUrl: doc.websiteUrl, typeNames };
+  return {
+    name: doc.name,
+    photoUrl: doc.photoUrl,
+    websiteUrl: doc.websiteUrl,
+    typeNames: namesOf(doc.types as unknown[]),
+    foodStyleNames: namesOf(doc.foodStyles as unknown[]),
+    shopStyleNames: namesOf(doc.shopStyles as unknown[]),
+  };
 }
 
 /** Maps each brand id (string) to its resolved fallback fields — for resolving a list of
@@ -26,7 +38,7 @@ export async function getBrandMap(brandIds: (string | null | undefined)[]): Prom
   const uniqueIds = [...new Set(brandIds.filter((id): id is string => !!id))];
   if (uniqueIds.length === 0) return map;
   await dbConnect();
-  const brands = await Brand.find({ _id: { $in: uniqueIds } }).populate("types", "name");
+  const brands = await Brand.find({ _id: { $in: uniqueIds } }).populate(["types", "foodStyles", "shopStyles"]);
   for (const b of brands) map.set(b._id.toString(), toResolvedBrand(b));
   return map;
 }

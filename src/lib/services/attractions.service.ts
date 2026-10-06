@@ -60,6 +60,11 @@ export interface SearchAttractionsParams {
    *  `nestedAttractions.service.ts` — one level of nesting only). Satisfies the "at
    *  least one filter" gate on its own, same as country/city/type. */
   parentAttractionId?: string | null;
+  /** Restricts results to attractions linked to this Brand (see `models/Brand.ts`) —
+   *  satisfies the "at least one filter" gate on its own, same as country/city/type. Used
+   *  by BrandModal's "view all locations" list, optionally narrowed further by `country`/
+   *  `city` above (both AND together with this). */
+  brandId?: string | null;
   /** Pagination — skip/limit. limit is capped at the per-query-shape default cap below,
    *  so pagination narrows the page size, never exceeds the pre-existing result cap. */
   skip?: number | null;
@@ -94,10 +99,10 @@ export async function searchAttractions(
   userId: string | null,
   params: SearchAttractionsParams
 ): Promise<SearchAttractionsResult> {
-  const { country, city, q, type, ownerId, parentAttractionId, includeHidden, all } = params;
+  const { country, city, q, type, ownerId, parentAttractionId, brandId, includeHidden, all } = params;
 
-  if (!all && !country?.trim() && !city?.trim() && !type?.trim() && !parentAttractionId?.trim()) {
-    throw badRequest("country, city, type, parentAttractionId, or all param is required");
+  if (!all && !country?.trim() && !city?.trim() && !type?.trim() && !parentAttractionId?.trim() && !brandId?.trim()) {
+    throw badRequest("country, city, type, parentAttractionId, brandId, or all param is required");
   }
 
   await dbConnect();
@@ -136,6 +141,7 @@ export async function searchAttractions(
     filter.subtype = { $ne: "flight" };
   }
   if (parentAttractionId?.trim()) filter.parentAttractionId = parentAttractionId.trim();
+  if (brandId?.trim()) filter.brandId = brandId.trim();
   if (hiddenIds.length > 0) filter._id = { $nin: hiddenIds };
 
   // Page size defaults to (and is capped at) the pre-existing per-query-shape limit —

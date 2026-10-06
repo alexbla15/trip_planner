@@ -16,8 +16,8 @@
 }
 
 .container {
-  width: min(440px, calc(100vw - 48px));
-  max-height: 80dvh;
+  width: min(480px, calc(100vw - 48px));
+  max-height: 85dvh;
   background: var(--color-surface);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-xl);
@@ -51,6 +51,7 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
+  flex: 1;
 }
 
 .headerIcon {
@@ -67,6 +68,29 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.headerIconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--easing-out), color var(--duration-fast) var(--easing-out);
+}
+.headerIconBtn:hover { background: var(--color-primary-light); color: var(--color-primary); }
+.headerIconBtnDanger:hover { background: #fee2e2; color: var(--color-error); }
 
 .closeBtn {
   display: flex;
@@ -85,6 +109,25 @@
 }
 .closeBtn:hover { background: var(--color-bg-subtle); color: var(--color-text-primary); }
 .closeBtn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+.confirmDelete {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+.confirmYes, .confirmNo {
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.confirmYes { background: var(--color-error); color: #fff; }
+.confirmNo { background: var(--color-bg-subtle); color: var(--color-text-secondary); }
 
 .body {
   flex: 1;
@@ -108,26 +151,34 @@
   gap: 12px;
 }
 
-.photo {
+/* Same technique as AttractionGridCard's .photoArea/.photoImg — padding-top percentage
+   (not aspect-ratio) so width-driven sizing never rounds the derived height to 0. */
+.photoArea {
+  position: relative;
   width: 100%;
-  max-height: 180px;
-  object-fit: cover;
-  border-radius: var(--radius-lg);
+  height: 0;
+  padding-top: 75%; /* 4:3, matches AttractionGridCard */
   background: var(--color-bg-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 
-.websiteLink {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--color-primary);
-  text-decoration: none;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.photoImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
-.websiteLink:hover { text-decoration: underline; }
+
+.photoFallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-tertiary);
+}
 
 .hint {
   font-size: 12px;
@@ -143,6 +194,9 @@
 }
 
 .typeChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   padding: 5px 10px;
   border-radius: var(--radius-full);
   font-size: 12px;
@@ -151,6 +205,7 @@
   color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
 }
+.typeChip svg { width: 12px; height: 12px; }
 
 button.typeChip {
   cursor: pointer;
@@ -161,23 +216,6 @@ button.typeChip {
   border-color: var(--color-primary);
   color: var(--color-text-inverse);
 }
-
-.editBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  align-self: flex-start;
-  padding: 8px 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-primary);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background var(--duration-fast) var(--easing-out);
-}
-.editBtn:hover { background: var(--color-bg-subtle); }
 
 .form {
   display: flex;
@@ -248,3 +286,92 @@ button.typeChip {
 }
 .saveBtn:hover:not(:disabled) { background: var(--color-primary-dark); }
 .saveBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Locations list ── */
+.locationsSection {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.locationsTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 10px;
+}
+
+.locationFilters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.filterSelect {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: 12px;
+  color: var(--color-text-primary);
+  font-family: inherit;
+}
+.filterSelect:disabled { opacity: 0.5; }
+
+.clearFilterBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.clearFilterBtn:hover { background: var(--color-bg-subtle); }
+
+.locationsList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.locationRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: 12px;
+}
+.locationRow:last-child { border-bottom: none; }
+
+.locationIcon {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.locationName {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.locationMeta {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+}

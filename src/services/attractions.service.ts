@@ -106,6 +106,25 @@ export async function getAllAttractions(
   return [...first.page, ...rest.flatMap((r) => r.page)];
 }
 
+/** All attractions linked to a brand (see `models/Brand.ts`), optionally narrowed to a
+ *  country/city — used by BrandModal's "view all locations" list. Capped at the server's
+ *  default 300-result page (no pagination needed here; a chain rarely has that many
+ *  locations in this DB). */
+export async function getAttractionsByBrand(
+  brandId: string,
+  token?: string | null,
+  country?: string,
+  city?: string,
+): Promise<unknown[]> {
+  const params = new URLSearchParams({ brandId, includeHidden: "true" });
+  if (country) params.set("country", country);
+  if (city) params.set("city", city);
+  const res = await fetch(`/api/attractions?${params.toString()}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  return parseOrThrow<unknown[]>(res);
+}
+
 /** Fetches one attraction by id — used to open a parent attraction's own detail view
  *  from a child's "Part of X" chip, where only the id/name is on hand. */
 export async function getAttraction(id: string, token?: string | null): Promise<unknown> {

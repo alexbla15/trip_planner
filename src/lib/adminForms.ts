@@ -85,9 +85,11 @@ export interface BrandFormState {
   photoUrl: string;
   websiteUrl: string;
   types: string[];
+  foodStyles: string[];
+  shopStyles: string[];
 }
 
 /** Converts a saved brand into editable form state. */
-export function brandFormFromRecord(r: { name: string; photoUrl?: string; websiteUrl?: string; types: string[] }): BrandFormState {
-  return { name: r.name, photoUrl: r.photoUrl ?? "", websiteUrl: r.websiteUrl ?? "", types: r.types };
+export function brandFormFromRecord(r: { name: string; photoUrl?: string; websiteUrl?: string; types: string[]; foodStyles: string[]; shopStyles: string[] }): BrandFormState {
+  return { name: r.name, photoUrl: r.photoUrl ?? "", websiteUrl: r.websiteUrl ?? "", types: r.types, foodStyles: r.foodStyles, shopStyles: r.shopStyles };
 }

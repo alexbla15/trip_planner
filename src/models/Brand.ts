@@ -12,6 +12,12 @@ export interface IBrand extends Document {
   photoUrl?: string;
   websiteUrl?: string;
   types: Types.ObjectId[];
+  /** Default food styles (e.g. "Fast Food") — same fallback contract as `types`, only
+   *  meaningful for a dining-category brand. */
+  foodStyles: Types.ObjectId[];
+  /** Default shop styles (e.g. "Sportswear") — same fallback contract as `types`, only
+   *  meaningful for a shopping-category brand. */
+  shopStyles: Types.ObjectId[];
 }
 
 const BrandSchema = new Schema<IBrand>(
@@ -20,10 +26,18 @@ const BrandSchema = new Schema<IBrand>(
     photoUrl: { type: String },
     websiteUrl: { type: String },
     types: [{ type: Schema.Types.ObjectId, ref: "AttractionType" }],
+    foodStyles: [{ type: Schema.Types.ObjectId, ref: "FoodStyle" }],
+    shopStyles: [{ type: Schema.Types.ObjectId, ref: "ShopStyle" }],
   },
   { timestamps: true }
 );
 BrandSchema.index({ name: 1 }, { unique: true, collation: { locale: "en", strength: 2 } });
+
+function namesOf(arr: unknown[]): string[] {
+  return (arr ?? [])
+    .filter((t) => t && typeof t === "object" && "name" in (t as Record<string, unknown>))
+    .map((t) => (t as { name: string }).name);
+}
 
 export function formatBrand(doc: IBrand) {
   return {
@@ -31,11 +45,9 @@ export function formatBrand(doc: IBrand) {
     name: doc.name,
     photoUrl: doc.photoUrl,
     websiteUrl: doc.websiteUrl,
-    types: (doc.types as unknown[]).map((t) =>
-      t && typeof t === "object" && "name" in (t as Record<string, unknown>)
-        ? (t as { name: string }).name
-        : String(t)
-    ),
+    types: namesOf(doc.types as unknown[]),
+    foodStyles: namesOf(doc.foodStyles as unknown[]),
+    shopStyles: namesOf(doc.shopStyles as unknown[]),
   };
 }
 

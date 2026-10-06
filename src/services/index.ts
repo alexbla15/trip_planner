@@ -23,6 +23,7 @@ export {
   getAttraction,
   getAttractionsByCity,
   getAttractionsByCountry,
+  getAttractionsByBrand,
   getAllAttractions,
   getChildAttractions,
   getOtherLocationsInCity,

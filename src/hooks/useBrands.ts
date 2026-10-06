@@ -9,6 +9,8 @@ export interface BrandRecord {
   photoUrl?: string;
   websiteUrl?: string;
   types: string[];
+  foodStyles: string[];
+  shopStyles: string[];
 }
 
 interface UseBrandsResult {

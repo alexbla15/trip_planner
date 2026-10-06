@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongoose";
 import { Brand, formatBrand } from "@/models/Brand";
 import { AttractionType } from "@/models/AttractionType";
+import { FoodStyle } from "@/models/FoodStyle";
+import { ShopStyle } from "@/models/ShopStyle";
 import { User } from "@/models/User";
 import { getUserFromRequest } from "@/lib/auth";
 import { withApiHandler } from "@/lib/withApiHandler";
@@ -14,12 +16,21 @@ export const OPTIONS = corsPreflight;
  *  food-styles/shop-styles (every visitor can see the list; only an admin can edit it). */
 export const GET = withApiHandler("GET /api/brands", async () => {
   await dbConnect();
-  const brands = await Brand.find().populate("types", "name").sort({ name: 1 });
+  const brands = await Brand.find().populate(["types", "foodStyles", "shopStyles"]).sort({ name: 1 });
   return NextResponse.json(brands.map(formatBrand));
 });
 
-/** Admin only — creates a new brand. `types` (names) is resolved to ids the same way
- *  createAttraction resolves its own `types` field. */
+interface BrandBody {
+  name?: string;
+  photoUrl?: string;
+  websiteUrl?: string;
+  types?: string[];
+  foodStyles?: string[];
+  shopStyles?: string[];
+}
+
+/** Admin only — creates a new brand. `types`/`foodStyles`/`shopStyles` (names) are each
+ *  resolved to ids the same way createAttraction resolves its own fields. */
 export const POST = withApiHandler("POST /api/brands", async (req: Request) => {
   const payload = getUserFromRequest(req);
   await dbConnect();
@@ -29,13 +40,19 @@ export const POST = withApiHandler("POST /api/brands", async (req: Request) => {
     throw forbidden("Forbidden");
   }
 
-  const body = await req.json() as { name?: string; photoUrl?: string; websiteUrl?: string; types?: string[] };
+  const body = await req.json() as BrandBody;
   if (!body.name?.trim()) {
     throw badRequest("name is required");
   }
 
   const typeIds = body.types?.length
     ? (await AttractionType.find({ name: { $in: body.types } }).select("_id")).map((d) => d._id)
+    : [];
+  const foodStyleIds = body.foodStyles?.length
+    ? (await FoodStyle.find({ name: { $in: body.foodStyles } }).select("_id")).map((d) => d._id)
+    : [];
+  const shopStyleIds = body.shopStyles?.length
+    ? (await ShopStyle.find({ name: { $in: body.shopStyles } }).select("_id")).map((d) => d._id)
     : [];
 
   let created;
@@ -45,6 +62,8 @@ export const POST = withApiHandler("POST /api/brands", async (req: Request) => {
       photoUrl: body.photoUrl?.trim() || undefined,
       websiteUrl: body.websiteUrl?.trim() || undefined,
       types: typeIds,
+      foodStyles: foodStyleIds,
+      shopStyles: shopStyleIds,
     });
   } catch (err) {
     const mongoErr = err as { code?: number };
@@ -54,6 +73,6 @@ export const POST = withApiHandler("POST /api/brands", async (req: Request) => {
     throw serverError("Server error");
   }
 
-  await created.populate("types", "name");
+  await created.populate(["types", "foodStyles", "shopStyles"]);
   return NextResponse.json(formatBrand(created), { status: 201 });
 });

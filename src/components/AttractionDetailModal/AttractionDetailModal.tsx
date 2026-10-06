@@ -296,6 +296,18 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
             <h2 className={styles.title}>{attraction.name}</h2>
           </div>
           <div className={styles.headerActions}>
+            {attraction.parentAttractionId && attraction.parentAttractionName && onNavigateToAttraction && (
+              <button
+                type="button"
+                className={styles.parentBadgeButton}
+                onClick={handleOpenParent}
+                disabled={parentLoading}
+                aria-label={`View "${attraction.parentAttractionName}"`}
+                title={`Part of "${attraction.parentAttractionName}"`}
+              >
+                <Building2 size={16} aria-hidden="true" />
+              </button>
+            )}
             <WebsiteLinkButton url={attraction.websiteUrl} variant="compact" className={styles.websiteBtn} />
             {onToggleVerified && (
               <button
@@ -344,6 +356,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                 fill
                 unoptimized
                 className={styles.photoImg}
+                wrapperClassName={styles.photoWrapper}
                 sizes="(max-width: 640px) 100vw, 500px"
               />
             </div>
@@ -400,24 +413,14 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
           )}
 
           {/* Nesting — structural facts about the attraction itself (not per-user, unlike
-              the visited/used-in-trip signals above), so shown to every viewer. */}
-          {attraction.parentAttractionId && attraction.parentAttractionName && (
-            onNavigateToAttraction ? (
-              <button
-                type="button"
-                className={`${styles.parentBadge} ${styles.parentBadgeButton}`}
-                onClick={handleOpenParent}
-                title={`View "${attraction.parentAttractionName}"`}
-              >
-                <Building2 size={13} aria-hidden="true" />
-                Part of &quot;{attraction.parentAttractionName}&quot;
-              </button>
-            ) : (
-              <p className={styles.parentBadge}>
-                <Building2 size={13} aria-hidden="true" />
-                Part of &quot;{attraction.parentAttractionName}&quot;
-              </p>
-            )
+              the visited/used-in-trip signals above), so shown to every viewer. The
+              clickable (onNavigateToAttraction) case is an icon button in the header
+              instead — see parentBadgeButton there. */}
+          {attraction.parentAttractionId && attraction.parentAttractionName && !onNavigateToAttraction && (
+            <p className={styles.parentBadge}>
+              <Building2 size={13} aria-hidden="true" />
+              Part of &quot;{attraction.parentAttractionName}&quot;
+            </p>
           )}
 
           {/* Brand/chain link — a different relationship from parent nesting above (not

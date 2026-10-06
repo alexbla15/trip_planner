@@ -228,31 +228,29 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
         <span className={styles.nameRow}>
           <span className={styles.typeIcon} aria-hidden="true">{icon}</span>
           <span className={styles.name}>{attraction.name}</span>
+          {attraction.parentAttractionId && attraction.parentAttractionName && (
+            <button
+              type="button"
+              className={styles.nameIconBtn}
+              onClick={handleOpenParent}
+              title={`Part of "${attraction.parentAttractionName}"`}
+              aria-label={`View details for ${attraction.parentAttractionName}, which ${attraction.name} is part of`}
+            >
+              <ArrowUpRight size={12} aria-hidden="true" />
+            </button>
+          )}
+          {attraction.brandId && attraction.brandName && (
+            <button
+              type="button"
+              className={styles.nameIconBtn}
+              onClick={(e) => { e.stopPropagation(); setBrandModalOpen(true); }}
+              title={`Brand: "${attraction.brandName}"`}
+              aria-label={`View ${attraction.brandName} brand details`}
+            >
+              <Store size={12} aria-hidden="true" />
+            </button>
+          )}
         </span>
-        {attraction.parentAttractionId && attraction.parentAttractionName && (
-          <button
-            type="button"
-            className={styles.parentLine}
-            onClick={handleOpenParent}
-            title={`View "${attraction.parentAttractionName}"`}
-            aria-label={`View details for ${attraction.parentAttractionName}, which ${attraction.name} is part of`}
-          >
-            <ArrowUpRight size={11} aria-hidden="true" />
-            ({attraction.parentAttractionName})
-          </button>
-        )}
-        {attraction.brandId && attraction.brandName && (
-          <button
-            type="button"
-            className={styles.parentLine}
-            onClick={(e) => { e.stopPropagation(); setBrandModalOpen(true); }}
-            title={`View "${attraction.brandName}" brand details`}
-            aria-label={`View ${attraction.brandName} brand details`}
-          >
-            <Store size={11} aria-hidden="true" />
-            {attraction.brandName}
-          </button>
-        )}
         {attraction.city && (
           <span className={styles.meta}>
             <MapPin size={11} aria-hidden="true" />

@@ -275,7 +275,7 @@ export function formatAttraction(
    *  resolved by callers via getBrand/getBrandMap (see `brands.service.ts`). `photoUrl`/
    *  `types`/`websiteUrl` below fall back to these only when this document's own field is
    *  unset — the brand never overrides a value the owner actually set. */
-  brand?: { name: string; photoUrl?: string; websiteUrl?: string; typeNames?: string[] }
+  brand?: { name: string; photoUrl?: string; websiteUrl?: string; typeNames?: string[]; foodStyleNames?: string[]; shopStyleNames?: string[] }
 ): AttractionShape {
   // Synthesize a single primary tier from the legacy `price` field for any document that
   // predates multi-tier pricing (or was created/edited without specifying tiers) — callers
@@ -317,14 +317,18 @@ export function formatAttraction(
       : (brand?.typeNames ?? []),
     // Deleted FoodStyle docs leave a dangling ref that populate() resolves to null —
     // filter those out rather than rendering a stringified ObjectId/"null".
-    foodStyles: ((doc.foodStyles as unknown[]) ?? [])
-      .filter((f) => f && typeof f === "object" && "name" in (f as Record<string, unknown>))
-      .map((f) => (f as { name: string }).name),
+    foodStyles: (doc.foodStyles?.length ?? 0) > 0
+      ? ((doc.foodStyles as unknown[]) ?? [])
+          .filter((f) => f && typeof f === "object" && "name" in (f as Record<string, unknown>))
+          .map((f) => (f as { name: string }).name)
+      : (brand?.foodStyleNames ?? []),
     // Deleted ShopStyle docs leave a dangling ref that populate() resolves to null —
     // filter those out rather than rendering a stringified ObjectId/"null".
-    shopStyles: ((doc.shopStyles as unknown[]) ?? [])
-      .filter((f) => f && typeof f === "object" && "name" in (f as Record<string, unknown>))
-      .map((f) => (f as { name: string }).name),
+    shopStyles: (doc.shopStyles?.length ?? 0) > 0
+      ? ((doc.shopStyles as unknown[]) ?? [])
+          .filter((f) => f && typeof f === "object" && "name" in (f as Record<string, unknown>))
+          .map((f) => (f as { name: string }).name)
+      : (brand?.shopStyleNames ?? []),
     durationValue: doc.durationValue,
     durationUnit: doc.durationUnit,
     // price/notes prefer a per-trip schedule override for the same reason as

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongoose";
 import { Brand, formatBrand } from "@/models/Brand";
 import { AttractionType } from "@/models/AttractionType";
+import { FoodStyle } from "@/models/FoodStyle";
+import { ShopStyle } from "@/models/ShopStyle";
 import { Attraction } from "@/models/Attraction";
 import { User } from "@/models/User";
 import { getUserFromRequest } from "@/lib/auth";
@@ -13,10 +15,19 @@ export const OPTIONS = corsPreflight;
 
 type Params = { params: Promise<{ id: string }> };
 
-/** Admin only — edits a brand's name/photo/website/types. Attractions reference it by id,
- *  so every attraction linked to it (and currently relying on the fallback for a given
- *  field) reflects the new default automatically — no propagation needed, same as renaming
- *  a FoodStyle. */
+interface BrandBody {
+  name?: string;
+  photoUrl?: string;
+  websiteUrl?: string;
+  types?: string[];
+  foodStyles?: string[];
+  shopStyles?: string[];
+}
+
+/** Admin only — edits a brand's name/photo/website/types/foodStyles/shopStyles.
+ *  Attractions reference it by id, so every attraction linked to it (and currently relying
+ *  on the fallback for a given field) reflects the new default automatically — no
+ *  propagation needed, same as renaming a FoodStyle. */
 export const PUT = withApiHandler("PUT /api/brands/[id]", async (req: Request, { params }: Params) => {
   const { id } = await params;
   const payload = getUserFromRequest(req);
@@ -27,13 +38,19 @@ export const PUT = withApiHandler("PUT /api/brands/[id]", async (req: Request, {
     throw forbidden("Forbidden");
   }
 
-  const body = await req.json() as { name?: string; photoUrl?: string; websiteUrl?: string; types?: string[] };
+  const body = await req.json() as BrandBody;
   if (!body.name?.trim()) {
     throw badRequest("name is required");
   }
 
   const typeIds = body.types?.length
     ? (await AttractionType.find({ name: { $in: body.types } }).select("_id")).map((d) => d._id)
+    : [];
+  const foodStyleIds = body.foodStyles?.length
+    ? (await FoodStyle.find({ name: { $in: body.foodStyles } }).select("_id")).map((d) => d._id)
+    : [];
+  const shopStyleIds = body.shopStyles?.length
+    ? (await ShopStyle.find({ name: { $in: body.shopStyles } }).select("_id")).map((d) => d._id)
     : [];
 
   let updated;
@@ -45,6 +62,8 @@ export const PUT = withApiHandler("PUT /api/brands/[id]", async (req: Request, {
         photoUrl: body.photoUrl?.trim() || undefined,
         websiteUrl: body.websiteUrl?.trim() || undefined,
         types: typeIds,
+        foodStyles: foodStyleIds,
+        shopStyles: shopStyleIds,
       },
       { new: true }
     );
@@ -57,7 +76,7 @@ export const PUT = withApiHandler("PUT /api/brands/[id]", async (req: Request, {
   }
 
   if (!updated) throw notFound("Not found");
-  await updated.populate("types", "name");
+  await updated.populate(["types", "foodStyles", "shopStyles"]);
   return NextResponse.json(formatBrand(updated));
 });
 

@@ -47,7 +47,7 @@ import {
   deleteBrand,
   ApiError,
 } from "@/services";
-import { getIconComponent, renderTypeIcon, IconPicker, SectionCard } from "@/components";
+import { getIconComponent, renderTypeIcon, IconPicker, SectionCard, BrandModal } from "@/components";
 import {
   type TypeFormState,
   type CategoryFormState,
@@ -343,7 +343,7 @@ function ShopStyleForm({
 // this" research), and can be filled in later without touching any attraction that already
 // links to it.
 
-const EMPTY_BRAND_FORM: BrandFormState = { name: "", photoUrl: "", websiteUrl: "", types: [] };
+const EMPTY_BRAND_FORM: BrandFormState = { name: "", photoUrl: "", websiteUrl: "", types: [], foodStyles: [], shopStyles: [] };
 
 function BrandForm({
   initial, token, brandId, onDone, onCancel,
@@ -356,15 +356,17 @@ function BrandForm({
 }) {
   const [form, setForm] = useState<BrandFormState>(initial);
   const { types: typeOptions } = useAttractionTypes();
+  const { styles: foodStyleOptions } = useFoodStyles();
+  const { styles: shopStyleOptions } = useShopStyles();
 
   function set(key: "name" | "photoUrl" | "websiteUrl", value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  function toggleType(name: string) {
+  function toggleIn(key: "types" | "foodStyles" | "shopStyles", name: string) {
     setForm((prev) => ({
       ...prev,
-      types: prev.types.includes(name) ? prev.types.filter((t) => t !== name) : [...prev.types, name],
+      [key]: prev[key].includes(name) ? prev[key].filter((t) => t !== name) : [...prev[key], name],
     }));
   }
 
@@ -379,6 +381,8 @@ function BrandForm({
       photoUrl: form.photoUrl.trim(),
       websiteUrl: form.websiteUrl.trim(),
       types: form.types,
+      foodStyles: form.foodStyles,
+      shopStyles: form.shopStyles,
     };
     if (brandId) await updateBrand(brandId, token, payload);
     else await createBrand(token, payload);
@@ -429,9 +433,60 @@ function BrandForm({
                   type="button"
                   className={`${styles.foodStyleChip} ${active ? styles.foodStyleChipActive : ""}`}
                   aria-pressed={active}
-                  onClick={() => toggleType(t.name)}
+                  onClick={() => toggleIn("types", t.name)}
                 >
+                  {renderTypeIcon(t.icon)}
                   {t.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Only meaningful once a dining-category type is among the defaults above, same
+          gating NewAttractionModal uses — but a brand's types are themselves optional, so
+          this is always offered rather than conditionally hidden (an admin may set food
+          styles before picking types, or a brand may be dining-relevant without a type set
+          yet at all). */}
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Default food styles</label>
+        <div className={styles.chipFilterInner}>
+          <div className={styles.chipGroup} role="group" aria-label="Default food styles">
+            {foodStyleOptions.map((f) => {
+              const active = form.foodStyles.includes(f.name);
+              return (
+                <button
+                  key={f._id}
+                  type="button"
+                  className={`${styles.foodStyleChip} ${active ? styles.foodStyleChipActive : ""}`}
+                  aria-pressed={active}
+                  onClick={() => toggleIn("foodStyles", f.name)}
+                >
+                  {f.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Default shop styles</label>
+        <div className={styles.chipFilterInner}>
+          <div className={styles.chipGroup} role="group" aria-label="Default shop styles">
+            {shopStyleOptions.map((s) => {
+              const active = form.shopStyles.includes(s.name);
+              return (
+                <button
+                  key={s._id}
+                  type="button"
+                  className={`${styles.foodStyleChip} ${active ? styles.foodStyleChipActive : ""}`}
+                  aria-pressed={active}
+                  onClick={() => toggleIn("shopStyles", s.name)}
+                >
+                  {renderTypeIcon(s.icon)}
+                  {s.name}
                 </button>
               );
             })}
@@ -599,6 +654,7 @@ export function AdminClient() {
   const [brandAdding, setBrandAdding]       = useState(false);
   const [brandDeleteId, setBrandDeleteId]   = useState<string | null>(null);
   const [brandDeleting, setBrandDeleting]   = useState(false);
+  const [viewingBrandId, setViewingBrandId] = useState<string | null>(null);
 
   const loading = authLoading || typesLoading;
 
@@ -1234,7 +1290,14 @@ export function AdminClient() {
                   <div key={record._id} className={styles.compactChip}>
                     <span className={styles.compactIndex}>#{index + 1}</span>
                     <Store size={14} aria-hidden="true" />
-                    <span className={styles.typeName}>{record.name}</span>
+                    <button
+                      type="button"
+                      className={styles.typeName}
+                      style={{ background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", color: "inherit", textAlign: "left" }}
+                      onClick={() => setViewingBrandId(record._id)}
+                    >
+                      {record.name}
+                    </button>
                     <div className={styles.typeActions}>
                       <button
                         className={styles.iconBtn}
@@ -1358,6 +1421,9 @@ export function AdminClient() {
           )}
         </SectionCard>
       </div>
+      {viewingBrandId && (
+        <BrandModal isOpen={!!viewingBrandId} onClose={() => setViewingBrandId(null)} brandId={viewingBrandId} />
+      )}
     </main>
   );
 }

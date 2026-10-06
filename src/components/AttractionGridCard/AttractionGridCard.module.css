@@ -343,30 +343,29 @@
   font-weight: 600;
 }
 
-/* "Part of {parent}" — a distinct color from .meta (city) above so the two don't read
-   as the same kind of fact; matches the accent color used for the same "nesting"
-   concept in AttractionDetailModal's childCountBadge. */
-.parentLine {
+/* Small icon button next to the attraction name — "part of {parent}"/"brand: {brand}",
+   compact enough to sit inline in .nameRow instead of taking its own line as a text chip
+   (the parent/brand name itself is reachable via the title/aria-label on hover/focus,
+   rather than printed out). */
+.nameIconBtn {
   display: flex;
   align-items: center;
-  gap: 4px;
-  max-width: 100%;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
   padding: 0;
   border: none;
-  background: transparent;
-  font-size: 11px;
-  font-family: inherit;
-  font-weight: 500;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-subtle);
   color: var(--color-accent-dark);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   cursor: pointer;
+  transition: background var(--duration-fast) var(--easing-out);
 }
-.parentLine:hover {
-  text-decoration: underline;
+.nameIconBtn:hover {
+  background: color-mix(in srgb, var(--color-accent-dark) 18%, transparent);
 }
-.parentLine:focus-visible {
+.nameIconBtn:focus-visible {
   outline: 2px solid var(--color-accent-dark);
   outline-offset: 2px;
 }
