@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { Types } from "mongoose";
 import { dbConnect } from "@/lib/mongoose";
 import { Brand, formatBrand } from "@/models/Brand";
 import { AttractionType } from "@/models/AttractionType";
@@ -24,10 +25,20 @@ interface BrandBody {
   shopStyles?: string[];
 }
 
-/** Admin only — edits a brand's name/photo/website/types/foodStyles/shopStyles.
- *  Attractions reference it by id, so every attraction linked to it (and currently relying
- *  on the fallback for a given field) reflects the new default automatically — no
- *  propagation needed, same as renaming a FoodStyle. */
+/** Sorted string ids, for comparing two ObjectId arrays regardless of order. */
+function idKey(ids: Types.ObjectId[]): string {
+  return [...ids].map((i) => i.toString()).sort().join(",");
+}
+
+/** Admin only — edits a brand's name/photo/website/types/foodStyles/shopStyles, then
+ *  propagates each CHANGED field onto every linked attraction that still matches the OLD
+ *  default — i.e. one that's relying on it (either by having been picked via the "Brand /
+ *  chain" field in the attraction form, which copies the brand's values in at creation
+ *  time rather than leaving the field blank, or by having never set its own and genuinely
+ *  live-falling-back — those need no write at all, `formatAttraction` already resolves
+ *  them from the brand doc directly). An attraction whose own value no longer matches the
+ *  old default was deliberately edited away from it — that's an override, and is left
+ *  untouched, exactly as requested. */
 export const PUT = withApiHandler("PUT /api/brands/[id]", async (req: Request, { params }: Params) => {
   const { id } = await params;
   const payload = getUserFromRequest(req);
@@ -42,6 +53,14 @@ export const PUT = withApiHandler("PUT /api/brands/[id]", async (req: Request, {
   if (!body.name?.trim()) {
     throw badRequest("name is required");
   }
+
+  const before = await Brand.findById(id);
+  if (!before) throw notFound("Not found");
+  const oldPhotoUrl = before.photoUrl;
+  const oldWebsiteUrl = before.websiteUrl;
+  const oldTypeKey = idKey(before.types as Types.ObjectId[]);
+  const oldFoodStyleKey = idKey(before.foodStyles as Types.ObjectId[]);
+  const oldShopStyleKey = idKey(before.shopStyles as Types.ObjectId[]);
 
   const typeIds = body.types?.length
     ? (await AttractionType.find({ name: { $in: body.types } }).select("_id")).map((d) => d._id)
@@ -76,6 +95,35 @@ export const PUT = withApiHandler("PUT /api/brands/[id]", async (req: Request, {
   }
 
   if (!updated) throw notFound("Not found");
+
+  // Only touch attractions whose own field value still matches what the brand USED to say —
+  // that's the "inherited a copy, never overrode it" case. Truly-empty fields need nothing
+  // (they already live-fall-back); fields that differ from the old default were deliberately
+  // changed and must be left alone.
+  const linkedAttractions = await Attraction.find({ brandId: updated._id })
+    .select("photoUrl websiteUrl types foodStyles shopStyles");
+  for (const attraction of linkedAttractions) {
+    const set: Record<string, unknown> = {};
+    if (attraction.photoUrl && attraction.photoUrl === oldPhotoUrl) {
+      set.photoUrl = updated.photoUrl;
+    }
+    if (attraction.websiteUrl && attraction.websiteUrl === oldWebsiteUrl) {
+      set.websiteUrl = updated.websiteUrl;
+    }
+    if (attraction.types.length > 0 && idKey(attraction.types as Types.ObjectId[]) === oldTypeKey) {
+      set.types = updated.types;
+    }
+    if ((attraction.foodStyles?.length ?? 0) > 0 && idKey(attraction.foodStyles as Types.ObjectId[]) === oldFoodStyleKey) {
+      set.foodStyles = updated.foodStyles;
+    }
+    if ((attraction.shopStyles?.length ?? 0) > 0 && idKey(attraction.shopStyles as Types.ObjectId[]) === oldShopStyleKey) {
+      set.shopStyles = updated.shopStyles;
+    }
+    if (Object.keys(set).length > 0) {
+      await Attraction.updateOne({ _id: attraction._id }, { $set: set });
+    }
+  }
+
   await updated.populate(["types", "foodStyles", "shopStyles"]);
   return NextResponse.json(formatBrand(updated));
 });
