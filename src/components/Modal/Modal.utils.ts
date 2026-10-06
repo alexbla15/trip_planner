@@ -39,13 +39,19 @@ let topZIndex = 1300;
 /** Assigns this modal instance a z-index the moment it opens, always above whatever
  *  else was already open — usable standalone by any modal, including ones (like
  *  AttractionDetailModal) that implement their own portal/focus logic instead of going
- *  through {@link useModalController} below. */
+ *  through {@link useModalController} below.
+ *
+ *  Must be `useState`, not a ref: mutating a ref doesn't trigger a re-render, so the
+ *  freshly-incremented value from the effect below would never actually reach the DOM —
+ *  the backdrop's inline `style={{ zIndex }}` would keep showing whatever stale value was
+ *  captured on the very first render (this was a real bug: BrandModal opened from an
+ *  attraction card rendered behind it, invisibly, because of exactly this). */
 export function useModalZIndex(isOpen: boolean): number {
-  const zIndexRef = useRef(topZIndex);
+  const [zIndex, setZIndex] = useState(topZIndex);
   useEffect(() => {
-    if (isOpen) zIndexRef.current = ++topZIndex;
+    if (isOpen) setZIndex(++topZIndex);
   }, [isOpen]);
-  return zIndexRef.current;
+  return zIndex;
 }
 
 export function useModalController({ isOpen, onClose, initialFocusRef }: UseModalControllerParams) {

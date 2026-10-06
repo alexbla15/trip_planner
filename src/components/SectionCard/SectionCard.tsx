@@ -11,7 +11,11 @@ interface SectionCardProps {
   className?: string;
   /** Renders the heading as a toggle button that expands/collapses the body. Default false. */
   collapsible?: boolean;
-  /** Initial open state when `collapsible` is true. Default true — sections never start surprise-collapsed. */
+  /** Initial open state when `collapsible` is true. Default true — sections never start
+   *  surprise-collapsed. The Admin page passes `false` explicitly on its own cards (many
+   *  entity lists — types, categories, mood tags, food/shop styles, brands — stacked on
+   *  one page), rather than changing the default for every other page using this
+   *  component (Analytics, Profile). */
   defaultOpen?: boolean;
   /** Optional muted count rendered after the title, e.g. "(12)". */
   headingCount?: number | string;

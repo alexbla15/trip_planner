@@ -836,10 +836,11 @@ export function AdminClient() {
           title="Attraction Categories"
           headingCount={catRecords.length}
           collapsible
+          defaultOpen={false}
           actions={
             !catAdding && !catEditingId && (
               <>
-                <button className={styles.addBtn} onClick={() => setCatAdding(true)} aria-label="Add category">
+                <button className={styles.addBtn} onClick={() => setCatAdding(true)} aria-label="Add category" title="Add category">
                   <Plus size={14} aria-hidden="true" /> <span className={styles.addBtnLabel}>Add category</span>
                 </button>
                 {legacyTypes.length > 0 && (
@@ -848,6 +849,7 @@ export function AdminClient() {
                     onClick={handleMigrate}
                     disabled={migrating}
                     aria-label={`Migrate legacy (${legacyTypes.length})`}
+                    title={`Migrate legacy (${legacyTypes.length})`}
                   >
                     {migrating ? <Loader2 size={14} className={styles.spin} /> : <RefreshCw size={14} aria-hidden="true" />}
                     <span className={styles.addBtnLabel}>Migrate legacy ({legacyTypes.length})</span>
@@ -944,9 +946,10 @@ export function AdminClient() {
           title="Attraction Types"
           headingCount={types.length}
           collapsible
+          defaultOpen={false}
           actions={
             !adding && !editingId && (
-              <button className={styles.addBtn} onClick={() => setAdding(true)} aria-label="Add type">
+              <button className={styles.addBtn} onClick={() => setAdding(true)} aria-label="Add type" title="Add type">
                 <Plus size={14} aria-hidden="true" /> <span className={styles.addBtnLabel}>Add type</span>
               </button>
             )
@@ -1070,10 +1073,11 @@ export function AdminClient() {
           title="Travel Moods"
           headingCount={moodTags.length}
           collapsible
+          defaultOpen={false}
           actions={
             !moodAdding && !moodEditingId && (
               <>
-                <button className={styles.addBtn} onClick={() => setMoodAdding(true)} aria-label="Add mood">
+                <button className={styles.addBtn} onClick={() => setMoodAdding(true)} aria-label="Add mood" title="Add mood">
                   <Plus size={14} aria-hidden="true" /> <span className={styles.addBtnLabel}>Add mood</span>
                 </button>
                 {moodTags.length === 0 && (
@@ -1082,6 +1086,7 @@ export function AdminClient() {
                     onClick={handleSeedMoodTags}
                     disabled={seeding}
                     aria-label="Seed defaults"
+                    title="Seed defaults"
                   >
                     {seeding ? <Loader2 size={14} className={styles.spin} /> : <Plus size={14} aria-hidden="true" />}
                     <span className={styles.addBtnLabel}>Seed defaults</span>
@@ -1169,9 +1174,10 @@ export function AdminClient() {
           title="Food Styles"
           headingCount={foodStyleRecords.length}
           collapsible
+          defaultOpen={false}
           actions={
             !foodStyleAdding && !foodStyleEditingId && (
-              <button className={styles.addBtn} onClick={() => setFoodStyleAdding(true)} aria-label="Add food style">
+              <button className={styles.addBtn} onClick={() => setFoodStyleAdding(true)} aria-label="Add food style" title="Add food style">
                 <Plus size={14} aria-hidden="true" /> <span className={styles.addBtnLabel}>Add food style</span>
               </button>
             )
@@ -1252,9 +1258,10 @@ export function AdminClient() {
           title="Brands"
           headingCount={brandRecords.length}
           collapsible
+          defaultOpen={false}
           actions={
             !brandAdding && !brandEditingId && (
-              <button className={styles.addBtn} onClick={() => setBrandAdding(true)} aria-label="Add brand">
+              <button className={styles.addBtn} onClick={() => setBrandAdding(true)} aria-label="Add brand" title="Add brand">
                 <Plus size={14} aria-hidden="true" /> <span className={styles.addBtnLabel}>Add brand</span>
               </button>
             )
@@ -1343,9 +1350,10 @@ export function AdminClient() {
           title="Shop Styles"
           headingCount={shopStyleRecords.length}
           collapsible
+          defaultOpen={false}
           actions={
             !shopStyleAdding && !shopStyleEditingId && (
-              <button className={styles.addBtn} onClick={() => setShopStyleAdding(true)} aria-label="Add shop style">
+              <button className={styles.addBtn} onClick={() => setShopStyleAdding(true)} aria-label="Add shop style" title="Add shop style">
                 <Plus size={14} aria-hidden="true" /> <span className={styles.addBtnLabel}>Add shop style</span>
               </button>
             )
