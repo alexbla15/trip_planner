@@ -344,9 +344,9 @@
 }
 
 /* Small icon button next to the attraction name — "part of {parent}"/"brand: {brand}",
-   compact enough to sit inline in .nameRow instead of taking its own line as a text chip
-   (the parent/brand name itself is reachable via the title/aria-label on hover/focus,
-   rather than printed out). */
+   compact enough to sit inline in .nameRow rather than taking its own line as a text chip
+   — only the brand link uses this (the parent chip below uses .parentLine, its own full
+   text line). */
 .nameIconBtn {
   display: flex;
   align-items: center;
@@ -366,6 +366,34 @@
   background: color-mix(in srgb, var(--color-accent-dark) 18%, transparent);
 }
 .nameIconBtn:focus-visible {
+  outline: 2px solid var(--color-accent-dark);
+  outline-offset: 2px;
+}
+
+/* "Part of {parent}" — a distinct color from .meta (city) below so the two don't read
+   as the same kind of fact; matches the accent color used for the same "nesting"
+   concept in AttractionDetailModal's childCountBadge. */
+.parentLine {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 500;
+  color: var(--color-accent-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.parentLine:hover {
+  text-decoration: underline;
+}
+.parentLine:focus-visible {
   outline: 2px solid var(--color-accent-dark);
   outline-offset: 2px;
 }

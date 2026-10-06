@@ -313,9 +313,25 @@
 /* Header icon-button variant (clickable case, when onNavigateToAttraction is wired) — same
    36px footprint/family as .closeBtn/.visitedToggleBtn so every header action reads as one
    row of equally-weighted icon buttons, not a chip stranded among them. The plain-text
-   .parentBadge above is still used for the non-clickable (no onNavigateToAttraction) case,
-   rendered in the body instead. */
+   .parentBadge above renders this chip-button variant for the clickable
+   (onNavigateToAttraction) case, same styling extended with hover/focus. */
 .parentBadgeButton {
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--easing-out);
+}
+.parentBadgeButton:hover {
+  background: color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+.parentBadgeButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Header icon-button variant for the brand chip — same 36px footprint/family as
+   .closeBtn/.visitedToggleBtn so every header action reads as one row of equally-weighted
+   icon buttons. Distinct from .parentBadgeButton above (that one stays a chip in the body;
+   only the brand link moved into the header — see AttractionDetailModal.tsx). */
+.brandHeaderBtn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -331,17 +347,13 @@
     color var(--duration-fast) var(--easing-out),
     border-color var(--duration-fast) var(--easing-out);
 }
-.parentBadgeButton:hover {
+.brandHeaderBtn:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
-.parentBadgeButton:focus-visible {
+.brandHeaderBtn:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-}
-.parentBadgeButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .childrenSection {

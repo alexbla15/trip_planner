@@ -228,17 +228,6 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
         <span className={styles.nameRow}>
           <span className={styles.typeIcon} aria-hidden="true">{icon}</span>
           <span className={styles.name}>{attraction.name}</span>
-          {attraction.parentAttractionId && attraction.parentAttractionName && (
-            <button
-              type="button"
-              className={styles.nameIconBtn}
-              onClick={handleOpenParent}
-              title={`Part of "${attraction.parentAttractionName}"`}
-              aria-label={`View details for ${attraction.parentAttractionName}, which ${attraction.name} is part of`}
-            >
-              <ArrowUpRight size={12} aria-hidden="true" />
-            </button>
-          )}
           {attraction.brandId && attraction.brandName && (
             <button
               type="button"
@@ -251,6 +240,18 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
             </button>
           )}
         </span>
+        {attraction.parentAttractionId && attraction.parentAttractionName && (
+          <button
+            type="button"
+            className={styles.parentLine}
+            onClick={handleOpenParent}
+            title={`View "${attraction.parentAttractionName}"`}
+            aria-label={`View details for ${attraction.parentAttractionName}, which ${attraction.name} is part of`}
+          >
+            <ArrowUpRight size={11} aria-hidden="true" />
+            ({attraction.parentAttractionName})
+          </button>
+        )}
         {attraction.city && (
           <span className={styles.meta}>
             <MapPin size={11} aria-hidden="true" />

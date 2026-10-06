@@ -296,16 +296,15 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
             <h2 className={styles.title}>{attraction.name}</h2>
           </div>
           <div className={styles.headerActions}>
-            {attraction.parentAttractionId && attraction.parentAttractionName && onNavigateToAttraction && (
+            {attraction.brandId && attraction.brandName && (
               <button
                 type="button"
-                className={styles.parentBadgeButton}
-                onClick={handleOpenParent}
-                disabled={parentLoading}
-                aria-label={`View "${attraction.parentAttractionName}"`}
-                title={`Part of "${attraction.parentAttractionName}"`}
+                className={styles.brandHeaderBtn}
+                onClick={() => setBrandModalOpen(true)}
+                aria-label={`View "${attraction.brandName}" brand details`}
+                title={`Brand: "${attraction.brandName}"`}
               >
-                <Building2 size={16} aria-hidden="true" />
+                <Store size={16} aria-hidden="true" />
               </button>
             )}
             <WebsiteLinkButton url={attraction.websiteUrl} variant="compact" className={styles.websiteBtn} />
@@ -413,30 +412,24 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
           )}
 
           {/* Nesting — structural facts about the attraction itself (not per-user, unlike
-              the visited/used-in-trip signals above), so shown to every viewer. The
-              clickable (onNavigateToAttraction) case is an icon button in the header
-              instead — see parentBadgeButton there. */}
-          {attraction.parentAttractionId && attraction.parentAttractionName && !onNavigateToAttraction && (
-            <p className={styles.parentBadge}>
-              <Building2 size={13} aria-hidden="true" />
-              Part of &quot;{attraction.parentAttractionName}&quot;
-            </p>
-          )}
-
-          {/* Brand/chain link — a different relationship from parent nesting above (not
-              physical containment; see `models/Brand.ts`), so its own chip rather than
-              reusing the parent one. Opens a small view/edit modal, not a navigation away
-              from this attraction. */}
-          {attraction.brandId && attraction.brandName && (
-            <button
-              type="button"
-              className={`${styles.parentBadge} ${styles.parentBadgeButton}`}
-              onClick={() => setBrandModalOpen(true)}
-              title={`View "${attraction.brandName}" brand details`}
-            >
-              <Store size={13} aria-hidden="true" />
-              {attraction.brandName}
-            </button>
+              the visited/used-in-trip signals above), so shown to every viewer. */}
+          {attraction.parentAttractionId && attraction.parentAttractionName && (
+            onNavigateToAttraction ? (
+              <button
+                type="button"
+                className={`${styles.parentBadge} ${styles.parentBadgeButton}`}
+                onClick={handleOpenParent}
+                title={`View "${attraction.parentAttractionName}"`}
+              >
+                <Building2 size={13} aria-hidden="true" />
+                Part of &quot;{attraction.parentAttractionName}&quot;
+              </button>
+            ) : (
+              <p className={styles.parentBadge}>
+                <Building2 size={13} aria-hidden="true" />
+                Part of &quot;{attraction.parentAttractionName}&quot;
+              </p>
+            )
           )}
           {!!attraction.childAttractionCount && attraction.childAttractionCount > 0 && (
             <div className={styles.childrenSection}>
