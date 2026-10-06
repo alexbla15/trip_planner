@@ -359,35 +359,65 @@ button.typeChip {
 }
 .clearFilterBtn:hover { background: var(--color-bg-subtle); }
 
-.locationsList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  max-height: 220px;
+.locationsTableWrap {
+  max-height: 240px;
   overflow-y: auto;
+  overflow-x: auto;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
 }
 
-.locationsList li:last-child .locationRow { border-bottom: none; }
+.locationsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.locationsTable thead th {
+  position: sticky;
+  top: 0;
+  padding: 7px 10px;
+  background: var(--color-bg-subtle);
+  color: var(--color-text-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.locationsTable td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.locationsTable tbody tr:last-child td { border-bottom: none; }
 
 .locationRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 8px 10px;
-  border: none;
-  border-bottom: 1px solid var(--color-border-subtle);
-  background: transparent;
-  font-size: 12px;
-  font-family: inherit;
-  text-align: left;
   cursor: pointer;
   transition: background var(--duration-fast) var(--easing-out);
 }
 .locationRow:hover { background: var(--color-bg-subtle); }
 .locationRow:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
+
+.locationNameCell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.locationParent {
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+}
 
 .locationsPagination {
   display: flex;
@@ -422,18 +452,4 @@ button.typeChip {
 .locationIcon {
   color: var(--color-text-tertiary);
   flex-shrink: 0;
-}
-
-.locationName {
-  font-weight: 600;
-  color: var(--color-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.locationMeta {
-  margin-left: auto;
-  flex-shrink: 0;
-  color: var(--color-text-tertiary);
 }

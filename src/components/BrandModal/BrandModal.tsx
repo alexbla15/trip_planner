@@ -373,25 +373,45 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
                     </button>
                   )}
                 </div>
-                <ul className={styles.locationsList}>
-                  {paginatedLocations.map((a) => (
-                    <li key={a._id}>
-                      <button
-                        type="button"
-                        className={styles.locationRow}
-                        onClick={() => setViewingAttraction(a)}
-                        aria-label={`View details for ${a.name}`}
-                      >
-                        <MapPin size={13} aria-hidden="true" className={styles.locationIcon} />
-                        <span className={styles.locationName}>
-                          {a.name}
-                          {a.parentAttractionName && ` (${a.parentAttractionName})`}
-                        </span>
-                        <span className={styles.locationMeta}>{[a.city, a.country].filter(Boolean).join(", ")}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                <div className={styles.locationsTableWrap}>
+                  <table className={styles.locationsTable}>
+                    <thead>
+                      <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Country</th>
+                        <th scope="col">City</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedLocations.map((a) => (
+                        <tr
+                          key={a._id}
+                          className={styles.locationRow}
+                          onClick={() => setViewingAttraction(a)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setViewingAttraction(a);
+                            }
+                          }}
+                          tabIndex={0}
+                          role="button"
+                          aria-label={`View details for ${a.name}`}
+                        >
+                          <td className={styles.locationNameCell}>
+                            <MapPin size={13} aria-hidden="true" className={styles.locationIcon} />
+                            {a.name}
+                            {a.parentAttractionName && (
+                              <span className={styles.locationParent}> ({a.parentAttractionName})</span>
+                            )}
+                          </td>
+                          <td>{a.country || "—"}</td>
+                          <td>{a.city || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
                 {locationsTotalPages > 1 && (
                   <div className={styles.locationsPagination}>
                     <button
