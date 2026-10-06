@@ -148,12 +148,15 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
         <div className={styles.headerTitle}>
           <Store size={18} className={styles.headerIcon} aria-hidden="true" />
           <h2 id={HEADING_ID} className={styles.title}>{brand?.name ?? "Brand"}</h2>
-          {isAdmin && brand && !editing && (
+          {brand && !editing && (
             <div className={styles.headerActions}>
-              <button type="button" className={styles.headerIconBtn} onClick={() => setEditing(true)} aria-label="Edit brand">
-                <Pencil size={15} aria-hidden="true" />
-              </button>
-              {confirmingDelete ? (
+              <WebsiteLinkButton url={brand.websiteUrl} variant="compact" className={styles.headerIconBtn} />
+              {isAdmin && (
+                <button type="button" className={styles.headerIconBtn} onClick={() => setEditing(true)} aria-label="Edit brand">
+                  <Pencil size={15} aria-hidden="true" />
+                </button>
+              )}
+              {isAdmin && (confirmingDelete ? (
                 <div className={styles.confirmDelete}>
                   <span>Delete?</span>
                   <button type="button" className={styles.confirmYes} onClick={handleDelete} disabled={deleting}>Yes</button>
@@ -168,7 +171,7 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
                 >
                   <Trash2 size={15} aria-hidden="true" />
                 </button>
-              )}
+              ))}
             </div>
           )}
         </div>
@@ -282,7 +285,6 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
               <div className={styles.photoFallback}><Store size={28} aria-hidden="true" /></div>
             )}
           </div>
-          <WebsiteLinkButton url={brand.websiteUrl} />
           {(brand.types.length > 0 || brand.foodStyles.length > 0 || brand.shopStyles.length > 0) && (
             <div className={styles.typeChips}>
               {brand.types.map((t) => {
