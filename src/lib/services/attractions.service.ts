@@ -10,6 +10,7 @@ import { Trip, type ITrip, type IScheduleEntry } from "@/models/Trip";
 import { getVisitedIdSet, isAttractionVisited } from "@/lib/services/visited.service";
 import { getUsedInTripsMap, getUsedInTripNames } from "@/lib/services/usedInTrips.service";
 import { getParentNameMap, getParentName, getParentPhotoMap, getParentPhoto, getChildCountMap, getChildCount, resolveParentLink } from "@/lib/services/nestedAttractions.service";
+import { getBrandMap, getBrand, resolveBrandLink } from "@/lib/services/brands.service";
 import type { JwtPayload } from "@/lib/auth";
 import type { Attraction as AttractionShape, OpeningHours } from "@/types/attraction";
 
@@ -185,6 +186,12 @@ export interface CreateAttractionInput {
    *  values for those fields are ignored (silently overridden), not rejected — a child's
    *  location is defined by its parent, not by the caller. */
   parentAttractionId?: string | null;
+  /** Links this attraction to a chain/brand (see `models/Brand.ts`) — unlike
+   *  parentAttractionId above, this never overrides anything the caller sent; `types` left
+   *  empty and `photoUrl`/`websiteUrl` left unset simply fall back to the brand's own
+   *  values at read time (see `formatAttraction`), so this field only ever ADDS a default,
+   *  never silently discards a client-supplied value. */
+  brandId?: string | null;
   types?: string[];
   /** Only meaningful for dining-type attractions — admin-managed food style names. */
   foodStyles?: string[];
@@ -208,7 +215,7 @@ export interface CreateAttractionInput {
 }
 
 export async function createAttraction(payload: JwtPayload, body: CreateAttractionInput): Promise<IAttraction> {
-  const { name, country, region, city, coordinates, parentAttractionId, types, foodStyles, shopStyles, durationValue, durationUnit,
+  const { name, country, region, city, coordinates, parentAttractionId, brandId, types, foodStyles, shopStyles, durationValue, durationUnit,
     price, prices: priceTiersInput, currency, openingHours, openingMonths, seasonalHours, notes, photoUrl, websiteUrl } = body;
 
   if (!name?.trim() || (!parentAttractionId && (!country?.trim() || !city?.trim()))) {
@@ -241,6 +248,7 @@ export async function createAttraction(payload: JwtPayload, body: CreateAttracti
   // A child's coordinates/city/country are inherited from the parent, not client-supplied —
   // silently overridden rather than rejected, since the location is defined by the parent.
   const parent = parentAttractionId ? await resolveParentLink(parentAttractionId, country) : null;
+  const brand = brandId ? await resolveBrandLink(brandId) : null;
   const resolvedCountry = parent?.country ?? country!.trim();
   const resolvedRegion = parent ? parent.region : (region?.trim() || undefined);
   const resolvedCity = parent?.city ?? city!.trim();
@@ -256,6 +264,7 @@ export async function createAttraction(payload: JwtPayload, body: CreateAttracti
       city: resolvedCity,
       coordinates: resolvedCoordinates,
       parentAttractionId: parent?._id ?? null,
+      brandId: brand?._id ?? null,
       types: typeIds,
       foodStyles: foodStyleIds,
       shopStyles: shopStyleIds,
@@ -363,6 +372,18 @@ export async function updateAttraction(
       attraction.region = parentJustSet.region;
       attraction.city = parentJustSet.city;
       attraction.coordinates = parentJustSet.coordinates ?? null;
+    }
+  }
+
+  // Brand link: `null` explicitly clears it, `undefined` (key absent) leaves it untouched.
+  // Unlike the parent link above, this never writes onto any other field — it's a pure
+  // fallback-only default, so there's nothing to "re-apply" when it's cleared.
+  if (body.brandId !== undefined) {
+    if (body.brandId === null) {
+      attraction.brandId = null;
+    } else {
+      const brand = await resolveBrandLink(body.brandId as string);
+      attraction.brandId = brand._id as IAttraction["brandId"];
     }
   }
 
@@ -531,6 +552,7 @@ export async function listTripAttractions(
   const parentNameMap = await getParentNameMap(docs.map((doc) => doc.parentAttractionId?.toString()));
   const parentPhotoMap = await getParentPhotoMap(docs.map((doc) => doc.parentAttractionId?.toString()));
   const childCountMap = await getChildCountMap(docs.map((doc) => doc._id.toString()));
+  const brandMap = await getBrandMap(docs.map((doc) => doc.brandId?.toString()));
 
   // Group regular-attraction schedule entries by which real document they reference — a
   // real attraction can have multiple instances (see IScheduleEntry.attractionRef), each
@@ -558,11 +580,12 @@ export async function listTripAttractions(
     const parentAttractionName = doc.parentAttractionId ? parentNameMap.get(doc.parentAttractionId.toString()) : undefined;
     const parentAttractionPhotoUrl = doc.parentAttractionId ? parentPhotoMap.get(doc.parentAttractionId.toString()) : undefined;
     const childAttractionCount = childCountMap.get(idStr) ?? 0;
+    const brand = doc.brandId ? brandMap.get(doc.brandId.toString()) : undefined;
     if (!entries || entries.length === 0) {
-      result.push(formatAttraction(doc, null, idStr, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl)); // linked but not yet scheduled
+      result.push(formatAttraction(doc, null, idStr, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl, brand)); // linked but not yet scheduled
     } else {
       for (const [key, entry] of entries) {
-        result.push(formatAttraction(doc, entry, key, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl));
+        result.push(formatAttraction(doc, entry, key, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl, brand));
       }
     }
   }
@@ -858,6 +881,7 @@ export async function addAttractionToTrip(
   const parentAttractionName = await getParentName(attraction.parentAttractionId?.toString());
   const parentAttractionPhotoUrl = await getParentPhoto(attraction.parentAttractionId?.toString());
   const childAttractionCount = await getChildCount(attractionId);
+  const brand = await getBrand(attraction.brandId?.toString());
 
   const alreadyLinked = trip.attractionIds.some(
     (id) => id.toString() === attractionId
@@ -886,12 +910,12 @@ export async function addAttractionToTrip(
       });
       await attraction.populate(["types", "foodStyles", "shopStyles"]);
       const usedInTripNames = await getUsedInTripNames(payload.userId, attractionId);
-      return { status: 201, data: formatAttraction(attraction, scheduleEntry, instanceKey, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl) };
+      return { status: 201, data: formatAttraction(attraction, scheduleEntry, instanceKey, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl, brand) };
     }
     const schedule = trip.schedules?.get(attractionId);
     await attraction.populate(["types", "foodStyles", "shopStyles"]);
     const usedInTripNames = await getUsedInTripNames(payload.userId, attractionId);
-    return { status: 200, data: formatAttraction(attraction, schedule ?? null, undefined, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl) };
+    return { status: 200, data: formatAttraction(attraction, schedule ?? null, undefined, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl, brand) };
   }
 
   trip.attractionIds.push(attraction._id);
@@ -921,7 +945,7 @@ export async function addAttractionToTrip(
   await attraction.populate(["types", "foodStyles", "shopStyles"]);
 
   const usedInTripNames = await getUsedInTripNames(payload.userId, attractionId);
-  return { status: 201, data: formatAttraction(attraction, scheduleEntry, undefined, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl) };
+  return { status: 201, data: formatAttraction(attraction, scheduleEntry, undefined, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl, brand) };
 }
 
 export interface UpdateTripAttractionScheduleInput {
@@ -1102,8 +1126,9 @@ export async function updateTripAttractionSchedule(
   const parentAttractionName = await getParentName(attraction.parentAttractionId?.toString());
   const parentAttractionPhotoUrl = await getParentPhoto(attraction.parentAttractionId?.toString());
   const childAttractionCount = await getChildCount(realAttractionId);
+  const brand = await getBrand(attraction.brandId?.toString());
 
-  return formatAttraction(attraction, updatedSchedule, attractionId, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl);
+  return formatAttraction(attraction, updatedSchedule, attractionId, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl, brand);
 }
 
 /** Unlink attraction from this trip (or remove a custom time-slot / flight entirely).

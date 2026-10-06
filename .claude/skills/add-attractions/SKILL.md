@@ -5,6 +5,14 @@ description: Bulk-add Attraction documents directly to MongoDB via a one-off scr
 
 # Adding attractions to the DB in bulk
 
+**Before adding any bulk batch of mall/shopping-center tenants**: the user has explicitly asked that
+**Books & Stationery** (bookstores, stationery shops — e.g. Waterstones, Steimatzky, Ryman, Moleskine,
+Paper Source) and **Telecom & Optical** (phone carriers, opticians, eyewear — e.g. EE, O2, Vodafone,
+Specsavers, Vision Express, GrandOptical, Sunglass Hut) stores be excluded from this DB going forward.
+If a batch you're about to insert includes any tenant in these two categories, stop and ask the user
+specifically whether they want those included this time, rather than adding them by default. This
+applies per-batch — always ask, don't silently skip *or* silently include.
+
 This project stores attractions as Mongoose documents (`src/models/Attraction.ts`, collection
 `attractions`) in MongoDB. There is no seed file for attractions. For one-off batches (the user
 pastes a list of place names), write and run a throwaway `.mjs` script in `scripts/` rather than
@@ -30,6 +38,7 @@ and matches the existing precedent (`scripts/migrate-attraction-categories.mjs`)
 | `subtype` / `residenceType` | **Any place that is accommodation (hotel/guesthouse/apartment/hostel/villa) must be inserted as a Residence, not a plain attraction.** Set `subtype: "residence"` and `residenceType` to one of `"Hotel" \| "Apartment" \| "Hostel" \| "Villa" \| "Other"` (pick the closest fit; use `"Other"` rather than forcing a bad match) — see `AddResidenceModal.tsx` for the reference shape. Also set `price: null` and omit `durationValue`/`durationUnit`/`openingHours` (accommodation doesn't have visiting "hours" or a duration — see `AddResidenceModal.tsx`, which never collects them). Without `subtype: "residence"`, the record is invisible to every trip's Residences section even if it has an accommodation-flavored `types` tag (e.g. `"Hostel"`/`"Apartment"`) — the type tag alone does **not** make it a residence. `checkInDate`/`checkOutDate` are intentionally *not* set here — those are trip-specific booking dates written only when the place is actually added to a trip's schedule, never on the shared library document. |
 | `foodStyles` | Array of ObjectId refs to `FoodStyle` (collection `foodstyles`, model `src/models/FoodStyle.ts`) — **only meaningful when the attraction's `types` include a type whose `AttractionType.category` resolves to `"Dining"`** (query `attractiontypes` joined to `attractioncategories` to check; as of this writing that's `Restaurant`, `Bar`, `Café`, `Supermarket`, `Food Truck`, `Ice Cream`). Look up ids **by name** the same way as `types`; if a needed style (e.g. "Italian", "Sushi", "Vegan") doesn't exist yet in `foodstyles`, create it (`{name}`, unique) rather than skipping the field — it's an open admin-managed list, not a fixed enum. Non-dining attractions must omit `foodStyles` entirely (or leave it `[]`) — don't set it on a landmark/museum/park just because it's convenient. |
 | `parentAttractionId` | ObjectId ref to another `Attraction` — set when the venue is physically inside another attraction already in the DB (a food-court restaurant inside a Mall, a shop inside a Market, a café inside a Museum), one nesting level enforced by the service layer (a parent can itself be a child, so check the parent's own `parentAttractionId` chain before nesting under it — arbitrary depth is allowed, cycles are not). **When set, do not independently write `coordinates`, `city`, or `country` on the child** — the real app inherits these from the parent at write/read time (see `src/lib/services/nestedAttractions.service.ts`); write the same `city`/`country` string as the parent for consistency in a bulk-insert script anyway (there's no server-side inheritance in a raw `db.collection.insertOne`), but never invent independent coordinates for a nested child. Before batch-inserting into a city, check `db.attractions.find({city, types: <Mall type id>})` for existing malls/markets in that city — if the batch includes a restaurant/store that's actually located inside one of them, nest it rather than inserting it as a flat top-level attraction. |
+| `brandId` | ObjectId ref to `Brand` (collection `brands`, model `src/models/Brand.ts`) — set when the venue is a branch of a named chain (Adidas, McDonald's, EDEKA, etc.). **Before researching photo/types for a chain location, check `db.brands.findOne({name: <chain name>})` first** — if the chain already has a Brand doc, just link `brandId` and skip the photo/types lookup entirely (they fall back to the brand's own values at read time, see `formatAttraction`'s brand-fallback logic — this is a live fallback, not a one-time copy, so updating the Brand doc later fixes every linked location at once). If the chain has no Brand doc yet, create one (`{name, photoUrl, websiteUrl, types}` — same research you'd otherwise do per-location, just done once) before inserting the first location, then link every subsequent location in the same batch to it. **Only worth creating a Brand for a real multi-location chain** (3+ branches already in the batch/DB, or clearly about to grow) — a single standalone shop doesn't need one; just set its `photoUrl`/`types`/`websiteUrl` directly as normal. When `brandId` is set, it's still fine (not required) to also set the attraction's own `photoUrl`/`types`/`websiteUrl` directly if a specific location genuinely differs from the chain default (a flagship store with unique architecture, a location with a different official site) — the attraction's own value always wins over the brand's. |
 | `notes` | **Free-text, and easy to pollute — keep it empty unless there's a genuine fact to add.** `notes` is for facts about the *venue* that a trip viewer would want to read (e.g. "tour departure times vary by season: ...", "tiered pricing: child 8000 ISK, student 10000 ISK", "hours shown are for the wine-tasting slot only, not general service"). It is never the place for commentary about *your research process* — anything about what you could/couldn't verify, where you looked, or how confident you are is meta-commentary for the **chat reply only**, never the DB. **Hard bans on `notes` content (check every record against this list before inserting, not just the first one in a batch):** (1) a street address, or any restatement of the `city`/`country` already on the record — the schema has no address field and `notes` must not become one; (2) disclaimers about data provenance/confidence — "coordinates are approximate", "checked on <date>", "verified via <source>"; (3) "couldn't verify" / "could not confirm" / "only published on X, not their website" or any other statement about a failed research attempt — if you couldn't verify something, that fact goes in your chat reply, and the DB field itself (e.g. `openingHours`) is simply left unset, with no accompanying note explaining why; (4) restatements of the `price`/`openingHours` values already set on their own fields. If there's nothing left to add once those are stripped out, omit `notes` entirely rather than filling it with boilerplate. |
 
 ## Cable cars / funiculars / ropeways (type "Cable Car")
@@ -59,7 +68,75 @@ add-ons (guided tours, audio guides, photography/filming fees, rentals) — not 
 row's own `label`; two rows with different `label`s (`"Entry"` vs `"48-Hour Combined Pass"`) can and
 often should share the same `product` (`"Entry"`) when they're variations on getting into the same
 venue, so a UI grouping by `product` shows a sensible small set of purchase categories rather than
-one group per row. Set `visitorType: "All"` explicitly on rows that apply to every visitor type (a
+one group per row. This applies to purchase *channel* too, not just combo/pass variants: online vs.
+on-site pricing, or a group/school-class rate, are still `product: "Entry"` — put the channel/audience
+distinction in `label` (`"online, time-slot"`, `"on-site"`, `"Group Ticket (10+, per person)"`) and
+`visitorType`, not in `product` (confirmed via a user correction on `Samurai Museum Berlin`: online
+and on-site admission tiers, including the group and school-class rates, all share `product: "Entry"`;
+only the guided-tour-add-on and audio-guide rows get `product: "Extras"`). This also holds across
+separately-ticketed buildings within one complex: `Schloss Charlottenburg`'s Old Palace and New Wing
+are two different buildings needing separate tickets, but both are still just "getting into the
+palace" — `product: "Entry"` for both, with the building name in `label` (`"Old Palace"`, `"New Wing"`).
+A first attempt at this record split them into `product: "Old Palace"` / `product: "New Wing"`, which
+the user corrected back — don't split `product` per building/zone unless the venue's own pricing page
+treats them as genuinely distinct purchase products (contrast the Therme Bucharest `"Galaxy"` vs
+`"Palm"` case, which really are separately-branded zone passes, not just rooms in the same building).
+The one line that *does* get its own product on Charlottenburg is the `Charlottenburg+` day pass — a
+combined multi-institution ticket is a different purchase category from single-building entry, so
+`product: "Charlottenburg+"` is correct there. A guided tour specifically needs a case-by-case call:
+at `Samurai Museum Berlin` "Guided Tour + Ticket" was a separately bookable product on top of a
+normal ticket, so it got its own `product: "Extras"`; at `Alpirsbach Monastery`, "Entry + Guided Tour"
+is just an alternative *admission tier* — you pick either plain entry or entry-with-tour as your one
+ticket type, both get you into the same monastery — so the user corrected a first attempt (which had
+split it into `product: "Guided Tour"`) back to `product: "Entry"` for every row, adult/reduced/
+family/group/guest-card and with-or-without-tour alike, with the tour distinction living in `label`
+(`"Single Entry"` vs `"Entry + Guided Tour"`) and the demographic in `visitorType`. Ask "is this a
+separate purchase bolted onto a ticket, or just a different way of buying the same one ticket?" — the
+former is its own product, the latter stays `"Entry"`. This threshold turned out narrower than the
+Charlottenburg+ case suggested: at `Pont Saint-Bénézet (Pont d'Avignon)` and `Palais des Papes`, even
+a two-site combo ticket ("Pont d'Avignon + Palais des Papes & Gardens") stays `product: "Entry"`
+alongside the single-site ticket, with the site combination named in `label` instead
+(`"Pont d'Avignon"` vs `"Pont d'Avignon + Palais des Papes & Gardens"`) — only the `Avignon City Pass`
+(a broader, separately-branded multi-attraction pass, not tied to naming two specific sights) gets its
+own product; same logic for ride direction at a cable car/funicular-style attraction: at
+`Feldberg Tower (Feldbergturm)`, Uphill-only / Downhill-only / Round-trip / Round-trip+House-of-Nature
+are four ways of buying entry to the same tower via the same cable car, not four different products —
+a first pass gave each its own `product` (splintering the detail modal into four separate tabs, which
+is the bug the user flagged: "why so many price tabs? these are just tiers within the same tab"), the
+fix was collapsing all of them to `product: "Entry"` with the ride/combo variant named in `label`
+(`"Uphill (incl. Tower)"`, `"Round-trip (incl. Tower + House of Nature)"`, etc.) and `visitorType`
+doing the Adult/Child split. The number of tabs a venue ends up with is a direct, checkable signal of
+whether `product` was over-split — if a review pass ever turns up a venue with many tabs for what's
+conceptually one purchase (one building, one ride, one ticket window), that's the same bug, not
+necessarily a sign the venue is genuinely that complex — only a handful of venues (Therme Bucharest's
+separately-branded zones, a real multi-institution city pass) legitimately warrant more than one or
+two tabs. Only the `Avignon City Pass` (a broader, separately-branded multi-attraction pass) gets its
+own `product: "City Pass"`. So: a combo across a couple of named sights that a normal visitor would
+tour together is still "Entry"; a distinct pass/product family (city pass, annual pass, parking) is
+not. The same no-duplication logic applies one level down,
+between `label` and `visitorType` themselves: `label` should carry only the purchase
+mechanism/qualifier (a dynamic-pricing band, a channel, "Group (10+, per person)"), and `visitorType`
+alone should carry the demographic — don't restate the demographic inside `label` text too. A first
+pass at `Spy Museum Berlin` wrote separate labels `"Standard (dynamic pricing, up to)"` and `"Reduced
+(dynamic pricing, up to)"` for the adult and reduced rows of the same price band; the user corrected
+this to one shared label (`"dynamic pricing, up to"`) with `visitorType: "Adult"` / `"Reduced"` /
+`"Child up to 6"` doing all the demographic differentiation, and did the same for group pricing —
+`"Group (10+, per person)"` shared by both rows, split only by `visitorType: "Group"` vs `"School
+group"` (dropping a separate `"School Class (per person)"` label that repeated the same idea). This
+applies even to the plain base-admission case with no dynamic pricing or channel distinction at all:
+don't give each demographic its own `label` equal to its own name (`label: "Adult"` / `label: "Child"`
+/ `label: "Student"` / `label: "Israeli Senior Citizen"`) — that's the same label/visitorType
+duplication bug and it also breaks the detail modal's rendering, which pivots each product's tiers
+into a Tier(row) × VisitorType(column) grid keyed by `label` (see
+`AttractionDetailModal.utils.ts: buildPricePivot`) — four demographic-named labels render as four
+separate single-cell rows instead of one row with four columns. Give the base-rate rows one shared
+label describing the purchase type (`"Standard"` is the default when there's no more specific name;
+reuse the venue's own term — "Full Price", "General Admission" — if it has one), and put every
+demographic split in `visitorType` alone, the same way a `"Group (10+, per person)"` label is shared
+across its `visitorType: "Adult"` / `"Child"` rows (confirmed via a user correction on
+`Tel Beer Sheva National Park`: `label: "Adult"` / `"Child"` / `"Student"` / `"Israeli Senior Citizen"`
+collapsed to a shared `label: "Standard"` across all four, `visitorType` doing the differentiation,
+alongside the already-correct shared `"Group (per person)"` label). Set `visitorType: "All"` explicitly on rows that apply to every visitor type (a
 flat-rate guided tour, a rental fee) rather than omitting the field — an explicit `"All"` is
 self-documenting where an absent field just looks incomplete. Likewise always write `days: []`
 (not an omitted key) when a tier isn't day-restricted, for the same reason. Don't invent a `dayType`

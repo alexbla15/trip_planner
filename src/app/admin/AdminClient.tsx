@@ -5,7 +5,7 @@ import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import {
   Shield, Plus, Pencil, Trash2,
-  Loader2, ChevronDown, Tag, Smile, Layers, RefreshCw, UtensilsCrossed, ShoppingBag,
+  Loader2, ChevronDown, Tag, Smile, Layers, RefreshCw, UtensilsCrossed, ShoppingBag, Store,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
@@ -21,6 +21,8 @@ import {
   invalidateFoodStylesCache,
   useShopStyles,
   invalidateShopStylesCache,
+  useBrands,
+  invalidateBrandsCache,
 } from "@/hooks";
 import {
   createAttractionType,
@@ -40,6 +42,9 @@ import {
   createShopStyle,
   updateShopStyle,
   deleteShopStyle,
+  createBrand,
+  updateBrand,
+  deleteBrand,
   ApiError,
 } from "@/services";
 import { getIconComponent, renderTypeIcon, IconPicker, SectionCard } from "@/components";
@@ -49,11 +54,13 @@ import {
   type MoodTagFormState,
   type FoodStyleFormState,
   type ShopStyleFormState,
+  type BrandFormState,
   typeFormFromRecord,
   catFormFromRecord,
   moodFormFromRecord,
   foodStyleFormFromRecord,
   shopStyleFormFromRecord,
+  brandFormFromRecord,
 } from "@/lib";
 import type { AttractionCategoryRecord } from "@/types/attractionCategory";
 import { AdminEntityForm } from "./AdminEntityForm";
@@ -328,6 +335,113 @@ function ShopStyleForm({
   );
 }
 
+// ── Brand form ──────────────────────────────────────────────────────────────────
+// A brand's photo/types/website are DEFAULTS an attraction falls back to once linked via
+// brandId — never a value forced onto it, see `models/Brand.ts`. Unlike the other admin
+// entities above, nothing here is required besides the name: a brand created with no photo
+// yet still saves time on a bulk batch (name/types alone skip most of the "what category is
+// this" research), and can be filled in later without touching any attraction that already
+// links to it.
+
+const EMPTY_BRAND_FORM: BrandFormState = { name: "", photoUrl: "", websiteUrl: "", types: [] };
+
+function BrandForm({
+  initial, token, brandId, onDone, onCancel,
+}: {
+  initial: BrandFormState;
+  token: string;
+  brandId?: string;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const [form, setForm] = useState<BrandFormState>(initial);
+  const { types: typeOptions } = useAttractionTypes();
+
+  function set(key: "name" | "photoUrl" | "websiteUrl", value: string) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function toggleType(name: string) {
+    setForm((prev) => ({
+      ...prev,
+      types: prev.types.includes(name) ? prev.types.filter((t) => t !== name) : [...prev.types, name],
+    }));
+  }
+
+  function validate(): string | null {
+    if (!form.name.trim()) return "Name is required.";
+    return null;
+  }
+
+  async function handleSave() {
+    const payload = {
+      name: form.name.trim(),
+      photoUrl: form.photoUrl.trim(),
+      websiteUrl: form.websiteUrl.trim(),
+      types: form.types,
+    };
+    if (brandId) await updateBrand(brandId, token, payload);
+    else await createBrand(token, payload);
+    invalidateBrandsCache();
+  }
+
+  return (
+    <AdminEntityForm validate={validate} onSave={handleSave} onDone={onDone} onCancel={onCancel} isEditing={!!brandId}>
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Name *</label>
+        <input
+          className={styles.input}
+          value={form.name}
+          onChange={(e) => set("name", e.target.value)}
+          placeholder="e.g. Adidas"
+        />
+      </div>
+
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Default photo URL</label>
+        <input
+          className={styles.input}
+          value={form.photoUrl}
+          onChange={(e) => set("photoUrl", e.target.value)}
+          placeholder="https://…"
+        />
+      </div>
+
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Default website URL</label>
+        <input
+          className={styles.input}
+          value={form.websiteUrl}
+          onChange={(e) => set("websiteUrl", e.target.value)}
+          placeholder="https://…"
+        />
+      </div>
+
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Default categories/types</label>
+        <div className={styles.chipFilterInner}>
+          <div className={styles.chipGroup} role="group" aria-label="Default types">
+            {typeOptions.map((t) => {
+              const active = form.types.includes(t.name);
+              return (
+                <button
+                  key={t._id}
+                  type="button"
+                  className={`${styles.foodStyleChip} ${active ? styles.foodStyleChipActive : ""}`}
+                  aria-pressed={active}
+                  onClick={() => toggleType(t.name)}
+                >
+                  {t.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </AdminEntityForm>
+  );
+}
+
 // ── Mood Tag form ──────────────────────────────────────────────────────────────
 
 const EMPTY_MOOD_FORM: MoodTagFormState = {
@@ -435,6 +549,7 @@ export function AdminClient() {
   const { tags: moodTags, loading: tagsLoading } = useMoodTags();
   const { styles: foodStyleRecords, loading: foodStylesLoading } = useFoodStyles();
   const { styles: shopStyleRecords, loading: shopStylesLoading } = useShopStyles();
+  const { brands: brandRecords, loading: brandsLoading } = useBrands();
   const [collapsedTypeCategories, setCollapsedTypeCategories] = useState<Set<string>>(new Set());
 
   function toggleTypeCategory(cat: string) {
@@ -478,6 +593,12 @@ export function AdminClient() {
   const [shopStyleAdding, setShopStyleAdding]       = useState(false);
   const [shopStyleDeleteId, setShopStyleDeleteId]   = useState<string | null>(null);
   const [shopStyleDeleting, setShopStyleDeleting]   = useState(false);
+
+  // Brand CRUD state
+  const [brandEditingId, setBrandEditingId] = useState<string | null>(null);
+  const [brandAdding, setBrandAdding]       = useState(false);
+  const [brandDeleteId, setBrandDeleteId]   = useState<string | null>(null);
+  const [brandDeleting, setBrandDeleting]   = useState(false);
 
   const loading = authLoading || typesLoading;
 
@@ -609,6 +730,25 @@ export function AdminClient() {
     setShopStyleAdding(false);
     setShopStyleEditingId(null);
     toast.success(wasEditing ? "Shop style updated" : "Shop style created");
+  }
+
+  // ── Brand handlers ───────────────────────────────────────────────────────────
+
+  async function handleBrandDelete(id: string) {
+    if (!token) return;
+    setBrandDeleting(true);
+    await deleteBrand(id, token);
+    invalidateBrandsCache();
+    setBrandDeleting(false);
+    setBrandDeleteId(null);
+    toast.success("Brand deleted");
+  }
+
+  function handleBrandFormDone() {
+    const wasEditing = brandEditingId !== null;
+    setBrandAdding(false);
+    setBrandEditingId(null);
+    toast.success(wasEditing ? "Brand updated" : "Brand created");
   }
 
   async function handleSeedMoodTags() {
@@ -1037,6 +1177,90 @@ export function AdminClient() {
                         <button
                           className={`${styles.iconBtn} ${styles.deleteBtn}`}
                           onClick={() => setFoodStyleDeleteId(record._id)}
+                          aria-label={`Delete ${record.name}`}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              ))}
+            </div>
+          )}
+        </SectionCard>
+
+        {/* ── Brands card ────────────────────────────────────────────────────── */}
+        <SectionCard
+          icon={Store}
+          title="Brands"
+          headingCount={brandRecords.length}
+          collapsible
+          actions={
+            !brandAdding && !brandEditingId && (
+              <button className={styles.addBtn} onClick={() => setBrandAdding(true)} aria-label="Add brand">
+                <Plus size={14} aria-hidden="true" /> <span className={styles.addBtnLabel}>Add brand</span>
+              </button>
+            )
+          }
+        >
+          {brandAdding && token && (
+            <BrandForm
+              key="new-brand"
+              initial={EMPTY_BRAND_FORM}
+              token={token}
+              onDone={handleBrandFormDone}
+              onCancel={() => setBrandAdding(false)}
+            />
+          )}
+
+          {brandsLoading ? (
+            <div className={styles.center}><Loader2 size={24} className={styles.spin} /></div>
+          ) : (
+            <div className={styles.compactGrid}>
+              {brandRecords.map((record, index) => (
+                brandEditingId === record._id && token ? (
+                  <div key={record._id} className={styles.compactFormWrap}>
+                    <BrandForm
+                      key={record._id}
+                      initial={brandFormFromRecord(record)}
+                      token={token}
+                      brandId={record._id}
+                      onDone={handleBrandFormDone}
+                      onCancel={() => setBrandEditingId(null)}
+                    />
+                  </div>
+                ) : (
+                  <div key={record._id} className={styles.compactChip}>
+                    <span className={styles.compactIndex}>#{index + 1}</span>
+                    <Store size={14} aria-hidden="true" />
+                    <span className={styles.typeName}>{record.name}</span>
+                    <div className={styles.typeActions}>
+                      <button
+                        className={styles.iconBtn}
+                        onClick={() => { setBrandEditingId(record._id); setBrandAdding(false); }}
+                        aria-label={`Edit ${record.name}`}
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      {brandDeleteId === record._id ? (
+                        <div className={styles.confirmDelete}>
+                          <span>Delete?</span>
+                          <button
+                            className={styles.confirmYes}
+                            onClick={() => handleBrandDelete(record._id)}
+                            disabled={brandDeleting}
+                          >
+                            Yes
+                          </button>
+                          <button className={styles.confirmNo} onClick={() => setBrandDeleteId(null)}>
+                            No
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          className={`${styles.iconBtn} ${styles.deleteBtn}`}
+                          onClick={() => setBrandDeleteId(record._id)}
                           aria-label={`Delete ${record.name}`}
                         >
                           <Trash2 size={13} />

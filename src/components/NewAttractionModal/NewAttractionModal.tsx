@@ -34,7 +34,7 @@ import { SeasonalRangePicker } from "./SeasonalRangePicker";
 import { ParentAttractionPicker } from "./ParentAttractionPicker";
 import { PriceTierEditor } from "./PriceTierEditor";
 import { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h, isValidUrl, isYearRound, ALL_MONTHS, deriveOpeningMonthsFromSeasonalHours, formatOpeningMonthsLabel } from "@/lib";
-import { useReverseGeocodeAutofill, useAttractionTypes, useFoodStyles, useShopStyles } from "@/hooks";
+import { useReverseGeocodeAutofill, useAttractionTypes, useFoodStyles, useShopStyles, useBrands } from "@/hooks";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { emptyPriceTab, flatPriceTiersToTabs, tabsToFlatPriceTiers } from "./NewAttractionModal.utils";
 import type { Attraction } from "@/types/attraction";
@@ -78,6 +78,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   const { findType } = useAttractionTypes();
   const { styles: foodStyleOptions } = useFoodStyles();
   const { styles: shopStyleOptions } = useShopStyles();
+  const { brands: brandOptions } = useBrands();
 
   const [name, setName] = useState("");
   const [country, setCountry] = useState(defaultCountry ?? "");
@@ -137,6 +138,11 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   const [notes, setNotes] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
+  const [brandId, setBrandId] = useState<string | null>(null);
+  // The SearchableSelect's own text box — kept separate from brandId so clearing it (or
+  // typing a name that isn't an exact match) unlinks the brand without needing a dedicated
+  // "X" button, the same free-text-driven pattern the field already uses elsewhere.
+  const [brandNameInput, setBrandNameInput] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
@@ -199,6 +205,8 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setNotes(initialData?.notes ?? "");
     setPhotoUrl(initialData?.photoUrl ?? "");
     setWebsiteUrl(initialData?.websiteUrl ?? "");
+    setBrandId(initialData?.brandId ?? null);
+    setBrandNameInput(initialData?.brandName ?? "");
     setErrors({});
     setTouched({});
     setIs24h(isResidence ? true : isAllDay24h(loadedHours));
@@ -264,6 +272,24 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setParentAttractionName(null);
   }
 
+  // Selecting a brand fills in photoUrl/types/websiteUrl as DEFAULTS — only into fields
+  // that are still empty, so re-picking a brand (or picking one on an attraction that
+  // already has its own photo/types from a previous edit) never clobbers something real.
+  // The attraction's own value, once set, always wins server-side too (see
+  // `formatAttraction`'s brand fallback) — this is purely a time-saving starting point.
+  function handleBrandNameChange(value: string) {
+    setBrandNameInput(value);
+    const match = brandOptions.find((b) => b.name.toLowerCase() === value.trim().toLowerCase());
+    if (!match) {
+      setBrandId(null);
+      return;
+    }
+    setBrandId(match._id);
+    if (!photoUrl.trim() && match.photoUrl) setPhotoUrl(match.photoUrl);
+    if (!websiteUrl.trim() && match.websiteUrl) setWebsiteUrl(match.websiteUrl);
+    if (selectedTypes.length === 0 && match.types.length > 0) setSelectedTypes(match.types);
+  }
+
   function handleBlur(field: keyof FieldErrors) {
     setTouched((prev) => ({ ...prev, [field]: true }));
     const errs = validate();
@@ -318,6 +344,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       photoUrl,
       websiteUrl: websiteUrl.trim(),
       parentAttractionId,
+      brandId,
     };
     await Promise.resolve(onSave(data));
     setSaving(false);
@@ -958,6 +985,27 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           className={styles.textarea}
+        />
+      </div>
+
+      {/* Brand/chain — picking one fills in photo/types/website below as defaults, still
+          freely editable afterwards (see handleBrandNameChange). Admin-managed list (see
+          the Admin page's Brands section); this field only selects among existing brands,
+          it doesn't create new ones. */}
+      <div className={styles.field}>
+        <label htmlFor="attraction-brand" className={styles.labelWithIcon}>
+          <Building2 size={14} aria-hidden="true" />
+          Brand / chain (optional)
+        </label>
+        <SearchableSelect
+          id="attraction-brand"
+          value={brandNameInput}
+          onChange={handleBrandNameChange}
+          options={brandOptions.map((b) => b.name)}
+          placeholder="Search brands, e.g. Adidas…"
+          allowFreeText
+          ariaLabel="Brand or chain"
+          emptyMessage="No matching brand — managed from the Admin page"
         />
       </div>
 

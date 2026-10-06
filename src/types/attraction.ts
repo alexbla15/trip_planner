@@ -62,6 +62,16 @@ export interface Attraction {
   /** How many other attractions are nested inside this one. 0 for a child (nesting is one
    *  level only) or a leaf attraction with no children. */
   childAttractionCount?: number;
+  /** The chain/brand this attraction links to (e.g. "Adidas") — `null`/absent means it
+   *  isn't linked to one. Unlike parent nesting, this isn't physical containment: two
+   *  branches of the same chain both set the same `brandId` without either containing the
+   *  other. `types`/`photoUrl`/`websiteUrl` below already have the brand's defaults merged
+   *  in server-side whenever this attraction's own field was left unset — nothing further
+   *  to resolve client-side. */
+  brandId?: string | null;
+  /** The brand's name — set only when `brandId` is set, resolved server-side so consumers
+   *  can render "Adidas" without a second lookup, same contract as `parentAttractionName`. */
+  brandName?: string;
   // no tripId — attractions are global; scheduling lives in Trip.schedules
   ownerId?: string;
   name: string;

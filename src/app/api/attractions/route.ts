@@ -7,6 +7,7 @@ import { searchAttractions, createAttraction } from "@/lib/services/attractions.
 import { getVisitedIdSet } from "@/lib/services/visited.service";
 import { getUsedInTripsMap } from "@/lib/services/usedInTrips.service";
 import { getParentNameMap, getParentName, getParentPhotoMap, getParentPhoto, getChildCountMap } from "@/lib/services/nestedAttractions.service";
+import { getBrandMap, getBrand } from "@/lib/services/brands.service";
 
 export const OPTIONS = corsPreflight;
 
@@ -38,6 +39,7 @@ export const GET = withApiHandler("GET /api/attractions", async (req: Request) =
   const parentNameMap = await getParentNameMap(items.map((doc) => doc.parentAttractionId?.toString()));
   const parentPhotoMap = await getParentPhotoMap(items.map((doc) => doc.parentAttractionId?.toString()));
   const childCountMap = await getChildCountMap(items.map((doc) => doc._id.toString()));
+  const brandMap = await getBrandMap(items.map((doc) => doc.brandId?.toString()));
 
   // Response body stays a plain array for backward compatibility with existing callers
   // (src/services/attractions.service.ts) — pagination metadata rides on headers so
@@ -46,7 +48,8 @@ export const GET = withApiHandler("GET /api/attractions", async (req: Request) =
     doc, null, undefined, visitedIds.has(doc._id.toString()), usedInTripsMap.get(doc._id.toString()),
     doc.parentAttractionId ? parentNameMap.get(doc.parentAttractionId.toString()) : undefined,
     childCountMap.get(doc._id.toString()),
-    doc.parentAttractionId ? parentPhotoMap.get(doc.parentAttractionId.toString()) : undefined
+    doc.parentAttractionId ? parentPhotoMap.get(doc.parentAttractionId.toString()) : undefined,
+    doc.brandId ? brandMap.get(doc.brandId.toString()) : undefined
   )), {
     headers: {
       "X-Total-Count": String(total),
@@ -64,5 +67,6 @@ export const POST = withApiHandler("POST /api/attractions", async (req: Request)
   // Brand new — childAttractionCount is always 0 (nothing could reference it yet).
   const parentAttractionName = await getParentName(attraction.parentAttractionId?.toString());
   const parentAttractionPhotoUrl = await getParentPhoto(attraction.parentAttractionId?.toString());
-  return NextResponse.json(formatAttraction(attraction, null, undefined, false, [], parentAttractionName, 0, parentAttractionPhotoUrl), { status: 201 });
+  const brand = await getBrand(attraction.brandId?.toString());
+  return NextResponse.json(formatAttraction(attraction, null, undefined, false, [], parentAttractionName, 0, parentAttractionPhotoUrl, brand), { status: 201 });
 });

@@ -158,6 +158,15 @@ export interface AttractionFormData {
    *  edit mode can show the picked parent without an extra fetch — never sent to the API. */
   parentAttractionId: string | null;
   parentAttractionName?: string | null;
+  /** Id of the chain/brand this attraction links to (e.g. "Adidas"), or null when not
+   *  linked to one — see `models/Brand.ts`. Unlike parentAttractionId, this never implies
+   *  the fields it defaults (photoUrl/types/websiteUrl) were cleared from this form; it's
+   *  purely a fallback source resolved server-side whenever those were left blank. */
+  brandId?: string | null;
+  /** Display-only, like parentAttractionName — never sent by this form (brandId alone is).
+   *  Lets edit mode pre-fill the SearchableSelect's text box with the linked brand's name
+   *  without an extra fetch. */
+  brandName?: string | null;
   /** Display-only, like parentAttractionName — never edited/sent by this form. Used to
    *  detect "this attraction is a residence" so the form can hide fields that are
    *  meaningless on the shared document for a residence (opening hours/months are

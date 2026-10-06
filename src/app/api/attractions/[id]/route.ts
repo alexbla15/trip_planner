@@ -7,6 +7,7 @@ import { getAttractionById, updateAttraction, deleteAttraction } from "@/lib/ser
 import { isAttractionVisited } from "@/lib/services/visited.service";
 import { getUsedInTripNames } from "@/lib/services/usedInTrips.service";
 import { getParentName, getParentPhoto, getChildCount } from "@/lib/services/nestedAttractions.service";
+import { getBrand } from "@/lib/services/brands.service";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -28,7 +29,8 @@ export const GET = withApiHandler<RouteContext>("GET /api/attractions/[id]", asy
   const parentAttractionName = await getParentName(attraction.parentAttractionId?.toString());
   const parentAttractionPhotoUrl = await getParentPhoto(attraction.parentAttractionId?.toString());
   const childAttractionCount = await getChildCount(attraction._id.toString());
-  return NextResponse.json(formatAttraction(attraction, null, undefined, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl));
+  const brand = await getBrand(attraction.brandId?.toString());
+  return NextResponse.json(formatAttraction(attraction, null, undefined, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl, brand));
 });
 
 export const PUT = withApiHandler<RouteContext>("PUT /api/attractions/[id]", async (req, { params }) => {
@@ -42,7 +44,8 @@ export const PUT = withApiHandler<RouteContext>("PUT /api/attractions/[id]", asy
   const parentAttractionName = await getParentName(attraction.parentAttractionId?.toString());
   const parentAttractionPhotoUrl = await getParentPhoto(attraction.parentAttractionId?.toString());
   const childAttractionCount = await getChildCount(attraction._id.toString());
-  return NextResponse.json(formatAttraction(attraction, null, undefined, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl));
+  const brand = await getBrand(attraction.brandId?.toString());
+  return NextResponse.json(formatAttraction(attraction, null, undefined, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl, brand));
 });
 
 export const DELETE = withApiHandler<RouteContext>("DELETE /api/attractions/[id]", async (req, { params }) => {

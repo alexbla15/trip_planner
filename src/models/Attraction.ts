@@ -39,6 +39,13 @@ export interface IAttraction extends Document {
    *  When set, coordinates/city/country are inherited from the parent at write time, not
    *  independently editable. */
   parentAttractionId?: Types.ObjectId | null;
+  /** The chain/brand this attraction belongs to (e.g. "Adidas") — see `models/Brand.ts`.
+   *  Purely a convenience default source: `photoUrl`/`types`/`websiteUrl` fall back to the
+   *  brand's own values (resolved in `brands.service.ts`) only when this attraction's own
+   *  field is unset, never overriding a value the owner actually set. Unlike
+   *  `parentAttractionId`, this is not physical nesting — two Adidas stores in different
+   *  cities both link to the same brand without either being "inside" the other. */
+  brandId?: Types.ObjectId | null;
   types: Types.ObjectId[];
   /** Only meaningful when the attraction's type/category is dining-related — one or more
    *  admin-managed food styles (e.g. "Sushi", "Fast Food"). Referenced by id (not a
@@ -167,6 +174,7 @@ const AttractionSchema = new Schema<IAttraction>(
       default: null,
     },
     parentAttractionId: { type: Schema.Types.ObjectId, ref: "Attraction", default: null },
+    brandId: { type: Schema.Types.ObjectId, ref: "Brand", default: null },
     types: [{ type: Schema.Types.ObjectId, ref: "AttractionType" }],
     foodStyles: [{ type: Schema.Types.ObjectId, ref: "FoodStyle" }],
     shopStyles: [{ type: Schema.Types.ObjectId, ref: "ShopStyle" }],
@@ -211,6 +219,7 @@ const AttractionSchema = new Schema<IAttraction>(
 
 AttractionSchema.index({ ownerId: 1 });
 AttractionSchema.index({ parentAttractionId: 1 });
+AttractionSchema.index({ brandId: 1 });
 // Backs searchAttractions' country/city filter (Explore's country + city views) and its
 // `{ city: 1, name: 1 }` sort — without this, both the filtered `find` and the paired
 // `countDocuments` fall back to a full collection scan plus an in-memory sort.
@@ -261,7 +270,12 @@ export function formatAttraction(
    *  the parent has a photo; resolved by callers via getParentPhoto/getParentPhotoMap
    *  (see `src/lib/services/nestedAttractions.service.ts`). Used by the UI as a fallback
    *  when this attraction has no photo of its own. */
-  parentAttractionPhotoUrl?: string
+  parentAttractionPhotoUrl?: string,
+  /** This attraction's brand (see `models/Brand.ts`) — set only when `doc.brandId` is set;
+   *  resolved by callers via getBrand/getBrandMap (see `brands.service.ts`). `photoUrl`/
+   *  `types`/`websiteUrl` below fall back to these only when this document's own field is
+   *  unset — the brand never overrides a value the owner actually set. */
+  brand?: { name: string; photoUrl?: string; websiteUrl?: string; typeNames?: string[] }
 ): AttractionShape {
   // Synthesize a single primary tier from the legacy `price` field for any document that
   // predates multi-tier pricing (or was created/edited without specifying tiers) — callers
@@ -284,17 +298,23 @@ export function formatAttraction(
     parentAttractionName,
     parentAttractionPhotoUrl,
     childAttractionCount: childAttractionCount ?? 0,
+    brandId: doc.brandId ? doc.brandId.toString() : null,
+    brandName: brand?.name,
     ownerId: doc.ownerId?.toString(),
     name: doc.name,
     country: doc.country,
     region: doc.region,
     city: doc.city,
     coordinates: doc.coordinates ?? null,
-    types: (doc.types as unknown[]).map((t) =>
-      t && typeof t === "object" && "name" in (t as Record<string, unknown>)
-        ? (t as { name: string }).name
-        : String(t)
-    ),
+    // Own types win when set; an attraction with none of its own (the common case right
+    // after linking to a brand, before any override) falls back to the brand's defaults.
+    types: doc.types.length > 0
+      ? (doc.types as unknown[]).map((t) =>
+          t && typeof t === "object" && "name" in (t as Record<string, unknown>)
+            ? (t as { name: string }).name
+            : String(t)
+        )
+      : (brand?.typeNames ?? []),
     // Deleted FoodStyle docs leave a dangling ref that populate() resolves to null —
     // filter those out rather than rendering a stringified ObjectId/"null".
     foodStyles: ((doc.foodStyles as unknown[]) ?? [])
@@ -320,8 +340,8 @@ export function formatAttraction(
     openingMonths: doc.openingMonths,
     seasonalHours: doc.seasonalHours,
     notes: schedule?.notes ?? doc.notes,
-    photoUrl: doc.photoUrl,
-    websiteUrl: doc.websiteUrl,
+    photoUrl: doc.photoUrl || brand?.photoUrl,
+    websiteUrl: doc.websiteUrl || brand?.websiteUrl,
     verified: doc.verified ?? false,
     createdAt: doc.createdAt?.toISOString(),
     updatedAt: doc.updatedAt?.toISOString(),

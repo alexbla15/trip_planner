@@ -76,3 +76,18 @@ export interface ShopStyleFormState {
 export function shopStyleFormFromRecord(r: { name: string; icon: string }): ShopStyleFormState {
   return { name: r.name, icon: r.icon };
 }
+
+/** Editable form state for a brand (chain) in the admin panel — `types` holds the default
+ *  category/type names a new attraction linked to this brand falls back to when it hasn't
+ *  set its own (same contract as Attraction.types, just a default rather than a value). */
+export interface BrandFormState {
+  name: string;
+  photoUrl: string;
+  websiteUrl: string;
+  types: string[];
+}
+
+/** Converts a saved brand into editable form state. */
+export function brandFormFromRecord(r: { name: string; photoUrl?: string; websiteUrl?: string; types: string[] }): BrandFormState {
+  return { name: r.name, photoUrl: r.photoUrl ?? "", websiteUrl: r.websiteUrl ?? "", types: r.types };
+}

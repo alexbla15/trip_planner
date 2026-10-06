@@ -77,6 +77,13 @@ export {
   deleteShopStyle,
 } from "./shopStyles.service";
 
+export {
+  fetchBrands,
+  createBrand,
+  updateBrand,
+  deleteBrand,
+} from "./brands.service";
+
 export { getCityBoundary, getCountryBoundary, getRegionBoundary, getWorldCountriesGeoJson } from "./geo.service";
 
 export { reverseGeocode, searchLocation } from "./geocoding.service";
