@@ -17,6 +17,11 @@ import styles from "./BrandModal.module.css";
 const HEADING_ID = "brand-modal-title";
 const LOCATIONS_PAGE_SIZE = 8;
 
+// Same exclusion as NewAttractionModal's NO_FOOD_STYLE_TYPES — these Dining types don't
+// have a meaningful "cuisine" concept, so they shouldn't gate the food-styles picker/chips
+// into view either.
+const NO_FOOD_STYLE_TYPES = new Set(["Bar", "Ice Cream", "Supermarket"]);
+
 interface BrandModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -106,6 +111,24 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
   // reset to page 1 rather than showing an empty page silently.
   useEffect(() => { setLocationsPage(1); }, [countryFilter, cityFilter, locations]);
 
+  // Food/shop styles only make sense once the brand's own default categories include a
+  // Dining/Shopping type — same category-driven gating as NewAttractionModal's
+  // isDining/isShopping, applied to whichever types array is currently relevant (the
+  // live form while editing, the saved brand otherwise).
+  function computeIsDining(typeNames: string[]) {
+    return typeNames.some((t) => {
+      if (NO_FOOD_STYLE_TYPES.has(t)) return false;
+      return typeOptions.find((o) => o.name === t)?.category?.trim().toLowerCase() === "dining";
+    });
+  }
+  function computeIsShopping(typeNames: string[]) {
+    return typeNames.some((t) => typeOptions.find((o) => o.name === t)?.category?.trim().toLowerCase() === "shopping");
+  }
+  const formIsDining = computeIsDining(form.types);
+  const formIsShopping = computeIsShopping(form.types);
+  const brandIsDining = brand ? computeIsDining(brand.types) : false;
+  const brandIsShopping = brand ? computeIsShopping(brand.types) : false;
+
   function toggleIn(key: "types" | "foodStyles" | "shopStyles", name: string) {
     setForm((prev) => ({
       ...prev,
@@ -122,8 +145,8 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
         photoUrl: form.photoUrl.trim(),
         websiteUrl: form.websiteUrl.trim(),
         types: form.types,
-        foodStyles: form.foodStyles,
-        shopStyles: form.shopStyles,
+        foodStyles: formIsDining ? form.foodStyles : [],
+        shopStyles: formIsShopping ? form.shopStyles : [],
       });
       invalidateBrandsCache();
       toast.success("Brand updated");
@@ -239,45 +262,49 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
               })}
             </div>
           </div>
-          <div className={styles.field}>
-            <label className={styles.label}>Default food styles</label>
-            <div className={styles.typeChips}>
-              {foodStyleOptions.map((f) => {
-                const active = form.foodStyles.includes(f.name);
-                return (
-                  <button
-                    key={f._id}
-                    type="button"
-                    className={`${styles.typeChip} ${active ? styles.typeChipActive : ""}`}
-                    aria-pressed={active}
-                    onClick={() => toggleIn("foodStyles", f.name)}
-                  >
-                    {f.name}
-                  </button>
-                );
-              })}
+          {formIsDining && (
+            <div className={styles.field}>
+              <label className={styles.label}>Default food styles</label>
+              <div className={styles.typeChips}>
+                {foodStyleOptions.map((f) => {
+                  const active = form.foodStyles.includes(f.name);
+                  return (
+                    <button
+                      key={f._id}
+                      type="button"
+                      className={`${styles.typeChip} ${active ? styles.typeChipActive : ""}`}
+                      aria-pressed={active}
+                      onClick={() => toggleIn("foodStyles", f.name)}
+                    >
+                      {f.name}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-          <div className={styles.field}>
-            <label className={styles.label}>Default shop styles</label>
-            <div className={styles.typeChips}>
-              {shopStyleOptions.map((s) => {
-                const active = form.shopStyles.includes(s.name);
-                return (
-                  <button
-                    key={s._id}
-                    type="button"
-                    className={`${styles.typeChip} ${active ? styles.typeChipActive : ""}`}
-                    aria-pressed={active}
-                    onClick={() => toggleIn("shopStyles", s.name)}
-                  >
-                    {renderTypeIcon(s.icon)}
-                    {s.name}
-                  </button>
-                );
-              })}
+          )}
+          {formIsShopping && (
+            <div className={styles.field}>
+              <label className={styles.label}>Default shop styles</label>
+              <div className={styles.typeChips}>
+                {shopStyleOptions.map((s) => {
+                  const active = form.shopStyles.includes(s.name);
+                  return (
+                    <button
+                      key={s._id}
+                      type="button"
+                      className={`${styles.typeChip} ${active ? styles.typeChipActive : ""}`}
+                      aria-pressed={active}
+                      onClick={() => toggleIn("shopStyles", s.name)}
+                    >
+                      {renderTypeIcon(s.icon)}
+                      {s.name}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
           <div className={styles.formActions}>
             <button type="button" className={styles.cancelBtn} onClick={() => setEditing(false)} disabled={saving}>
               Cancel
@@ -297,14 +324,14 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
               <div className={styles.photoFallback}><Store size={28} aria-hidden="true" /></div>
             )}
           </div>
-          {(brand.types.length > 0 || brand.foodStyles.length > 0 || brand.shopStyles.length > 0) && (
+          {(brand.types.length > 0 || (brandIsDining && brand.foodStyles.length > 0) || (brandIsShopping && brand.shopStyles.length > 0)) && (
             <div className={styles.typeChips}>
               {brand.types.map((t) => {
                 const rec = typeOptions.find((o) => o.name === t);
                 return <span key={t} className={styles.typeChip}>{rec && renderTypeIcon(rec.icon)}{t}</span>;
               })}
-              {brand.foodStyles.map((f) => <span key={f} className={styles.typeChip}>{f}</span>)}
-              {brand.shopStyles.map((s) => {
+              {brandIsDining && brand.foodStyles.map((f) => <span key={f} className={styles.typeChip}>{f}</span>)}
+              {brandIsShopping && brand.shopStyles.map((s) => {
                 const rec = shopStyleOptions.find((o) => o.name === s);
                 return <span key={s} className={styles.typeChip}>{rec && renderTypeIcon(rec.icon)}{s}</span>;
               })}
