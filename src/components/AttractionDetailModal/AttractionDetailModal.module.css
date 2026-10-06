@@ -2,7 +2,10 @@
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.6);
-  z-index: 1000;
+  /* Above BrandModal (1100) and ParentAttractionPicker (1100) — this modal is now also
+     opened FROM WITHIN BrandModal's locations list, and needs to render on top of it, not
+     hidden behind it. Still below Toast (1200) and IconPicker (1300). */
+  z-index: 1150;
   display: flex;
   align-items: center;
   justify-content: center;
