@@ -25,10 +25,34 @@ interface UseModalControllerParams {
  * trigger element, Escape-to-close, Tab focus-trapping inside the dialog,
  * and body scroll lock while open.
  */
+// Shared across every ModalShell instance in the app — each modal that opens claims the
+// next value, so whichever one opened MOST RECENTLY always stacks on top, regardless of
+// which modal happens to be nested inside which (a static per-component CSS z-index can't
+// satisfy both "BrandModal opened from an attraction card" and "an attraction card opened
+// from inside BrandModal's own locations list" at once — those are the same two components
+// nesting in opposite directions depending on where the user started). Monotonically
+// increasing for the life of the page; never reused, so no two concurrently-open modals can
+// ever tie. Starts above every modal's old static CSS z-index (1000–1300) so this always
+// wins on migration, not just among modals that opt in going forward.
+let topZIndex = 1300;
+
+/** Assigns this modal instance a z-index the moment it opens, always above whatever
+ *  else was already open — usable standalone by any modal, including ones (like
+ *  AttractionDetailModal) that implement their own portal/focus logic instead of going
+ *  through {@link useModalController} below. */
+export function useModalZIndex(isOpen: boolean): number {
+  const zIndexRef = useRef(topZIndex);
+  useEffect(() => {
+    if (isOpen) zIndexRef.current = ++topZIndex;
+  }, [isOpen]);
+  return zIndexRef.current;
+}
+
 export function useModalController({ isOpen, onClose, initialFocusRef }: UseModalControllerParams) {
   const [mounted, setMounted] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
+  const zIndex = useModalZIndex(isOpen);
 
   useEffect(() => {
     setMounted(true);
@@ -88,5 +112,5 @@ export function useModalController({ isOpen, onClose, initialFocusRef }: UseModa
     [onClose]
   );
 
-  return { mounted, dialogRef, handleBackdropClick };
+  return { mounted, dialogRef, handleBackdropClick, zIndex };
 }

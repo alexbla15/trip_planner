@@ -25,12 +25,12 @@ export function ModalShell({
   ariaLabel,
   initialFocusRef,
 }: ModalShellProps) {
-  const { mounted, dialogRef, handleBackdropClick } = useModalController({ isOpen, onClose, initialFocusRef });
+  const { mounted, dialogRef, handleBackdropClick, zIndex } = useModalController({ isOpen, onClose, initialFocusRef });
 
   if (!mounted || !isOpen) return null;
 
   const modal = (
-    <div className={styles.backdrop} onClick={handleBackdropClick} aria-hidden="true">
+    <div className={styles.backdrop} style={{ zIndex }} onClick={handleBackdropClick} aria-hidden="true">
       <div
         ref={dialogRef}
         role="dialog"

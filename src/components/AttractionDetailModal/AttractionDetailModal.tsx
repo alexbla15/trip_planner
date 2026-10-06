@@ -35,6 +35,7 @@ import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
 import { Spinner } from "@/components/Spinner";
 import { BrandModal } from "@/components/BrandModal";
+import { useModalZIndex } from "@/components/Modal";
 import { getAttraction, getChildAttractions, getOtherLocationsInCity } from "@/services";
 import { useAttractionTypes, useShopStyles } from "@/hooks";
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
@@ -87,6 +88,11 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   const { styles: shopStyleRecords } = useShopStyles();
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Dynamic stacking — a static CSS z-index can't satisfy both "BrandModal opened from
+  // here" and "this opened from inside BrandModal's own locations list" at once, since
+  // they're the same two components nesting in opposite directions depending on where the
+  // user started (see useModalZIndex). Whichever modal opened most recently always wins.
+  const zIndex = useModalZIndex(!!attraction);
 
   const [childrenExpanded, setChildrenExpanded] = useState(false);
   const [childrenLoading, setChildrenLoading] = useState(false);
@@ -274,6 +280,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   const modal = (
     <div
       className={styles.backdrop}
+      style={{ zIndex }}
       onClick={onClose}
       aria-hidden="true"
     >
