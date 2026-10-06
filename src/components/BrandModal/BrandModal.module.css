@@ -315,10 +315,34 @@ button.typeChip {
 }
 
 .filterSelectWrap {
+  position: relative;
   flex: 1;
   min-width: 0;
   font-size: 12px;
 }
+
+/* Sits just left of SearchableSelect's own dropdown chevron (right: 12px, ~16px wide) so
+   the two never overlap. Only rendered while that field actually has a value — "All
+   countries"/"All cities" is the input's placeholder, not a selectable option, so there's
+   no in-list way to get back to "no filter" without this. */
+.filterClearBtn {
+  position: absolute;
+  right: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  z-index: 1;
+}
+.filterClearBtn:hover { background: var(--color-border); color: var(--color-text-primary); }
 
 .clearFilterBtn {
   display: flex;

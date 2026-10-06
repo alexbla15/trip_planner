@@ -324,28 +324,50 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
                   <div className={styles.filterSelectWrap}>
                     <SearchableSelect
                       id="brand-location-country-filter"
-                      value={countryFilter || "All countries"}
-                      onChange={(v) => { const next = v === "All countries" ? "" : v; setCountryFilter(next); setCityFilter(""); }}
-                      options={["All countries", ...countries]}
+                      value={countryFilter}
+                      onChange={(v) => { setCountryFilter(v); setCityFilter(""); }}
+                      options={countries}
+                      placeholder="All countries"
                       ariaLabel="Filter locations by country"
                     />
+                    {countryFilter && (
+                      <button
+                        type="button"
+                        className={styles.filterClearBtn}
+                        onClick={() => { setCountryFilter(""); setCityFilter(""); }}
+                        aria-label="Clear country filter"
+                      >
+                        <XIcon size={12} aria-hidden="true" />
+                      </button>
+                    )}
                   </div>
                   <div className={styles.filterSelectWrap}>
                     <SearchableSelect
                       id="brand-location-city-filter"
-                      value={cityFilter || "All cities"}
-                      onChange={(v) => setCityFilter(v === "All cities" ? "" : v)}
-                      options={["All cities", ...citiesInCountry]}
+                      value={cityFilter}
+                      onChange={setCityFilter}
+                      options={citiesInCountry}
+                      placeholder="All cities"
                       disabled={citiesInCountry.length === 0}
                       ariaLabel="Filter locations by city"
                     />
+                    {cityFilter && (
+                      <button
+                        type="button"
+                        className={styles.filterClearBtn}
+                        onClick={() => setCityFilter("")}
+                        aria-label="Clear city filter"
+                      >
+                        <XIcon size={12} aria-hidden="true" />
+                      </button>
+                    )}
                   </div>
                   {(countryFilter || cityFilter) && (
                     <button
                       type="button"
                       className={styles.clearFilterBtn}
                       onClick={() => { setCountryFilter(""); setCityFilter(""); }}
-                      aria-label="Clear location filters"
+                      aria-label="Clear all location filters"
                     >
                       <XIcon size={13} aria-hidden="true" />
                     </button>
