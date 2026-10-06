@@ -506,74 +506,66 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
         </>
       }
     >
-      {/* Name */}
-      <details className={styles.sectionDetails}>
-        <summary className={styles.sectionSummary}>
+      {/* Name — always visible, not collapsible (the one field every save needs). */}
+      <div className={styles.field}>
+        <label htmlFor="attraction-name" className={styles.labelWithIcon}>
           <Tag size={14} aria-hidden="true" />
-          Name
+          Attraction name{" "}
           <span className={styles.required} aria-hidden="true">*</span>
-        </summary>
-        <div className={styles.sectionBody}>
-          <div className={styles.field}>
-            <label htmlFor="attraction-name" className={styles.srOnly}>Attraction name</label>
-            <input
-              ref={firstInputRef}
-              id="attraction-name"
-              type="text"
-              placeholder="e.g. Louvre Museum"
-              value={name}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-              onBlur={() => handleBlur("name")}
-              className={`${styles.input} ${touched.name && errors.name ? styles.inputError : ""}`}
-              aria-required="true"
-              aria-describedby={touched.name && errors.name ? "error-name" : undefined}
-            />
-            {touched.name && errors.name && (
-              <p id="error-name" className={styles.errorMsg} role="alert">
-                <AlertCircle size={12} aria-hidden="true" />
-                {errors.name}
-              </p>
-            )}
-          </div>
-        </div>
-      </details>
+        </label>
+        <input
+          ref={firstInputRef}
+          id="attraction-name"
+          type="text"
+          placeholder="e.g. Louvre Museum"
+          value={name}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+          onBlur={() => handleBlur("name")}
+          className={`${styles.input} ${touched.name && errors.name ? styles.inputError : ""}`}
+          aria-required="true"
+          aria-describedby={touched.name && errors.name ? "error-name" : undefined}
+        />
+        {touched.name && errors.name && (
+          <p id="error-name" className={styles.errorMsg} role="alert">
+            <AlertCircle size={12} aria-hidden="true" />
+            {errors.name}
+          </p>
+        )}
+      </div>
 
-      {/* Located inside (parent attraction) — only offered when there's a token to search
-          with (e.g. not the new-trip inline picker, which has no DB-backed country context). */}
+      {/* Located inside (parent attraction) — always visible, not collapsible. Only offered
+          when there's a token to search with (e.g. not the new-trip inline picker, which
+          has no DB-backed country context). */}
       {token && (
-        <details className={styles.sectionDetails}>
-          <summary className={styles.sectionSummary}>
+        <div className={styles.field}>
+          <label className={styles.labelWithIcon}>
             <Building2 size={14} aria-hidden="true" />
-            Located inside
-          </summary>
-          <div className={styles.sectionBody}>
-            <div className={styles.field}>
-              {parentAttractionId && parentAttractionName ? (
-                <div className={styles.parentChip}>
-                  <Building2 size={14} aria-hidden="true" />
-                  <span className={styles.parentChipName}>{parentAttractionName}</span>
-                  <button type="button" className={styles.parentChipBtn} onClick={() => setParentPickerOpen(true)}>
-                    Change
-                  </button>
-                  <button type="button" className={styles.parentChipBtn} onClick={handleClearParent}>
-                    Remove
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className={styles.pickParentBtn}
-                  onClick={() => setParentPickerOpen(true)}
-                  disabled={!country && !defaultCountry}
-                  title={!country && !defaultCountry ? "Choose a country first" : undefined}
-                >
-                  <Search size={14} aria-hidden="true" />
-                  Choose existing attraction…
-                </button>
-              )}
+            Located inside (optional)
+          </label>
+          {parentAttractionId && parentAttractionName ? (
+            <div className={styles.parentChip}>
+              <Building2 size={14} aria-hidden="true" />
+              <span className={styles.parentChipName}>{parentAttractionName}</span>
+              <button type="button" className={styles.parentChipBtn} onClick={() => setParentPickerOpen(true)}>
+                Change
+              </button>
+              <button type="button" className={styles.parentChipBtn} onClick={handleClearParent}>
+                Remove
+              </button>
             </div>
-          </div>
-        </details>
+          ) : (
+            <button
+              type="button"
+              className={styles.pickParentBtn}
+              onClick={() => setParentPickerOpen(true)}
+              disabled={!country && !defaultCountry}
+              title={!country && !defaultCountry ? "Choose a country first" : undefined}
+            >
+              <Search size={14} aria-hidden="true" />
+              Choose existing attraction…
+            </button>
+          )}
+        </div>
       )}
 
       {/* Country/City/Location are inherited from the parent once one is picked — a
@@ -842,34 +834,29 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           food/shop styles when relevant), still freely editable afterwards (see
           handleBrandNameChange). Admin-managed list (see the Admin page's Brands section);
           this field only selects among existing brands, it doesn't create new ones. */}
-      <details className={styles.sectionDetails}>
-        <summary className={styles.sectionSummary}>
+      <div className={styles.field}>
+        <label htmlFor="attraction-brand" className={styles.labelWithIcon}>
           <Building2 size={14} aria-hidden="true" />
           Chain / Brand
-        </summary>
-        <div className={styles.sectionBody}>
-          <div className={styles.field}>
-            <label htmlFor="attraction-brand" className={styles.srOnly}>Brand / chain</label>
-            <div className={styles.brandRow}>
-              <SearchableSelect
-                id="attraction-brand"
-                value={brandNameInput}
-                onChange={handleBrandNameChange}
-                options={brandOptions.map((b) => b.name)}
-                placeholder="Search brands, e.g. Adidas…"
-                allowFreeText
-                ariaLabel="Brand or chain"
-                emptyMessage="No matching brand — managed from the Admin page"
-              />
-              {brandId && (
-                <button type="button" className={styles.parentChipBtn} onClick={handleClearBrand}>
-                  Remove
-                </button>
-              )}
-            </div>
-          </div>
+        </label>
+        <div className={styles.brandRow}>
+          <SearchableSelect
+            id="attraction-brand"
+            value={brandNameInput}
+            onChange={handleBrandNameChange}
+            options={brandOptions.map((b) => b.name)}
+            placeholder="Search brands, e.g. Adidas…"
+            allowFreeText
+            ariaLabel="Brand or chain"
+            emptyMessage="No matching brand — managed from the Admin page"
+          />
+          {brandId && (
+            <button type="button" className={styles.parentChipBtn} onClick={handleClearBrand}>
+              Remove
+            </button>
+          )}
         </div>
-      </details>
+      </div>
 
       {/* Opening Hours — omitted for a residence: always treated as open 24/7, no
           per-day pickers needed. Also omitted once any Seasonal Hours entry exists: each
@@ -877,28 +864,44 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           used once those exist (see resolveOpeningHoursForDate) — showing it would just
           be a dead-weight duplicate of the same UI. */}
       {!isEditingResidence && !hasSeasonalHours && (
-        <details className={styles.sectionDetails}>
-          <summary className={styles.sectionSummary}>
-            <Clock size={14} aria-hidden="true" />
-            Opening Hours
-          </summary>
-          <div className={styles.sectionBody}>
-            <div className={styles.field}>
-              <div className={styles.labelRow}>
-                <button
-                  type="button"
-                  role="checkbox"
-                  aria-checked={is24h}
-                  className={`${styles.toggle24h} ${is24h ? styles.toggle24hActive : ""}`}
-                  onClick={() => handle24hToggle(!is24h)}
-                >
-                  24/7
-                </button>
-              </div>
-              {!is24h && <OpeningHoursGrid value={openingHours} onChange={handleHoursChange} />}
+        is24h ? (
+          <div className={styles.field}>
+            <div className={styles.sectionSummaryStatic}>
+              <Clock size={14} aria-hidden="true" />
+              Opening Hours
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={is24h}
+                className={`${styles.toggle24h} ${styles.toggle24hActive}`}
+                onClick={() => handle24hToggle(!is24h)}
+              >
+                24/7
+              </button>
             </div>
           </div>
-        </details>
+        ) : (
+          <details className={styles.sectionDetails}>
+            <summary className={styles.sectionSummary}>
+              <Clock size={14} aria-hidden="true" />
+              Opening Hours
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={is24h}
+                className={styles.toggle24h}
+                onClick={(e) => { e.preventDefault(); handle24hToggle(!is24h); }}
+              >
+                24/7
+              </button>
+            </summary>
+            <div className={styles.sectionBody}>
+              <div className={styles.field}>
+                <OpeningHoursGrid value={openingHours} onChange={handleHoursChange} />
+              </div>
+            </div>
+          </details>
+        )
       )}
 
       {/* Opening Months — omitted for a residence: always treated as year-round. When
@@ -908,36 +911,52 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           deriveOpeningMonthsFromSeasonalHours, never persisted as its own restricted
           value. */}
       {!isEditingResidence && (
-        <details className={styles.sectionDetails}>
-          <summary className={styles.sectionSummary}>
-            <Calendar size={14} aria-hidden="true" />
-            Opening Months
-          </summary>
-          <div className={styles.sectionBody}>
-            <div className={styles.field}>
-              <div className={styles.labelRow}>
-                {!hasSeasonalHours && (
-                  <button
-                    type="button"
-                    role="checkbox"
-                    aria-checked={yearRound}
-                    className={`${styles.toggle24h} ${yearRound ? styles.toggle24hActive : ""}`}
-                    onClick={() => setYearRound(!yearRound)}
-                  >
-                    Year-round
-                  </button>
-                )}
-              </div>
-              {hasSeasonalHours ? (
-                <p className={styles.helperText}>
-                  Derived from your Seasonal Hours ranges below: open {formatOpeningMonthsLabel(derivedOpeningMonths)}.
-                </p>
-              ) : (
-                !yearRound && <MonthsGrid value={openingMonths} onChange={setOpeningMonths} />
-              )}
+        !hasSeasonalHours && yearRound ? (
+          <div className={styles.field}>
+            <div className={styles.sectionSummaryStatic}>
+              <Calendar size={14} aria-hidden="true" />
+              Opening Months
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={yearRound}
+                className={`${styles.toggle24h} ${styles.toggle24hActive}`}
+                onClick={() => setYearRound(!yearRound)}
+              >
+                Year-round
+              </button>
             </div>
           </div>
-        </details>
+        ) : (
+          <details className={styles.sectionDetails}>
+            <summary className={styles.sectionSummary}>
+              <Calendar size={14} aria-hidden="true" />
+              Opening Months
+              {!hasSeasonalHours && (
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={yearRound}
+                  className={styles.toggle24h}
+                  onClick={(e) => { e.preventDefault(); setYearRound(!yearRound); }}
+                >
+                  Year-round
+                </button>
+              )}
+            </summary>
+            <div className={styles.sectionBody}>
+              <div className={styles.field}>
+                {hasSeasonalHours ? (
+                  <p className={styles.helperText}>
+                    Derived from your Seasonal Hours ranges below: open {formatOpeningMonthsLabel(derivedOpeningMonths)}.
+                  </p>
+                ) : (
+                  <MonthsGrid value={openingMonths} onChange={setOpeningMonths} />
+                )}
+              </div>
+            </div>
+          </details>
+        )
       )}
 
       {/* Seasonal Hours — optional per-date-range overrides on top of the base Opening
@@ -1026,44 +1045,40 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       {/* Duration — omitted for a residence: duration is a per-trip stay concern
           (see AddResidenceModal/IScheduleEntry), not a shared-document one. */}
       {!isEditingResidence && (
-        <details className={styles.sectionDetails}>
-          <summary className={styles.sectionSummary}>
+        <div className={styles.field}>
+          <label htmlFor="attraction-duration" className={styles.labelWithIcon}>
             <Timer size={14} aria-hidden="true" />
             Duration
-          </summary>
-          <div className={styles.sectionBody}>
-            <div className={styles.field}>
-              <div className={styles.durationRow}>
-                <input
-                  id="attraction-duration"
-                  type="number"
-                  min="1"
-                  placeholder="e.g. 2"
-                  value={durationValue}
-                  onChange={(e) => setDurationValue(e.target.value)}
-                  className={styles.durationInput}
-                  aria-label="Duration value"
-                />
-                <div className={styles.selectWrapper}>
-                  <select
-                    value={durationUnit}
-                    onChange={(e) => setDurationUnit(e.target.value as DurationUnit)}
-                    className={styles.durationSelect}
-                    aria-label="Duration unit"
-                  >
-                    <option value="minutes">minutes</option>
-                    <option value="hours">hours</option>
-                  </select>
-                  <ChevronDown
-                    size={16}
-                    className={styles.selectIcon}
-                    aria-hidden="true"
-                  />
-                </div>
-              </div>
+          </label>
+          <div className={styles.durationRow}>
+            <input
+              id="attraction-duration"
+              type="number"
+              min="1"
+              placeholder="e.g. 2"
+              value={durationValue}
+              onChange={(e) => setDurationValue(e.target.value)}
+              className={styles.durationInput}
+              aria-label="Duration value"
+            />
+            <div className={styles.selectWrapper}>
+              <select
+                value={durationUnit}
+                onChange={(e) => setDurationUnit(e.target.value as DurationUnit)}
+                className={styles.durationSelect}
+                aria-label="Duration unit"
+              >
+                <option value="minutes">minutes</option>
+                <option value="hours">hours</option>
+              </select>
+              <ChevronDown
+                size={16}
+                className={styles.selectIcon}
+                aria-hidden="true"
+              />
             </div>
           </div>
-        </details>
+        </div>
       )}
 
       {/* Notes / Comments */}
@@ -1096,7 +1111,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
         <div className={styles.sectionBody}>
           <CoverImageField
             id="attraction-photo"
-            label="Photo URL"
+            hideLabel
             value={photoUrl}
             onChange={setPhotoUrl}
           />
@@ -1104,33 +1119,28 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       </details>
 
       {/* Official website */}
-      <details className={styles.sectionDetails}>
-        <summary className={styles.sectionSummary}>
+      <div className={styles.field}>
+        <label htmlFor="attraction-website" className={styles.labelWithIcon}>
           <Globe size={14} aria-hidden="true" />
           Website
-        </summary>
-        <div className={styles.sectionBody}>
-          <div className={styles.field}>
-            <input
-              id="attraction-website"
-              type="url"
-              placeholder="https://…"
-              value={websiteUrl}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setWebsiteUrl(e.target.value)}
-              onBlur={() => handleBlur("websiteUrl")}
-              className={`${styles.input} ${touched.websiteUrl && errors.websiteUrl ? styles.inputError : ""}`}
-              aria-label="Website"
-              aria-describedby={touched.websiteUrl && errors.websiteUrl ? "error-website" : undefined}
-            />
-            {touched.websiteUrl && errors.websiteUrl && (
-              <p id="error-website" className={styles.errorMsg} role="alert">
-                <AlertCircle size={12} aria-hidden="true" />
-                {errors.websiteUrl}
-              </p>
-            )}
-          </div>
-        </div>
-      </details>
+        </label>
+        <input
+          id="attraction-website"
+          type="url"
+          placeholder="https://…"
+          value={websiteUrl}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setWebsiteUrl(e.target.value)}
+          onBlur={() => handleBlur("websiteUrl")}
+          className={`${styles.input} ${touched.websiteUrl && errors.websiteUrl ? styles.inputError : ""}`}
+          aria-describedby={touched.websiteUrl && errors.websiteUrl ? "error-website" : undefined}
+        />
+        {touched.websiteUrl && errors.websiteUrl && (
+          <p id="error-website" className={styles.errorMsg} role="alert">
+            <AlertCircle size={12} aria-hidden="true" />
+            {errors.websiteUrl}
+          </p>
+        )}
+      </div>
     </ModalShell>
 
     {token && (

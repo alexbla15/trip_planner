@@ -178,6 +178,18 @@
   transform: rotate(90deg);
 }
 
+/* Same header look as .sectionSummary but for a section that has nothing to collapse
+   right now (e.g. Opening Hours while 24/7 is on) — no chevron, no pointer cursor. */
+.sectionSummaryStatic {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
 /* Visually hidden but still reachable by screen readers/label-association — used where the
    summary already shows the section's name, so the inner <label> text would otherwise just
    repeat it (e.g. summary "Name" + label "Attraction name"), but the <label htmlFor> itself

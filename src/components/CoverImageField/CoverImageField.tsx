@@ -9,6 +9,9 @@ import styles from "./CoverImageField.module.css";
 interface CoverImageFieldProps {
   id: string;
   label?: string;
+  /** Suppress the built-in label (e.g. when an outer collapsible section header
+   *  already names this field — see NewAttractionModal's Photo section). */
+  hideLabel?: boolean;
   hint?: string;
   placeholder?: string;
   value: string;
@@ -20,6 +23,7 @@ interface CoverImageFieldProps {
 export function CoverImageField({
   id,
   label = "Cover photo",
+  hideLabel = false,
   hint = "Paste a direct image URL (e.g. from Unsplash)",
   placeholder = "https://…",
   value,
@@ -53,10 +57,12 @@ export function CoverImageField({
 
   return (
     <div className={styles.field}>
-      <label htmlFor={id} className={styles.label}>
-        <ImageIcon size={14} aria-hidden="true" />
-        {label}
-      </label>
+      {!hideLabel && (
+        <label htmlFor={id} className={styles.label}>
+          <ImageIcon size={14} aria-hidden="true" />
+          {label}
+        </label>
+      )}
       <p className={styles.hint}>{hint}</p>
       <input
         id={id}
