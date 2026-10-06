@@ -314,19 +314,11 @@ button.typeChip {
   margin-bottom: 10px;
 }
 
-.filterSelect {
+.filterSelectWrap {
   flex: 1;
   min-width: 0;
-  height: 34px;
-  padding: 0 8px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
   font-size: 12px;
-  color: var(--color-text-primary);
-  font-family: inherit;
 }
-.filterSelect:disabled { opacity: 0.5; }
 
 .clearFilterBtn {
   display: flex;

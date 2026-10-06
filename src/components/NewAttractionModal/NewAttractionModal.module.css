@@ -178,6 +178,22 @@
   transform: rotate(90deg);
 }
 
+/* Visually hidden but still reachable by screen readers/label-association — used where the
+   summary already shows the section's name, so the inner <label> text would otherwise just
+   repeat it (e.g. summary "Name" + label "Attraction name"), but the <label htmlFor> itself
+   still needs to exist for the input's accessible name. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .sectionBody {
   padding-top: 10px;
 }

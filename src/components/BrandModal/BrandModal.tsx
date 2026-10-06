@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Store, Pencil, Trash2, Loader2, MapPin, X as XIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { ModalShell } from "@/components/Modal";
+import { SearchableSelect } from "@/components/SearchableSelect";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { AttractionDetailModal } from "@/components/AttractionDetailModal";
@@ -320,25 +321,25 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
             ) : locations && locations.length > 0 ? (
               <>
                 <div className={styles.locationFilters}>
-                  <select
-                    className={styles.filterSelect}
-                    value={countryFilter}
-                    onChange={(e) => { setCountryFilter(e.target.value); setCityFilter(""); }}
-                    aria-label="Filter locations by country"
-                  >
-                    <option value="">All countries</option>
-                    {countries.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                  <select
-                    className={styles.filterSelect}
-                    value={cityFilter}
-                    onChange={(e) => setCityFilter(e.target.value)}
-                    aria-label="Filter locations by city"
-                    disabled={citiesInCountry.length === 0}
-                  >
-                    <option value="">All cities</option>
-                    {citiesInCountry.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  <div className={styles.filterSelectWrap}>
+                    <SearchableSelect
+                      id="brand-location-country-filter"
+                      value={countryFilter || "All countries"}
+                      onChange={(v) => { const next = v === "All countries" ? "" : v; setCountryFilter(next); setCityFilter(""); }}
+                      options={["All countries", ...countries]}
+                      ariaLabel="Filter locations by country"
+                    />
+                  </div>
+                  <div className={styles.filterSelectWrap}>
+                    <SearchableSelect
+                      id="brand-location-city-filter"
+                      value={cityFilter || "All cities"}
+                      onChange={(v) => setCityFilter(v === "All cities" ? "" : v)}
+                      options={["All cities", ...citiesInCountry]}
+                      disabled={citiesInCountry.length === 0}
+                      ariaLabel="Filter locations by city"
+                    />
+                  </div>
                   {(countryFilter || cityFilter) && (
                     <button
                       type="button"
@@ -360,7 +361,10 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
                         aria-label={`View details for ${a.name}`}
                       >
                         <MapPin size={13} aria-hidden="true" className={styles.locationIcon} />
-                        <span className={styles.locationName}>{a.name}</span>
+                        <span className={styles.locationName}>
+                          {a.name}
+                          {a.parentAttractionName && ` (${a.parentAttractionName})`}
+                        </span>
                         <span className={styles.locationMeta}>{[a.city, a.country].filter(Boolean).join(", ")}</span>
                       </button>
                     </li>

@@ -507,17 +507,15 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       }
     >
       {/* Name */}
-      <details className={styles.sectionDetails} open>
+      <details className={styles.sectionDetails}>
         <summary className={styles.sectionSummary}>
           <Tag size={14} aria-hidden="true" />
           Name
+          <span className={styles.required} aria-hidden="true">*</span>
         </summary>
         <div className={styles.sectionBody}>
           <div className={styles.field}>
-            <label htmlFor="attraction-name" className={styles.labelWithIcon}>
-              Attraction name{" "}
-              <span className={styles.required} aria-hidden="true">*</span>
-            </label>
+            <label htmlFor="attraction-name" className={styles.srOnly}>Attraction name</label>
             <input
               ref={firstInputRef}
               id="attraction-name"
@@ -543,7 +541,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       {/* Located inside (parent attraction) — only offered when there's a token to search
           with (e.g. not the new-trip inline picker, which has no DB-backed country context). */}
       {token && (
-        <details className={styles.sectionDetails} open>
+        <details className={styles.sectionDetails}>
           <summary className={styles.sectionSummary}>
             <Building2 size={14} aria-hidden="true" />
             Located inside
@@ -583,17 +581,15 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       {!parentAttractionId && (
         <>
           {/* Country */}
-          <details className={styles.sectionDetails} open>
+          <details className={styles.sectionDetails}>
             <summary className={styles.sectionSummary}>
               <Globe size={14} aria-hidden="true" />
               Country
+              {!defaultCountry && <span className={styles.required} aria-hidden="true">*</span>}
             </summary>
             <div className={styles.sectionBody}>
               <div className={styles.field}>
-                <label htmlFor="attraction-country" className={styles.labelWithIcon}>
-                  Country{" "}
-                  {!defaultCountry && <span className={styles.required} aria-hidden="true">*</span>}
-                </label>
+                <label htmlFor="attraction-country" className={styles.srOnly}>Country</label>
                 {defaultCountry ? (
                   <div
                     className={styles.readOnlyField}
@@ -631,16 +627,14 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
               measure tool's location search) — picking one fills a clean, resolvable
               label, but typing/leaving arbitrary text still works since region has no
               fixed value set. */}
-          <details className={styles.sectionDetails} open>
+          <details className={styles.sectionDetails}>
             <summary className={styles.sectionSummary}>
               <Globe size={14} aria-hidden="true" />
               Region
             </summary>
             <div className={styles.sectionBody}>
               <div className={styles.field}>
-                <label htmlFor="attraction-region" className={styles.labelWithIcon}>
-                  Region (optional)
-                </label>
+                <label htmlFor="attraction-region" className={styles.srOnly}>Region</label>
                 <div className={mapPickerStyles.searchWrapper}>
                   <Search size={14} aria-hidden="true" className={mapPickerStyles.searchIconEl} />
                   <input
@@ -678,7 +672,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
 
           {/* City — OpenStreetMap-backed suggestions as the user types (same pattern as
               Region), free text still accepted when nothing is picked. */}
-          <details className={styles.sectionDetails} open>
+          <details className={styles.sectionDetails}>
             <summary className={styles.sectionSummary}>
               <Building size={14} aria-hidden="true" />
               City
@@ -724,17 +718,15 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       )}
 
       {/* Type */}
-      <details className={styles.sectionDetails} open>
+      <details className={styles.sectionDetails}>
         <summary className={styles.sectionSummary}>
           <Layers size={14} aria-hidden="true" />
           Type
+          <span className={styles.required} aria-hidden="true">*</span>
         </summary>
         <div className={styles.sectionBody}>
           <div className={styles.field}>
-            <span id="types-label" className={styles.labelWithIcon}>
-              Type{" "}
-              <span className={styles.required} aria-hidden="true">*</span>
-            </span>
+            <span id="types-label" className={styles.srOnly}>Type</span>
             <AttractionTypePicker
               selectedTypes={selectedTypes}
               onToggle={(t) => {
@@ -830,7 +822,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       {/* Location — inherited from the parent once one is picked, so there's nothing
           independent to place on a map. */}
       {!parentAttractionId && (
-        <details className={styles.sectionDetails} open>
+        <details className={styles.sectionDetails}>
           <summary className={styles.sectionSummary}>
             <MapPin size={14} aria-hidden="true" />
             Location
@@ -850,16 +842,14 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           food/shop styles when relevant), still freely editable afterwards (see
           handleBrandNameChange). Admin-managed list (see the Admin page's Brands section);
           this field only selects among existing brands, it doesn't create new ones. */}
-      <details className={styles.sectionDetails} open>
+      <details className={styles.sectionDetails}>
         <summary className={styles.sectionSummary}>
           <Building2 size={14} aria-hidden="true" />
           Chain / Brand
         </summary>
         <div className={styles.sectionBody}>
           <div className={styles.field}>
-            <label htmlFor="attraction-brand" className={styles.labelWithIcon}>
-              Brand / chain (optional)
-            </label>
+            <label htmlFor="attraction-brand" className={styles.srOnly}>Brand / chain</label>
             <div className={styles.brandRow}>
               <SearchableSelect
                 id="attraction-brand"
@@ -887,7 +877,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           used once those exist (see resolveOpeningHoursForDate) — showing it would just
           be a dead-weight duplicate of the same UI. */}
       {!isEditingResidence && !hasSeasonalHours && (
-        <details className={styles.sectionDetails} open>
+        <details className={styles.sectionDetails}>
           <summary className={styles.sectionSummary}>
             <Clock size={14} aria-hidden="true" />
             Opening Hours
@@ -895,7 +885,6 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           <div className={styles.sectionBody}>
             <div className={styles.field}>
               <div className={styles.labelRow}>
-                <span className={styles.labelWithIcon}>Hours</span>
                 <button
                   type="button"
                   role="checkbox"
@@ -919,7 +908,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           deriveOpeningMonthsFromSeasonalHours, never persisted as its own restricted
           value. */}
       {!isEditingResidence && (
-        <details className={styles.sectionDetails} open>
+        <details className={styles.sectionDetails}>
           <summary className={styles.sectionSummary}>
             <Calendar size={14} aria-hidden="true" />
             Opening Months
@@ -927,7 +916,6 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           <div className={styles.sectionBody}>
             <div className={styles.field}>
               <div className={styles.labelRow}>
-                <span className={styles.labelWithIcon}>Months</span>
                 {!hasSeasonalHours && (
                   <button
                     type="button"
@@ -957,7 +945,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           Hours/Months. Leaving this empty means Opening Hours applies to every date, all
           year, exactly as before this feature existed. */}
       {!isEditingResidence && (
-        <details className={styles.sectionDetails} open>
+        <details className={styles.sectionDetails}>
           <summary className={styles.sectionSummary}>
             <Calendar size={14} aria-hidden="true" />
             Seasonal Hours
@@ -1013,7 +1001,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           AddResidenceModal within the trip, not here. One shared currency for every tier;
           exactly one tier is the "primary" rate shown wherever a single price is displayed. */}
       {!isEditingResidence && (
-        <details className={styles.sectionDetails} open>
+        <details className={styles.sectionDetails}>
           <summary className={styles.sectionSummary}>
             <Wallet size={14} aria-hidden="true" />
             Price
@@ -1038,7 +1026,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       {/* Duration — omitted for a residence: duration is a per-trip stay concern
           (see AddResidenceModal/IScheduleEntry), not a shared-document one. */}
       {!isEditingResidence && (
-        <details className={styles.sectionDetails} open>
+        <details className={styles.sectionDetails}>
           <summary className={styles.sectionSummary}>
             <Timer size={14} aria-hidden="true" />
             Duration
@@ -1079,7 +1067,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       )}
 
       {/* Notes / Comments */}
-      <details className={styles.sectionDetails} open>
+      <details className={styles.sectionDetails}>
         <summary className={styles.sectionSummary}>
           <FileText size={14} aria-hidden="true" />
           Notes
@@ -1100,7 +1088,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       </details>
 
       {/* Photo URL */}
-      <details className={styles.sectionDetails} open>
+      <details className={styles.sectionDetails}>
         <summary className={styles.sectionSummary}>
           <ImageIcon size={14} aria-hidden="true" />
           Photo
@@ -1116,7 +1104,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       </details>
 
       {/* Official website */}
-      <details className={styles.sectionDetails} open>
+      <details className={styles.sectionDetails}>
         <summary className={styles.sectionSummary}>
           <Globe size={14} aria-hidden="true" />
           Website
