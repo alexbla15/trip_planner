@@ -296,6 +296,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
             <h2 className={styles.title}>{attraction.name}</h2>
           </div>
           <div className={styles.headerActions}>
+            <WebsiteLinkButton url={attraction.websiteUrl} variant="compact" className={styles.websiteBtn} />
             {attraction.brandId && attraction.brandName && (
               <button
                 type="button"
@@ -307,7 +308,6 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                 <Store size={16} aria-hidden="true" />
               </button>
             )}
-            <WebsiteLinkButton url={attraction.websiteUrl} variant="compact" className={styles.websiteBtn} />
             {onToggleVerified && (
               <button
                 type="button"
