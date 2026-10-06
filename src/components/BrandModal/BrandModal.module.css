@@ -76,20 +76,26 @@
   flex-shrink: 0;
 }
 
-.headerIconBtn {
+/* Doubled class to outrank WebsiteLinkButton's own `.compact` rule on specificity
+   regardless of CSS bundle concatenation order (same fix as AttractionGridCard's
+   `.actionBtnLink.actionBtnLink`) — the website button in this header must look
+   identical to the plain Edit/Delete icon buttons beside it, not WebsiteLinkButton's own
+   bordered/shadowed look. */
+.headerIconBtn.headerIconBtn {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 32px;
   height: 32px;
   border: none;
+  box-shadow: none;
   background: var(--color-bg-subtle);
   color: var(--color-text-secondary);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: background var(--duration-fast) var(--easing-out), color var(--duration-fast) var(--easing-out);
 }
-.headerIconBtn:hover { background: var(--color-primary-light); color: var(--color-primary); }
+.headerIconBtn.headerIconBtn:hover { background: var(--color-primary-light); color: var(--color-primary); border-color: transparent; }
 .headerIconBtnDanger:hover { background: #fee2e2; color: var(--color-error); }
 
 .closeBtn {
@@ -347,15 +353,55 @@ button.typeChip {
   border-radius: var(--radius-md);
 }
 
+.locationsList li:last-child .locationRow { border-bottom: none; }
+
 .locationRow {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
   padding: 8px 10px;
+  border: none;
   border-bottom: 1px solid var(--color-border-subtle);
+  background: transparent;
   font-size: 12px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--easing-out);
 }
-.locationRow:last-child { border-bottom: none; }
+.locationRow:hover { background: var(--color-bg-subtle); }
+.locationRow:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
+
+.locationsPagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.locationsPageBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.locationsPageBtn:hover:not(:disabled) { background: var(--color-bg-subtle); }
+.locationsPageBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.locationsPageInfo {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
 
 .locationIcon {
   color: var(--color-text-tertiary);

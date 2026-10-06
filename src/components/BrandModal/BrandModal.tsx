@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Store, Pencil, Trash2, Loader2, MapPin, X as XIcon } from "lucide-react";
+import { Store, Pencil, Trash2, Loader2, MapPin, X as XIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { ModalShell } from "@/components/Modal";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
 import { renderTypeIcon } from "@/components/IconPicker";
+import { AttractionDetailModal } from "@/components/AttractionDetailModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useBrands, invalidateBrandsCache, useAttractionTypes, useFoodStyles, useShopStyles } from "@/hooks";
@@ -13,6 +14,7 @@ import type { Attraction } from "@/types/attraction";
 import styles from "./BrandModal.module.css";
 
 const HEADING_ID = "brand-modal-title";
+const LOCATIONS_PAGE_SIZE = 8;
 
 interface BrandModalProps {
   isOpen: boolean;
@@ -58,6 +60,8 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
   const [locationsLoading, setLocationsLoading] = useState(false);
   const [countryFilter, setCountryFilter] = useState("");
   const [cityFilter, setCityFilter] = useState("");
+  const [locationsPage, setLocationsPage] = useState(1);
+  const [viewingAttraction, setViewingAttraction] = useState<Attraction | null>(null);
 
   useEffect(() => {
     if (!isOpen) { setEditing(false); setConfirmingDelete(false); return; }
@@ -93,6 +97,13 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
       (!countryFilter || a.country === countryFilter) && (!cityFilter || a.city === cityFilter)
     );
   }, [locations, countryFilter, cityFilter]);
+  const locationsTotalPages = Math.max(1, Math.ceil(filteredLocations.length / LOCATIONS_PAGE_SIZE));
+  const paginatedLocations = filteredLocations.slice(
+    (locationsPage - 1) * LOCATIONS_PAGE_SIZE, locationsPage * LOCATIONS_PAGE_SIZE
+  );
+  // Filtering (or the list itself) changing can leave the current page past the new total —
+  // reset to page 1 rather than showing an empty page silently.
+  useEffect(() => { setLocationsPage(1); }, [countryFilter, cityFilter, locations]);
 
   function toggleIn(key: "types" | "foodStyles" | "shopStyles", name: string) {
     setForm((prev) => ({
@@ -340,20 +351,57 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
                   )}
                 </div>
                 <ul className={styles.locationsList}>
-                  {filteredLocations.map((a) => (
-                    <li key={a._id} className={styles.locationRow}>
-                      <MapPin size={13} aria-hidden="true" className={styles.locationIcon} />
-                      <span className={styles.locationName}>{a.name}</span>
-                      <span className={styles.locationMeta}>{[a.city, a.country].filter(Boolean).join(", ")}</span>
+                  {paginatedLocations.map((a) => (
+                    <li key={a._id}>
+                      <button
+                        type="button"
+                        className={styles.locationRow}
+                        onClick={() => setViewingAttraction(a)}
+                        aria-label={`View details for ${a.name}`}
+                      >
+                        <MapPin size={13} aria-hidden="true" className={styles.locationIcon} />
+                        <span className={styles.locationName}>{a.name}</span>
+                        <span className={styles.locationMeta}>{[a.city, a.country].filter(Boolean).join(", ")}</span>
+                      </button>
                     </li>
                   ))}
                 </ul>
+                {locationsTotalPages > 1 && (
+                  <div className={styles.locationsPagination}>
+                    <button
+                      type="button"
+                      className={styles.locationsPageBtn}
+                      onClick={() => setLocationsPage((p) => Math.max(1, p - 1))}
+                      disabled={locationsPage === 1}
+                      aria-label="Previous locations"
+                    >
+                      <ChevronLeft size={13} aria-hidden="true" />
+                    </button>
+                    <span className={styles.locationsPageInfo}>{locationsPage} / {locationsTotalPages}</span>
+                    <button
+                      type="button"
+                      className={styles.locationsPageBtn}
+                      onClick={() => setLocationsPage((p) => Math.min(locationsTotalPages, p + 1))}
+                      disabled={locationsPage === locationsTotalPages}
+                      aria-label="Next locations"
+                    >
+                      <ChevronRight size={13} aria-hidden="true" />
+                    </button>
+                  </div>
+                )}
               </>
             ) : (
               <p className={styles.hint}>No attractions linked to this brand yet.</p>
             )}
           </div>
         </div>
+      )}
+      {viewingAttraction && (
+        <AttractionDetailModal
+          attraction={viewingAttraction}
+          onClose={() => setViewingAttraction(null)}
+          onNavigateToAttraction={setViewingAttraction}
+        />
       )}
     </ModalShell>
   );
