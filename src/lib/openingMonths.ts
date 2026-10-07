@@ -18,11 +18,23 @@ export function formatOpeningMonthsLabel(openingMonths: number[]): string {
   const sorted = [...new Set(openingMonths)].sort((a, b) => a - b);
   if (sorted.length === 0) return "Seasonal";
 
-  const isConsecutive = sorted.every((m, i) => i === 0 || m === sorted[i - 1] + 1);
-  if (isConsecutive) {
-    return sorted.length === 1
-      ? MONTH_ABBR[sorted[0] - 1]
-      : `${MONTH_ABBR[sorted[0] - 1]}–${MONTH_ABBR[sorted[sorted.length - 1] - 1]}`;
+  // A season that wraps past December (e.g. closed only in August reads as "Sep–Jul") is
+  // still one contiguous run, so each month is compared against its CIRCULAR predecessor —
+  // that makes the Dec→Jan step consecutive rather than a gap. Exactly one break means a
+  // single run, wrapping or not; none means all 12 months.
+  const breaks: number[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const prev = sorted[(i - 1 + sorted.length) % sorted.length];
+    if (sorted[i] !== (prev % 12) + 1) breaks.push(i);
+  }
+
+  if (breaks.length <= 1) {
+    const startIdx = breaks[0] ?? 0;
+    const start = sorted[startIdx];
+    const end = sorted[(startIdx - 1 + sorted.length) % sorted.length];
+    return start === end
+      ? MONTH_ABBR[start - 1]
+      : `${MONTH_ABBR[start - 1]}–${MONTH_ABBR[end - 1]}`;
   }
 
   return sorted.map((m) => MONTH_ABBR[m - 1]).join(", ");
