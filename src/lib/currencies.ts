@@ -169,6 +169,12 @@ export function isPostfixCurrency(code: string): boolean {
  */
 export function formatPrice(amount: number, code: string, options?: { decimals?: number }): string {
   const symbol = CODE_TO_SYMBOL[code] ?? code;
+  // Guards against stale/malformed data (e.g. a price-tier document missing its numeric
+  // `amount`) crashing the whole page on a bad `.toLocaleString()` call — "—" surfaces the
+  // gap visibly instead.
+  if (typeof amount !== "number" || Number.isNaN(amount)) {
+    return "—";
+  }
   const formatted = amount.toLocaleString(undefined, {
     minimumFractionDigits: options?.decimals ?? 0,
     maximumFractionDigits: options?.decimals ?? 2,
