@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Store, Pencil, Trash2, Loader2, MapPin, X as XIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { ModalShell } from "@/components/Modal";
 import { SearchableSelect } from "@/components/SearchableSelect";
+import { CoverImageField } from "@/components/CoverImageField";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { AttractionDetailModal } from "@/components/AttractionDetailModal";
@@ -224,15 +225,12 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
               onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
             />
           </div>
-          <div className={styles.field}>
-            <label className={styles.label}>Default photo URL</label>
-            <input
-              className={styles.input}
-              value={form.photoUrl}
-              onChange={(e) => setForm((p) => ({ ...p, photoUrl: e.target.value }))}
-              placeholder="https://…"
-            />
-          </div>
+          <CoverImageField
+            id="brand-photo-url"
+            label="Default photo URL"
+            value={form.photoUrl}
+            onChange={(v) => setForm((p) => ({ ...p, photoUrl: v }))}
+          />
           <div className={styles.field}>
             <label className={styles.label}>Default website URL</label>
             <input
