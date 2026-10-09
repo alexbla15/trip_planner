@@ -314,6 +314,7 @@
    banners) — the sidebar's own .filterChips usage relies on its parent's flex gap
    for spacing instead, so this variant needs its own margin. */
 .alertTypeFilter {
+  margin-top: 8px;
   margin-bottom: 8px;
 }
 
@@ -1256,6 +1257,35 @@
 }
 
 /* ── Schedule alerts ── */
+.alertsSection {
+  margin-bottom: 8px;
+}
+
+.alertsToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--color-warning) 25%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-warning) 10%, transparent);
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.alertsToggle:hover { background: color-mix(in srgb, var(--color-warning) 16%, transparent); }
+
+.alertsToggleChevron {
+  margin-left: auto;
+  color: var(--color-text-tertiary);
+  transition: transform var(--duration-fast) var(--easing-out);
+}
+.alertsToggleChevronOpen {
+  transform: rotate(180deg);
+}
+
 .alertBanner {
   display: flex;
   align-items: flex-start;

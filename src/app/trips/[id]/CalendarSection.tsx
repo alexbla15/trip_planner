@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useId } from "react";
 import dynamic from "next/dynamic";
-import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, Plus, Coffee, ArrowLeftRight, Pencil } from "lucide-react";
+import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, Plus, Coffee, ArrowLeftRight, Pencil, TriangleAlert, ChevronDown } from "lucide-react";
 import { renderTypeIcon, AttractionDetailModal, AddCustomSlotModal, SwapDaysModal, ImageWithSkeleton } from "@/components";
 import type { CustomSlotFormData } from "@/components";
 import { useAttractionTypes } from "@/hooks";
@@ -119,6 +119,10 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   const [showMap, setShowMap]                  = useState(false);
   const [dismissedAlerts, setDismissedAlerts]  = useState<Set<string>>(new Set());
   const [hiddenAlertTypes, setHiddenAlertTypes] = useState<Set<AlertType>>(new Set());
+  // Alerts default to closed — they're informational, not something that should take over
+  // the view every time the calendar loads; the summary row still shows the count so
+  // they're easy to find and expand.
+  const [alertsExpanded, setAlertsExpanded] = useState(false);
   const [viewingAttraction, setViewingAttraction] = useState<Attraction | null>(null);
   const [customSlotModalOpen, setCustomSlotModalOpen] = useState(false);
   const [editingCustomSlot, setEditingCustomSlot]     = useState<Attraction | null>(null);
@@ -538,32 +542,55 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
           <p className={styles.pendingHint}>{pending.size} unsaved change{pending.size > 1 ? "s" : ""} — click Save to persist.</p>
         )}
 
-        {presentAlertTypes.length > 0 && (
-          <div className={`${styles.filterChips} ${styles.alertTypeFilter}`} role="group" aria-label="Filter alerts by type">
-            {presentAlertTypes.map((t) => {
-              const count = alerts.filter((a) => a.type === t).length;
-              const shown = !hiddenAlertTypes.has(t);
-              return (
-                <button key={t} type="button"
-                  className={`${styles.filterChip} ${shown ? styles.filterChipActive : ""}`}
-                  aria-pressed={shown}
-                  onClick={() => setHiddenAlertTypes((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(t)) next.delete(t); else next.add(t);
-                    return next;
-                  })}
-                >
-                  {ALERT_TYPE_LABELS[t]} ({count})
-                </button>
-              );
-            })}
+        {alerts.length > 0 && (
+          <div className={styles.alertsSection}>
+            <button
+              type="button"
+              className={styles.alertsToggle}
+              onClick={() => setAlertsExpanded((prev) => !prev)}
+              aria-expanded={alertsExpanded}
+            >
+              <TriangleAlert size={14} className={styles.alertIcon} aria-hidden="true" />
+              <span>{alerts.length} alert{alerts.length > 1 ? "s" : ""}</span>
+              <ChevronDown
+                size={14}
+                className={`${styles.alertsToggleChevron} ${alertsExpanded ? styles.alertsToggleChevronOpen : ""}`}
+                aria-hidden="true"
+              />
+            </button>
+
+            {alertsExpanded && (
+              <>
+                {presentAlertTypes.length > 0 && (
+                  <div className={`${styles.filterChips} ${styles.alertTypeFilter}`} role="group" aria-label="Filter alerts by type">
+                    {presentAlertTypes.map((t) => {
+                      const count = alerts.filter((a) => a.type === t).length;
+                      const shown = !hiddenAlertTypes.has(t);
+                      return (
+                        <button key={t} type="button"
+                          className={`${styles.filterChip} ${shown ? styles.filterChipActive : ""}`}
+                          aria-pressed={shown}
+                          onClick={() => setHiddenAlertTypes((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(t)) next.delete(t); else next.add(t);
+                            return next;
+                          })}
+                        >
+                          {ALERT_TYPE_LABELS[t]} ({count})
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <ScheduleAlertList
+                  alerts={visibleAlerts}
+                  onDismiss={(id) => setDismissedAlerts((prev) => new Set([...prev, id]))}
+                />
+              </>
+            )}
           </div>
         )}
-
-        <ScheduleAlertList
-          alerts={visibleAlerts}
-          onDismiss={(id) => setDismissedAlerts((prev) => new Set([...prev, id]))}
-        />
 
         <div className={styles.calendarBody}>
           {/* ── Sidebar — OWNER ONLY (Fix: read-only mode hides picker) ── */}
