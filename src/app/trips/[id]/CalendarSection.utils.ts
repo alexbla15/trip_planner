@@ -4,7 +4,7 @@ import { resolveOpeningHoursForDate } from "@/lib/seasonalHours";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type AlertType = "closed" | "conflict" | "overflow" | "season";
+export type AlertType = "closed" | "conflict" | "overflow" | "season" | "unverified";
 
 export interface ScheduleAlert {
   id:      string;
@@ -100,6 +100,20 @@ function getOutOfSeasonAlert(a: Attraction): ScheduleAlert | null {
     id:      `season-${a._id}`,
     type:    "season",
     message: `"${a.name}" is scheduled on ${a.plannedDate} but is only open ${formatOpeningMonthsLabel(effectiveOpeningMonths!)}.`,
+  };
+}
+
+// ── Condition A3: attraction hasn't been verified yet ─────────────────────────
+
+function getUnverifiedAlert(a: Attraction): ScheduleAlert | null {
+  // Custom slots are schedule-only placeholders, not real curated attractions — there's
+  // nothing for an admin to verify, so they're excluded rather than flagged as unverified.
+  if (a.subtype === "custom-slot") return null;
+  if (a.verified) return null;
+  return {
+    id:      `unverified-${a._id}`,
+    type:    "unverified",
+    message: `"${a.name}" hasn't been verified yet — double-check its details before relying on them.`,
   };
 }
 
@@ -215,6 +229,8 @@ export function computeAlerts(
     if (closed) alerts.push(closed);
     const outOfSeason = getOutOfSeasonAlert(a);
     if (outOfSeason) alerts.push(outOfSeason);
+    const unverified = getUnverifiedAlert(a);
+    if (unverified) alerts.push(unverified);
   }
 
   alerts.push(...getConflictAlerts(local));

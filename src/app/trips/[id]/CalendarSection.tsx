@@ -61,12 +61,13 @@ type SidebarFilter = "all" | "scheduled" | "unscheduled";
 // Order/labels for the alert-type filter chips — "conflict" reads as "Overlap" to
 // match the alert's own message text ("... overlap in time"), which is more
 // meaningful to a reader than the internal type name.
-const ALERT_TYPE_ORDER: AlertType[] = ["conflict", "closed", "season", "overflow"];
+const ALERT_TYPE_ORDER: AlertType[] = ["conflict", "closed", "season", "overflow", "unverified"];
 const ALERT_TYPE_LABELS: Record<AlertType, string> = {
-  conflict: "Overlap",
-  closed:   "Closed",
-  season:   "Season",
-  overflow: "Overflow",
+  conflict:   "Overlap",
+  closed:     "Closed",
+  season:     "Season",
+  overflow:   "Overflow",
+  unverified: "Unverified",
 };
 
 // ── Popup state type ──────────────────────────────────────────────────────────
