@@ -91,16 +91,18 @@ function DayRow({
                   aria-label={`${day} closing time${ranges.length > 1 ? ` (range ${i + 1})` : ""}`}
                   className={styles.timeInput}
                 />
-                {i > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => onRemoveRange(i)}
-                    aria-label={`Remove this opening-hours range for ${day}`}
-                    className={`${styles.rangeButton} ${styles.removeRangeButton}`}
-                  >
-                    <X size={14} />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => onRemoveRange(i)}
+                  aria-label={
+                    ranges.length === 1
+                      ? `Remove ${day}'s hours and mark it closed`
+                      : `Remove this opening-hours range for ${day}`
+                  }
+                  className={`${styles.rangeButton} ${styles.removeRangeButton}`}
+                >
+                  <X size={14} />
+                </button>
                 {isLast && (
                   <button
                     type="button"
@@ -141,10 +143,15 @@ export function OpeningHoursGrid({ value, onChange }: OpeningHoursGridProps) {
   }
 
   function handleRemoveRange(day: DayKey, rangeIndex: number) {
-    onChange({
-      ...value,
-      [day]: { ...value[day], ranges: value[day].ranges.filter((_, i) => i !== rangeIndex) },
-    });
+    const remaining = value[day].ranges.filter((_, i) => i !== rangeIndex);
+    // Removing the only range would leave an empty ranges array, which isn't a valid
+    // state (every day needs at least one, even when closed) — treat it as marking the
+    // day closed instead, keeping the now-unused range around rather than discarding it.
+    if (remaining.length === 0) {
+      onChange({ ...value, [day]: { ...value[day], closed: true } });
+      return;
+    }
+    onChange({ ...value, [day]: { ...value[day], ranges: remaining } });
   }
 
   /** Copies one day's closed/ranges onto every day — a shortcut for the common "same
