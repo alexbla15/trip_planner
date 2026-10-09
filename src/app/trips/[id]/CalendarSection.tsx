@@ -69,6 +69,16 @@ const ALERT_TYPE_LABELS: Record<AlertType, string> = {
   overflow:   "Overflow",
   unverified: "Unverified",
 };
+// Each alert type gets its own color so the toggle rows are visually distinguishable at a
+// glance, not just by label text — see the matching .alertsToggle--<type> rules in
+// CalendarSection.module.css.
+const ALERT_TYPE_CLASS: Record<AlertType, string> = {
+  conflict:   "alertsToggleConflict",
+  closed:     "alertsToggleClosed",
+  season:     "alertsToggleSeason",
+  overflow:   "alertsToggleOverflow",
+  unverified: "alertsToggleUnverified",
+};
 
 // ── Popup state type ──────────────────────────────────────────────────────────
 
@@ -119,10 +129,10 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
 
   const [showMap, setShowMap]                  = useState(false);
   const [dismissedAlerts, setDismissedAlerts]  = useState<Set<string>>(new Set());
-  // Alerts default to closed — they're informational, not something that should take over
-  // the view every time the calendar loads; the summary row still shows the count so
-  // they're easy to find and expand.
-  const [alertsExpanded, setAlertsExpanded] = useState(false);
+  // Each alert type collapses independently, all closed by default — they're
+  // informational, not something that should take over the view every time the calendar
+  // loads; each type's own toggle row still shows its count so it's easy to find and expand.
+  const [expandedAlertTypes, setExpandedAlertTypes] = useState<Set<AlertType>>(new Set());
   const [viewingAttraction, setViewingAttraction] = useState<Attraction | null>(null);
   const [customSlotModalOpen, setCustomSlotModalOpen] = useState(false);
   const [editingCustomSlot, setEditingCustomSlot]     = useState<Attraction | null>(null);
@@ -544,31 +554,41 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
 
         {alerts.length > 0 && (
           <div className={styles.alertsSection}>
-            <button
-              type="button"
-              className={styles.alertsToggle}
-              onClick={() => setAlertsExpanded((prev) => !prev)}
-              aria-expanded={alertsExpanded}
-            >
-              <TriangleAlert size={14} className={styles.alertIcon} aria-hidden="true" />
-              <span className={styles.alertsToggleSummary}>
-                {presentAlertTypes.map((t) => `${ALERT_TYPE_LABELS[t]} (${alerts.filter((a) => a.type === t).length})`).join(" · ")}
-              </span>
-              <ChevronDown
-                size={14}
-                className={`${styles.alertsToggleChevron} ${alertsExpanded ? styles.alertsToggleChevronOpen : ""}`}
-                aria-hidden="true"
-              />
-            </button>
+            {presentAlertTypes.map((t) => {
+              const count = alerts.filter((a) => a.type === t).length;
+              const expanded = expandedAlertTypes.has(t);
+              return (
+                <div key={t} className={styles.alertTypeGroup}>
+                  <button
+                    type="button"
+                    className={`${styles.alertsToggle} ${styles[ALERT_TYPE_CLASS[t]]}`}
+                    onClick={() => setExpandedAlertTypes((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(t)) next.delete(t); else next.add(t);
+                      return next;
+                    })}
+                    aria-expanded={expanded}
+                  >
+                    <TriangleAlert size={14} className={styles.alertIcon} aria-hidden="true" />
+                    <span className={styles.alertsToggleSummary}>{ALERT_TYPE_LABELS[t]} ({count})</span>
+                    <ChevronDown
+                      size={14}
+                      className={`${styles.alertsToggleChevron} ${expanded ? styles.alertsToggleChevronOpen : ""}`}
+                      aria-hidden="true"
+                    />
+                  </button>
 
-            {alertsExpanded && (
-              <div className={styles.alertsExpanded}>
-                <ScheduleAlertList
-                  alerts={visibleAlerts}
-                  onDismiss={(id) => setDismissedAlerts((prev) => new Set([...prev, id]))}
-                />
-              </div>
-            )}
+                  {expanded && (
+                    <div className={styles.alertsExpanded}>
+                      <ScheduleAlertList
+                        alerts={visibleAlerts.filter((a) => a.type === t)}
+                        onDismiss={(id) => setDismissedAlerts((prev) => new Set([...prev, id]))}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 

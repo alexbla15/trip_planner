@@ -1253,21 +1253,72 @@
   margin-bottom: 8px;
 }
 
+.alertTypeGroup {
+  margin-bottom: 6px;
+}
+.alertTypeGroup:last-child {
+  margin-bottom: 0;
+}
+
+/* Base toggle look — color comes from one of the --alert-accent-* vars set by each
+   .alertsToggle--<type> variant below, so every type shares the same shape and only the
+   color changes. */
 .alertsToggle {
   display: flex;
   align-items: center;
   gap: 6px;
+  width: 100%;
   padding: 6px 10px;
-  border: 1px solid color-mix(in srgb, var(--color-warning) 25%, transparent);
+  border: 1px solid var(--alert-accent-border);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--color-warning) 10%, transparent);
+  background: var(--alert-accent-bg);
   color: var(--color-text-primary);
   font-size: 13px;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
+  text-align: left;
 }
-.alertsToggle:hover { background: color-mix(in srgb, var(--color-warning) 16%, transparent); }
+.alertsToggle:hover { background: var(--alert-accent-bg-hover); }
+
+.alertsToggle .alertIcon {
+  color: var(--alert-accent);
+}
+
+.alertsToggleConflict {
+  --alert-accent: var(--color-error);
+  --alert-accent-border: color-mix(in srgb, var(--color-error) 25%, transparent);
+  --alert-accent-bg: color-mix(in srgb, var(--color-error) 10%, transparent);
+  --alert-accent-bg-hover: color-mix(in srgb, var(--color-error) 16%, transparent);
+}
+
+.alertsToggleClosed {
+  --alert-accent: var(--color-warning);
+  --alert-accent-border: color-mix(in srgb, var(--color-warning) 25%, transparent);
+  --alert-accent-bg: color-mix(in srgb, var(--color-warning) 10%, transparent);
+  --alert-accent-bg-hover: color-mix(in srgb, var(--color-warning) 16%, transparent);
+}
+
+.alertsToggleSeason {
+  --alert-accent: var(--color-primary);
+  --alert-accent-border: color-mix(in srgb, var(--color-primary) 25%, transparent);
+  --alert-accent-bg: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  --alert-accent-bg-hover: color-mix(in srgb, var(--color-primary) 16%, transparent);
+}
+
+.alertsToggleOverflow {
+  --alert-accent: #9333ea;
+  --alert-accent-border: color-mix(in srgb, #9333ea 25%, transparent);
+  --alert-accent-bg: color-mix(in srgb, #9333ea 10%, transparent);
+  --alert-accent-bg-hover: color-mix(in srgb, #9333ea 16%, transparent);
+}
+
+.alertsToggleUnverified {
+  --alert-accent: var(--color-text-tertiary);
+  --alert-accent-border: color-mix(in srgb, var(--color-text-tertiary) 25%, transparent);
+  --alert-accent-bg: color-mix(in srgb, var(--color-text-tertiary) 10%, transparent);
+  --alert-accent-bg-hover: color-mix(in srgb, var(--color-text-tertiary) 16%, transparent);
+}
 
 .alertsToggleSummary {
   overflow: hidden;
@@ -1276,7 +1327,7 @@
 }
 
 .alertsExpanded {
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .alertsToggleChevron {
