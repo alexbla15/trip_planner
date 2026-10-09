@@ -402,38 +402,48 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
                   <table className={styles.locationsTable}>
                     <thead>
                       <tr>
-                        <th scope="col">Name</th>
+                        <th scope="col">#</th>
+                        <th scope="col">Parent</th>
                         <th scope="col">Country</th>
                         <th scope="col">City</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {paginatedLocations.map((a) => (
-                        <tr
-                          key={a._id}
-                          className={styles.locationRow}
-                          onClick={() => setViewingAttraction(a)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              setViewingAttraction(a);
-                            }
-                          }}
-                          tabIndex={0}
-                          role="button"
-                          aria-label={`View details for ${a.name}`}
-                        >
-                          <td className={styles.locationNameCell}>
-                            <MapPin size={13} aria-hidden="true" className={styles.locationIcon} />
-                            {a.name}
-                            {a.parentAttractionName && (
-                              <span className={styles.locationParent}> ({a.parentAttractionName})</span>
-                            )}
-                          </td>
-                          <td>{a.country || "—"}</td>
-                          <td>{a.city || "—"}</td>
-                        </tr>
-                      ))}
+                      {paginatedLocations.map((a, i) => {
+                        // Every row is the same brand, so repeating its name on every line is
+                        // pure noise — show whatever disambiguates one branch from the next
+                        // instead: a parenthetical from its own name (e.g. "Levain Bakery
+                        // (Williamsburg)" → "Williamsburg"), falling back to a running serial
+                        // number when the name carries no such detail.
+                        const parenMatch = a.name.match(/\(([^)]+)\)\s*$/);
+                        const rowLabel = parenMatch
+                          ? parenMatch[1]
+                          : `#${(locationsPage - 1) * LOCATIONS_PAGE_SIZE + i + 1}`;
+                        return (
+                          <tr
+                            key={a._id}
+                            className={styles.locationRow}
+                            onClick={() => setViewingAttraction(a)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                setViewingAttraction(a);
+                              }
+                            }}
+                            tabIndex={0}
+                            role="button"
+                            aria-label={`View details for ${a.name}`}
+                          >
+                            <td className={styles.locationNameCell}>
+                              <MapPin size={13} aria-hidden="true" className={styles.locationIcon} />
+                              {rowLabel}
+                            </td>
+                            <td>{a.parentAttractionName || "—"}</td>
+                            <td>{a.country || "—"}</td>
+                            <td>{a.city || "—"}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

@@ -414,11 +414,6 @@ button.typeChip {
   text-overflow: ellipsis;
 }
 
-.locationParent {
-  font-weight: 500;
-  color: var(--color-text-tertiary);
-}
-
 .locationsPagination {
   display: flex;
   align-items: center;
