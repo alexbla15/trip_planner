@@ -118,7 +118,6 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
 
   const [showMap, setShowMap]                  = useState(false);
   const [dismissedAlerts, setDismissedAlerts]  = useState<Set<string>>(new Set());
-  const [hiddenAlertTypes, setHiddenAlertTypes] = useState<Set<AlertType>>(new Set());
   // Alerts default to closed — they're informational, not something that should take over
   // the view every time the calendar loads; the summary row still shows the count so
   // they're easy to find and expand.
@@ -227,7 +226,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   // Present alert types only, so the filter row doesn't show empty/irrelevant chips
   // (e.g. "Season" when nothing in this trip has seasonal hours).
   const presentAlertTypes = ALERT_TYPE_ORDER.filter((t) => alerts.some((a) => a.type === t));
-  const visibleAlerts = alerts.filter((a) => !dismissedAlerts.has(a.id) && !hiddenAlertTypes.has(a.type));
+  const visibleAlerts = alerts.filter((a) => !dismissedAlerts.has(a.id));
 
   // ── API ───────────────────────────────────────────────────────────────────
 
@@ -551,7 +550,9 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
               aria-expanded={alertsExpanded}
             >
               <TriangleAlert size={14} className={styles.alertIcon} aria-hidden="true" />
-              <span>{alerts.length} alert{alerts.length > 1 ? "s" : ""}</span>
+              <span className={styles.alertsToggleSummary}>
+                {presentAlertTypes.map((t) => `${ALERT_TYPE_LABELS[t]} (${alerts.filter((a) => a.type === t).length})`).join(" · ")}
+              </span>
               <ChevronDown
                 size={14}
                 className={`${styles.alertsToggleChevron} ${alertsExpanded ? styles.alertsToggleChevronOpen : ""}`}
@@ -560,34 +561,12 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
             </button>
 
             {alertsExpanded && (
-              <>
-                {presentAlertTypes.length > 0 && (
-                  <div className={`${styles.filterChips} ${styles.alertTypeFilter}`} role="group" aria-label="Filter alerts by type">
-                    {presentAlertTypes.map((t) => {
-                      const count = alerts.filter((a) => a.type === t).length;
-                      const shown = !hiddenAlertTypes.has(t);
-                      return (
-                        <button key={t} type="button"
-                          className={`${styles.filterChip} ${shown ? styles.filterChipActive : ""}`}
-                          aria-pressed={shown}
-                          onClick={() => setHiddenAlertTypes((prev) => {
-                            const next = new Set(prev);
-                            if (next.has(t)) next.delete(t); else next.add(t);
-                            return next;
-                          })}
-                        >
-                          {ALERT_TYPE_LABELS[t]} ({count})
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
+              <div className={styles.alertsExpanded}>
                 <ScheduleAlertList
                   alerts={visibleAlerts}
                   onDismiss={(id) => setDismissedAlerts((prev) => new Set([...prev, id]))}
                 />
-              </>
+              </div>
             )}
           </div>
         )}

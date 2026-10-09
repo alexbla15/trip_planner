@@ -310,14 +310,6 @@
   gap: 4px;
 }
 
-/* Positions the alert-type filter chips (rendered at .card level, above the alert
-   banners) — the sidebar's own .filterChips usage relies on its parent's flex gap
-   for spacing instead, so this variant needs its own margin. */
-.alertTypeFilter {
-  margin-top: 8px;
-  margin-bottom: 8px;
-}
-
 .filterChip {
   padding: 4px 8px;
   border-radius: var(--radius-full);
@@ -1276,6 +1268,16 @@
   cursor: pointer;
 }
 .alertsToggle:hover { background: color-mix(in srgb, var(--color-warning) 16%, transparent); }
+
+.alertsToggleSummary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alertsExpanded {
+  margin-top: 8px;
+}
 
 .alertsToggleChevron {
   margin-left: auto;
