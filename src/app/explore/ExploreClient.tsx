@@ -834,20 +834,18 @@ export function ExploreClient() {
     setSelectedRegion(region.name);
     setSelectedCity(null);
     setCityAttractions([]);
-    setSelectedCategories([]);
-    setSelectedTypes([]);
-    setSelectedFoodStyles([]);
-    setSelectedShopStyles([]);
+    // Category/type/foodStyle/shopStyle are deliberately KEPT here — same reasoning as
+    // handleCountrySelect above: narrowing from country into a region is still just
+    // narrowing, not a reason to throw away a filter the user already set.
     setSidebarOpen(false);
     mapRef.current?.flyToRegion(region.lat, region.lng);
   }, []);
 
   const handleCitySelect = useCallback((city: CityEntry) => {
     setSelectedCity(city.name);
-    setSelectedCategories([]);
-    setSelectedTypes([]);
-    setSelectedFoodStyles([]);
-    setSelectedShopStyles([]);
+    // Category/type/foodStyle/shopStyle are deliberately KEPT here — same reasoning as
+    // handleCountrySelect above: narrowing from country/region into a city is still just
+    // narrowing, not a reason to throw away a filter the user already set.
     setSidebarOpen(false);
     mapRef.current?.flyToCity(city.lat, city.lng);
   }, []);
