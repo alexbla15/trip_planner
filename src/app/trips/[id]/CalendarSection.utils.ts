@@ -7,9 +7,12 @@ import { resolveOpeningHoursForDate } from "@/lib/seasonalHours";
 export type AlertType = "closed" | "conflict" | "overflow" | "season" | "unverified";
 
 export interface ScheduleAlert {
-  id:      string;
-  type:    AlertType;
-  message: string;
+  id:            string;
+  type:          AlertType;
+  message:       string;
+  /** The attraction(s) this alert is about — one for most types, two for a "conflict"
+   *  (the pair that overlaps). Lets the alert list open the right attraction on click. */
+  attractionIds: string[];
 }
 
 // ── Private helpers ───────────────────────────────────────────────────────────
@@ -51,9 +54,10 @@ function getClosedAlert(a: Attraction): ScheduleAlert | null {
 
   if (hours.closed) {
     return {
-      id:      `closed-${a._id}`,
-      type:    "closed",
-      message: `"${a.name}" is scheduled at ${a.plannedTime} but is closed on ${dow}s.`,
+      id:            `closed-${a._id}`,
+      type:          "closed",
+      message:       `"${a.name}" is scheduled at ${a.plannedTime} but is closed on ${dow}s.`,
+      attractionIds: [a._id],
     };
   }
 
@@ -69,9 +73,10 @@ function getClosedAlert(a: Attraction): ScheduleAlert | null {
   if (!isOpen) {
     const hoursLabel = ranges.map((r) => `${r.open}–${r.close}`).join(", ");
     return {
-      id:      `closed-${a._id}`,
-      type:    "closed",
-      message: `"${a.name}" is scheduled at ${a.plannedTime} but opens ${hoursLabel}.`,
+      id:            `closed-${a._id}`,
+      type:          "closed",
+      message:       `"${a.name}" is scheduled at ${a.plannedTime} but opens ${hoursLabel}.`,
+      attractionIds: [a._id],
     };
   }
 
@@ -97,9 +102,10 @@ function getOutOfSeasonAlert(a: Attraction): ScheduleAlert | null {
   if (effectiveOpeningMonths!.includes(month)) return null;
 
   return {
-    id:      `season-${a._id}`,
-    type:    "season",
-    message: `"${a.name}" is scheduled on ${a.plannedDate} but is only open ${formatOpeningMonthsLabel(effectiveOpeningMonths!)}.`,
+    id:            `season-${a._id}`,
+    type:          "season",
+    message:       `"${a.name}" is scheduled on ${a.plannedDate} but is only open ${formatOpeningMonthsLabel(effectiveOpeningMonths!)}.`,
+    attractionIds: [a._id],
   };
 }
 
@@ -111,9 +117,10 @@ function getUnverifiedAlert(a: Attraction): ScheduleAlert | null {
   if (a.subtype === "custom-slot") return null;
   if (a.verified) return null;
   return {
-    id:      `unverified-${a._id}`,
-    type:    "unverified",
-    message: `"${a.name}" hasn't been verified yet — double-check its details before relying on them.`,
+    id:            `unverified-${a._id}`,
+    type:          "unverified",
+    message:       `"${a.name}" hasn't been verified yet — double-check its details before relying on them.`,
+    attractionIds: [a._id],
   };
 }
 
@@ -139,9 +146,10 @@ function getConflictAlerts(local: Attraction[]): ScheduleAlert[] {
         if (bStart >= aEnd) break;
         const pairId = [sorted[i]._id, sorted[j]._id].sort().join("_");
         alerts.push({
-          id:      `conflict-${pairId}`,
-          type:    "conflict",
-          message: `"${sorted[i].name}" and "${sorted[j].name}" overlap in time.`,
+          id:            `conflict-${pairId}`,
+          type:          "conflict",
+          message:       `"${sorted[i].name}" and "${sorted[j].name}" overlap in time.`,
+          attractionIds: [sorted[i]._id, sorted[j]._id],
         });
       }
     }
@@ -165,9 +173,10 @@ function getOverflowAlerts(
 
     if (startMins < dayStart * 60) {
       alerts.push({
-        id:      `overflow-start-${a._id}`,
-        type:    "overflow",
-        message: `"${a.name}" starts before the visible day window (${String(dayStart).padStart(2, "0")}:00).`,
+        id:            `overflow-start-${a._id}`,
+        type:          "overflow",
+        message:       `"${a.name}" starts before the visible day window (${String(dayStart).padStart(2, "0")}:00).`,
+        attractionIds: [a._id],
       });
     } else if (endMins > dayEnd * 60) {
       // Wrap past midnight (endMins can exceed 1440 for an overnight item) so the
@@ -180,9 +189,10 @@ function getOverflowAlerts(
       const endM = String(wrappedEnd % 60).padStart(2, "0");
       const dayNote = endMins >= 1440 ? " the next day" : "";
       alerts.push({
-        id:      `overflow-end-${a._id}`,
-        type:    "overflow",
-        message: `"${a.name}" runs until ${endH}:${endM}${dayNote}, past the visible day end (${String(dayEnd).padStart(2, "0")}:00).`,
+        id:            `overflow-end-${a._id}`,
+        type:          "overflow",
+        message:       `"${a.name}" runs until ${endH}:${endM}${dayNote}, past the visible day end (${String(dayEnd).padStart(2, "0")}:00).`,
+        attractionIds: [a._id],
       });
     }
   }

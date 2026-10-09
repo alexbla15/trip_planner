@@ -582,7 +582,9 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                     <div className={styles.alertsExpanded}>
                       <ScheduleAlertList
                         alerts={visibleAlerts.filter((a) => a.type === t)}
+                        attractions={local}
                         onDismiss={(id) => setDismissedAlerts((prev) => new Set([...prev, id]))}
+                        onOpenAttraction={setViewingAttraction}
                       />
                     </div>
                   )}
