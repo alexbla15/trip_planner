@@ -839,8 +839,14 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                       </span>
                     </div>
 
-                    {(canEdit || dayAlts.length > 0) && (
-                      <div className={styles.altRow}>
+                    {/* Always rendered (even with nothing to show) so every day column
+                        reserves the same header height — otherwise a day with no
+                        alternatives sits flush under its date while a neighboring day
+                        with one pushes its timeline down, misaligning every hour row
+                        across the week. */}
+                    <div className={styles.altRow}>
+                      {(hasEditPermission || dayAlts.length > 0) && (
+                        <>
                         <GitBranch size={12} className={styles.altIcon} aria-hidden="true" />
                         {renamingAltId && activeAltId === renamingAltId ? (
                           <>
@@ -868,7 +874,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                             <select
                               className={styles.altSelect}
                               value={activeAltId ?? ""}
-                              disabled={isAltBusy || !canEdit}
+                              disabled={isAltBusy || !hasEditPermission}
                               onChange={(e) => handleSelectAlternative(dayIso, e.target.value || null)}
                               aria-label={`${dayLabel} schedule version`}
                             >
@@ -911,8 +917,9 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                             )}
                           </>
                         )}
-                      </div>
-                    )}
+                        </>
+                      )}
+                    </div>
 
                     {/* Timeline — dynamic hour range */}
                     <div className={styles.timeline}

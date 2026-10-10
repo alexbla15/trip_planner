@@ -561,11 +561,16 @@
 .dayHoursWarning { color: var(--color-warning); opacity: 1; }
 
 /* ── Day alternatives ── */
+/* Fixed height (not just vertical padding) so this row reserves the same space across
+   every day column even when it renders empty — otherwise a day with nothing to show
+   here sits flush under its date header while a neighboring day's switcher pushes its
+   timeline down, misaligning every hour row across the week. */
 .altRow {
   display: flex;
   align-items: center;
   gap: 3px;
-  padding: 4px 10px;
+  height: 30px;
+  padding: 0 10px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border-subtle);
 }
