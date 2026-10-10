@@ -1368,9 +1368,12 @@ export async function createDayAlternative(
   const existingForDay = [...(trip.dayAlternatives?.values() ?? [])].filter((a) => a.day === day);
   const altId = new Types.ObjectId().toString();
   const name = `Alternative ${existingForDay.length + 1}`;
+  // entry is a Mongoose subdocument (from trip.schedules.get()/.entries()), not a plain
+  // object — structuredClone() throws on it (functions/symbols aren't cloneable). A JSON
+  // round-trip both clones and strips it down to a plain object in one step.
   const schedules: Record<string, IScheduleEntry> = {};
   for (const [key, entry] of sourceEntries) {
-    schedules[key] = structuredClone(entry);
+    schedules[key] = JSON.parse(JSON.stringify(entry));
   }
 
   await Trip.findByIdAndUpdate(tripId, {
