@@ -508,6 +508,120 @@ export async function deleteAttraction(payload: JwtPayload, id: string): Promise
   await attraction.deleteOne();
 }
 
+// ── Day alternatives — effective-schedule resolution ──────────────────────────────────
+//
+// Trip.schedules is the main schedule; Trip.dayAlternatives holds every alternate plan
+// ever created for a day (keyed `${day}::${id}`), and Trip.activeDayAlternative says
+// which one (if any) is currently "live" for each day. Every reader of a trip's
+// attractions — the calendar, the map, the Costs tab, schedule alerts — goes through
+// listTripAttractions, so resolving the live version HERE, once, is what makes switching
+// a day's active alternative transparently affect all of them with no extra wiring.
+
+function dayAltKey(day: string, altId: string): string {
+  return `${day}::${altId}`;
+}
+
+/** The schedule entries that are actually "live" right now: every main-schedule entry
+ *  whose day has no active alternative, plus every entry from each day's active
+ *  alternative (if any). A day with zero scheduled items and no alternative contributes
+ *  nothing, same as today. */
+function getEffectiveScheduleEntries(trip: ITrip): Array<[string, IScheduleEntry]> {
+  const active = trip.activeDayAlternative;
+  if (!active || active.size === 0) {
+    return [...(trip.schedules?.entries() ?? [])];
+  }
+
+  const result: Array<[string, IScheduleEntry]> = [];
+  for (const [key, entry] of trip.schedules?.entries() ?? []) {
+    const day = entry?.plannedDate;
+    if (day && active.has(day)) continue; // superseded by that day's active alternative
+    result.push([key, entry]);
+  }
+  for (const [day, altId] of active.entries()) {
+    if (!altId) continue;
+    const alt = trip.dayAlternatives?.get(dayAltKey(day, altId));
+    if (!alt) continue;
+    for (const [key, entry] of alt.schedules?.entries() ?? []) {
+      result.push([key, entry]);
+    }
+  }
+  return result;
+}
+
+/** Raw (flattenMaps'd) counterpart of getEffectiveScheduleEntries, for the custom-slot/
+ *  flight extraction below, which reads schedule fields (isCustomSlot, name, …) that
+ *  aren't declared on the cached Mongoose sub-schema and so need the bypass-strict-mode
+ *  raw object rather than the hydrated document. */
+function getEffectiveRawSchedules(
+  rawTrip: { schedules?: Record<string, unknown>; dayAlternatives?: Record<string, { schedules?: Record<string, unknown> }>; activeDayAlternative?: Record<string, string> }
+): Record<string, unknown> {
+  const active = rawTrip.activeDayAlternative ?? {};
+  const activeDays = Object.keys(active).filter((d) => active[d]);
+  if (activeDays.length === 0) return rawTrip.schedules ?? {};
+
+  const result: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(rawTrip.schedules ?? {})) {
+    const day = (entry as { plannedDate?: string } | null)?.plannedDate;
+    if (day && active[day]) continue;
+    result[key] = entry;
+  }
+  for (const day of activeDays) {
+    const altId = active[day];
+    const alt = rawTrip.dayAlternatives?.[dayAltKey(day, altId)];
+    for (const [key, entry] of Object.entries(alt?.schedules ?? {})) {
+      result[key] = entry;
+    }
+  }
+  return result;
+}
+
+/** Reads an entry wherever it currently lives — an active alternative's schedule map, if
+ *  that's where it was created, otherwise the main schedule. Read-only counterpart of
+ *  locateScheduleEntry, for call sites that don't need to know the write path. */
+function getScheduleEntry(trip: ITrip, key: string): IScheduleEntry | null {
+  for (const [day, altId] of trip.activeDayAlternative?.entries() ?? []) {
+    if (!altId) continue;
+    const alt = trip.dayAlternatives?.get(dayAltKey(day, altId));
+    if (alt?.schedules?.has(key)) return alt.schedules.get(key) ?? null;
+  }
+  return trip.schedules?.get(key) ?? null;
+}
+
+interface ScheduleWriteTarget {
+  pathPrefix: string;
+  /** Set only when the target is a day-alternative's own schedule map, not the main one. */
+  variant: { day: string; altId: string } | null;
+}
+
+/** Finds which schedule map an existing entry currently lives in — the active
+ *  alternative for its day, if that's where it was created/moved to, otherwise the main
+ *  schedule. Used by update/remove so edits land wherever the entry actually is, without
+ *  the caller needing to know about alternatives at all. */
+function locateScheduleEntry(trip: ITrip, key: string): ScheduleWriteTarget {
+  for (const [day, altId] of trip.activeDayAlternative?.entries() ?? []) {
+    if (!altId) continue;
+    const alt = trip.dayAlternatives?.get(dayAltKey(day, altId));
+    if (alt?.schedules?.has(key)) {
+      return { pathPrefix: `dayAlternatives.${dayAltKey(day, altId)}.schedules.${key}`, variant: { day, altId } };
+    }
+  }
+  return { pathPrefix: `schedules.${key}`, variant: null };
+}
+
+/** Where a brand-new entry being scheduled onto `day` should be written — that day's
+ *  active alternative, if one is live, otherwise the main schedule. Used by add/create so
+ *  new attractions/custom-slots/flights land in whichever version of the day is currently
+ *  being viewed/edited. */
+function resolveWriteTarget(trip: ITrip, day: string | null | undefined, key: string): ScheduleWriteTarget {
+  if (day) {
+    const altId = trip.activeDayAlternative?.get(day);
+    if (altId && trip.dayAlternatives?.has(dayAltKey(day, altId))) {
+      return { pathPrefix: `dayAlternatives.${dayAltKey(day, altId)}.schedules.${key}`, variant: { day, altId } };
+    }
+  }
+  return { pathPrefix: `schedules.${key}`, variant: null };
+}
+
 export interface ListTripAttractionsParams {
   type?: string | null;
   sort?: string | null;
@@ -566,7 +680,7 @@ export async function listTripAttractions(
   // attraction's own id (attractionRef absent); an additional instance's key is a fresh
   // synthetic id with attractionRef pointing back to the real document.
   const entriesByDocId = new Map<string, Array<[string, IScheduleEntry]>>();
-  for (const [key, entry] of trip.schedules?.entries() ?? []) {
+  for (const [key, entry] of getEffectiveScheduleEntries(trip)) {
     if (entry?.isCustomSlot || entry?.isFlight) continue; // handled separately below
     const realId = entry?.attractionRef ?? (docsById.has(key) ? key : null);
     if (!realId || !docsById.has(realId)) continue; // stale key / doc no longer linked
@@ -610,9 +724,12 @@ export async function listTripAttractions(
   };
   const rawTrip = trip.toObject({ flattenMaps: true }) as unknown as {
     schedules?: Record<string, RawEntry>;
+    dayAlternatives?: Record<string, { schedules?: Record<string, RawEntry> }>;
+    activeDayAlternative?: Record<string, string>;
   };
+  const effectiveRawSchedules = getEffectiveRawSchedules(rawTrip) as Record<string, RawEntry>;
   const scheduleOnlyEntries: AttractionShape[] = [];
-  for (const [key, entry] of Object.entries(rawTrip.schedules ?? {})) {
+  for (const [key, entry] of Object.entries(effectiveRawSchedules)) {
     if (entry?.isCustomSlot) {
       scheduleOnlyEntries.push({
         _id: key,
@@ -729,11 +846,12 @@ export async function addAttractionToTrip(
       throw badRequest("name is required");
     }
     const customSlotId = `cs-${new Types.ObjectId().toString()}`;
+    const { pathPrefix: customSlotPath } = resolveWriteTarget(trip, plannedDate, customSlotId);
     // Use findByIdAndUpdate + $set to bypass Mongoose strict mode — trip.schedules.set()
     // + trip.save() would strip any fields not in the cached sub-schema.
     await Trip.findByIdAndUpdate(tripId, {
       $set: {
-        [`schedules.${customSlotId}`]: {
+        [customSlotPath]: {
           plannedDate: plannedDate ?? null,
           plannedTime: plannedTime ?? null,
           actualDurationValue: actualDurationValue || undefined,
@@ -773,12 +891,13 @@ export async function addAttractionToTrip(
       throw badRequest("name is required");
     }
     const flightId = `fl-${new Types.ObjectId().toString()}`;
+    const { pathPrefix: flightPath } = resolveWriteTarget(trip, plannedDate, flightId);
     // Flights are trip-scoped only — never create a global Attraction document, so
     // flights can never collide (by name) across trips or be picked from another
     // trip's existing-attractions list. Mirrors the custom-slot pattern above.
     await Trip.findByIdAndUpdate(tripId, {
       $set: {
-        [`schedules.${flightId}`]: {
+        [flightPath]: {
           plannedDate: plannedDate ?? null,
           plannedTime: plannedTime ?? null,
           actualDurationValue: actualDurationValue || undefined,
@@ -909,22 +1028,21 @@ export async function addAttractionToTrip(
           notes: notes || undefined,
         } : {}),
       };
+      const { pathPrefix: instancePath } = resolveWriteTarget(trip, plannedDate, instanceKey);
       // Use findByIdAndUpdate + $set, not trip.save() — trip.schedules is a Map-typed
       // field and .save() can silently no-op on Map mutations (see docs/LEARNINGS.md).
       await Trip.findByIdAndUpdate(tripId, {
-        $set: { [`schedules.${instanceKey}`]: scheduleEntry },
+        $set: { [instancePath]: scheduleEntry },
       });
       await attraction.populate(["types", "foodStyles", "shopStyles"]);
       const usedInTripNames = await getUsedInTripNames(payload.userId, attractionId);
       return { status: 201, data: formatAttraction(attraction, scheduleEntry, instanceKey, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl, brand) };
     }
-    const schedule = trip.schedules?.get(attractionId);
+    const schedule = getScheduleEntry(trip, attractionId);
     await attraction.populate(["types", "foodStyles", "shopStyles"]);
     const usedInTripNames = await getUsedInTripNames(payload.userId, attractionId);
     return { status: 200, data: formatAttraction(attraction, schedule ?? null, undefined, isVisited, usedInTripNames, parentAttractionName, childAttractionCount, parentAttractionPhotoUrl, brand) };
   }
-
-  trip.attractionIds.push(attraction._id);
 
   const scheduleEntry: IScheduleEntry = {
     plannedDate: plannedDate ?? null,
@@ -944,10 +1062,15 @@ export async function addAttractionToTrip(
       notes: notes || undefined,
     } : {}),
   };
-  if (!trip.schedules) trip.set("schedules", new Map());
-  trip.schedules.set(attractionId, scheduleEntry);
-
-  await trip.save();
+  const { pathPrefix: newLinkPath } = resolveWriteTarget(trip, plannedDate, attractionId);
+  // $addToSet for attractionIds (the trip-wide library link, unaffected by alternatives)
+  // and $set for the schedule entry, in one write — not trip.save(), since trip.schedules
+  // is a Map-typed field and .save() can silently no-op on Map mutations (see
+  // docs/LEARNINGS.md); the same risk applies to dayAlternatives' nested Map.
+  await Trip.findByIdAndUpdate(tripId, {
+    $addToSet: { attractionIds: attraction._id },
+    $set: { [newLinkPath]: scheduleEntry },
+  });
   await attraction.populate(["types", "foodStyles", "shopStyles"]);
 
   const usedInTripNames = await getUsedInTripNames(payload.userId, attractionId);
@@ -994,22 +1117,25 @@ export async function updateTripAttractionSchedule(
 ): Promise<AttractionShape> {
   await dbConnect();
 
-  // Verify access without loading the full document
-  const accessible = await Trip.exists({
+  // Needs the full document (not just an existence check) — locating which schedule map
+  // this entry actually lives in requires reading activeDayAlternative/dayAlternatives.
+  const trip = await Trip.findOne({
     _id: tripId,
     $or: [
       { ownerId: payload.userId },
       { "collaborators.userId": payload.userId },
     ],
   });
-  if (!accessible) throw notFound("Trip not found");
+  if (!trip) throw notFound("Trip not found");
 
   const isCustomSlot = attractionId.startsWith("cs-");
   const isFlight = attractionId.startsWith("fl-");
 
+  const { pathPrefix, variant } = locateScheduleEntry(trip, attractionId);
+
   // Build a $set using deep dot-notation paths so MongoDB patches fields in-place.
   const scheduleSet: Record<string, unknown> = {};
-  const p = `schedules.${attractionId}`;
+  const p = pathPrefix;
   if (body.plannedDate !== undefined) scheduleSet[`${p}.plannedDate`] = body.plannedDate;
   if (body.plannedTime !== undefined) scheduleSet[`${p}.plannedTime`] = body.plannedTime;
   if (body.actualDurationValue !== undefined) scheduleSet[`${p}.actualDurationValue`] = body.actualDurationValue;
@@ -1055,8 +1181,11 @@ export async function updateTripAttractionSchedule(
     };
     const rawTrip = updatedTrip?.toObject({ flattenMaps: true }) as unknown as {
       schedules?: Record<string, RawEntry>;
+      dayAlternatives?: Record<string, { schedules?: Record<string, RawEntry> }>;
     } | null;
-    const entry = rawTrip?.schedules?.[attractionId];
+    const entry = variant
+      ? rawTrip?.dayAlternatives?.[dayAltKey(variant.day, variant.altId)]?.schedules?.[attractionId]
+      : rawTrip?.schedules?.[attractionId];
     if (!entry) throw notFound("Custom slot not found");
     return {
       _id: attractionId,
@@ -1091,8 +1220,11 @@ export async function updateTripAttractionSchedule(
     };
     const rawTrip = updatedTrip?.toObject({ flattenMaps: true }) as unknown as {
       schedules?: Record<string, RawFlightEntry>;
+      dayAlternatives?: Record<string, { schedules?: Record<string, RawFlightEntry> }>;
     } | null;
-    const entry = rawTrip?.schedules?.[attractionId];
+    const entry = variant
+      ? rawTrip?.dayAlternatives?.[dayAltKey(variant.day, variant.altId)]?.schedules?.[attractionId]
+      : rawTrip?.schedules?.[attractionId];
     if (!entry) throw notFound("Flight not found");
     return {
       _id: attractionId,
@@ -1121,7 +1253,9 @@ export async function updateTripAttractionSchedule(
     } satisfies AttractionShape;
   }
 
-  const updatedSchedule = updatedTrip?.schedules?.get(attractionId) ?? null;
+  const updatedSchedule = variant
+    ? updatedTrip?.dayAlternatives?.get(dayAltKey(variant.day, variant.altId))?.schedules?.get(attractionId) ?? null
+    : updatedTrip?.schedules?.get(attractionId) ?? null;
   // A 2nd+ scheduled instance's key is synthetic (not a real Attraction id) — attractionRef
   // points back to the shared document. The primary instance's key IS the real id.
   const realAttractionId = updatedSchedule?.attractionRef ?? attractionId;
@@ -1155,32 +1289,167 @@ export async function removeAttractionFromTrip(
   });
   if (!trip) throw notFound("Trip not found");
 
+  const { pathPrefix, variant } = locateScheduleEntry(trip, attractionId);
+  const entryExists = variant
+    ? !!trip.dayAlternatives?.get(dayAltKey(variant.day, variant.altId))?.schedules?.has(attractionId)
+    : !!trip.schedules?.has(attractionId);
+
   if (attractionId.startsWith("cs-") || attractionId.startsWith("fl-")) {
-    // Custom time-slot / flight: exists only in schedules — no attractionIds entry to remove
-    if (trip.schedules?.has(attractionId)) {
-      trip.schedules.delete(attractionId);
-      await trip.save();
+    // Custom time-slot / flight: exists only in a schedule map — no attractionIds entry
+    // to remove. $unset, not trip.save(), avoids the Map-mutation pitfall (see
+    // docs/LEARNINGS.md) — applies the same whether this lives in the main schedule or an
+    // alternative's.
+    if (entryExists) {
+      await Trip.findByIdAndUpdate(tripId, { $unset: { [pathPrefix]: "" } });
     }
     return;
   }
 
   // A 2nd+ scheduled instance's key is synthetic and attractionRef holds the shared
   // document's real id; the primary instance's key IS that real id (attractionRef absent).
-  const entry = trip.schedules?.get(attractionId);
+  const entry = getScheduleEntry(trip, attractionId);
   const realAttractionId = entry?.attractionRef ?? attractionId;
 
-  if (trip.schedules?.has(attractionId)) {
-    trip.schedules.delete(attractionId);
-    await trip.save();
+  if (entryExists) {
+    await Trip.findByIdAndUpdate(tripId, { $unset: { [pathPrefix]: "" } });
   }
 
-  // Only unlink the shared document from the trip if no other instance (primary key or
-  // another attractionRef pointing at it) still references it — removing one instance
-  // must not break siblings scheduled from the same attraction.
-  const stillReferenced = [...(trip.schedules?.entries() ?? [])].some(
-    ([key, e]) => key === realAttractionId || e?.attractionRef === realAttractionId
-  );
+  // Only unlink the shared document from the trip if no other instance — in the main
+  // schedule OR any alternative's, primary key or another attractionRef pointing at it —
+  // still references it. Removing one instance must not break siblings scheduled
+  // elsewhere from the same attraction.
+  const stillReferenced =
+    [...(trip.schedules?.entries() ?? [])].some(
+      ([key, e]) => key !== attractionId && (key === realAttractionId || e?.attractionRef === realAttractionId)
+    ) ||
+    [...(trip.dayAlternatives?.values() ?? [])].some((alt) =>
+      [...(alt.schedules?.entries() ?? [])].some(
+        ([key, e]) => key !== attractionId && (key === realAttractionId || e?.attractionRef === realAttractionId)
+      )
+    );
   if (!stillReferenced) {
     await Trip.findByIdAndUpdate(tripId, { $pull: { attractionIds: realAttractionId } });
+  }
+}
+
+// ── Day alternatives — CRUD ────────────────────────────────────────────────────────────
+
+export interface DayAlternativeShape {
+  id: string;
+  day: string;
+  name: string;
+}
+
+function formatDayAlternative(alt: { id: string; day: string; name: string }): DayAlternativeShape {
+  return { id: alt.id, day: alt.day, name: alt.name };
+}
+
+/** Creates a new alternative plan for `day`, starting as a deep copy of whatever is
+ *  currently live for that day (the main schedule, or another alternative if one's
+ *  already active — "the schedule of that day" means whatever's actually showing).
+ *  Becomes the active one for that day immediately, so it's what the calendar, map,
+ *  costs, and alerts resolve into right away — the user lands in the copy ready to edit,
+ *  rather than having to switch to it as a separate step. */
+export async function createDayAlternative(
+  payload: JwtPayload,
+  tripId: string,
+  day: unknown
+): Promise<DayAlternativeShape> {
+  const trip = await getAuthedTrip(payload, tripId);
+
+  if (typeof day !== "string" || !day.trim()) {
+    throw badRequest("day is required");
+  }
+
+  // Whatever's currently live for this day — main schedule entries, or another
+  // alternative's, if one's already active — becomes the new alternative's starting point.
+  const sourceEntries = getEffectiveScheduleEntries(trip).filter(([, entry]) => entry?.plannedDate === day);
+
+  const existingForDay = [...(trip.dayAlternatives?.values() ?? [])].filter((a) => a.day === day);
+  const altId = new Types.ObjectId().toString();
+  const name = `Alternative ${existingForDay.length + 1}`;
+  const schedules: Record<string, IScheduleEntry> = {};
+  for (const [key, entry] of sourceEntries) {
+    schedules[key] = structuredClone(entry);
+  }
+
+  await Trip.findByIdAndUpdate(tripId, {
+    $set: {
+      [`dayAlternatives.${dayAltKey(day, altId)}`]: { id: altId, day, name, schedules },
+      [`activeDayAlternative.${day}`]: altId,
+    },
+  });
+
+  return { id: altId, day, name };
+}
+
+/** altId (a fresh ObjectId string) is unique on its own — every route below identifies
+ *  an alternative by altId alone and looks its day up here, so callers never need to pass
+ *  day redundantly alongside it. */
+function findAlternativeById(trip: ITrip, altId: string) {
+  return [...(trip.dayAlternatives?.values() ?? [])].find((a) => a.id === altId) ?? null;
+}
+
+/** Renames an existing alternative. */
+export async function renameDayAlternative(
+  payload: JwtPayload,
+  tripId: string,
+  altId: string,
+  name: unknown
+): Promise<DayAlternativeShape> {
+  const trip = await getAuthedTrip(payload, tripId);
+
+  if (typeof name !== "string" || !name.trim()) {
+    throw badRequest("name is required");
+  }
+  const alt = findAlternativeById(trip, altId);
+  if (!alt) throw notFound("Alternative not found");
+
+  await Trip.findByIdAndUpdate(tripId, {
+    $set: { [`dayAlternatives.${dayAltKey(alt.day, altId)}.name`]: name.trim() },
+  });
+
+  return formatDayAlternative({ ...alt, name: name.trim() });
+}
+
+/** Deletes an alternative. If it was the active one for its day, the day reverts to its
+ *  main schedule (activeDayAlternative entry is cleared too). */
+export async function deleteDayAlternative(
+  payload: JwtPayload,
+  tripId: string,
+  altId: string
+): Promise<void> {
+  const trip = await getAuthedTrip(payload, tripId);
+
+  const alt = findAlternativeById(trip, altId);
+  if (!alt) throw notFound("Alternative not found");
+
+  const unset: Record<string, string> = { [`dayAlternatives.${dayAltKey(alt.day, altId)}`]: "" };
+  if (trip.activeDayAlternative?.get(alt.day) === altId) {
+    unset[`activeDayAlternative.${alt.day}`] = "";
+  }
+  await Trip.findByIdAndUpdate(tripId, { $unset: unset });
+}
+
+/** Activates or deactivates an alternative. Activating makes it the live version of its
+ *  day; deactivating reverts that day to its main schedule. This is the single switch
+ *  every reader (calendar, map, costs, alerts) resolves through (see
+ *  getEffectiveScheduleEntries), so this is all it takes for the choice to show up
+ *  everywhere. */
+export async function setDayAlternativeActive(
+  payload: JwtPayload,
+  tripId: string,
+  altId: string,
+  active: boolean
+): Promise<void> {
+  const trip = await getAuthedTrip(payload, tripId);
+
+  const alt = findAlternativeById(trip, altId);
+  if (!alt) throw notFound("Alternative not found");
+
+  if (active) {
+    await Trip.findByIdAndUpdate(tripId, { $set: { [`activeDayAlternative.${alt.day}`]: altId } });
+  } else {
+    await Trip.findByIdAndUpdate(tripId, { $unset: { [`activeDayAlternative.${alt.day}`]: "" } });
   }
 }

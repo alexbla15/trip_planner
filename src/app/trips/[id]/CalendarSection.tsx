@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useId } from "react";
 import dynamic from "next/dynamic";
-import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, Plus, Coffee, ArrowLeftRight, Pencil, TriangleAlert, ChevronDown } from "lucide-react";
+import { Calendar, Search, X, Clock, Save, Loader2, Map as MapIcon, Plus, Coffee, ArrowLeftRight, Pencil, TriangleAlert, ChevronDown, GitBranch, Trash2, Check } from "lucide-react";
 import { renderTypeIcon, AttractionDetailModal, AddCustomSlotModal, SwapDaysModal, ImageWithSkeleton } from "@/components";
 import type { CustomSlotFormData } from "@/components";
 import { useAttractionTypes } from "@/hooks";
@@ -14,6 +14,10 @@ import {
   updateTripAttractionSchedule,
   removeAttractionFromTrip,
   swapTripDays,
+  createDayAlternative,
+  renameDayAlternative,
+  deleteDayAlternative,
+  setDayAlternativeActive,
 } from "@/services";
 import {
   formatPrice,
@@ -114,9 +118,14 @@ interface CalendarSectionProps {
    *  NewAttractionModal + save/update wiring built for the "Attractions" tab) — only
    *  called for attractions the current user owns (see the popup's edit button). */
   onEditAttraction?: (a: Attraction) => void;
+  /** Refetches the trip (and, downstream, attractions) — called after creating,
+   *  activating, renaming, or deleting a day alternative, since the server resolves the
+   *  active alternative into the flat attractions array itself (see
+   *  getEffectiveScheduleEntries); the client just needs a fresh copy of both. */
+  onTripReload?: () => void;
 }
 
-export function CalendarSection({ trip, attractions, onAttractionsChange, token, canEdit, hasEditPermission = canEdit, onEditAttraction }: CalendarSectionProps) {
+export function CalendarSection({ trip, attractions, onAttractionsChange, token, canEdit, hasEditPermission = canEdit, onEditAttraction, onTripReload }: CalendarSectionProps) {
   const { colorForType, findType } = useAttractionTypes();
   const { user } = useAuth();
   const toast = useToast();
@@ -137,6 +146,12 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   const [customSlotModalOpen, setCustomSlotModalOpen] = useState(false);
   const [editingCustomSlot, setEditingCustomSlot]     = useState<Attraction | null>(null);
   const [swapDaysModalOpen, setSwapDaysModalOpen]     = useState(false);
+  // Day alternatives — tracks which day's switcher is mid-mutation (so its controls can
+  // show a spinner/disable rather than letting a second click race the first) and which
+  // alternative (if any) is being renamed inline.
+  const [altBusyDay, setAltBusyDay]       = useState<string | null>(null);
+  const [renamingAltId, setRenamingAltId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft]     = useState("");
 
   // Sidebar
   const [filter, setFilter]       = useState<SidebarFilter>("unscheduled");
@@ -358,6 +373,67 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
       toast.success(`Scheduled another "${a.name}" for ${formatDayLabel(dayIso)}`);
     } catch {
       toast.error("Couldn't schedule it again. Please try again.");
+    }
+  }
+
+  // ── Day alternatives ────────────────────────────────────────────────────────
+
+  async function handleCreateAlternative(dayIso: string) {
+    if (!token) return;
+    setAltBusyDay(dayIso);
+    try {
+      await createDayAlternative(trip._id, token, dayIso);
+      onTripReload?.();
+      toast.success("Alternative created — editing it now.");
+    } catch {
+      toast.error("Couldn't create an alternative for this day. Please try again.");
+    } finally {
+      setAltBusyDay(null);
+    }
+  }
+
+  async function handleSelectAlternative(dayIso: string, altId: string | null) {
+    if (!token) return;
+    const current = trip.activeDayAlternative?.[dayIso] ?? null;
+    if (altId === current) return;
+    setAltBusyDay(dayIso);
+    try {
+      if (altId) {
+        await setDayAlternativeActive(trip._id, token, altId, true);
+      } else if (current) {
+        await setDayAlternativeActive(trip._id, token, current, false);
+      }
+      onTripReload?.();
+    } catch {
+      toast.error("Couldn't switch this day's schedule. Please try again.");
+    } finally {
+      setAltBusyDay(null);
+    }
+  }
+
+  async function handleRenameAlternative(altId: string) {
+    if (!token || !renameDraft.trim()) { setRenamingAltId(null); return; }
+    try {
+      await renameDayAlternative(trip._id, token, altId, renameDraft.trim());
+      onTripReload?.();
+    } catch {
+      toast.error("Couldn't rename this alternative. Please try again.");
+    } finally {
+      setRenamingAltId(null);
+    }
+  }
+
+  async function handleDeleteAlternative(dayIso: string, altId: string) {
+    if (!token) return;
+    setAltBusyDay(dayIso);
+    try {
+      await deleteDayAlternative(trip._id, token, altId);
+      onTripReload?.();
+      toast.success("Alternative deleted.");
+    } catch {
+      toast.error("Couldn't delete this alternative. Please try again.");
+    } finally {
+      setAltBusyDay(null);
     }
   }
 
@@ -716,6 +792,15 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                 const maxOverlap = layout.length > 0 ? Math.max(...layout.map((l) => l.numCols)) : 1;
                 const colWidth   = dayColumnWidth(maxOverlap);
 
+                // Day alternatives — every alternate plan ever created for this day, plus
+                // which one (if any) is currently live. Switching here is a persisted,
+                // server-resolved choice (see getEffectiveScheduleEntries): the calendar,
+                // map, Costs tab, and alerts all pick it up from the next trip refetch,
+                // with no extra wiring needed in any of them.
+                const dayAlts = (trip.dayAlternatives ?? []).filter((a) => a.day === dayIso);
+                const activeAltId = trip.activeDayAlternative?.[dayIso] ?? null;
+                const isAltBusy = altBusyDay === dayIso;
+
                 return (
                   <div key={dayIso}
                     className={styles.dayColumn}
@@ -726,6 +811,81 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                         {fmt(dayMins / 60)}h
                       </span>
                     </div>
+
+                    {(canEdit || dayAlts.length > 0) && (
+                      <div className={styles.altRow}>
+                        <GitBranch size={12} className={styles.altIcon} aria-hidden="true" />
+                        {renamingAltId && activeAltId === renamingAltId ? (
+                          <>
+                            <input
+                              type="text"
+                              className={styles.altRenameInput}
+                              value={renameDraft}
+                              onChange={(e) => setRenameDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleRenameAlternative(renamingAltId);
+                                if (e.key === "Escape") setRenamingAltId(null);
+                              }}
+                              autoFocus
+                              aria-label="Alternative name"
+                            />
+                            <button type="button" className={styles.altIconBtn} onClick={() => handleRenameAlternative(renamingAltId)} aria-label="Save name">
+                              <Check size={12} aria-hidden="true" />
+                            </button>
+                            <button type="button" className={styles.altIconBtn} onClick={() => setRenamingAltId(null)} aria-label="Cancel rename">
+                              <X size={12} aria-hidden="true" />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <select
+                              className={styles.altSelect}
+                              value={activeAltId ?? ""}
+                              disabled={isAltBusy || !canEdit}
+                              onChange={(e) => handleSelectAlternative(dayIso, e.target.value || null)}
+                              aria-label={`${dayLabel} schedule version`}
+                            >
+                              <option value="">Main schedule</option>
+                              {dayAlts.map((alt) => (
+                                <option key={alt.id} value={alt.id}>{alt.name}</option>
+                              ))}
+                            </select>
+                            {isAltBusy && <Loader2 size={12} className={styles.altSpin} aria-hidden="true" />}
+                            {canEdit && !isAltBusy && (
+                              <button
+                                type="button"
+                                className={styles.altIconBtn}
+                                onClick={() => handleCreateAlternative(dayIso)}
+                                aria-label={`Add an alternative for ${dayLabel}`}
+                                title="New alternative — copies the version currently shown"
+                              >
+                                <Plus size={12} aria-hidden="true" />
+                              </button>
+                            )}
+                            {canEdit && activeAltId && !isAltBusy && (
+                              <>
+                                <button
+                                  type="button"
+                                  className={styles.altIconBtn}
+                                  onClick={() => { setRenamingAltId(activeAltId); setRenameDraft(dayAlts.find((a) => a.id === activeAltId)?.name ?? ""); }}
+                                  aria-label="Rename this alternative"
+                                >
+                                  <Pencil size={12} aria-hidden="true" />
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.altIconBtn}
+                                  onClick={() => handleDeleteAlternative(dayIso, activeAltId)}
+                                  aria-label="Delete this alternative"
+                                >
+                                  <Trash2 size={12} aria-hidden="true" />
+                                </button>
+                              </>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
 
                     {/* Timeline — dynamic hour range */}
                     <div className={styles.timeline}

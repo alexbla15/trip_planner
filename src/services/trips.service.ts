@@ -69,3 +69,50 @@ export async function swapTripDays(tripId: string, token: string, dayA: string, 
   });
   await parseOrThrow<unknown>(res);
 }
+
+export interface DayAlternative {
+  id: string;
+  day: string;
+  name: string;
+}
+
+/** Creates a new alternative for `day`, copying whatever's currently live for that day,
+ *  and activates it immediately (the response's `id` is what you'd pass to
+ *  setDayAlternativeActive to switch back later). */
+export async function createDayAlternative(tripId: string, token: string, day: string): Promise<DayAlternative> {
+  const res = await fetch(`/api/trips/${tripId}/day-alternatives`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ day }),
+  });
+  return parseOrThrow<DayAlternative>(res);
+}
+
+export async function renameDayAlternative(tripId: string, token: string, altId: string, name: string): Promise<DayAlternative> {
+  const res = await fetch(`/api/trips/${tripId}/day-alternatives/${altId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ name }),
+  });
+  return parseOrThrow<DayAlternative>(res);
+}
+
+export async function deleteDayAlternative(tripId: string, token: string, altId: string): Promise<void> {
+  const res = await fetch(`/api/trips/${tripId}/day-alternatives/${altId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  await parseOrThrow<unknown>(res);
+}
+
+/** Activating makes this alternative the live version of its day — what the calendar,
+ *  map, costs, and alerts all resolve into; deactivating reverts that day to its main
+ *  schedule. Either way, refetch the trip afterwards to see the change. */
+export async function setDayAlternativeActive(tripId: string, token: string, altId: string, active: boolean): Promise<void> {
+  const res = await fetch(`/api/trips/${tripId}/day-alternatives/${altId}/activate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ active }),
+  });
+  await parseOrThrow<unknown>(res);
+}

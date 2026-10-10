@@ -17,6 +17,16 @@ export interface CustomExpense {
   date?: string | null;
 }
 
+/** A day's alternate plan — name/id only; its actual schedule content isn't shipped to
+ *  the client (see Trip.dayAlternatives doc comment in src/models/Trip.ts). Whichever
+ *  alternative is active for a day (Trip.activeDayAlternative[day]) is what the server
+ *  resolves into that day's attractions everywhere — calendar, map, costs, alerts. */
+export interface DayAlternative {
+  id: string;
+  day: string; // YYYY-MM-DD
+  name: string;
+}
+
 export interface Trip {
   _id: string;
   ownerId?: string;
@@ -34,6 +44,9 @@ export interface Trip {
   notes?: string;
   attractionIds?: string[];
   customExpenses?: CustomExpense[];
+  dayAlternatives?: DayAlternative[];
+  /** day (YYYY-MM-DD) -> active alternative id; a day absent here is on its main schedule. */
+  activeDayAlternative?: Record<string, string>;
   collaborators: TripCollaborator[];
   isPrivate: boolean;
   createdAt?: string;

@@ -1093,6 +1093,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                   canEdit={effectiveCanEdit}
                   hasEditPermission={canEdit}
                   onEditAttraction={setEditingAttraction}
+                  onTripReload={() => setTripReloadKey((k) => k + 1)}
                 />
               </>
             )}

@@ -43,6 +43,22 @@ export interface IScheduleEntry {
   seat?: string;
 }
 
+/** An alternate plan for one day of the trip — starts as a copy of that day's main
+ *  schedule entries (same keys, deep-cloned) and is freely editable afterwards
+ *  (add/remove/retime attractions within it) independently of the main schedule. Stored
+ *  on `Trip.dayAlternatives`, keyed by `${day}::${id}` (flat, not nested Maps — Mongoose
+ *  Map-of-Map support is unreliable, see docs/LEARNINGS.md on Map mutation pitfalls).
+ *  Whichever alternative is "active" for a day (`Trip.activeDayAlternative.get(day)`,
+ *  absent = the main schedule) is what every reader — the calendar, the map, the Costs
+ *  tab, schedule alerts — resolves into that day's attractions; see
+ *  `getEffectiveScheduleEntries` in attractions.service.ts. */
+export interface IDayAlternative {
+  id: string;
+  day: string;
+  name: string;
+  schedules: Map<string, IScheduleEntry>;
+}
+
 export interface ICollaborator {
   userId: Types.ObjectId;
 }
@@ -74,6 +90,11 @@ export interface ITrip extends Document {
   notes?: string;
   attractionIds: Types.ObjectId[];
   schedules: Map<string, IScheduleEntry>;
+  /** Every day-alternative ever created, keyed `${day}::${id}` — see IDayAlternative. */
+  dayAlternatives?: Map<string, IDayAlternative>;
+  /** Which alternative is currently "live" for each day (keyed by day, value is that
+   *  alternative's id) — absent for a day means the main schedule is live. */
+  activeDayAlternative?: Map<string, string>;
   /** Ad-hoc trip costs not tied to any attraction's price tiers (e.g. a taxi, a tip) —
    *  shown alongside attraction costs on the Costs tab's daily breakdown. */
   customExpenses?: ICustomExpense[];
@@ -95,6 +116,45 @@ const CustomExpenseSchema = new Schema<ICustomExpense>({
   date:     { type: String, default: null },
 });
 
+const ScheduleEntrySchema = new Schema<IScheduleEntry>(
+  {
+    plannedDate:         { type: String, default: null },
+    plannedTime:         { type: String, default: null },
+    actualDurationValue: { type: String },
+    actualDurationUnit:  { type: String, enum: ["minutes", "hours"] },
+    isCustomSlot:        { type: Boolean },
+    attractionRef:       { type: String },
+    name:                { type: String },
+    typeNames:           [{ type: String }],
+    price:               { type: Number, default: null },
+    currency:            { type: String },
+    priceTierQuantities: [{ label: { type: String }, quantity: { type: Number }, _id: false }],
+    notes:               { type: String },
+    checkInDate:         { type: String },
+    checkOutDate:        { type: String },
+    isFlight:            { type: Boolean },
+    flightNumber:        { type: String },
+    airline:             { type: String },
+    departureAirport:    { type: String },
+    arrivalAirport:      { type: String },
+    departureTime:       { type: String },
+    arrivalTime:         { type: String },
+    gate:                { type: String },
+    seat:                { type: String },
+  },
+  { _id: false }
+);
+
+const DayAlternativeSchema = new Schema<IDayAlternative>(
+  {
+    id:   { type: String, required: true },
+    day:  { type: String, required: true },
+    name: { type: String, required: true, trim: true },
+    schedules: { type: Map, of: ScheduleEntrySchema, default: {} },
+  },
+  { _id: false }
+);
+
 const TripSchema = new Schema<ITrip>(
   {
     ownerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -112,36 +172,11 @@ const TripSchema = new Schema<ITrip>(
     customExpenses: { type: [CustomExpenseSchema], default: [] },
     schedules: {
       type: Map,
-      of: new Schema<IScheduleEntry>(
-        {
-          plannedDate:         { type: String, default: null },
-          plannedTime:         { type: String, default: null },
-          actualDurationValue: { type: String },
-          actualDurationUnit:  { type: String, enum: ["minutes", "hours"] },
-          isCustomSlot:        { type: Boolean },
-          attractionRef:       { type: String },
-          name:                { type: String },
-          typeNames:           [{ type: String }],
-          price:               { type: Number, default: null },
-          currency:            { type: String },
-          priceTierQuantities: [{ label: { type: String }, quantity: { type: Number }, _id: false }],
-          notes:               { type: String },
-          checkInDate:         { type: String },
-          checkOutDate:        { type: String },
-          isFlight:            { type: Boolean },
-          flightNumber:        { type: String },
-          airline:             { type: String },
-          departureAirport:    { type: String },
-          arrivalAirport:      { type: String },
-          departureTime:       { type: String },
-          arrivalTime:         { type: String },
-          gate:                { type: String },
-          seat:                { type: String },
-        },
-        { _id: false }
-      ),
+      of: ScheduleEntrySchema,
       default: {},
     },
+    dayAlternatives:      { type: Map, of: DayAlternativeSchema, default: {} },
+    activeDayAlternative: { type: Map, of: String, default: {} },
     collaborators: { type: [CollaboratorSchema], default: [] },
     isPrivate:     { type: Boolean, default: false },
   },
@@ -197,6 +232,13 @@ export function formatTrip(doc: ITrip): import("@/types/trip").Trip {
     moods: doc.moods,
     notes: doc.notes,
     attractionIds: doc.attractionIds?.map((id) => id.toString()) ?? [],
+    // Client only needs enough to render a day's alternative switcher (name + which is
+    // active) — the alternative's own schedule contents are resolved server-side into
+    // the flat attractions array (see getEffectiveScheduleEntries), never shipped raw.
+    dayAlternatives: [...(doc.dayAlternatives?.values() ?? [])]
+      .map((alt) => ({ id: alt.id, day: alt.day, name: alt.name }))
+      .sort((a, b) => a.day.localeCompare(b.day)),
+    activeDayAlternative: Object.fromEntries(doc.activeDayAlternative?.entries() ?? []),
     customExpenses: (doc.customExpenses ?? []).map((e) => ({
       _id: e._id.toString(),
       label: e.label,
