@@ -580,6 +580,22 @@
   flex-shrink: 0;
 }
 
+.altIconTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.altIconTrigger:hover { background: var(--color-bg-subtle); }
+.altIconTrigger .altIcon:hover { color: var(--color-primary); }
+
 .altSelect {
   flex: 1;
   min-width: 0;

@@ -44,6 +44,7 @@ import type { Attraction } from "@/types/attraction";
 import { computeAlerts, computeScheduleHourBounds } from "./CalendarSection.utils";
 import type { ScheduleAlert, AlertType } from "./CalendarSection.utils";
 import { ScheduleAlertList } from "./ScheduleAlertList";
+import { DayAlternativesCompareModal } from "./DayAlternativesCompareModal";
 import { CalendarEmptyState } from "./CalendarEmptyState";
 import { SidebarAttractionCard } from "./SidebarAttractionCard";
 import styles from "./CalendarSection.module.css";
@@ -156,6 +157,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   // alternative (if any) is being renamed inline.
   const [altBusyDay, setAltBusyDay]       = useState<string | null>(null);
   const [renamingAltId, setRenamingAltId] = useState<string | null>(null);
+  const [compareDay, setCompareDay] = useState<string | null>(null);
   const [renameDraft, setRenameDraft]     = useState("");
 
   // Sidebar
@@ -847,7 +849,19 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                     <div className={styles.altRow}>
                       {(hasEditPermission || dayAlts.length > 0) && (
                         <>
-                        <GitBranch size={12} className={styles.altIcon} aria-hidden="true" />
+                        {dayAlts.length > 0 ? (
+                          <button
+                            type="button"
+                            className={styles.altIconTrigger}
+                            onClick={() => setCompareDay(dayIso)}
+                            aria-label={`Compare ${dayLabel}'s schedule versions`}
+                            title="Compare versions side by side"
+                          >
+                            <GitBranch size={12} className={styles.altIcon} aria-hidden="true" />
+                          </button>
+                        ) : (
+                          <GitBranch size={12} className={styles.altIcon} aria-hidden="true" />
+                        )}
                         {renamingAltId && activeAltId === renamingAltId ? (
                           <>
                             <input
@@ -1175,6 +1189,17 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
 
       {customSlotModal}
       {swapDaysModal}
+
+      {compareDay && (
+        <DayAlternativesCompareModal
+          isOpen={!!compareDay}
+          onClose={() => setCompareDay(null)}
+          tripId={trip._id}
+          token={token}
+          day={compareDay}
+          tripCurrency={trip.currency}
+        />
+      )}
     </>
   );
 }

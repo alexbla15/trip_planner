@@ -116,3 +116,30 @@ export async function setDayAlternativeActive(tripId: string, token: string, alt
   });
   await parseOrThrow<unknown>(res);
 }
+
+export interface DayAlternativeCompareItem {
+  key: string;
+  name: string;
+  plannedTime: string | null;
+  durationValue?: string;
+  durationUnit?: "minutes" | "hours";
+  price: number | null;
+  currency?: string;
+}
+
+export interface DayAlternativeCompareVersion {
+  /** null identifies the main schedule; otherwise an alternative's id. */
+  id: string | null;
+  name: string;
+  isActive: boolean;
+  items: DayAlternativeCompareItem[];
+}
+
+/** Every version of `day` (main schedule + every alternative ever created for it), each
+ *  resolved into a light item list — read-only, for a side-by-side comparison view. */
+export async function compareDayAlternatives(tripId: string, token: string, day: string): Promise<DayAlternativeCompareVersion[]> {
+  const res = await fetch(`/api/trips/${tripId}/day-alternatives/compare?day=${encodeURIComponent(day)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return parseOrThrow<DayAlternativeCompareVersion[]>(res);
+}

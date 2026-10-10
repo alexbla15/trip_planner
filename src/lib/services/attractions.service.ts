@@ -1474,3 +1474,97 @@ export async function setDayAlternativeActive(
     await Trip.findByIdAndUpdate(tripId, { $unset: { [`activeDayAlternative.${alt.day}`]: "" } });
   }
 }
+
+// ── Day alternatives — read-only side-by-side comparison ───────────────────────────────
+
+export interface DayAlternativeCompareItem {
+  key: string;
+  name: string;
+  plannedTime: string | null;
+  durationValue?: string;
+  durationUnit?: "minutes" | "hours";
+  price: number | null;
+  currency?: string;
+}
+
+export interface DayAlternativeCompareVersion {
+  /** null identifies the main schedule; otherwise an alternative's id. */
+  id: string | null;
+  name: string;
+  isActive: boolean;
+  items: DayAlternativeCompareItem[];
+}
+
+/** Every version of `day` — the main schedule plus every alternative ever created for it
+ *  — each resolved into a light, display-only item list (name/time/duration/price, no
+ *  photos/brand/parent/etc.), for a read-only side-by-side comparison view. Doesn't go
+ *  through getEffectiveScheduleEntries on purpose: that resolves only the ACTIVE version
+ *  per day, but comparing means showing every version regardless of which is active. */
+export async function getDayAlternativeComparison(
+  payload: JwtPayload,
+  tripId: string,
+  day: string
+): Promise<DayAlternativeCompareVersion[]> {
+  const trip = await getAuthedTrip(payload, tripId);
+
+  const activeAltId = trip.activeDayAlternative?.get(day) ?? null;
+  const dayAlts = [...(trip.dayAlternatives?.values() ?? [])].filter((a) => a.day === day);
+
+  const versionEntries: Array<{ id: string | null; name: string; entries: Array<[string, IScheduleEntry]> }> = [
+    {
+      id: null,
+      name: "Main schedule",
+      entries: [...(trip.schedules?.entries() ?? [])].filter(([, e]) => e?.plannedDate === day),
+    },
+    ...dayAlts.map((alt) => ({
+      id: alt.id,
+      name: alt.name,
+      entries: [...(alt.schedules?.entries() ?? [])].filter(([, e]) => e?.plannedDate === day),
+    })),
+  ];
+
+  // Resolve every real-attraction name/price up front in one query, shared across versions.
+  const realIds = new Set<string>();
+  for (const v of versionEntries) {
+    for (const [key, entry] of v.entries) {
+      if (entry?.isCustomSlot || entry?.isFlight) continue;
+      realIds.add(entry?.attractionRef ?? key);
+    }
+  }
+  const docs = await Attraction.find({ _id: { $in: [...realIds] } }).select("name price currency");
+  const docsById = new Map(docs.map((d) => [d._id.toString(), d]));
+
+  return versionEntries.map((v) => ({
+    id: v.id,
+    name: v.name,
+    isActive: v.id === activeAltId,
+    items: v.entries
+      .map(([key, entry]): DayAlternativeCompareItem | null => {
+        if (entry?.isCustomSlot || entry?.isFlight) {
+          return {
+            key,
+            name: entry.name ?? "",
+            plannedTime: entry.plannedTime ?? null,
+            durationValue: entry.actualDurationValue,
+            durationUnit: entry.actualDurationUnit,
+            price: entry.price ?? null,
+            currency: entry.currency,
+          };
+        }
+        const realId = entry?.attractionRef ?? key;
+        const doc = docsById.get(realId);
+        if (!doc) return null; // stale reference — doc no longer exists
+        return {
+          key,
+          name: doc.name,
+          plannedTime: entry?.plannedTime ?? null,
+          durationValue: entry?.actualDurationValue,
+          durationUnit: entry?.actualDurationUnit,
+          price: entry?.price ?? doc.price ?? null,
+          currency: entry?.currency ?? doc.currency,
+        };
+      })
+      .filter((item): item is DayAlternativeCompareItem => !!item)
+      .sort((a, b) => (a.plannedTime ?? "99:99").localeCompare(b.plannedTime ?? "99:99")),
+  }));
+}

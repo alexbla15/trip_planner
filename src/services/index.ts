@@ -13,8 +13,9 @@ export { getPersonalAnalytics, getGlobalAnalytics } from "./analytics.service";
 export {
   listTrips, createTrip, getTrip, updateTrip, deleteTrip, swapTripDays,
   createDayAlternative, renameDayAlternative, deleteDayAlternative, setDayAlternativeActive,
+  compareDayAlternatives,
 } from "./trips.service";
-export type { TripErrorResponse, DayAlternative } from "./trips.service";
+export type { TripErrorResponse, DayAlternative, DayAlternativeCompareVersion, DayAlternativeCompareItem } from "./trips.service";
 
 export { addCollaborator, removeCollaborator } from "./collaborators.service";
 
