@@ -1371,9 +1371,27 @@ export async function createDayAlternative(
   // entry is a Mongoose subdocument (from trip.schedules.get()/.entries()), not a plain
   // object — structuredClone() throws on it (functions/symbols aren't cloneable). A JSON
   // round-trip both clones and strips it down to a plain object in one step.
+  //
+  // Each copy gets a FRESH key, never the source's own — reusing the source key would let
+  // the same key exist in two different alternatives' (or an alternative's and the main
+  // schedule's) maps at once whenever that attraction also has an entry elsewhere (e.g. it
+  // was later unassigned to "no day" within another day's alternative, rather than fully
+  // removed). locateScheduleEntry/resolveWriteTarget identify an entry by key alone, so a
+  // shared key would make edits/removals land on whichever one they happen to scan first —
+  // silently wrong. A fresh key per copy, same pattern as a duplicate schedule instance
+  // (attractionRef pointing back to the real doc for a regular attraction), keeps every key
+  // in every schedule map trip-wide unambiguous.
   const schedules: Record<string, IScheduleEntry> = {};
   for (const [key, entry] of sourceEntries) {
-    schedules[key] = JSON.parse(JSON.stringify(entry));
+    const plain = JSON.parse(JSON.stringify(entry)) as IScheduleEntry;
+    const isScheduleOnly = plain.isCustomSlot || plain.isFlight;
+    const newKey = isScheduleOnly
+      ? `${key.startsWith("fl-") ? "fl" : "cs"}-${new Types.ObjectId().toString()}`
+      : `at-${new Types.ObjectId().toString()}`;
+    if (!isScheduleOnly) {
+      plain.attractionRef = plain.attractionRef ?? key;
+    }
+    schedules[newKey] = plain;
   }
 
   await Trip.findByIdAndUpdate(tripId, {
