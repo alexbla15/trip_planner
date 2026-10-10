@@ -874,7 +874,7 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
                             <select
                               className={styles.altSelect}
                               value={activeAltId ?? ""}
-                              disabled={isAltBusy || !hasEditPermission}
+                              disabled={isAltBusy || !hasEditPermission || dayAlts.length === 0}
                               onChange={(e) => handleSelectAlternative(dayIso, e.target.value || null)}
                               aria-label={`${dayLabel} schedule version`}
                             >
