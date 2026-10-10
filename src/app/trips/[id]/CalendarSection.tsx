@@ -118,14 +118,19 @@ interface CalendarSectionProps {
    *  NewAttractionModal + save/update wiring built for the "Attractions" tab) — only
    *  called for attractions the current user owns (see the popup's edit button). */
   onEditAttraction?: (a: Attraction) => void;
-  /** Refetches the trip (and, downstream, attractions) — called after creating,
-   *  activating, renaming, or deleting a day alternative, since the server resolves the
-   *  active alternative into the flat attractions array itself (see
-   *  getEffectiveScheduleEntries); the client just needs a fresh copy of both. */
-  onTripReload?: () => void;
+  /** Patches the parent's `trip` state in place (no refetch) — used after creating,
+   *  activating, renaming, or deleting a day alternative to reflect the change in
+   *  `trip.dayAlternatives`/`activeDayAlternative` immediately, without the full-page
+   *  loading state a trip refetch would cause. */
+  onTripPatch?: (updater: (prev: Trip) => Trip) => void;
+  /** Quietly refetches just the attractions list — needed after a day-alternative
+   *  mutation since the server resolves the active alternative into the flat attractions
+   *  array itself (see getEffectiveScheduleEntries), but doesn't touch the trip-loading
+   *  state, so only the affected day's rendered content changes, not the whole page. */
+  onAttractionsReload?: () => void;
 }
 
-export function CalendarSection({ trip, attractions, onAttractionsChange, token, canEdit, hasEditPermission = canEdit, onEditAttraction, onTripReload }: CalendarSectionProps) {
+export function CalendarSection({ trip, attractions, onAttractionsChange, token, canEdit, hasEditPermission = canEdit, onEditAttraction, onTripPatch, onAttractionsReload }: CalendarSectionProps) {
   const { colorForType, findType } = useAttractionTypes();
   const { user } = useAuth();
   const toast = useToast();
@@ -382,8 +387,13 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
     if (!token) return;
     setAltBusyDay(dayIso);
     try {
-      await createDayAlternative(trip._id, token, dayIso);
-      onTripReload?.();
+      const created = await createDayAlternative(trip._id, token, dayIso);
+      onTripPatch?.((prev) => ({
+        ...prev,
+        dayAlternatives: [...(prev.dayAlternatives ?? []), created],
+        activeDayAlternative: { ...prev.activeDayAlternative, [dayIso]: created.id },
+      }));
+      onAttractionsReload?.();
       toast.success("Alternative created — editing it now.");
     } catch {
       toast.error("Couldn't create an alternative for this day. Please try again.");
@@ -403,7 +413,12 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
       } else if (current) {
         await setDayAlternativeActive(trip._id, token, current, false);
       }
-      onTripReload?.();
+      onTripPatch?.((prev) => {
+        const next = { ...prev.activeDayAlternative };
+        if (altId) next[dayIso] = altId; else delete next[dayIso];
+        return { ...prev, activeDayAlternative: next };
+      });
+      onAttractionsReload?.();
     } catch {
       toast.error("Couldn't switch this day's schedule. Please try again.");
     } finally {
@@ -414,8 +429,11 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
   async function handleRenameAlternative(altId: string) {
     if (!token || !renameDraft.trim()) { setRenamingAltId(null); return; }
     try {
-      await renameDayAlternative(trip._id, token, altId, renameDraft.trim());
-      onTripReload?.();
+      const renamed = await renameDayAlternative(trip._id, token, altId, renameDraft.trim());
+      onTripPatch?.((prev) => ({
+        ...prev,
+        dayAlternatives: (prev.dayAlternatives ?? []).map((a) => (a.id === altId ? renamed : a)),
+      }));
     } catch {
       toast.error("Couldn't rename this alternative. Please try again.");
     } finally {
@@ -428,7 +446,16 @@ export function CalendarSection({ trip, attractions, onAttractionsChange, token,
     setAltBusyDay(dayIso);
     try {
       await deleteDayAlternative(trip._id, token, altId);
-      onTripReload?.();
+      onTripPatch?.((prev) => {
+        const next = { ...prev.activeDayAlternative };
+        if (next[dayIso] === altId) delete next[dayIso];
+        return {
+          ...prev,
+          dayAlternatives: (prev.dayAlternatives ?? []).filter((a) => a.id !== altId),
+          activeDayAlternative: next,
+        };
+      });
+      onAttractionsReload?.();
       toast.success("Alternative deleted.");
     } catch {
       toast.error("Couldn't delete this alternative. Please try again.");
