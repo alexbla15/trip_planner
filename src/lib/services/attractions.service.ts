@@ -1490,6 +1490,9 @@ export interface DayAlternativeCompareItem {
    *  those are opened from the item's own fields instead (see `subtype`). */
   attractionId: string | null;
   subtype?: "custom-slot" | "flight";
+  /** Icon name (as IconPicker/renderTypeIcon expects) for the item's first type —
+   *  resolved server-side so the client doesn't need its own types lookup just for this. */
+  typeIcon?: string;
 }
 
 export interface DayAlternativeCompareVersion {
@@ -1536,7 +1539,9 @@ export async function getDayAlternativeComparison(
       realIds.add(entry?.attractionRef ?? key);
     }
   }
-  const docs = await Attraction.find({ _id: { $in: [...realIds] } }).select("name price currency");
+  const docs = await Attraction.find({ _id: { $in: [...realIds] } })
+    .select("name price currency types")
+    .populate<{ types: { icon?: string }[] }>("types", "icon");
   const docsById = new Map(docs.map((d) => [d._id.toString(), d]));
 
   return versionEntries.map((v) => ({
@@ -1556,10 +1561,11 @@ export async function getDayAlternativeComparison(
             currency: entry.currency,
             attractionId: null,
             subtype: entry.isFlight ? "flight" : "custom-slot",
+            typeIcon: entry.isFlight ? "Plane" : "Coffee",
           };
         }
         const realId = entry?.attractionRef ?? key;
-        const doc = docsById.get(realId);
+        const doc = docsById.get(realId) as (IAttraction & { types: { icon?: string }[] }) | undefined;
         if (!doc) return null; // stale reference — doc no longer exists
         return {
           key,
@@ -1570,6 +1576,7 @@ export async function getDayAlternativeComparison(
           price: entry?.price ?? doc.price ?? null,
           currency: entry?.currency ?? doc.currency,
           attractionId: realId,
+          typeIcon: doc.types?.[0]?.icon,
         };
       })
       .filter((item): item is DayAlternativeCompareItem => !!item)

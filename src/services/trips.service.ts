@@ -127,6 +127,7 @@ export interface DayAlternativeCompareItem {
   currency?: string;
   attractionId: string | null;
   subtype?: "custom-slot" | "flight";
+  typeIcon?: string;
 }
 
 export interface DayAlternativeCompareVersion {

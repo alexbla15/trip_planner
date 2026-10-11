@@ -171,6 +171,22 @@
   font-weight: 600;
 }
 
+.itemNameRow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  width: 100%;
+}
+
+.itemIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+
 .itemName {
   color: var(--color-text-primary);
   font-weight: 600;

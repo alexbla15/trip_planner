@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Loader2, Clock, Wallet, CheckCircle2 } from "lucide-react";
 import { ModalShell } from "@/components/Modal";
 import { AttractionDetailModal } from "@/components";
+import { renderTypeIcon } from "@/components/IconPicker";
 import { compareDayAlternatives, getAttraction } from "@/services";
 import type { DayAlternativeCompareVersion, DayAlternativeCompareItem } from "@/services";
 import { formatDayLabel, formatPrice, timeToMins } from "@/lib";
@@ -133,7 +134,10 @@ export function DayAlternativesCompareModal({ isOpen, onClose, tripId, token, da
                               <Clock size={11} aria-hidden="true" />
                               {item.plannedTime ? (endTime ? `${item.plannedTime}–${endTime}` : item.plannedTime) : "—"}
                             </span>
-                            <span className={styles.itemName}>{item.name}</span>
+                            <span className={styles.itemNameRow}>
+                              <span className={styles.itemIcon}>{renderTypeIcon(item.typeIcon || "MapPin", 12)}</span>
+                              <span className={styles.itemName}>{item.name}</span>
+                            </span>
                             {item.price != null && (
                               <span className={styles.itemPrice}>
                                 <Wallet size={11} aria-hidden="true" />
