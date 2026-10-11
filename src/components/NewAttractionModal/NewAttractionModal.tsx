@@ -347,10 +347,19 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       // "Which months are actually open" is derived from seasonalHours live, for display
       // only (deriveOpeningMonthsFromSeasonalHours), never persisted as a separate
       // restricted value here.
+      // [] rather than undefined when there's nothing to store — the edit path (PATCH)
+      // only touches a field when it's present in the body at all (see
+      // updateAttraction's `if (body.x !== undefined)` checks), and this form always
+      // submits the complete object, never a partial patch. undefined here would get
+      // dropped by JSON.stringify and silently leave a previous seasonalHours/
+      // openingMonths value in place instead of clearing it — reproduced on Musée
+      // Jacquemart-André, which kept its old seasonal hours after switching back to a
+      // regular schedule. [] is equivalent to undefined for every consumer (isYearRound,
+      // and every `?.length` check against seasonalHours), so this is a safe substitute.
       openingMonths: completeSeasonalHours.length
-        ? undefined
-        : yearRound ? undefined : openingMonths,
-      seasonalHours: completeSeasonalHours.length ? completeSeasonalHours : undefined,
+        ? []
+        : yearRound ? [] : openingMonths,
+      seasonalHours: completeSeasonalHours,
       notes,
       photoUrl,
       websiteUrl: websiteUrl.trim(),
