@@ -572,142 +572,174 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           nested attraction's place is defined by its parent, not independently. */}
       {!parentAttractionId && (
         <>
-          {/* Country */}
-          <details className={styles.sectionDetails}>
-            <summary className={styles.sectionSummary}>
+          {/* Country — always visible, not collapsible. */}
+          <div className={styles.field}>
+            <label htmlFor="attraction-country" className={styles.labelWithIcon}>
               <Globe size={14} aria-hidden="true" />
               Country
               {!defaultCountry && <span className={styles.required} aria-hidden="true">*</span>}
-            </summary>
-            <div className={styles.sectionBody}>
-              <div className={styles.field}>
-                <label htmlFor="attraction-country" className={styles.srOnly}>Country</label>
-                {defaultCountry ? (
-                  <div
-                    className={styles.readOnlyField}
-                    aria-label={`Country: ${defaultCountry} (locked to trip destination)`}
-                  >
-                    {defaultCountry}
-                  </div>
-                ) : (
-                  <SearchableSelect
-                    id="attraction-country"
-                    value={country}
-                    onChange={setCountry}
-                    onBlur={() => handleBlur("country")}
-                    options={COUNTRIES}
-                    placeholder="Search country…"
-                    error={touched.country && !!errors.country}
-                    ariaRequired
-                    ariaLabel="Country"
-                    ariaDescribedBy={touched.country && errors.country ? "error-country" : undefined}
-                  />
-                )}
-                {touched.country && errors.country && (
-                  <p id="error-country" className={styles.errorMsg} role="alert">
-                    <AlertCircle size={12} aria-hidden="true" />
-                    {errors.country}
-                  </p>
-                )}
+            </label>
+            {defaultCountry ? (
+              <div
+                className={styles.readOnlyField}
+                aria-label={`Country: ${defaultCountry} (locked to trip destination)`}
+              >
+                {defaultCountry}
               </div>
-            </div>
-          </details>
+            ) : (
+              <SearchableSelect
+                id="attraction-country"
+                value={country}
+                onChange={setCountry}
+                onBlur={() => handleBlur("country")}
+                options={COUNTRIES}
+                placeholder="Search country…"
+                error={touched.country && !!errors.country}
+                ariaRequired
+                ariaLabel="Country"
+                ariaDescribedBy={touched.country && errors.country ? "error-country" : undefined}
+              />
+            )}
+            {touched.country && errors.country && (
+              <p id="error-country" className={styles.errorMsg} role="alert">
+                <AlertCircle size={12} aria-hidden="true" />
+                {errors.country}
+              </p>
+            )}
+          </div>
 
-          {/* Region — optional grouping level between country and city (e.g. "Black
-              Forest", "US-NY"). Free text, with OpenStreetMap-backed suggestions as the
-              user types (same debounced-search pattern as LeafletMapWidget's/the Explore
-              measure tool's location search) — picking one fills a clean, resolvable
-              label, but typing/leaving arbitrary text still works since region has no
-              fixed value set. */}
-          <details className={styles.sectionDetails}>
-            <summary className={styles.sectionSummary}>
+          {/* Region — always visible, not collapsible. Optional grouping level between
+              country and city (e.g. "Black Forest", "US-NY"). Free text, with
+              OpenStreetMap-backed suggestions as the user types (same debounced-search
+              pattern as LeafletMapWidget's/the Explore measure tool's location search) —
+              picking one fills a clean, resolvable label, but typing/leaving arbitrary
+              text still works since region has no fixed value set. */}
+          <div className={styles.field}>
+            <label htmlFor="attraction-region" className={styles.labelWithIcon}>
               <Globe size={14} aria-hidden="true" />
               Region
-            </summary>
-            <div className={styles.sectionBody}>
-              <div className={styles.field}>
-                <label htmlFor="attraction-region" className={styles.srOnly}>Region</label>
-                <div className={mapPickerStyles.searchWrapper}>
-                  <Search size={14} aria-hidden="true" className={mapPickerStyles.searchIconEl} />
-                  <input
-                    id="attraction-region"
-                    type="text"
-                    className={mapPickerStyles.searchInput}
-                    value={region}
-                    onChange={(e) => handleRegionChange(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Escape") setRegionSuggestions([]); }}
-                    placeholder="e.g. Black Forest, US-NY"
-                    autoComplete="off"
-                    aria-autocomplete="list"
-                    aria-expanded={regionSuggestions.length > 0}
-                  />
-                  {regionSearching && <span className={mapPickerStyles.searchSpinner} aria-label="Searching…" />}
-                  {regionSuggestions.length > 0 && (
-                    <ul className={mapPickerStyles.suggestions} role="listbox" aria-label="Region suggestions">
-                      {regionSuggestions.map((r, i) => (
-                        <li key={i} role="option" aria-selected={false}>
-                          <button
-                            type="button"
-                            className={mapPickerStyles.suggestionItem}
-                            onClick={() => handleRegionSuggestionSelect(r)}
-                          >
-                            {r.display_name}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
+            </label>
+            <div className={mapPickerStyles.searchWrapper}>
+              <Search size={14} aria-hidden="true" className={mapPickerStyles.searchIconEl} />
+              <input
+                id="attraction-region"
+                type="text"
+                className={mapPickerStyles.searchInput}
+                value={region}
+                onChange={(e) => handleRegionChange(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Escape") setRegionSuggestions([]); }}
+                placeholder="e.g. Black Forest, US-NY"
+                autoComplete="off"
+                aria-autocomplete="list"
+                aria-expanded={regionSuggestions.length > 0}
+              />
+              {regionSearching && <span className={mapPickerStyles.searchSpinner} aria-label="Searching…" />}
+              {regionSuggestions.length > 0 && (
+                <ul className={mapPickerStyles.suggestions} role="listbox" aria-label="Region suggestions">
+                  {regionSuggestions.map((r, i) => (
+                    <li key={i} role="option" aria-selected={false}>
+                      <button
+                        type="button"
+                        className={mapPickerStyles.suggestionItem}
+                        onClick={() => handleRegionSuggestionSelect(r)}
+                      >
+                        {r.display_name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-          </details>
+          </div>
 
-          {/* City — OpenStreetMap-backed suggestions as the user types (same pattern as
-              Region), free text still accepted when nothing is picked. */}
-          <details className={styles.sectionDetails}>
-            <summary className={styles.sectionSummary}>
+          {/* City — always visible, not collapsible. OpenStreetMap-backed suggestions as
+              the user types (same pattern as Region), free text still accepted when
+              nothing is picked. */}
+          <div className={styles.field}>
+            <label htmlFor="attraction-city" className={styles.labelWithIcon}>
               <Building size={14} aria-hidden="true" />
               City
+            </label>
+            <div className={mapPickerStyles.searchWrapper}>
+              <Search size={14} aria-hidden="true" className={mapPickerStyles.searchIconEl} />
+              <input
+                id="attraction-city"
+                type="text"
+                className={mapPickerStyles.searchInput}
+                value={city}
+                onChange={(e) => handleCityChange(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Escape") setCitySuggestions([]); }}
+                placeholder="e.g. Paris"
+                autoComplete="off"
+                aria-autocomplete="list"
+                aria-expanded={citySuggestions.length > 0}
+                aria-label="City"
+              />
+              {citySearching && <span className={mapPickerStyles.searchSpinner} aria-label="Searching…" />}
+              {citySuggestions.length > 0 && (
+                <ul className={mapPickerStyles.suggestions} role="listbox" aria-label="City suggestions">
+                  {citySuggestions.map((r, i) => (
+                    <li key={i} role="option" aria-selected={false}>
+                      <button
+                        type="button"
+                        className={mapPickerStyles.suggestionItem}
+                        onClick={() => handleCitySuggestionSelect(r)}
+                      >
+                        {r.display_name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+
+          {/* Location — inherited from the parent once one is picked, so there's nothing
+              independent to place on a map. */}
+          <details className={styles.sectionDetails}>
+            <summary className={styles.sectionSummary}>
+              <MapPin size={14} aria-hidden="true" />
+              Location
             </summary>
             <div className={styles.sectionBody}>
               <div className={styles.field}>
-                <div className={mapPickerStyles.searchWrapper}>
-                  <Search size={14} aria-hidden="true" className={mapPickerStyles.searchIconEl} />
-                  <input
-                    id="attraction-city"
-                    type="text"
-                    className={mapPickerStyles.searchInput}
-                    value={city}
-                    onChange={(e) => handleCityChange(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Escape") setCitySuggestions([]); }}
-                    placeholder="e.g. Paris"
-                    autoComplete="off"
-                    aria-autocomplete="list"
-                    aria-expanded={citySuggestions.length > 0}
-                    aria-label="City"
-                  />
-                  {citySearching && <span className={mapPickerStyles.searchSpinner} aria-label="Searching…" />}
-                  {citySuggestions.length > 0 && (
-                    <ul className={mapPickerStyles.suggestions} role="listbox" aria-label="City suggestions">
-                      {citySuggestions.map((r, i) => (
-                        <li key={i} role="option" aria-selected={false}>
-                          <button
-                            type="button"
-                            className={mapPickerStyles.suggestionItem}
-                            onClick={() => handleCitySuggestionSelect(r)}
-                          >
-                            {r.display_name}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
+                <MapPicker
+                  coordinates={coordinates}
+                  onChange={handleCoordinatesChange}
+                />
               </div>
             </div>
           </details>
         </>
       )}
+
+      {/* Brand/chain — picking one applies photo/types/website below as defaults (plus
+          food/shop styles when relevant), still freely editable afterwards (see
+          handleBrandNameChange). Admin-managed list (see the Admin page's Brands section);
+          this field only selects among existing brands, it doesn't create new ones. */}
+      <div className={styles.field}>
+        <label htmlFor="attraction-brand" className={styles.labelWithIcon}>
+          <Building2 size={14} aria-hidden="true" />
+          Chain / Brand
+        </label>
+        <div className={styles.brandRow}>
+          <SearchableSelect
+            id="attraction-brand"
+            value={brandNameInput}
+            onChange={handleBrandNameChange}
+            options={brandOptions.map((b) => b.name)}
+            placeholder="Search brands, e.g. Adidas…"
+            allowFreeText
+            ariaLabel="Brand or chain"
+            emptyMessage="No matching brand — managed from the Admin page"
+          />
+          {brandId && (
+            <button type="button" className={styles.parentChipBtn} onClick={handleClearBrand}>
+              Remove
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Type */}
       <details className={styles.sectionDetails}>
@@ -810,53 +842,6 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           )}
         </div>
       </details>
-
-      {/* Location — inherited from the parent once one is picked, so there's nothing
-          independent to place on a map. */}
-      {!parentAttractionId && (
-        <details className={styles.sectionDetails}>
-          <summary className={styles.sectionSummary}>
-            <MapPin size={14} aria-hidden="true" />
-            Location
-          </summary>
-          <div className={styles.sectionBody}>
-            <div className={styles.field}>
-              <MapPicker
-                coordinates={coordinates}
-                onChange={handleCoordinatesChange}
-              />
-            </div>
-          </div>
-        </details>
-      )}
-
-      {/* Brand/chain — picking one applies photo/types/website below as defaults (plus
-          food/shop styles when relevant), still freely editable afterwards (see
-          handleBrandNameChange). Admin-managed list (see the Admin page's Brands section);
-          this field only selects among existing brands, it doesn't create new ones. */}
-      <div className={styles.field}>
-        <label htmlFor="attraction-brand" className={styles.labelWithIcon}>
-          <Building2 size={14} aria-hidden="true" />
-          Chain / Brand
-        </label>
-        <div className={styles.brandRow}>
-          <SearchableSelect
-            id="attraction-brand"
-            value={brandNameInput}
-            onChange={handleBrandNameChange}
-            options={brandOptions.map((b) => b.name)}
-            placeholder="Search brands, e.g. Adidas…"
-            allowFreeText
-            ariaLabel="Brand or chain"
-            emptyMessage="No matching brand — managed from the Admin page"
-          />
-          {brandId && (
-            <button type="button" className={styles.parentChipBtn} onClick={handleClearBrand}>
-              Remove
-            </button>
-          )}
-        </div>
-      </div>
 
       {/* Opening Hours — omitted for a residence: always treated as open 24/7, no
           per-day pickers needed. Also omitted once any Seasonal Hours entry exists: each
