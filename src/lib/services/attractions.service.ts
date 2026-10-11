@@ -1485,6 +1485,11 @@ export interface DayAlternativeCompareItem {
   durationUnit?: "minutes" | "hours";
   price: number | null;
   currency?: string;
+  /** The real Attraction document's id, for a regular attraction — lets the client open
+   *  its full detail card. Null for a custom slot or flight, which has no such document;
+   *  those are opened from the item's own fields instead (see `subtype`). */
+  attractionId: string | null;
+  subtype?: "custom-slot" | "flight";
 }
 
 export interface DayAlternativeCompareVersion {
@@ -1549,6 +1554,8 @@ export async function getDayAlternativeComparison(
             durationUnit: entry.actualDurationUnit,
             price: entry.price ?? null,
             currency: entry.currency,
+            attractionId: null,
+            subtype: entry.isFlight ? "flight" : "custom-slot",
           };
         }
         const realId = entry?.attractionRef ?? key;
@@ -1562,6 +1569,7 @@ export async function getDayAlternativeComparison(
           durationUnit: entry?.actualDurationUnit,
           price: entry?.price ?? doc.price ?? null,
           currency: entry?.currency ?? doc.currency,
+          attractionId: realId,
         };
       })
       .filter((item): item is DayAlternativeCompareItem => !!item)

@@ -125,6 +125,8 @@ export interface DayAlternativeCompareItem {
   durationUnit?: "minutes" | "hours";
   price: number | null;
   currency?: string;
+  attractionId: string | null;
+  subtype?: "custom-slot" | "flight";
 }
 
 export interface DayAlternativeCompareVersion {
