@@ -313,6 +313,26 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     );
   }
 
+  // Once a failed submit has shown "Select at least one type", picking a type should
+  // clear that error immediately — toggleType only updates selectedTypes, it never
+  // re-ran validate(), so the stale message kept showing next to an already-valid
+  // selection (confusing: the chip highlighted as selected, the error still saying
+  // none were). Only touches the error once the field has actually been touched (i.e.
+  // after that first failed submit), matching every other field's touched/blur
+  // convention — this doesn't make an error appear before the user ever tried saving.
+  useEffect(() => {
+    if (!touched.types) return;
+    setErrors((prev) => {
+      if (selectedTypes.length > 0) {
+        if (!prev.types) return prev;
+        const { types: _types, ...rest } = prev;
+        return rest;
+      }
+      return prev.types ? prev : { ...prev, types: "Select at least one type" };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTypes]);
+
   async function handleSave() {
     const allTouched = { name: true, country: true, types: true, websiteUrl: true };
     setTouched(allTouched);
