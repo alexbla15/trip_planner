@@ -291,7 +291,15 @@ export function ExploreClient() {
     // `view` derived constant below, since that's declared later in the component and this
     // effect needs to run before it would be in scope.
     const isWorldView = !selectedCountry && !selectedCity;
-    if (!isWorldView || viewMode !== "grid" || worldAttractionsLoaded) return;
+    // Also fetched once a category/type/foodStyle/shopStyle filter is picked at world
+    // view, even while still in map mode — those filters need the real per-attraction
+    // data to compute correct country/city counts (see worldCountsByCity below); without
+    // this, the sidebar kept showing each country's unfiltered-by-category count (e.g.
+    // "Israel (1)" from its one verified attraction) even once a category/type narrowed
+    // the actual matches to zero, a contradiction between the count shown and what the
+    // map/grid actually displayed.
+    const hasChipFilter = selectedCategories.length > 0 || selectedTypes.length > 0 || selectedFoodStyles.length > 0 || selectedShopStyles.length > 0;
+    if (!isWorldView || (viewMode !== "grid" && !hasChipFilter) || worldAttractionsLoaded) return;
     setAttractionsLoading(true);
     setPageError(null);
     let cancelled = false;
@@ -311,15 +319,39 @@ export function ExploreClient() {
       .catch(() => { if (!cancelled) setPageError("Couldn't load attractions. Please try again."); })
       .finally(() => { if (!cancelled) setAttractionsLoading(false); });
     return () => { cancelled = true; };
-  }, [selectedCountry, selectedCity, viewMode, worldAttractionsLoaded, token]);
+  }, [selectedCountry, selectedCity, viewMode, worldAttractionsLoaded, token, selectedCategories, selectedTypes, selectedFoodStyles, selectedShopStyles]);
 
-  // Exact count of a city's attractions matching ALL currently-active filters at once,
-  // by summing whichever of the 8 visited×usedInTrip×verified buckets are consistent with
-  // the current filter selection (a filter set to "all" doesn't constrain that digit — both
-  // 0 and 1 are summed for it). Replaces the old per-dimension-only counts, which could
-  // only answer "at least one attraction matches X" and broke down as soon as 2+ filters
-  // were active together (e.g. "Visited" + "Verified" showing the visited count, ignoring
-  // verified entirely).
+  // Per-city attraction counts matching the active category/type/foodStyle/shopStyle
+  // chip filters (+ visited/used/verified) — computed directly from worldAttractions,
+  // via the same matchesChipFilters/passesXFilter functions filteredWorldAttractions
+  // uses below, rather than the server-side `cities` buckets, which only know
+  // visited/used/verified and have no idea about category/type. Without this, a
+  // country's sidebar count kept reflecting only the verified/visited/used filters —
+  // e.g. "Israel (1)" from its one verified attraction — even once a category/type
+  // filter narrowed the real matches to zero, contradicting what the map/grid actually
+  // showed. null (not an empty Map) when no chip filter is active or the data hasn't
+  // loaded yet, so countFor below falls back to the cheap bucket-based count.
+  const hasChipFilterActive = selectedCategories.length > 0 || selectedTypes.length > 0 || selectedFoodStyles.length > 0 || selectedShopStyles.length > 0;
+  const worldCountsByCity = useMemo(() => {
+    if (!hasChipFilterActive || !worldAttractionsLoaded) return null;
+    const map = new Map<string, number>();
+    for (const a of worldAttractions) {
+      if (!matchesChipFilters(a) || !passesVisitedFilter(a) || !passesTripUsageFilter(a) || !passesVerifiedFilter(a)) continue;
+      const key = `${a.country}__${a.city ?? ""}`;
+      map.set(key, (map.get(key) ?? 0) + 1);
+    }
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [worldAttractions, worldAttractionsLoaded, hasChipFilterActive, selectedCategories, selectedTypes, selectedFoodStyles, selectedShopStyles, visitedFilter, tripUsageFilter, verifiedFilter, byCategory]);
+
+  // Exact count of a city's attractions matching ALL currently-active visited/used/
+  // verified filters at once, by summing whichever of the 8 buckets are consistent with
+  // the current filter selection (a filter set to "all" doesn't constrain that digit —
+  // both 0 and 1 are summed for it). Replaces the old per-dimension-only counts, which
+  // could only answer "at least one attraction matches X" and broke down as soon as 2+
+  // filters were active together (e.g. "Visited" + "Verified" showing the visited count,
+  // ignoring verified entirely). Doesn't know about category/type — see
+  // worldCountsByCity above for that.
   function combinedCount(entry: { count: number; buckets: Record<string, number> }): number {
     const vDigits = visitedFilter === "all" ? ["0", "1"] : [visitedFilter === "visited" ? "1" : "0"];
     const uDigits = tripUsageFilter === "all" ? ["0", "1"] : [tripUsageFilter === "used" ? "1" : "0"];
@@ -342,15 +374,17 @@ export function ExploreClient() {
   // experience (world → country → city), driven by the single header picker, not just the
   // selected city's list.
   const visibleCities = useMemo(() => {
+    if (worldCountsByCity) return cities.filter((c) => (worldCountsByCity.get(`${c.country}__${c.name}`) ?? 0) > 0);
     if (visitedFilter === "all" && tripUsageFilter === "all" && verifiedFilter === "all") return cities;
     return cities.filter((c) => combinedCount(c) > 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cities, visitedFilter, tripUsageFilter, verifiedFilter]);
+  }, [cities, visitedFilter, tripUsageFilter, verifiedFilter, worldCountsByCity]);
 
   // The number to display for a city/country pill under whichever filter combination is
   // active — the total attraction count is misleading once filtered (e.g. showing "12"
   // under "Unvisited" when only 4 of those 12 are actually unvisited).
-  function countFor(entry: { count: number; buckets: Record<string, number> }): number {
+  function countFor(entry: { count: number; buckets: Record<string, number>; name: string; country: string }): number {
+    if (worldCountsByCity) return worldCountsByCity.get(`${entry.country}__${entry.name}`) ?? 0;
     if (visitedFilter === "all" && tripUsageFilter === "all" && verifiedFilter === "all") return entry.count;
     return combinedCount(entry);
   }
@@ -385,7 +419,7 @@ export function ExploreClient() {
       })
       .sort((a, b) => b.count - a.count);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleCities, visitedFilter, tripUsageFilter, verifiedFilter]);
+  }, [visibleCities, visitedFilter, tripUsageFilter, verifiedFilter, worldCountsByCity]);
 
   // Cities scoped for the map — same cities as visibleCities, but with `count` overridden
   // to the exact count matching the active filter combination (countFor), not each city's
@@ -394,7 +428,7 @@ export function ExploreClient() {
   const mapCities = useMemo(
     () => visibleCities.map((c) => ({ ...c, count: countFor(c) })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [visibleCities, visitedFilter, tripUsageFilter, verifiedFilter]
+    [visibleCities, visitedFilter, tripUsageFilter, verifiedFilter, worldCountsByCity]
   );
 
   const citiesInCountry = useMemo(
@@ -442,7 +476,7 @@ export function ExploreClient() {
       })
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [citiesInCountry, selectedCountry, visitedFilter, tripUsageFilter, verifiedFilter]);
+  }, [citiesInCountry, selectedCountry, visitedFilter, tripUsageFilter, verifiedFilter, worldCountsByCity]);
 
   // Standalone cities at the country level — cities with no region only. A region's own
   // cities are reached by drilling into the region first, not also listed flat here.
