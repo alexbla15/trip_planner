@@ -8,6 +8,7 @@ import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
 import { Spinner } from "@/components/Spinner";
 import { BrandModal } from "@/components/BrandModal";
 import { getAttraction, getChildAttractions } from "@/services";
+import { photoCropStyle } from "@/lib";
 import { useAttractionTypes } from "@/hooks";
 import { formatDisplayDate, getNightsCount, isAttractionPermanentlyClosed } from "@/lib";
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
@@ -136,7 +137,7 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
             className={styles.photoImg}
             wrapperClassName={styles.photoWrapper}
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 220px"
-            style={attraction.photoFocalPoint ? { objectPosition: `${attraction.photoFocalPoint.x}% ${attraction.photoFocalPoint.y}%` } : undefined}
+            style={photoCropStyle(attraction.photoCrop)}
           />
         ) : (
           <div className={styles.photoFallback} aria-hidden="true">{icon}</div>

@@ -62,6 +62,8 @@ export type { TypeFormState, CategoryFormState, MoodTagFormState, FoodStyleFormS
 export { typeFormFromRecord, catFormFromRecord, moodFormFromRecord, foodStyleFormFromRecord, shopStyleFormFromRecord, brandFormFromRecord } from "./adminForms";
 
 export { flightMeta } from "./attractionDisplay";
+export { photoCropStyle } from "./photoCrop";
+export type { PhotoCrop } from "./photoCrop";
 
 export { getNightsCount } from "./residence";
 

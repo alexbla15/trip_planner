@@ -86,7 +86,6 @@ export { IconPicker, ICON_REGISTRY, ICON_NAMES, getIconComponent, renderTypeIcon
 export { TripTabBar } from "./TripTabBar";
 
 export { CoverImageField, isValidCoverUrl } from "./CoverImageField";
-export type { FocalPoint } from "./CoverImageField";
 export { WebsiteLinkButton } from "./WebsiteLinkButton";
 export type { WebsiteLinkButtonProps } from "./WebsiteLinkButton";
 export { ImageWithSkeleton } from "./ImageWithSkeleton";

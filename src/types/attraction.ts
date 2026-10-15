@@ -114,11 +114,9 @@ export interface Attraction {
   seasonalHours?: { title?: string; start: { month: number; day: number }; end: { month: number; day: number }; hours: OpeningHours }[];
   notes?: string;
   photoUrl?: string;
-  /** Where `photoUrl` is anchored when cropped to a fixed aspect ratio (the card grid,
-   *  detail modal, etc. all use `object-fit: cover`) — normalized percentages, 0-100 on
-   *  each axis, applied as CSS `object-position`. Absent means the default center crop
-   *  (50, 50). */
-  photoFocalPoint?: { x: number; y: number };
+  /** A real crop of `photoUrl` — see `IAttraction.photoCrop` in `src/models/Attraction.ts`
+   *  for the exact field contract, and `src/lib/photoCrop.ts` for turning it into CSS. */
+  photoCrop?: { x: number; y: number; w: number; h: number };
   /** Official venue website — user-editable, separate from photoUrl. */
   websiteUrl?: string;
   /** Admin-curated "verified" mark — only an admin can set this (see PUT /api/attractions/:id). */

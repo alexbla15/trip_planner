@@ -38,6 +38,7 @@ import { BrandModal } from "@/components/BrandModal";
 import { useModalZIndex } from "@/components/Modal";
 import { getAttraction, getChildAttractions, getOtherLocationsInCity } from "@/services";
 import { useAttractionTypes, useShopStyles } from "@/hooks";
+import { photoCropStyle } from "@/lib";
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
 
 const LocationViewMap = dynamic(
@@ -364,7 +365,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                 className={styles.photoImg}
                 wrapperClassName={styles.photoWrapper}
                 sizes="(max-width: 640px) 100vw, 500px"
-                style={attraction.photoFocalPoint ? { objectPosition: `${attraction.photoFocalPoint.x}% ${attraction.photoFocalPoint.y}%` } : undefined}
+                style={photoCropStyle(attraction.photoCrop)}
               />
             </div>
           )}

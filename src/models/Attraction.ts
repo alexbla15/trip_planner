@@ -74,12 +74,14 @@ export interface IAttraction extends Document {
   seasonalHours?: ISeasonalHoursEntry[];
   notes?: string;
   photoUrl?: string;
-  /** Where `photoUrl` is "anchored" when it's cropped to a fixed aspect ratio (the card
-   *  grid, detail modal, etc. all use `object-fit: cover`) — normalized percentages, 0-100
-   *  on each axis, applied as CSS `object-position`. Absent means the default center crop
-   *  (50, 50), same as before this field existed. Lets the owner keep the actual subject
-   *  in frame when the photo's own aspect ratio doesn't match the crop. */
-  photoFocalPoint?: { x: number; y: number };
+  /** A real crop — which rectangle of the original photo to show wherever it's rendered
+   *  at a fixed aspect ratio (card grid, detail modal — all normally `object-fit: cover`).
+   *  x/y/w/h are fractions (0-1) of the photo's own natural width/height; w/h are locked
+   *  to whatever target aspect ratio the crop was made against (see CoverImageField's
+   *  `aspectRatio` prop) at the time it was set. Absent means no custom crop — the
+   *  default browser auto-center `object-fit: cover`, same as before this field existed.
+   *  See `src/lib/photoCrop.ts` for how this is turned into render CSS. */
+  photoCrop?: { x: number; y: number; w: number; h: number };
   /** Official venue website — user-editable, separate from photoUrl. Never fabricated on
    *  backfill; left unset when no real official site exists for a place. */
   websiteUrl?: string;
@@ -191,8 +193,8 @@ const AttractionSchema = new Schema<IAttraction>(
     currency: { type: String, default: "USD" },
     notes: { type: String },
     photoUrl: { type: String },
-    photoFocalPoint: {
-      type: new Schema({ x: Number, y: Number }, { _id: false }),
+    photoCrop: {
+      type: new Schema({ x: Number, y: Number, w: Number, h: Number }, { _id: false }),
       default: undefined,
     },
     websiteUrl: { type: String },
@@ -356,8 +358,8 @@ export function formatAttraction(
     notes: schedule?.notes ?? doc.notes,
     photoUrl: doc.photoUrl || brand?.photoUrl,
     // Only meaningful for this document's own photo — a brand-fallback photo (no
-    // photoUrl of its own) has no per-attraction focal point to apply.
-    photoFocalPoint: doc.photoUrl ? doc.photoFocalPoint : undefined,
+    // photoUrl of its own) has no per-attraction crop to apply.
+    photoCrop: doc.photoUrl ? doc.photoCrop : undefined,
     websiteUrl: doc.websiteUrl || brand?.websiteUrl,
     verified: doc.verified ?? false,
     createdAt: doc.createdAt?.toISOString(),
