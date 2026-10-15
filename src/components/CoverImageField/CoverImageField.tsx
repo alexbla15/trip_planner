@@ -113,7 +113,15 @@ export function CoverImageField({
     if (!el || !adjustable) return;
     const ro = new ResizeObserver((entries) => {
       const entry = entries[0];
-      if (entry) setContainerSize({ w: entry.contentRect.width, h: entry.contentRect.height });
+      if (!entry) return;
+      const w = entry.contentRect.width;
+      const h = entry.contentRect.height;
+      // Guard against redundant updates — ResizeObserver can fire with the same size
+      // (e.g. once on initial observe(), again after a reflow that didn't actually change
+      // this element), and an unconditional setState there is the textbook way to trip
+      // React's "Maximum update depth exceeded" if anything downstream of this state
+      // feeds back into layout. w/h are plain numbers, so a cheap equality check is enough.
+      setContainerSize((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -121,7 +129,8 @@ export function CoverImageField({
 
   function captureNaturalSize(img: HTMLImageElement) {
     if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-      setNaturalSize({ w: img.naturalWidth, h: img.naturalHeight });
+      const w = img.naturalWidth, h = img.naturalHeight;
+      setNaturalSize((prev) => (prev && prev.w === w && prev.h === h ? prev : { w, h }));
     }
   }
 
