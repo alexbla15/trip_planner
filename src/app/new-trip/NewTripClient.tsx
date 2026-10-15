@@ -183,6 +183,7 @@ export function NewTripClient() {
                 id="trip-cover-photo"
                 label="Cover photo URL"
                 placeholder="https://example.com/photo.jpg"
+                aspectRatio="16:9"
                 value={coverPhotoUrl}
                 onChange={setCoverPhotoUrl}
                 onBlur={() => handleBlur("coverPhotoUrl")}

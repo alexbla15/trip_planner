@@ -71,19 +71,27 @@
      making the fill-mode image disappear. Percentage padding computes purely from
      width and doesn't have that bug. */
   height: 0;
-  /* 4:3 — matches the crop every real render site actually uses (AttractionGridCard,
-     AttractionDetailModal, BrandModal), so adjusting the focal point here previews the
-     same crop the saved attraction will actually show, not a different ratio. */
-  padding-top: 75%;
   border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid var(--color-border);
   position: relative;
 }
 
+/* 4:3 — matches the crop AttractionGridCard/AttractionDetailModal/BrandModal actually
+   use. 16:9 — matches TripCard. Pass `aspectRatio` to pick the one matching wherever
+   this photo ends up rendered; getting it wrong previews a different crop than what's
+   actually saved. */
+.preview43 { padding-top: 75%; }
+.preview169 { padding-top: 56.25%; }
+
 .previewImg {
   object-fit: cover;
   display: none;
+  /* The classic reason a custom drag handler "does nothing": without this, starting a
+     mouse-drag on an <img> kicks off the browser's own native image-drag gesture
+     instead, which swallows every pointermove event afterward. draggable={false} on
+     the Image element handles modern browsers; this covers older WebKit. */
+  -webkit-user-drag: none;
 }
 
 .previewImgLoaded {

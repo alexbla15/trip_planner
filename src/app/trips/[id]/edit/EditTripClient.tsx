@@ -226,6 +226,7 @@ export function EditTripClient({ tripId }: EditTripClientProps) {
             <CoverImageField
               id="edit-cover-image"
               label="Cover image"
+              aspectRatio="16:9"
               value={coverImage}
               onChange={setCoverImage}
             />

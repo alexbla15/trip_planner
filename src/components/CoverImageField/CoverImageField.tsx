@@ -23,6 +23,12 @@ interface CoverImageFieldProps {
   onChange: (value: string) => void;
   onBlur?: () => void;
   error?: string;
+  /** Preview crop ratio — must match whatever real render site this photo ends up
+   *  cropped to (`object-fit: cover`) elsewhere in the app, or the focal-point
+   *  adjustment below previews a different crop than what's actually saved. "4:3"
+   *  (default) for attraction/brand photos (AttractionGridCard, AttractionDetailModal,
+   *  BrandModal); "16:9" for trip cover photos (TripCard). */
+  aspectRatio?: "4:3" | "16:9";
   /** Normalized 0-100 percentages anchoring where the photo is cropped to everywhere
    *  else in the app renders it at a fixed aspect ratio (the card grid, detail modal —
    *  all `object-fit: cover`). Undefined/omitted means the default center crop. Only
@@ -42,6 +48,7 @@ export function CoverImageField({
   onChange,
   onBlur,
   error,
+  aspectRatio = "4:3",
   focalPoint,
   onFocalPointChange,
 }: CoverImageFieldProps) {
@@ -84,8 +91,12 @@ export function CoverImageField({
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (!adjustable) return;
+    e.preventDefault(); // stop the browser starting its own native image-drag gesture,
+    // which would swallow every pointermove after this and make dragging look like it
+    // does nothing — capture happens on currentTarget (this div), not target (which,
+    // when the pointer lands on the <img>, would be the image element instead).
     draggingRef.current = true;
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    e.currentTarget.setPointerCapture(e.pointerId);
     const point = pointFromEvent(e);
     if (point) onFocalPointChange!(point);
   }
@@ -98,7 +109,7 @@ export function CoverImageField({
 
   function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
     draggingRef.current = false;
-    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    e.currentTarget.releasePointerCapture(e.pointerId);
   }
 
   return (
@@ -130,7 +141,7 @@ export function CoverImageField({
         <>
           <div
             ref={previewRef}
-            className={`${styles.preview}${adjustable ? ` ${styles.previewAdjustable}` : ""}`}
+            className={`${styles.preview} ${aspectRatio === "16:9" ? styles.preview169 : styles.preview43}${adjustable ? ` ${styles.previewAdjustable}` : ""}`}
             aria-live="polite"
             aria-label="Cover photo preview"
             onPointerDown={handlePointerDown}
@@ -143,6 +154,7 @@ export function CoverImageField({
               src={value}
               alt="Cover photo preview"
               fill
+              draggable={false}
               className={`${styles.previewImg}${imgLoaded ? ` ${styles.previewImgLoaded}` : ""}`}
               style={objectPosition ? { objectPosition } : undefined}
               sizes="(max-width: 640px) 100vw, 480px"
@@ -164,7 +176,7 @@ export function CoverImageField({
           {adjustable && imgLoaded && (
             <div className={styles.focalHintRow}>
               <p className={styles.hint}>
-                Doesn&apos;t fit? Click or drag on the preview to keep the right part of the photo in frame when it&apos;s cropped.
+                Doesn&apos;t fit the frame? Click or drag on the preview to choose which part stays visible when it&apos;s cropped.
               </p>
               {focalPoint && (
                 <button
