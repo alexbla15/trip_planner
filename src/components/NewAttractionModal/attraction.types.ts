@@ -152,6 +152,10 @@ export interface AttractionFormData {
   seasonalHours?: SeasonalHoursEntryInput[];
   notes: string;
   photoUrl: string;
+  /** Where photoUrl is anchored when cropped to a fixed aspect ratio elsewhere in the
+   *  app — normalized 0-100 percentages. null explicitly clears it back to the default
+   *  center crop (see updateAttraction's `!== undefined` field-clearing convention). */
+  photoFocalPoint?: { x: number; y: number } | null;
   websiteUrl: string;
   /** Id of the attraction this one is located inside (e.g. a restaurant inside a mall), or
    *  null when it's not nested. Display-only `parentAttractionName` rides alongside it so

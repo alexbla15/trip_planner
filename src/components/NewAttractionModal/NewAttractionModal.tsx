@@ -26,6 +26,7 @@ import { SearchableSelect } from "@/components/SearchableSelect";
 import { searchLocation } from "@/services";
 import { AttractionTypePicker } from "@/components/AttractionTypePicker";
 import { CoverImageField } from "@/components";
+import type { FocalPoint } from "@/components";
 import { ModalShell } from "@/components/Modal";
 import { MapPicker } from "./MapPicker";
 import { OpeningHoursGrid } from "./OpeningHoursGrid";
@@ -137,6 +138,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   const [seasonalHours, setSeasonalHours] = useState<SeasonalHoursEntry[]>([]);
   const [notes, setNotes] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
+  const [photoFocalPoint, setPhotoFocalPoint] = useState<FocalPoint | undefined>(undefined);
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [brandId, setBrandId] = useState<string | null>(null);
   // The SearchableSelect's own text box — kept separate from brandId so clearing it (or
@@ -204,6 +206,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     );
     setNotes(initialData?.notes ?? "");
     setPhotoUrl(initialData?.photoUrl ?? "");
+    setPhotoFocalPoint(initialData?.photoFocalPoint ?? undefined);
     setWebsiteUrl(initialData?.websiteUrl ?? "");
     setBrandId(initialData?.brandId ?? null);
     setBrandNameInput(initialData?.brandName ?? "");
@@ -286,7 +289,9 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       return;
     }
     setBrandId(match._id);
-    if (match.photoUrl) setPhotoUrl(match.photoUrl);
+    // A brand's photo is a different image entirely — any focal point adjusted for
+    // whatever was here before no longer applies.
+    if (match.photoUrl) { setPhotoUrl(match.photoUrl); setPhotoFocalPoint(undefined); }
     if (match.websiteUrl) setWebsiteUrl(match.websiteUrl);
     if (match.types.length > 0) setSelectedTypes(match.types);
     if (match.foodStyles.length > 0) setSelectedFoodStyles(match.foodStyles);
@@ -382,6 +387,11 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       seasonalHours: completeSeasonalHours,
       notes,
       photoUrl,
+      // null (not undefined) when unset — same reasoning as openingMonths/seasonalHours
+      // above: this form always submits the complete object, and undefined would be
+      // dropped by JSON.stringify, silently leaving a previous value in place instead of
+      // clearing it (see updateAttraction's `body.photoFocalPoint !== undefined` check).
+      photoFocalPoint: photoFocalPoint ?? null,
       websiteUrl: websiteUrl.trim(),
       parentAttractionId,
       brandId,
@@ -471,6 +481,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setSeasonalHours([]);
     setNotes("");
     setPhotoUrl("");
+    setPhotoFocalPoint(undefined);
     setWebsiteUrl("");
     setErrors({});
     setTouched({});
@@ -1127,7 +1138,9 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
             id="attraction-photo"
             hideLabel
             value={photoUrl}
-            onChange={setPhotoUrl}
+            onChange={(v) => { setPhotoUrl(v); setPhotoFocalPoint(undefined); }}
+            focalPoint={photoFocalPoint}
+            onFocalPointChange={setPhotoFocalPoint}
           />
         </div>
       </details>

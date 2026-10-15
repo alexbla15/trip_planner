@@ -136,6 +136,7 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
             className={styles.photoImg}
             wrapperClassName={styles.photoWrapper}
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 220px"
+            style={attraction.photoFocalPoint ? { objectPosition: `${attraction.photoFocalPoint.x}% ${attraction.photoFocalPoint.y}%` } : undefined}
           />
         ) : (
           <div className={styles.photoFallback} aria-hidden="true">{icon}</div>

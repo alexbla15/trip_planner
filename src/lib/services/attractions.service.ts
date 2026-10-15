@@ -216,13 +216,14 @@ export interface CreateAttractionInput {
   seasonalHours?: { title?: string; start: { month: number; day: number }; end: { month: number; day: number }; hours: OpeningHours }[];
   notes?: string;
   photoUrl?: string;
+  photoFocalPoint?: { x: number; y: number };
   websiteUrl?: string;
   region?: string;
 }
 
 export async function createAttraction(payload: JwtPayload, body: CreateAttractionInput): Promise<IAttraction> {
   const { name, country, region, city, coordinates, parentAttractionId, brandId, types, foodStyles, shopStyles, durationValue, durationUnit,
-    price, prices: priceTiersInput, currency, openingHours, openingMonths, seasonalHours, notes, photoUrl, websiteUrl } = body;
+    price, prices: priceTiersInput, currency, openingHours, openingMonths, seasonalHours, notes, photoUrl, photoFocalPoint, websiteUrl } = body;
 
   if (!name?.trim() || (!parentAttractionId && (!country?.trim() || !city?.trim()))) {
     // A child's country/city are inherited from its parent — only required directly when
@@ -284,6 +285,7 @@ export async function createAttraction(payload: JwtPayload, body: CreateAttracti
       seasonalHours: seasonalHours?.length ? seasonalHours : undefined,
       notes: notes || undefined,
       photoUrl: photoUrl || undefined,
+      photoFocalPoint: photoUrl ? photoFocalPoint : undefined,
       websiteUrl: websiteUrl || undefined,
     });
 
@@ -449,6 +451,13 @@ export async function updateAttraction(
   }
   if (body.notes !== undefined) attraction.notes = body.notes as string;
   if (body.photoUrl !== undefined) attraction.photoUrl = body.photoUrl as string;
+  // null (not undefined — this form always submits the complete object, so undefined
+  // would be dropped by JSON.stringify and never reach this `!== undefined` check at
+  // all, silently leaving a previous value in place; see the seasonalHours fix for the
+  // same pitfall) explicitly resets to the default center crop.
+  if (body.photoFocalPoint !== undefined) {
+    attraction.photoFocalPoint = (body.photoFocalPoint ?? undefined) as IAttraction["photoFocalPoint"];
+  }
   if (body.websiteUrl !== undefined) attraction.websiteUrl = body.websiteUrl as string;
   // Admin-only field — checked on demand rather than up front, so the common (non-admin,
   // no `verified` in body) edit path never pays for the extra User lookup.
@@ -799,6 +808,7 @@ export interface AddAttractionToTripInput {
   openingMonths?: number[];
   notes?: string;
   photoUrl?: string;
+  photoFocalPoint?: { x: number; y: number };
   websiteUrl?: string;
   subtype?: "residence" | "flight" | "custom-slot";
   residenceType?: string;
@@ -834,7 +844,7 @@ export async function addAttractionToTrip(
   const trip = await getAuthedTrip(payload, tripId);
 
   const { existingAttractionId, allowDuplicate, name, country, city, coordinates, types, durationValue, durationUnit,
-    price, currency, openingHours, openingMonths, notes, photoUrl, websiteUrl,
+    price, currency, openingHours, openingMonths, notes, photoUrl, photoFocalPoint, websiteUrl,
     subtype, residenceType, checkInDate, checkOutDate,
     flightNumber, airline, departureAirport, arrivalAirport, departureTime, arrivalTime, gate, seat,
     plannedDate, plannedTime, actualDurationValue, actualDurationUnit } = body;
@@ -991,6 +1001,7 @@ export async function addAttractionToTrip(
           openingMonths: openingMonths?.length ? openingMonths : undefined,
           notes: isResidence ? undefined : (notes || undefined),
           photoUrl: photoUrl || undefined,
+          photoFocalPoint: photoUrl ? photoFocalPoint : undefined,
           websiteUrl: websiteUrl || undefined,
           subtype: subtype || undefined,
           residenceType: residenceType || undefined,

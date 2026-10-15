@@ -364,6 +364,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                 className={styles.photoImg}
                 wrapperClassName={styles.photoWrapper}
                 sizes="(max-width: 640px) 100vw, 500px"
+                style={attraction.photoFocalPoint ? { objectPosition: `${attraction.photoFocalPoint.x}% ${attraction.photoFocalPoint.y}%` } : undefined}
               />
             </div>
           )}

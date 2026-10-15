@@ -74,6 +74,12 @@ export interface IAttraction extends Document {
   seasonalHours?: ISeasonalHoursEntry[];
   notes?: string;
   photoUrl?: string;
+  /** Where `photoUrl` is "anchored" when it's cropped to a fixed aspect ratio (the card
+   *  grid, detail modal, etc. all use `object-fit: cover`) — normalized percentages, 0-100
+   *  on each axis, applied as CSS `object-position`. Absent means the default center crop
+   *  (50, 50), same as before this field existed. Lets the owner keep the actual subject
+   *  in frame when the photo's own aspect ratio doesn't match the crop. */
+  photoFocalPoint?: { x: number; y: number };
   /** Official venue website — user-editable, separate from photoUrl. Never fabricated on
    *  backfill; left unset when no real official site exists for a place. */
   websiteUrl?: string;
@@ -185,6 +191,10 @@ const AttractionSchema = new Schema<IAttraction>(
     currency: { type: String, default: "USD" },
     notes: { type: String },
     photoUrl: { type: String },
+    photoFocalPoint: {
+      type: new Schema({ x: Number, y: Number }, { _id: false }),
+      default: undefined,
+    },
     websiteUrl: { type: String },
     verified: { type: Boolean, default: false },
     openingHours: {
@@ -345,6 +355,9 @@ export function formatAttraction(
     seasonalHours: doc.seasonalHours,
     notes: schedule?.notes ?? doc.notes,
     photoUrl: doc.photoUrl || brand?.photoUrl,
+    // Only meaningful for this document's own photo — a brand-fallback photo (no
+    // photoUrl of its own) has no per-attraction focal point to apply.
+    photoFocalPoint: doc.photoUrl ? doc.photoFocalPoint : undefined,
     websiteUrl: doc.websiteUrl || brand?.websiteUrl,
     verified: doc.verified ?? false,
     createdAt: doc.createdAt?.toISOString(),
