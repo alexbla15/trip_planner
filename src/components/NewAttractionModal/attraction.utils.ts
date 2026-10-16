@@ -31,6 +31,7 @@ export function attractionToFormData(a: Attraction): AttractionFormData {
     })),
     notes: a.notes ?? "",
     photoUrl: a.photoUrl ?? "",
+    photoCrop: a.photoCrop,
     websiteUrl: a.websiteUrl ?? "",
     parentAttractionId: a.parentAttractionId ?? null,
     parentAttractionName: a.parentAttractionName ?? null,

@@ -371,6 +371,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
         openingHours: data.openingHours,
         notes: data.notes || undefined,
         photoUrl: data.photoUrl || undefined,
+        photoCrop: data.photoCrop ?? undefined,
         websiteUrl: data.websiteUrl || undefined,
       })) as Attraction;
       upsertAttraction(created);
