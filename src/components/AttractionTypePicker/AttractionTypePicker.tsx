@@ -14,6 +14,11 @@ interface AttractionTypePickerProps {
   labelId?: string;
   /** aria-describedby value for the chip group (e.g. an error message id) */
   errorId?: string;
+  /** Prevents toggling any type chip — category browsing still works, so the current
+   *  selection stays visible/reachable, just not editable. Used when an attraction is
+   *  linked to a brand: its types are the brand's defaults, not independently editable
+   *  (see NewAttractionModal). */
+  disabled?: boolean;
 }
 
 export function AttractionTypePicker({
@@ -21,6 +26,7 @@ export function AttractionTypePicker({
   onToggle,
   labelId,
   errorId,
+  disabled,
 }: AttractionTypePickerProps) {
   const { categories, byCategory } = useAttractionTypes();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -76,6 +82,7 @@ export function AttractionTypePicker({
                 iconName={typeRecord.icon}
                 selected={selectedTypes.includes(typeRecord.name)}
                 onToggle={onToggle}
+                disabled={disabled}
               />
             ))}
           </div>

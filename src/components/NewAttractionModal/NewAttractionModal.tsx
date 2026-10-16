@@ -794,6 +794,11 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
         <div className={styles.sectionBody}>
           <div className={styles.field}>
             <span id="types-label" className={styles.srOnly}>Type</span>
+            {brandId && (
+              <p className={styles.hint}>
+                Types are set by the linked brand — remove the brand link to change them.
+              </p>
+            )}
             <AttractionTypePicker
               selectedTypes={selectedTypes}
               onToggle={(t) => {
@@ -802,6 +807,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
               }}
               labelId="types-label"
               errorId={touched.types && errors.types ? "error-types" : undefined}
+              disabled={!!brandId}
             />
             {touched.types && errors.types && (
               <p id="error-types" className={styles.errorMsg} role="alert">

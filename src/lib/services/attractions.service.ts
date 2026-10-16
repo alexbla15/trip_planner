@@ -383,6 +383,13 @@ export async function updateAttraction(
     }
   }
 
+  // Captured before the brand-link block below updates attraction.brandId — distinguishes
+  // "types changing because this request is the one linking the brand" (allowed; the
+  // client applies the brand's own default types as part of that action) from "types
+  // changing on an attraction that was ALREADY brand-linked" (not allowed — see the
+  // `types` block further down).
+  const wasAlreadyBrandLinked = !!attraction.brandId;
+
   // Brand link: `null` explicitly clears it, `undefined` (key absent) leaves it untouched.
   // Unlike the parent link above, this never writes onto any other field — it's a pure
   // fallback-only default, so there's nothing to "re-apply" when it's cleared.
@@ -404,7 +411,12 @@ export async function updateAttraction(
     if (body.city) attraction.city = body.city as string;
     if (body.coordinates !== undefined) attraction.coordinates = body.coordinates as { lat: number; lng: number } | null;
   }
-  if (body.types) {
+  // Types are the brand's own default once linked — not independently editable on top of
+  // that (see AttractionTypePicker's `disabled` prop in NewAttractionModal, which already
+  // blocks this client-side; this is the server-side backstop). Skipped only when the
+  // attraction was ALREADY brand-linked before this request — the request that does the
+  // initial linking still applies the brand's own default types normally.
+  if (body.types && !wasAlreadyBrandLinked) {
     const names = body.types as string[];
     const typeDocs = await AttractionType.find({ name: { $in: names } }).select("_id");
     attraction.types = typeDocs.map((d) => d._id) as unknown as IAttraction["types"];
