@@ -356,11 +356,16 @@ export function formatAttraction(
     openingMonths: doc.openingMonths,
     seasonalHours: doc.seasonalHours,
     notes: schedule?.notes || doc.notes || brand?.notes,
+    ownNotes: doc.notes || undefined,
     photoUrl: doc.photoUrl || brand?.photoUrl,
+    // The document's own unmerged value — the edit form must prefill from this, not from
+    // the brand-merged field above, or saving unchanged would copy the brand's value in.
+    ownPhotoUrl: doc.photoUrl || undefined,
     // Only meaningful for this document's own photo — a brand-fallback photo (no
     // photoUrl of its own) has no per-attraction crop to apply.
     photoCrop: doc.photoUrl ? doc.photoCrop : undefined,
     websiteUrl: doc.websiteUrl || brand?.websiteUrl,
+    ownWebsiteUrl: doc.websiteUrl || undefined,
     verified: doc.verified ?? false,
     createdAt: doc.createdAt?.toISOString(),
     updatedAt: doc.updatedAt?.toISOString(),

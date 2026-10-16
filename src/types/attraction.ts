@@ -113,12 +113,20 @@ export interface Attraction {
    *  is empty/absent — the common, non-seasonal case). */
   seasonalHours?: { title?: string; start: { month: number; day: number }; end: { month: number; day: number }; hours: OpeningHours }[];
   notes?: string;
+  /** This document's own notes, unmerged with the brand's — the edit form prefills from
+   *  this, not from `notes` above, so an unmodified brand-fallback value is never silently
+   *  written back as if it were this attraction's own override. */
+  ownNotes?: string;
   photoUrl?: string;
+  /** This document's own photoUrl, unmerged with the brand's — see `ownNotes`. */
+  ownPhotoUrl?: string;
   /** A real crop of `photoUrl` — see `IAttraction.photoCrop` in `src/models/Attraction.ts`
    *  for the exact field contract, and `src/lib/photoCrop.ts` for turning it into CSS. */
   photoCrop?: { x: number; y: number; w: number; h: number };
   /** Official venue website — user-editable, separate from photoUrl. */
   websiteUrl?: string;
+  /** This document's own websiteUrl, unmerged with the brand's — see `ownNotes`. */
+  ownWebsiteUrl?: string;
   /** Admin-curated "verified" mark — only an admin can set this (see PUT /api/attractions/:id). */
   verified?: boolean;
   plannedDate?: string | null;

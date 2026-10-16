@@ -29,10 +29,14 @@ export function attractionToFormData(a: Attraction): AttractionFormData {
       end: entry.end,
       hours: hasOpeningHoursData(entry.hours) ? normalizeOpeningHours(entry.hours) : buildInitialHours(),
     })),
-    notes: a.notes ?? "",
-    photoUrl: a.photoUrl ?? "",
+    // Use the attraction's own unmerged values, not the brand-fallback-merged ones above —
+    // otherwise opening a brand-linked attraction with no photo/website/notes of its own
+    // would prefill the brand's value as if it were this attraction's own, and saving
+    // unchanged would silently copy it in.
+    notes: a.ownNotes ?? "",
+    photoUrl: a.ownPhotoUrl ?? "",
     photoCrop: a.photoCrop,
-    websiteUrl: a.websiteUrl ?? "",
+    websiteUrl: a.ownWebsiteUrl ?? "",
     parentAttractionId: a.parentAttractionId ?? null,
     parentAttractionName: a.parentAttractionName ?? null,
     brandId: a.brandId ?? null,
