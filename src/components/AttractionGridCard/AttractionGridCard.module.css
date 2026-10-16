@@ -34,6 +34,12 @@
   padding-top: 75%; /* 4:3 */
   background: var(--color-bg-subtle);
   flex-shrink: 0;
+  /* A custom photoCrop (see src/lib/photoCrop.ts) sizes the <img> box itself LARGER
+     than this container (scaled up by 1/w, 1/h) and shifts it — unlike plain
+     object-fit: cover, which always stays exactly container-sized. Without this, that
+     oversized image box isn't clipped to the photo area and bleeds down over the name/
+     location text below it. */
+  overflow: hidden;
 }
 
 /* ImageWithSkeleton's own wrapper is a normal-flow element sized via `height: 100%` —
