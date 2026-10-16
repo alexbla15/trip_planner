@@ -289,10 +289,13 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       return;
     }
     setBrandId(match._id);
-    // A brand's photo is a different image entirely — any focal point adjusted for
-    // whatever was here before no longer applies.
-    if (match.photoUrl) { setPhotoUrl(match.photoUrl); setPhotoCrop(undefined); }
-    if (match.websiteUrl) setWebsiteUrl(match.websiteUrl);
+    // Photo/website are deliberately NOT copied in — an attraction linked to a brand with
+    // no photo/website of its own just shows the brand's live (formatAttraction's
+    // doc.photoUrl || brand?.photoUrl fallback), no DB write needed; setting one here
+    // later is a real override, not an unrelated edit that happens to match the brand's
+    // current value. Copying used to pre-fill these, which meant "update the brand's
+    // default" and "an attraction deliberately overrode it" were indistinguishable from
+    // the stored data alone.
     if (match.types.length > 0) setSelectedTypes(match.types);
     if (match.foodStyles.length > 0) setSelectedFoodStyles(match.foodStyles);
     if (match.shopStyles.length > 0) setSelectedShopStyles(match.shopStyles);
