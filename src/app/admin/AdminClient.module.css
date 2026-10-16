@@ -330,6 +330,13 @@
   display: block;
 }
 
+.textarea {
+  height: auto;
+  min-height: 80px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
 .input {
   height: 44px;
   padding: 0 12px;

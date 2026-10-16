@@ -24,6 +24,7 @@ interface BrandBody {
   name?: string;
   photoUrl?: string;
   websiteUrl?: string;
+  notes?: string;
   types?: string[];
   foodStyles?: string[];
   shopStyles?: string[];
@@ -61,6 +62,7 @@ export const POST = withApiHandler("POST /api/brands", async (req: Request) => {
       name: body.name.trim(),
       photoUrl: body.photoUrl?.trim() || undefined,
       websiteUrl: body.websiteUrl?.trim() || undefined,
+      notes: body.notes?.trim() || undefined,
       types: typeIds,
       foodStyles: foodStyleIds,
       shopStyles: shopStyleIds,

@@ -6,6 +6,7 @@ export interface ResolvedBrand {
   name: string;
   photoUrl?: string;
   websiteUrl?: string;
+  notes?: string;
   typeNames?: string[];
   foodStyleNames?: string[];
   shopStyleNames?: string[];
@@ -22,6 +23,7 @@ function toResolvedBrand(doc: IBrand): ResolvedBrand {
     name: doc.name,
     photoUrl: doc.photoUrl,
     websiteUrl: doc.websiteUrl,
+    notes: doc.notes,
     typeNames: namesOf(doc.types as unknown[]),
     foodStyleNames: namesOf(doc.foodStyles as unknown[]),
     shopStyleNames: namesOf(doc.shopStyles as unknown[]),

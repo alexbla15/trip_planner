@@ -54,8 +54,8 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
 
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [form, setForm] = useState<{ name: string; photoUrl: string; websiteUrl: string; types: string[]; foodStyles: string[]; shopStyles: string[] }>({
-    name: "", photoUrl: "", websiteUrl: "", types: [], foodStyles: [], shopStyles: [],
+  const [form, setForm] = useState<{ name: string; photoUrl: string; websiteUrl: string; notes: string; types: string[]; foodStyles: string[]; shopStyles: string[] }>({
+    name: "", photoUrl: "", websiteUrl: "", notes: "", types: [], foodStyles: [], shopStyles: [],
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -74,7 +74,7 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
     if (!isOpen) { setEditing(false); setConfirmingDelete(false); return; }
     if (brand) {
       setForm({
-        name: brand.name, photoUrl: brand.photoUrl ?? "", websiteUrl: brand.websiteUrl ?? "",
+        name: brand.name, photoUrl: brand.photoUrl ?? "", websiteUrl: brand.websiteUrl ?? "", notes: brand.notes ?? "",
         types: brand.types, foodStyles: brand.foodStyles, shopStyles: brand.shopStyles,
       });
     }
@@ -145,6 +145,7 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
         name: form.name.trim(),
         photoUrl: form.photoUrl.trim(),
         websiteUrl: form.websiteUrl.trim(),
+        notes: form.notes.trim(),
         types: form.types,
         foodStyles: formIsDining ? form.foodStyles : [],
         shopStyles: formIsShopping ? form.shopStyles : [],
@@ -238,6 +239,16 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
               value={form.websiteUrl}
               onChange={(e) => setForm((p) => ({ ...p, websiteUrl: e.target.value }))}
               placeholder="https://…"
+            />
+          </div>
+          <div className={styles.field}>
+            <label className={styles.label}>Default notes</label>
+            <textarea
+              className={`${styles.input} ${styles.textarea}`}
+              rows={3}
+              value={form.notes}
+              onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+              placeholder="e.g. standard chain-wide info every location shares"
             />
           </div>
           <div className={styles.field}>
@@ -335,6 +346,7 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
               })}
             </div>
           )}
+          {brand.notes && <p className={styles.hint}>{brand.notes}</p>}
 
           <div className={styles.locationsSection}>
             <h3 className={styles.locationsTitle}>

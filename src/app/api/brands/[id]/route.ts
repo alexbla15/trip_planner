@@ -20,6 +20,7 @@ interface BrandBody {
   name?: string;
   photoUrl?: string;
   websiteUrl?: string;
+  notes?: string;
   types?: string[];
   foodStyles?: string[];
   shopStyles?: string[];
@@ -58,6 +59,7 @@ export const PUT = withApiHandler("PUT /api/brands/[id]", async (req: Request, {
   if (!before) throw notFound("Not found");
   const oldPhotoUrl = before.photoUrl;
   const oldWebsiteUrl = before.websiteUrl;
+  const oldNotes = before.notes;
   const oldTypeKey = idKey(before.types as Types.ObjectId[]);
   const oldFoodStyleKey = idKey(before.foodStyles as Types.ObjectId[]);
   const oldShopStyleKey = idKey(before.shopStyles as Types.ObjectId[]);
@@ -80,6 +82,7 @@ export const PUT = withApiHandler("PUT /api/brands/[id]", async (req: Request, {
         name: body.name.trim(),
         photoUrl: body.photoUrl?.trim() || undefined,
         websiteUrl: body.websiteUrl?.trim() || undefined,
+        notes: body.notes?.trim() || undefined,
         types: typeIds,
         foodStyles: foodStyleIds,
         shopStyles: shopStyleIds,
@@ -101,7 +104,7 @@ export const PUT = withApiHandler("PUT /api/brands/[id]", async (req: Request, {
   // (they already live-fall-back); fields that differ from the old default were deliberately
   // changed and must be left alone.
   const linkedAttractions = await Attraction.find({ brandId: updated._id })
-    .select("photoUrl websiteUrl types foodStyles shopStyles");
+    .select("photoUrl websiteUrl notes types foodStyles shopStyles");
   for (const attraction of linkedAttractions) {
     const set: Record<string, unknown> = {};
     if (attraction.photoUrl && attraction.photoUrl === oldPhotoUrl) {
@@ -109,6 +112,9 @@ export const PUT = withApiHandler("PUT /api/brands/[id]", async (req: Request, {
     }
     if (attraction.websiteUrl && attraction.websiteUrl === oldWebsiteUrl) {
       set.websiteUrl = updated.websiteUrl;
+    }
+    if (attraction.notes && attraction.notes === oldNotes) {
+      set.notes = updated.notes;
     }
     if (attraction.types.length > 0 && idKey(attraction.types as Types.ObjectId[]) === oldTypeKey) {
       set.types = updated.types;

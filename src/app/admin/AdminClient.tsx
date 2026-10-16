@@ -343,7 +343,7 @@ function ShopStyleForm({
 // this" research), and can be filled in later without touching any attraction that already
 // links to it.
 
-const EMPTY_BRAND_FORM: BrandFormState = { name: "", photoUrl: "", websiteUrl: "", types: [], foodStyles: [], shopStyles: [] };
+const EMPTY_BRAND_FORM: BrandFormState = { name: "", photoUrl: "", websiteUrl: "", notes: "", types: [], foodStyles: [], shopStyles: [] };
 
 function BrandForm({
   initial, token, brandId, onDone, onCancel,
@@ -359,7 +359,7 @@ function BrandForm({
   const { styles: foodStyleOptions } = useFoodStyles();
   const { styles: shopStyleOptions } = useShopStyles();
 
-  function set(key: "name" | "photoUrl" | "websiteUrl", value: string) {
+  function set(key: "name" | "photoUrl" | "websiteUrl" | "notes", value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
@@ -380,6 +380,7 @@ function BrandForm({
       name: form.name.trim(),
       photoUrl: form.photoUrl.trim(),
       websiteUrl: form.websiteUrl.trim(),
+      notes: form.notes.trim(),
       types: form.types,
       foodStyles: form.foodStyles,
       shopStyles: form.shopStyles,
@@ -418,6 +419,17 @@ function BrandForm({
           value={form.websiteUrl}
           onChange={(e) => set("websiteUrl", e.target.value)}
           placeholder="https://…"
+        />
+      </div>
+
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Default notes</label>
+        <textarea
+          className={`${styles.input} ${styles.textarea}`}
+          rows={3}
+          value={form.notes}
+          onChange={(e) => set("notes", e.target.value)}
+          placeholder="e.g. standard chain-wide info every location shares"
         />
       </div>
 

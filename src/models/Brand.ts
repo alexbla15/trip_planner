@@ -18,6 +18,9 @@ export interface IBrand extends Document {
   /** Default shop styles (e.g. "Sportswear") — same fallback contract as `types`, only
    *  meaningful for a shopping-category brand. */
   shopStyles: Types.ObjectId[];
+  /** Default notes (e.g. standard chain-wide info) — same fallback contract as photoUrl/
+   *  websiteUrl: an attraction's own notes, when set, always win. */
+  notes?: string;
 }
 
 const BrandSchema = new Schema<IBrand>(
@@ -25,6 +28,7 @@ const BrandSchema = new Schema<IBrand>(
     name: { type: String, required: true, unique: true, trim: true, collation: { locale: "en", strength: 2 } },
     photoUrl: { type: String },
     websiteUrl: { type: String },
+    notes: { type: String },
     types: [{ type: Schema.Types.ObjectId, ref: "AttractionType" }],
     foodStyles: [{ type: Schema.Types.ObjectId, ref: "FoodStyle" }],
     shopStyles: [{ type: Schema.Types.ObjectId, ref: "ShopStyle" }],
@@ -45,6 +49,7 @@ export function formatBrand(doc: IBrand) {
     name: doc.name,
     photoUrl: doc.photoUrl,
     websiteUrl: doc.websiteUrl,
+    notes: doc.notes,
     types: namesOf(doc.types as unknown[]),
     foodStyles: namesOf(doc.foodStyles as unknown[]),
     shopStyles: namesOf(doc.shopStyles as unknown[]),

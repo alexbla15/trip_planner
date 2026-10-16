@@ -287,7 +287,7 @@ export function formatAttraction(
    *  resolved by callers via getBrand/getBrandMap (see `brands.service.ts`). `photoUrl`/
    *  `types`/`websiteUrl` below fall back to these only when this document's own field is
    *  unset — the brand never overrides a value the owner actually set. */
-  brand?: { name: string; photoUrl?: string; websiteUrl?: string; typeNames?: string[]; foodStyleNames?: string[]; shopStyleNames?: string[] }
+  brand?: { name: string; photoUrl?: string; websiteUrl?: string; notes?: string; typeNames?: string[]; foodStyleNames?: string[]; shopStyleNames?: string[] }
 ): AttractionShape {
   // Synthesize a single primary tier from the legacy `price` field for any document that
   // predates multi-tier pricing (or was created/edited without specifying tiers) — callers
@@ -355,7 +355,7 @@ export function formatAttraction(
     openingHours: doc.openingHours as AttractionShape["openingHours"],
     openingMonths: doc.openingMonths,
     seasonalHours: doc.seasonalHours,
-    notes: schedule?.notes ?? doc.notes,
+    notes: schedule?.notes || doc.notes || brand?.notes,
     photoUrl: doc.photoUrl || brand?.photoUrl,
     // Only meaningful for this document's own photo — a brand-fallback photo (no
     // photoUrl of its own) has no per-attraction crop to apply.

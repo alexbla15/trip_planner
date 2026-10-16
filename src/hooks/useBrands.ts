@@ -8,6 +8,7 @@ export interface BrandRecord {
   name: string;
   photoUrl?: string;
   websiteUrl?: string;
+  notes?: string;
   types: string[];
   foodStyles: string[];
   shopStyles: string[];
