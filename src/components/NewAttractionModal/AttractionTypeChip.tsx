@@ -33,16 +33,14 @@ interface AttractionTypeChipProps {
   iconName: string;
   selected: boolean;
   onToggle: (type: string) => void;
-  disabled?: boolean;
 }
 
-export function AttractionTypeChip({ type, iconName, selected, onToggle, disabled }: AttractionTypeChipProps) {
+export function AttractionTypeChip({ type, iconName, selected, onToggle }: AttractionTypeChipProps) {
   return (
     <button
       type="button"
       role="checkbox"
       aria-checked={selected}
-      disabled={disabled}
       className={`${styles.chip} ${selected ? styles.chipSelected : ""}`}
       onClick={() => onToggle(type)}
     >

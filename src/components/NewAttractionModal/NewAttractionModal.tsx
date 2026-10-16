@@ -794,21 +794,31 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
         <div className={styles.sectionBody}>
           <div className={styles.field}>
             <span id="types-label" className={styles.srOnly}>Type</span>
-            {brandId && (
-              <p className={styles.hint}>
-                Types are set by the linked brand — remove the brand link to change them.
-              </p>
+            {brandId ? (
+              <>
+                <p className={styles.hint}>
+                  Types are set by the linked brand — remove the brand link to change them.
+                </p>
+                <div className={styles.foodStyleChips} role="group" aria-labelledby="types-label">
+                  {selectedTypes.map((t) => (
+                    <span key={t} className={`${styles.foodStyleChip} ${styles.foodStyleChipActive} ${styles.readOnlyChip}`}>
+                      {renderTypeIcon(findType(t)?.icon ?? "Tag", 13)}
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <AttractionTypePicker
+                selectedTypes={selectedTypes}
+                onToggle={(t) => {
+                  toggleType(t);
+                  setTouched((prev) => ({ ...prev, types: true }));
+                }}
+                labelId="types-label"
+                errorId={touched.types && errors.types ? "error-types" : undefined}
+              />
             )}
-            <AttractionTypePicker
-              selectedTypes={selectedTypes}
-              onToggle={(t) => {
-                toggleType(t);
-                setTouched((prev) => ({ ...prev, types: true }));
-              }}
-              labelId="types-label"
-              errorId={touched.types && errors.types ? "error-types" : undefined}
-              disabled={!!brandId}
-            />
             {touched.types && errors.types && (
               <p id="error-types" className={styles.errorMsg} role="alert">
                 <AlertCircle size={12} aria-hidden="true" />

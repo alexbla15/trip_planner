@@ -710,6 +710,15 @@
   font-weight: 600;
 }
 
+/* Static display only (e.g. an already-linked brand's types) — no hover/interaction. */
+.readOnlyChip {
+  cursor: default;
+}
+.readOnlyChip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
 .foodStyleChip:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
