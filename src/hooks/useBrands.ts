@@ -7,6 +7,7 @@ export interface BrandRecord {
   _id: string;
   name: string;
   photoUrl?: string;
+  photoCrop?: { x: number; y: number; w: number; h: number };
   websiteUrl?: string;
   notes?: string;
   types: string[];

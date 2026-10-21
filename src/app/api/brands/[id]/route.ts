@@ -19,6 +19,7 @@ type Params = { params: Promise<{ id: string }> };
 interface BrandBody {
   name?: string;
   photoUrl?: string;
+  photoCrop?: { x: number; y: number; w: number; h: number } | null;
   websiteUrl?: string;
   notes?: string;
   types?: string[];
@@ -98,6 +99,16 @@ export const PUT = withApiHandler("PUT /api/brands/[id]", async (req: Request, {
   }
 
   if (!updated) throw notFound("Not found");
+
+  // Handled as its own update rather than folded into the plain object above — a plain
+  // `photoCrop: undefined` key is stripped before reaching MongoDB, so it could never
+  // actually clear an existing crop (e.g. via the field's "Reset" button); `null` from the
+  // client means "clear it" and needs an explicit $unset to take effect.
+  if (body.photoCrop === null) {
+    updated = await Brand.findByIdAndUpdate(id, { $unset: { photoCrop: 1 } }, { new: true }) ?? updated;
+  } else if (body.photoCrop) {
+    updated = await Brand.findByIdAndUpdate(id, { $set: { photoCrop: body.photoCrop } }, { new: true }) ?? updated;
+  }
 
   // Only touch attractions whose own field value still matches what the brand USED to say —
   // that's the "inherited a copy, never overrode it" case. Truly-empty fields need nothing

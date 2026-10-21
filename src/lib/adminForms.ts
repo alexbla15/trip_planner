@@ -83,6 +83,7 @@ export function shopStyleFormFromRecord(r: { name: string; icon: string }): Shop
 export interface BrandFormState {
   name: string;
   photoUrl: string;
+  photoCrop: { x: number; y: number; w: number; h: number } | undefined;
   websiteUrl: string;
   notes: string;
   types: string[];
@@ -91,6 +92,6 @@ export interface BrandFormState {
 }
 
 /** Converts a saved brand into editable form state. */
-export function brandFormFromRecord(r: { name: string; photoUrl?: string; websiteUrl?: string; notes?: string; types: string[]; foodStyles: string[]; shopStyles: string[] }): BrandFormState {
-  return { name: r.name, photoUrl: r.photoUrl ?? "", websiteUrl: r.websiteUrl ?? "", notes: r.notes ?? "", types: r.types, foodStyles: r.foodStyles, shopStyles: r.shopStyles };
+export function brandFormFromRecord(r: { name: string; photoUrl?: string; photoCrop?: { x: number; y: number; w: number; h: number }; websiteUrl?: string; notes?: string; types: string[]; foodStyles: string[]; shopStyles: string[] }): BrandFormState {
+  return { name: r.name, photoUrl: r.photoUrl ?? "", photoCrop: r.photoCrop, websiteUrl: r.websiteUrl ?? "", notes: r.notes ?? "", types: r.types, foodStyles: r.foodStyles, shopStyles: r.shopStyles };
 }

@@ -23,6 +23,7 @@ export const GET = withApiHandler("GET /api/brands", async () => {
 interface BrandBody {
   name?: string;
   photoUrl?: string;
+  photoCrop?: { x: number; y: number; w: number; h: number } | null;
   websiteUrl?: string;
   notes?: string;
   types?: string[];
@@ -61,6 +62,7 @@ export const POST = withApiHandler("POST /api/brands", async (req: Request) => {
     created = await Brand.create({
       name: body.name.trim(),
       photoUrl: body.photoUrl?.trim() || undefined,
+      photoCrop: body.photoCrop ?? undefined,
       websiteUrl: body.websiteUrl?.trim() || undefined,
       notes: body.notes?.trim() || undefined,
       types: typeIds,

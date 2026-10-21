@@ -8,11 +8,14 @@ import { CoverImageField } from "@/components/CoverImageField";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { AttractionDetailModal } from "@/components/AttractionDetailModal";
+import { NewAttractionModal, attractionToFormData } from "@/components/NewAttractionModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useBrands, invalidateBrandsCache, useAttractionTypes, useFoodStyles, useShopStyles } from "@/hooks";
-import { updateBrand, deleteBrand, getAttractionsByBrand } from "@/services";
+import { updateBrand, deleteBrand, getAttractionsByBrand, updateAttraction, deleteAttraction, ApiError } from "@/services";
+import { photoCropStyle, type PhotoCrop } from "@/lib";
 import type { Attraction } from "@/types/attraction";
+import type { AttractionFormData } from "@/components/NewAttractionModal";
 import styles from "./BrandModal.module.css";
 
 const HEADING_ID = "brand-modal-title";
@@ -54,8 +57,8 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
 
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [form, setForm] = useState<{ name: string; photoUrl: string; websiteUrl: string; notes: string; types: string[]; foodStyles: string[]; shopStyles: string[] }>({
-    name: "", photoUrl: "", websiteUrl: "", notes: "", types: [], foodStyles: [], shopStyles: [],
+  const [form, setForm] = useState<{ name: string; photoUrl: string; photoCrop: PhotoCrop | undefined; websiteUrl: string; notes: string; types: string[]; foodStyles: string[]; shopStyles: string[] }>({
+    name: "", photoUrl: "", photoCrop: undefined, websiteUrl: "", notes: "", types: [], foodStyles: [], shopStyles: [],
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -69,12 +72,13 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
   const [cityFilter, setCityFilter] = useState("");
   const [locationsPage, setLocationsPage] = useState(1);
   const [viewingAttraction, setViewingAttraction] = useState<Attraction | null>(null);
+  const [editingLocation, setEditingLocation] = useState<Attraction | null>(null);
 
   useEffect(() => {
     if (!isOpen) { setEditing(false); setConfirmingDelete(false); return; }
     if (brand) {
       setForm({
-        name: brand.name, photoUrl: brand.photoUrl ?? "", websiteUrl: brand.websiteUrl ?? "", notes: brand.notes ?? "",
+        name: brand.name, photoUrl: brand.photoUrl ?? "", photoCrop: brand.photoCrop, websiteUrl: brand.websiteUrl ?? "", notes: brand.notes ?? "",
         types: brand.types, foodStyles: brand.foodStyles, shopStyles: brand.shopStyles,
       });
     }
@@ -144,6 +148,7 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
       await updateBrand(brandId, token, {
         name: form.name.trim(),
         photoUrl: form.photoUrl.trim(),
+        photoCrop: form.photoCrop ?? null,
         websiteUrl: form.websiteUrl.trim(),
         notes: form.notes.trim(),
         types: form.types,
@@ -173,6 +178,41 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
       toast.error("Couldn't delete the brand. Please try again.");
       setDeleting(false);
     }
+  }
+
+  async function handleEditLocationSave(data: AttractionFormData) {
+    if (!token || !editingLocation) return;
+    let updated: Attraction;
+    try {
+      updated = (await updateAttraction(editingLocation._id, token, data)) as Attraction;
+    } catch {
+      toast.error("Couldn't update the attraction. Please try again.");
+      return;
+    }
+    setEditingLocation(null);
+    setLocations((prev) => prev?.map((a) => (a._id === updated._id ? updated : a)) ?? prev);
+    // Drop back into the read-only detail card for the location just edited, instead of
+    // leaving the user staring at the locations list after the edit modal closes.
+    setViewingAttraction(updated);
+  }
+
+  async function handleDeleteLocation(attraction: Attraction) {
+    if (!token) return;
+    if (!window.confirm(`Delete "${attraction.name}" permanently? This removes it everywhere, including any trips that reference it. This cannot be undone.`)) {
+      return;
+    }
+    try {
+      await deleteAttraction(attraction._id, token);
+    } catch (err) {
+      const message = err instanceof ApiError && typeof err.body === "object" && err.body && "error" in err.body
+        ? String((err.body as { error: unknown }).error)
+        : "Couldn't delete the attraction. Please try again.";
+      toast.error(message);
+      return;
+    }
+    setViewingAttraction(null);
+    setLocations((prev) => prev?.filter((a) => a._id !== attraction._id) ?? prev);
+    toast.success("Attraction deleted");
   }
 
   return (
@@ -230,7 +270,9 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
             id="brand-photo-url"
             label="Default photo URL"
             value={form.photoUrl}
-            onChange={(v) => setForm((p) => ({ ...p, photoUrl: v }))}
+            onChange={(v) => setForm((p) => ({ ...p, photoUrl: v, photoCrop: undefined }))}
+            crop={form.photoCrop}
+            onCropChange={(crop) => setForm((p) => ({ ...p, photoCrop: crop }))}
           />
           <div className={styles.field}>
             <label className={styles.label}>Default website URL</label>
@@ -328,7 +370,7 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
           <div className={styles.photoArea}>
             {brand.photoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={brand.photoUrl} alt="" className={styles.photoImg} />
+              <img src={brand.photoUrl} alt="" className={styles.photoImg} style={photoCropStyle(brand.photoCrop)} />
             ) : (
               <div className={styles.photoFallback}><Store size={28} aria-hidden="true" /></div>
             )}
@@ -494,6 +536,19 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
           attraction={viewingAttraction}
           onClose={() => setViewingAttraction(null)}
           onNavigateToAttraction={setViewingAttraction}
+          canEdit={!!user && viewingAttraction.ownerId === user._id}
+          onEdit={() => setEditingLocation(viewingAttraction)}
+          onDelete={() => handleDeleteLocation(viewingAttraction)}
+        />
+      )}
+      {editingLocation && (
+        <NewAttractionModal
+          isOpen={!!editingLocation}
+          initialData={attractionToFormData(editingLocation)}
+          editingAttractionId={editingLocation._id}
+          token={token}
+          onClose={() => setEditingLocation(null)}
+          onSave={handleEditLocationSave}
         />
       )}
     </ModalShell>

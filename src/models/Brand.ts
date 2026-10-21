@@ -10,6 +10,9 @@ import mongoose, { Schema, type Document, type Types } from "mongoose";
 export interface IBrand extends Document {
   name: string;
   photoUrl?: string;
+  /** A real crop of `photoUrl` — same contract as `IAttraction.photoCrop` in
+   *  `src/models/Attraction.ts` (fractions 0-1 of the photo's own natural size). */
+  photoCrop?: { x: number; y: number; w: number; h: number };
   websiteUrl?: string;
   types: Types.ObjectId[];
   /** Default food styles (e.g. "Fast Food") — same fallback contract as `types`, only
@@ -27,6 +30,10 @@ const BrandSchema = new Schema<IBrand>(
   {
     name: { type: String, required: true, unique: true, trim: true, collation: { locale: "en", strength: 2 } },
     photoUrl: { type: String },
+    photoCrop: {
+      type: new Schema({ x: Number, y: Number, w: Number, h: Number }, { _id: false }),
+      default: undefined,
+    },
     websiteUrl: { type: String },
     notes: { type: String },
     types: [{ type: Schema.Types.ObjectId, ref: "AttractionType" }],
@@ -48,6 +55,7 @@ export function formatBrand(doc: IBrand) {
     _id: doc._id.toString(),
     name: doc.name,
     photoUrl: doc.photoUrl,
+    photoCrop: doc.photoUrl ? doc.photoCrop : undefined,
     websiteUrl: doc.websiteUrl,
     notes: doc.notes,
     types: namesOf(doc.types as unknown[]),

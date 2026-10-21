@@ -47,7 +47,7 @@ import {
   deleteBrand,
   ApiError,
 } from "@/services";
-import { getIconComponent, renderTypeIcon, IconPicker, SectionCard, BrandModal } from "@/components";
+import { getIconComponent, renderTypeIcon, IconPicker, SectionCard, BrandModal, CoverImageField } from "@/components";
 import {
   type TypeFormState,
   type CategoryFormState,
@@ -343,7 +343,7 @@ function ShopStyleForm({
 // this" research), and can be filled in later without touching any attraction that already
 // links to it.
 
-const EMPTY_BRAND_FORM: BrandFormState = { name: "", photoUrl: "", websiteUrl: "", notes: "", types: [], foodStyles: [], shopStyles: [] };
+const EMPTY_BRAND_FORM: BrandFormState = { name: "", photoUrl: "", photoCrop: undefined, websiteUrl: "", notes: "", types: [], foodStyles: [], shopStyles: [] };
 
 function BrandForm({
   initial, token, brandId, onDone, onCancel,
@@ -379,6 +379,7 @@ function BrandForm({
     const payload = {
       name: form.name.trim(),
       photoUrl: form.photoUrl.trim(),
+      photoCrop: form.photoCrop ?? null,
       websiteUrl: form.websiteUrl.trim(),
       notes: form.notes.trim(),
       types: form.types,
@@ -402,15 +403,14 @@ function BrandForm({
         />
       </div>
 
-      <div className={styles.formField}>
-        <label className={styles.formLabel}>Default photo URL</label>
-        <input
-          className={styles.input}
-          value={form.photoUrl}
-          onChange={(e) => set("photoUrl", e.target.value)}
-          placeholder="https://…"
-        />
-      </div>
+      <CoverImageField
+        id="admin-brand-photo-url"
+        label="Default photo URL"
+        value={form.photoUrl}
+        onChange={(v) => setForm((prev) => ({ ...prev, photoUrl: v, photoCrop: undefined }))}
+        crop={form.photoCrop}
+        onCropChange={(crop) => setForm((prev) => ({ ...prev, photoCrop: crop }))}
+      />
 
       <div className={styles.formField}>
         <label className={styles.formLabel}>Default website URL</label>
