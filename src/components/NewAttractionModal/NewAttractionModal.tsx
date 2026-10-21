@@ -834,7 +834,22 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
                 <UtensilsCrossed size={14} aria-hidden="true" />
                 Food styles
               </span>
-              {foodStyleOptions.length > 0 ? (
+              {brandId ? (
+                <>
+                  <p className={styles.hint}>
+                    Food styles are set by the linked brand — remove the brand link to change them.
+                  </p>
+                  {selectedFoodStyles.length > 0 && (
+                    <div className={styles.foodStyleChips} role="group" aria-label="Food styles">
+                      {selectedFoodStyles.map((fs) => (
+                        <span key={fs} className={`${styles.foodStyleChip} ${styles.foodStyleChipActive} ${styles.readOnlyChip}`}>
+                          {fs}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : foodStyleOptions.length > 0 ? (
                 <div className={styles.foodStyleChips} role="group" aria-label="Food styles">
                   {foodStyleOptions.map((fs) => {
                     const active = selectedFoodStyles.includes(fs.name);
@@ -870,7 +885,23 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
                 <ShoppingBag size={14} aria-hidden="true" />
                 Shop styles
               </span>
-              {shopStyleOptions.length > 0 ? (
+              {brandId ? (
+                <>
+                  <p className={styles.hint}>
+                    Shop styles are set by the linked brand — remove the brand link to change them.
+                  </p>
+                  {selectedShopStyles.length > 0 && (
+                    <div className={styles.foodStyleChips} role="group" aria-label="Shop styles">
+                      {selectedShopStyles.map((ss) => (
+                        <span key={ss} className={`${styles.foodStyleChip} ${styles.foodStyleChipActive} ${styles.readOnlyChip}`}>
+                          {renderTypeIcon(shopStyleOptions.find((o) => o.name === ss)?.icon ?? "Tag", 13)}
+                          {ss}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : shopStyleOptions.length > 0 ? (
                 <div className={styles.foodStyleChips} role="group" aria-label="Shop styles">
                   {shopStyleOptions.map((ss) => {
                     const active = selectedShopStyles.includes(ss.name);

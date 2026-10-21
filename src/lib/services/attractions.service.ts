@@ -421,14 +421,16 @@ export async function updateAttraction(
     const typeDocs = await AttractionType.find({ name: { $in: names } }).select("_id");
     attraction.types = typeDocs.map((d) => d._id) as unknown as IAttraction["types"];
   }
-  if (body.foodStyles !== undefined) {
+  // Same brand-lock rule as types above — food/shop styles are the brand's own default
+  // once linked, not independently editable on top of that.
+  if (body.foodStyles !== undefined && !wasAlreadyBrandLinked) {
     const names = body.foodStyles as string[];
     const foodStyleDocs = names.length
       ? await FoodStyle.find({ name: { $in: names } }).select("_id")
       : [];
     attraction.foodStyles = foodStyleDocs.map((d) => d._id) as unknown as IAttraction["foodStyles"];
   }
-  if (body.shopStyles !== undefined) {
+  if (body.shopStyles !== undefined && !wasAlreadyBrandLinked) {
     const names = body.shopStyles as string[];
     const shopStyleDocs = names.length
       ? await ShopStyle.find({ name: { $in: names } }).select("_id")
