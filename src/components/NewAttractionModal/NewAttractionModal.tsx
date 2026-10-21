@@ -784,31 +784,25 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
         </div>
       </div>
 
-      {/* Type */}
-      <details className={styles.sectionDetails}>
-        <summary className={styles.sectionSummary}>
-          <Layers size={14} aria-hidden="true" />
-          Type
-          <span className={styles.required} aria-hidden="true">*</span>
-        </summary>
-        <div className={styles.sectionBody}>
-          <div className={styles.field}>
-            <span id="types-label" className={styles.srOnly}>Type</span>
-            {brandId ? (
-              <>
-                <p className={styles.hint}>
-                  Types are set by the linked brand — remove the brand link to change them.
-                </p>
-                <div className={styles.foodStyleChips} role="group" aria-labelledby="types-label">
-                  {selectedTypes.map((t) => (
-                    <span key={t} className={`${styles.foodStyleChip} ${styles.foodStyleChipActive} ${styles.readOnlyChip}`}>
-                      {renderTypeIcon(findType(t)?.icon ?? "Tag", 13)}
-                      {t}
-                    </span>
-                  ))}
-                </div>
-              </>
-            ) : (
+      {/* Type — fully hidden once brand-linked: type/food/shop styles are the brand's own
+          defaults and aren't independently viewable or editable here at all, not even as a
+          read-only display (remove the brand link to see/change them). */}
+      {brandId ? (
+        <div className={styles.field}>
+          <p className={styles.hint}>
+            Type, food styles, and shop styles are set by the linked brand — remove the brand link to view or change them.
+          </p>
+        </div>
+      ) : (
+        <details className={styles.sectionDetails}>
+          <summary className={styles.sectionSummary}>
+            <Layers size={14} aria-hidden="true" />
+            Type
+            <span className={styles.required} aria-hidden="true">*</span>
+          </summary>
+          <div className={styles.sectionBody}>
+            <div className={styles.field}>
+              <span id="types-label" className={styles.srOnly}>Type</span>
               <AttractionTypePicker
                 selectedTypes={selectedTypes}
                 onToggle={(t) => {
@@ -818,120 +812,89 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
                 labelId="types-label"
                 errorId={touched.types && errors.types ? "error-types" : undefined}
               />
+              {touched.types && errors.types && (
+                <p id="error-types" className={styles.errorMsg} role="alert">
+                  <AlertCircle size={12} aria-hidden="true" />
+                  {errors.types}
+                </p>
+              )}
+            </div>
+
+            {/* Food styles — only for dining-type attractions */}
+            {isDining && (
+              <div className={styles.field}>
+                <span className={styles.labelWithIcon}>
+                  <UtensilsCrossed size={14} aria-hidden="true" />
+                  Food styles
+                </span>
+                {foodStyleOptions.length > 0 ? (
+                  <div className={styles.foodStyleChips} role="group" aria-label="Food styles">
+                    {foodStyleOptions.map((fs) => {
+                      const active = selectedFoodStyles.includes(fs.name);
+                      return (
+                        <button
+                          key={fs._id}
+                          type="button"
+                          className={`${styles.foodStyleChip} ${active ? styles.foodStyleChipActive : ""}`}
+                          aria-pressed={active}
+                          onClick={() =>
+                            setSelectedFoodStyles((prev) =>
+                              active ? prev.filter((n) => n !== fs.name) : [...prev, fs.name]
+                            )
+                          }
+                        >
+                          {fs.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className={styles.hint}>
+                    No food styles defined yet — add some from the Food Styles section in /admin.
+                  </p>
+                )}
+              </div>
             )}
-            {touched.types && errors.types && (
-              <p id="error-types" className={styles.errorMsg} role="alert">
-                <AlertCircle size={12} aria-hidden="true" />
-                {errors.types}
-              </p>
+
+            {/* Shop styles — only for shopping-type attractions */}
+            {isShopping && (
+              <div className={styles.field}>
+                <span className={styles.labelWithIcon}>
+                  <ShoppingBag size={14} aria-hidden="true" />
+                  Shop styles
+                </span>
+                {shopStyleOptions.length > 0 ? (
+                  <div className={styles.foodStyleChips} role="group" aria-label="Shop styles">
+                    {shopStyleOptions.map((ss) => {
+                      const active = selectedShopStyles.includes(ss.name);
+                      return (
+                        <button
+                          key={ss._id}
+                          type="button"
+                          className={`${styles.foodStyleChip} ${active ? styles.foodStyleChipActive : ""}`}
+                          aria-pressed={active}
+                          onClick={() =>
+                            setSelectedShopStyles((prev) =>
+                              active ? prev.filter((n) => n !== ss.name) : [...prev, ss.name]
+                            )
+                          }
+                        >
+                          {renderTypeIcon(ss.icon, 13)}
+                          {ss.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className={styles.hint}>
+                    No shop styles defined yet — add some from the Shop Styles section in /admin.
+                  </p>
+                )}
+              </div>
             )}
           </div>
-
-          {/* Food styles — only for dining-type attractions */}
-          {isDining && (
-            <div className={styles.field}>
-              <span className={styles.labelWithIcon}>
-                <UtensilsCrossed size={14} aria-hidden="true" />
-                Food styles
-              </span>
-              {brandId ? (
-                <>
-                  <p className={styles.hint}>
-                    Food styles are set by the linked brand — remove the brand link to change them.
-                  </p>
-                  {selectedFoodStyles.length > 0 && (
-                    <div className={styles.foodStyleChips} role="group" aria-label="Food styles">
-                      {selectedFoodStyles.map((fs) => (
-                        <span key={fs} className={`${styles.foodStyleChip} ${styles.foodStyleChipActive} ${styles.readOnlyChip}`}>
-                          {fs}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </>
-              ) : foodStyleOptions.length > 0 ? (
-                <div className={styles.foodStyleChips} role="group" aria-label="Food styles">
-                  {foodStyleOptions.map((fs) => {
-                    const active = selectedFoodStyles.includes(fs.name);
-                    return (
-                      <button
-                        key={fs._id}
-                        type="button"
-                        className={`${styles.foodStyleChip} ${active ? styles.foodStyleChipActive : ""}`}
-                        aria-pressed={active}
-                        onClick={() =>
-                          setSelectedFoodStyles((prev) =>
-                            active ? prev.filter((n) => n !== fs.name) : [...prev, fs.name]
-                          )
-                        }
-                      >
-                        {fs.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className={styles.hint}>
-                  No food styles defined yet — add some from the Food Styles section in /admin.
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Shop styles — only for shopping-type attractions */}
-          {isShopping && (
-            <div className={styles.field}>
-              <span className={styles.labelWithIcon}>
-                <ShoppingBag size={14} aria-hidden="true" />
-                Shop styles
-              </span>
-              {brandId ? (
-                <>
-                  <p className={styles.hint}>
-                    Shop styles are set by the linked brand — remove the brand link to change them.
-                  </p>
-                  {selectedShopStyles.length > 0 && (
-                    <div className={styles.foodStyleChips} role="group" aria-label="Shop styles">
-                      {selectedShopStyles.map((ss) => (
-                        <span key={ss} className={`${styles.foodStyleChip} ${styles.foodStyleChipActive} ${styles.readOnlyChip}`}>
-                          {renderTypeIcon(shopStyleOptions.find((o) => o.name === ss)?.icon ?? "Tag", 13)}
-                          {ss}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </>
-              ) : shopStyleOptions.length > 0 ? (
-                <div className={styles.foodStyleChips} role="group" aria-label="Shop styles">
-                  {shopStyleOptions.map((ss) => {
-                    const active = selectedShopStyles.includes(ss.name);
-                    return (
-                      <button
-                        key={ss._id}
-                        type="button"
-                        className={`${styles.foodStyleChip} ${active ? styles.foodStyleChipActive : ""}`}
-                        aria-pressed={active}
-                        onClick={() =>
-                          setSelectedShopStyles((prev) =>
-                            active ? prev.filter((n) => n !== ss.name) : [...prev, ss.name]
-                          )
-                        }
-                      >
-                        {renderTypeIcon(ss.icon, 13)}
-                        {ss.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className={styles.hint}>
-                  No shop styles defined yet — add some from the Shop Styles section in /admin.
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      </details>
+        </details>
+      )}
 
       {/* Opening Hours — omitted for a residence: always treated as open 24/7, no
           per-day pickers needed. Also omitted once any Seasonal Hours entry exists: each
