@@ -37,7 +37,7 @@ import { Spinner } from "@/components/Spinner";
 import { BrandModal } from "@/components/BrandModal";
 import { useModalZIndex } from "@/components/Modal";
 import { getAttraction, getChildAttractions, getOtherLocationsInCity } from "@/services";
-import { useAttractionTypes, useShopStyles } from "@/hooks";
+import { useAttractionTypes, useShopStyles, useBrands } from "@/hooks";
 import { photoCropStyle } from "@/lib";
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
 
@@ -87,6 +87,7 @@ interface AttractionDetailModalProps {
 export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit, onEdit, onAddToTrip, onRemoveFromTrip, onDelete, onToggleVisited, isVisited, onNavigateToAttraction, onToggleVerified, verifiedToggling }: AttractionDetailModalProps) {
   const { findType } = useAttractionTypes();
   const { styles: shopStyleRecords } = useShopStyles();
+  const { brands, loading: brandsLoading } = useBrands();
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   // Dynamic stacking — a static CSS z-index can't satisfy both "BrandModal opened from
@@ -209,10 +210,20 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   // day (e.g. "open daily 7:00–17:00") shouldn't repeat that value in a 7-row table either.
   const activeHoursUniformLabel = effectiveOpeningHours ? getUniformHoursLabel(effectiveOpeningHours) : null;
   const hasMultiplePriceTiers = (attraction.prices?.length ?? 0) > 1;
+  // Re-resolved against the live brand cache rather than trusting attraction.photoUrl/
+  // websiteUrl/notes as fetched — those were merged with the brand's own values server-side
+  // at fetch time, so they go stale the moment someone edits or deletes the brand without
+  // this modal's caller refetching the attraction. While the brand cache is still loading,
+  // fall back to the stale snapshot rather than briefly showing "no brand" for an attraction
+  // that really does have one.
+  const linkedBrand = attraction.brandId ? brands.find((b) => b._id === attraction.brandId) : undefined;
+  const effectivePhotoUrl = attraction.ownPhotoUrl || linkedBrand?.photoUrl || (brandsLoading ? attraction.photoUrl : undefined);
+  const effectiveWebsiteUrl = attraction.ownWebsiteUrl || linkedBrand?.websiteUrl || (brandsLoading ? attraction.websiteUrl : undefined);
+  const effectiveNotes = attraction.ownNotes || linkedBrand?.notes || (brandsLoading ? attraction.notes : undefined);
   // A nested attraction (e.g. a specific ride inside a theme park) often has no photo of
   // its own — fall back to the parent's photo rather than showing no photo at all.
-  const displayPhotoUrl = attraction.photoUrl?.startsWith("http")
-    ? attraction.photoUrl
+  const displayPhotoUrl = effectivePhotoUrl?.startsWith("http")
+    ? effectivePhotoUrl
     : attraction.parentAttractionPhotoUrl?.startsWith("http")
       ? attraction.parentAttractionPhotoUrl
       : undefined;
@@ -304,7 +315,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
             <h2 className={styles.title}>{attraction.name}</h2>
           </div>
           <div className={styles.headerActions}>
-            <WebsiteLinkButton url={attraction.websiteUrl} variant="compact" className={styles.websiteBtn} />
+            <WebsiteLinkButton url={effectiveWebsiteUrl} variant="compact" className={styles.websiteBtn} />
             {attraction.brandId && attraction.brandName && (
               <button
                 type="button"
@@ -883,24 +894,24 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
           )}
 
           {/* Notes */}
-          {attraction.notes && (
+          {effectiveNotes && (
             <div className={styles.section}>
               <h3 className={styles.sectionTitle}>
                 <FileText size={14} aria-hidden="true" />
                 Notes
               </h3>
-              <p className={styles.notes}>{attraction.notes}</p>
+              <p className={styles.notes}>{effectiveNotes}</p>
             </div>
           )}
 
           {/* Photo URL (no preview — just show it's set) */}
-          {attraction.photoUrl && !attraction.photoUrl.startsWith("http") && (
+          {effectivePhotoUrl && !effectivePhotoUrl.startsWith("http") && (
             <div className={styles.section}>
               <h3 className={styles.sectionTitle}>
                 <ImageIcon size={14} aria-hidden="true" />
                 Photo URL
               </h3>
-              <p className={`${styles.notes} ${styles.mono}`}>{attraction.photoUrl}</p>
+              <p className={`${styles.notes} ${styles.mono}`}>{effectivePhotoUrl}</p>
             </div>
           )}
         </div>

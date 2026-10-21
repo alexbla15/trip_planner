@@ -9,7 +9,7 @@ import { Spinner } from "@/components/Spinner";
 import { BrandModal } from "@/components/BrandModal";
 import { getAttraction, getChildAttractions } from "@/services";
 import { photoCropStyle } from "@/lib";
-import { useAttractionTypes } from "@/hooks";
+import { useAttractionTypes, useBrands } from "@/hooks";
 import { formatDisplayDate, getNightsCount, isAttractionPermanentlyClosed } from "@/lib";
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
 import type { Attraction } from "@/types/attraction";
@@ -18,10 +18,18 @@ import type { AttractionGridCardProps } from "./AttractionGridCard.types";
 
 export function AttractionGridCard({ attraction, onClick, currentUserId, token, onAddToTrip, onEdit, onDelete }: AttractionGridCardProps) {
   const { findType } = useAttractionTypes();
+  const { brands, loading: brandsLoading } = useBrands();
+  // Re-resolved against the live brand cache rather than trusting attraction.photoUrl as
+  // fetched — that value was merged with the brand's photo server-side at fetch time, so it
+  // goes stale the moment someone edits or deletes the brand without this grid refetching.
+  // While the brand cache is still loading, fall back to the stale snapshot rather than
+  // briefly showing "no brand" for an attraction that really does have one.
+  const linkedBrand = attraction.brandId ? brands.find((b) => b._id === attraction.brandId) : undefined;
+  const effectivePhotoUrl = attraction.ownPhotoUrl || linkedBrand?.photoUrl || (brandsLoading ? attraction.photoUrl : undefined);
   // A nested attraction (e.g. a specific ride inside a theme park) often has no photo of
   // its own — fall back to the parent's photo rather than showing the generic icon tile.
-  const displayPhotoUrl = attraction.photoUrl?.startsWith("http")
-    ? attraction.photoUrl
+  const displayPhotoUrl = effectivePhotoUrl?.startsWith("http")
+    ? effectivePhotoUrl
     : attraction.parentAttractionPhotoUrl?.startsWith("http")
       ? attraction.parentAttractionPhotoUrl
       : undefined;
