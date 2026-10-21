@@ -1077,6 +1077,7 @@ export function ExploreClient() {
     setCityAttractions((prev) => prev.filter((a) => a._id !== attraction._id));
     setCountryAttractions((prev) => prev.filter((a) => a._id !== attraction._id));
     setWorldAttractions((prev) => prev.filter((a) => a._id !== attraction._id));
+    removeFromCityCount(attraction);
     if (attraction.parentAttractionId) {
       const parentId = attraction.parentAttractionId;
       getAttraction(parentId, token)
@@ -1115,6 +1116,23 @@ export function ExploreClient() {
         buckets[oldKey] = Math.max(0, (buckets[oldKey] ?? 0) - 1);
         buckets[newKey] = (buckets[newKey] ?? 0) + 1;
         return { ...c, buckets };
+      })
+    );
+  }
+
+  // Same aggregate `cities` state shiftCityBucket above keeps in sync for a visited toggle —
+  // a deletion needs the same treatment (total `count` down by one, plus its own bucket),
+  // or the sidebar's city/country counts stay stale (one too high) until the next full
+  // page load, same bug class as the visited-toggle fix above was written to avoid.
+  function removeFromCityCount(attraction: Attraction) {
+    if (!attraction.city) return;
+    const key = bucketKeyFor(attraction, {});
+    setCities((prev) =>
+      prev.map((c) => {
+        if (c.name !== attraction.city || c.country !== attraction.country) return c;
+        const buckets = { ...c.buckets };
+        buckets[key] = Math.max(0, (buckets[key] ?? 0) - 1);
+        return { ...c, count: Math.max(0, c.count - 1), buckets };
       })
     );
   }
