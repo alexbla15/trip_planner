@@ -1052,6 +1052,24 @@ export function ExploreClient() {
       }
     }
 
+    // The reverse direction of the parent-link patch above: a child's own card carries its
+    // parent's name/photo baked in at fetch time (parentAttractionName/
+    // parentAttractionPhotoUrl, see formatAttraction) so it can render "Part of {name}"
+    // without a lookup. Renaming or re-photographing the parent here leaves any of its
+    // children already loaded in these lists showing that stale baked-in value — patch them
+    // in place rather than a full refetch, since the new name/photo are already in `updated`.
+    if (updated.name !== editingAttraction.name || updated.photoUrl !== editingAttraction.photoUrl) {
+      const patchChildren = (list: Attraction[]) =>
+        list.map((a) =>
+          a.parentAttractionId === updated._id
+            ? { ...a, parentAttractionName: updated.name, parentAttractionPhotoUrl: updated.photoUrl }
+            : a
+        );
+      setCityAttractions(patchChildren);
+      setCountryAttractions(patchChildren);
+      setWorldAttractions(patchChildren);
+    }
+
     toast.success("Attraction updated");
   }
 
