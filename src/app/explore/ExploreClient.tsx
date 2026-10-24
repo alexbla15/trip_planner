@@ -1110,6 +1110,19 @@ export function ExploreClient() {
     toast.success("Attraction deleted");
   }
 
+  // Every attraction that linked to this now-deleted brand carries its brandId/brandName
+  // baked in from fetch time — the server already unlinked them (see DELETE /api/brands/
+  // [id]), but these local lists won't know until patched, leaving the Store badge/button
+  // stuck pointing at a brand that no longer exists until a full refetch.
+  function handleBrandDeleted(brandId: string) {
+    const clearBrand = (list: Attraction[]) =>
+      list.map((a) => (a.brandId === brandId ? { ...a, brandId: null, brandName: undefined } : a));
+    setCityAttractions(clearBrand);
+    setCountryAttractions(clearBrand);
+    setWorldAttractions(clearBrand);
+    setSelectedAttraction((prev) => (prev && prev.brandId === brandId ? { ...prev, brandId: null, brandName: undefined } : prev));
+  }
+
   function isUsedInTrip(a: Attraction): boolean {
     return !!a.usedInTripNames && a.usedInTripNames.length > 0;
   }
@@ -2107,6 +2120,7 @@ export function ExploreClient() {
                       } : undefined}
                       onEdit={setEditingAttraction}
                       onDelete={handleDeleteAttraction}
+                      onBrandDeleted={handleBrandDeleted}
                     />
                   ))}
                 </div>
@@ -2146,6 +2160,7 @@ export function ExploreClient() {
         canEdit={!!user && selectedAttraction?.ownerId === user._id}
         onEdit={() => setEditingAttraction(selectedAttraction)}
         onDelete={selectedAttraction ? () => handleDeleteAttraction(selectedAttraction) : undefined}
+        onBrandDeleted={handleBrandDeleted}
         onAddToTrip={user ? () => {
           setAttractionForTripPicker(selectedAttraction);
           setTripPickerOpen(true);

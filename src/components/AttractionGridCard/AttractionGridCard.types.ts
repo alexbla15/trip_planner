@@ -15,4 +15,10 @@ export interface AttractionGridCardProps {
   onEdit?: (attraction: Attraction) => void;
   /** Shown only when `currentUserId` matches `attraction.ownerId`. */
   onDelete?: (attraction: Attraction) => void;
+  /** Called when the brand linked to this attraction (shown via the Store badge) is
+   *  deleted from the BrandModal opened here — callers holding their own copy of this
+   *  attraction (e.g. Explore's city/country/world lists) should clear brandId/brandName
+   *  on every attraction that shared it, or the badge stays stuck showing a brand that no
+   *  longer exists until a full refetch. */
+  onBrandDeleted?: (brandId: string) => void;
 }

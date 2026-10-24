@@ -82,9 +82,13 @@ interface AttractionDetailModalProps {
    *  is always shown regardless. */
   onToggleVerified?: () => void;
   verifiedToggling?: boolean;
+  /** Called when the brand linked to this attraction (shown via the Store button) is
+   *  deleted from the BrandModal opened here — see AttractionGridCard's identical prop
+   *  for why this needs to bubble up rather than being handled locally. */
+  onBrandDeleted?: (brandId: string) => void;
 }
 
-export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit, onEdit, onAddToTrip, onRemoveFromTrip, onDelete, onToggleVisited, isVisited, onNavigateToAttraction, onToggleVerified, verifiedToggling }: AttractionDetailModalProps) {
+export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit, onEdit, onAddToTrip, onRemoveFromTrip, onDelete, onToggleVisited, isVisited, onNavigateToAttraction, onToggleVerified, verifiedToggling, onBrandDeleted }: AttractionDetailModalProps) {
   const { findType } = useAttractionTypes();
   const { styles: shopStyleRecords } = useShopStyles();
   const { brands, loading: brandsLoading } = useBrands();
@@ -983,7 +987,12 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
     <>
       {createPortal(modal, document.body)}
       {attraction.brandId && (
-        <BrandModal isOpen={brandModalOpen} onClose={() => setBrandModalOpen(false)} brandId={attraction.brandId} />
+        <BrandModal
+          isOpen={brandModalOpen}
+          onClose={() => setBrandModalOpen(false)}
+          brandId={attraction.brandId}
+          onDeleted={() => onBrandDeleted?.(attraction.brandId!)}
+        />
       )}
     </>
   );

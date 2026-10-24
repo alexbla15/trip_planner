@@ -16,7 +16,7 @@ import type { Attraction } from "@/types/attraction";
 import styles from "./AttractionGridCard.module.css";
 import type { AttractionGridCardProps } from "./AttractionGridCard.types";
 
-export function AttractionGridCard({ attraction, onClick, currentUserId, token, onAddToTrip, onEdit, onDelete }: AttractionGridCardProps) {
+export function AttractionGridCard({ attraction, onClick, currentUserId, token, onAddToTrip, onEdit, onDelete, onBrandDeleted }: AttractionGridCardProps) {
   const { findType } = useAttractionTypes();
   const { brands, loading: brandsLoading } = useBrands();
   // Re-resolved against the live brand cache rather than trusting attraction.photoUrl as
@@ -342,7 +342,12 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
         </div>
       )}
       {attraction.brandId && (
-        <BrandModal isOpen={brandModalOpen} onClose={() => setBrandModalOpen(false)} brandId={attraction.brandId} />
+        <BrandModal
+          isOpen={brandModalOpen}
+          onClose={() => setBrandModalOpen(false)}
+          brandId={attraction.brandId}
+          onDeleted={() => onBrandDeleted?.(attraction.brandId!)}
+        />
       )}
     </div>
   );
