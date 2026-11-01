@@ -262,7 +262,10 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     // A child inherits country/city/coordinates from its parent — only required directly
     // when there's no parent to inherit them from (mirrors the backend rule).
     if (!country && !parentAttractionId) errs.country = "Country is required";
-    if (selectedTypes.length === 0) errs.types = "Select at least one type";
+    // Brand-linked attractions aren't required to carry their own types — they fall back
+    // to the brand's (see formatAttraction), and the picker is hidden entirely in that
+    // case, so there'd be no way to clear this error anyway.
+    if (!brandId && selectedTypes.length === 0) errs.types = "Select at least one type";
     if (!isValidUrl(websiteUrl)) errs.websiteUrl = "Enter a valid URL (e.g. https://example.com)";
     return errs;
   }
@@ -277,30 +280,19 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setParentAttractionName(null);
   }
 
-  // Picking a brand applies its defaults (photo/website/categories, plus food/shop styles
-  // when relevant) directly — overwriting whatever was there, since picking a brand is a
-  // deliberate "use this chain's defaults" action, not a passive hint. Still just a
-  // starting point: every field stays freely editable afterwards, and the attraction's own
-  // value (once changed from the brand's) always wins server-side too (see
-  // `formatAttraction`'s brand fallback) — this only sets the initial values.
+  // Picking a brand links it — nothing else here is copied in. Types/food styles/shop
+  // styles (like photo/website/notes before them) are left as whatever they already were;
+  // a brand-linked attraction with none of its own just shows the brand's live values
+  // (formatAttraction's own-value-wins-else-brand fallback), no DB write needed. Copying
+  // used to pre-fill these, which meant "the brand's defaults changed" and "this
+  // attraction's own types diverged from the brand" were indistinguishable from the stored
+  // data alone — and since types/food/shop styles aren't independently editable once
+  // brand-linked anyway (see the read-only note replacing that whole section below), there
+  // would never be a legitimate reason for an attraction's own copy to exist at all.
   function handleBrandNameChange(value: string) {
     setBrandNameInput(value);
     const match = brandOptions.find((b) => b.name.toLowerCase() === value.trim().toLowerCase());
-    if (!match) {
-      setBrandId(null);
-      return;
-    }
-    setBrandId(match._id);
-    // Photo/website are deliberately NOT copied in — an attraction linked to a brand with
-    // no photo/website of its own just shows the brand's live (formatAttraction's
-    // doc.photoUrl || brand?.photoUrl fallback), no DB write needed; setting one here
-    // later is a real override, not an unrelated edit that happens to match the brand's
-    // current value. Copying used to pre-fill these, which meant "update the brand's
-    // default" and "an attraction deliberately overrode it" were indistinguishable from
-    // the stored data alone.
-    if (match.types.length > 0) setSelectedTypes(match.types);
-    if (match.foodStyles.length > 0) setSelectedFoodStyles(match.foodStyles);
-    if (match.shopStyles.length > 0) setSelectedShopStyles(match.shopStyles);
+    setBrandId(match?._id ?? null);
   }
 
   // Unlinks the brand without touching whatever photo/types/website are currently in the
