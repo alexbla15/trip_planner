@@ -24,11 +24,6 @@ export function LocationViewMap({ lat, lng }: LocationViewMapProps) {
       center={[lat, lng]}
       zoom={14}
       style={{ height: "100%", width: "100%" }}
-      zoomControl={false}
-      dragging={false}
-      scrollWheelZoom={false}
-      doubleClickZoom={false}
-      touchZoom={false}
       attributionControl={false}
     >
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />

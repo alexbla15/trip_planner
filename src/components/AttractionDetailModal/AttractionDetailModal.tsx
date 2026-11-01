@@ -119,10 +119,14 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   const [activePriceTab, setActivePriceTab] = useState(0);
   const [activeHoursTab, setActiveHoursTab] = useState(0);
 
-  // "Nearby" section — never computed until the user explicitly clicks the button (see
-  // getNearbyAttractions: an extra query no caller should pay for by default).
+  // "Nearby" — never computed until the user explicitly clicks the button (see
+  // getNearbyAttractions: an extra query no caller should pay for by default). Once loaded,
+  // `showNearbyMap` is what actually swaps the shared map slot — toggling it back and forth
+  // (the "Back to map" / "Nearby (N)" button) re-displays the cached results without
+  // re-fetching.
   const [nearbyState, setNearbyState] = useState<"idle" | "loading" | "loaded" | "error">("idle");
   const [nearbyResults, setNearbyResults] = useState<Attraction[]>([]);
+  const [showNearbyMap, setShowNearbyMap] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -131,6 +135,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   useEffect(() => {
     setNearbyState("idle");
     setNearbyResults([]);
+    setShowNearbyMap(false);
   }, [attraction?._id]);
 
   async function handleFindNearby() {
@@ -138,8 +143,10 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
     setNearbyState("loading");
     try {
       const data = await getNearbyAttractions(attraction._id, NEARBY_RADIUS_KM);
-      setNearbyResults(Array.isArray(data) ? (data as Attraction[]) : []);
+      const results = Array.isArray(data) ? (data as Attraction[]) : [];
+      setNearbyResults(results);
       setNearbyState("loaded");
+      setShowNearbyMap(results.length > 0);
     } catch {
       setNearbyState("error");
     }
@@ -637,60 +644,68 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
             </div>
           )}
 
-          {/* Location map — shown whenever coordinates exist */}
+          {/* Location/Nearby map — one shared slot: the "Nearby" control sits above the
+              map and, once results are loaded, swaps the map itself from this attraction's
+              own location to the nearby-pins view (toggle back and forth without
+              re-fetching). Shown whenever coordinates exist to search/display from. */}
           {attraction.coordinates && (
             <div className={styles.locationMapSection}>
-              <div className={styles.locationMapContainer}>
-                <LocationViewMap lat={attraction.coordinates.lat} lng={attraction.coordinates.lng} />
+              <div className={styles.locationMapHeader}>
+                <h3 className={styles.sectionTitle}>
+                  <MapPin size={14} aria-hidden="true" />
+                  Location
+                </h3>
+                {nearbyState === "idle" && (
+                  <button type="button" className={styles.nearbyFindBtn} onClick={handleFindNearby}>
+                    <Navigation size={13} aria-hidden="true" />
+                    Find nearby ({NEARBY_RADIUS_KM}km)
+                  </button>
+                )}
+                {nearbyState === "loading" && (
+                  <span className={styles.nearbyLoadingInline}>
+                    <Spinner variant="icon" iconSize={13} /> Searching…
+                  </span>
+                )}
+                {nearbyState === "error" && (
+                  <button type="button" className={styles.nearbyRetryBtn} onClick={handleFindNearby}>
+                    Couldn&apos;t load — try again
+                  </button>
+                )}
+                {nearbyState === "loaded" && nearbyResults.length > 0 && (
+                  <button type="button" className={styles.nearbyFindBtn} onClick={() => setShowNearbyMap((v) => !v)}>
+                    <Navigation size={13} aria-hidden="true" />
+                    {showNearbyMap ? "Back to map" : `Nearby (${nearbyResults.length})`}
+                  </button>
+                )}
+                {nearbyState === "loaded" && nearbyResults.length === 0 && (
+                  <span className={styles.hint}>No attractions within {NEARBY_RADIUS_KM}km</span>
+                )}
               </div>
-              <p className={styles.locationCaption}>
-                <MapPin size={11} aria-hidden="true" />
-                {[attraction.city, attraction.country].filter(Boolean).join(", ")}
-                <span className={styles.locationCoords}>
-                  {attraction.coordinates.lat.toFixed(5)}, {attraction.coordinates.lng.toFixed(5)}
-                </span>
-              </p>
-            </div>
-          )}
 
-          {/* Nearby attractions — never computed until the user asks (see getNearbyAttractions
-              and the "idle" state above); only offered when this attraction has coordinates
-              to search from. */}
-          {attraction.coordinates && (
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <Navigation size={14} aria-hidden="true" />
-                Nearby
-              </h3>
-              {nearbyState === "idle" && (
-                <button type="button" className={styles.nearbyFindBtn} onClick={handleFindNearby}>
-                  <Navigation size={13} aria-hidden="true" />
-                  Find attractions within {NEARBY_RADIUS_KM}km
-                </button>
-              )}
-              {nearbyState === "loading" && (
-                <div className={styles.nearbyLoading}>
-                  <Spinner variant="icon" iconSize={16} />
-                </div>
-              )}
-              {nearbyState === "error" && (
-                <p className={styles.hint}>Couldn&apos;t load nearby attractions. <button type="button" className={styles.nearbyRetryBtn} onClick={handleFindNearby}>Try again</button></p>
-              )}
-              {nearbyState === "loaded" && (
-                nearbyResults.length === 0 ? (
-                  <p className={styles.hint}>No other attractions found within {NEARBY_RADIUS_KM}km.</p>
-                ) : (
-                  <>
-                    <div className={styles.locationMapContainer}>
-                      <NearbyAttractionsMap
-                        origin={attraction}
-                        results={nearbyResults}
-                        onSelect={(a) => onNavigateToAttraction?.(a)}
-                      />
-                    </div>
-                    <p className={styles.hint}>{nearbyResults.length} found — click a pin to view it</p>
-                  </>
-                )
+              {nearbyState === "loaded" && showNearbyMap && nearbyResults.length > 0 ? (
+                <>
+                  <div className={styles.locationMapContainer}>
+                    <NearbyAttractionsMap
+                      origin={attraction}
+                      results={nearbyResults}
+                      onSelect={(a) => onNavigateToAttraction?.(a)}
+                    />
+                  </div>
+                  <p className={styles.hint}>{nearbyResults.length} found — click a pin to view it</p>
+                </>
+              ) : (
+                <>
+                  <div className={styles.locationMapContainer}>
+                    <LocationViewMap lat={attraction.coordinates.lat} lng={attraction.coordinates.lng} />
+                  </div>
+                  <p className={styles.locationCaption}>
+                    <MapPin size={11} aria-hidden="true" />
+                    {[attraction.city, attraction.country].filter(Boolean).join(", ")}
+                    <span className={styles.locationCoords}>
+                      {attraction.coordinates.lat.toFixed(5)}, {attraction.coordinates.lng.toFixed(5)}
+                    </span>
+                  </p>
+                </>
               )}
             </div>
           )}
