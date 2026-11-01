@@ -9,10 +9,11 @@ import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { AttractionDetailModal } from "@/components/AttractionDetailModal";
 import { NewAttractionModal, attractionToFormData } from "@/components/NewAttractionModal";
+import { AttractionTypePicker } from "@/components/AttractionTypePicker";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { useBrands, invalidateBrandsCache, useAttractionTypes, useFoodStyles, useShopStyles } from "@/hooks";
-import { updateBrand, deleteBrand, getAttractionsByBrand, updateAttraction, deleteAttraction, ApiError } from "@/services";
+import { useBrands, invalidateBrandsCache, useAttractionTypes, useFoodStyles, useShopStyles, type BrandRecord } from "@/hooks";
+import { updateBrand, createBrand, deleteBrand, getAttractionsByBrand, updateAttraction, deleteAttraction, ApiError } from "@/services";
 import { photoCropStyle, type PhotoCrop } from "@/lib";
 import type { Attraction } from "@/types/attraction";
 import type { AttractionFormData } from "@/components/NewAttractionModal";
@@ -29,22 +30,32 @@ const NO_FOOD_STYLE_TYPES = new Set(["Bar", "Ice Cream", "Supermarket"]);
 interface BrandModalProps {
   isOpen: boolean;
   onClose: () => void;
-  brandId: string;
+  /** Omit (or pass null/undefined) together with `createMode` to open this as a blank
+   *  "New Brand" form instead of viewing/editing an existing one. */
+  brandId?: string | null;
   /** Called after the brand is deleted — callers whose own view shows this brand (e.g. an
    *  attraction card) should clear whatever they were tracking for it. Optional since not
    *  every caller (e.g. the Admin list, which just re-renders from the invalidated cache)
    *  needs to react beyond that. */
   onDeleted?: () => void;
+  /** Opens the modal straight into a blank, always-editable "New Brand" form (no view mode,
+   *  no delete, no locations list — there's nothing to show yet) that creates a brand on
+   *  save instead of updating one. `brandId` is ignored in this mode. */
+  createMode?: boolean;
+  /** Required when `createMode` is true — called with the newly created brand right before
+   *  the modal closes, so the caller (e.g. a brand picker) can select it immediately. */
+  onCreated?: (brand: BrandRecord) => void;
 }
 
 /** Opened from an attraction's "linked to {brand}" chip (AttractionDetailModal/
- *  AttractionGridCard) or from the Admin page's Brands list — shows the brand's defaults
- *  (photo/website/types/food+shop styles every linked attraction falls back to, see
+ *  AttractionGridCard), from the Admin page's Brands list, or (via `createMode`) from the
+ *  "+ Add brand" affordance next to a brand picker — shows the brand's defaults (photo/
+ *  website/types/food+shop styles every linked attraction falls back to, see
  *  `formatAttraction`'s brand-fallback logic), every attraction currently linked to it
  *  (filterable by country/city), and for an admin, inline edit + delete. Editing here and
  *  editing from Admin both change the one shared Brand doc, so either path is reflected in
  *  the other immediately. */
-export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalProps) {
+export function BrandModal({ isOpen, onClose, brandId, onDeleted, createMode = false, onCreated }: BrandModalProps) {
   const { user, token } = useAuth();
   const toast = useToast();
   const { brands } = useBrands();
@@ -53,9 +64,9 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
   const { styles: shopStyleOptions } = useShopStyles();
   const isAdmin = user?.role === "admin";
 
-  const brand = brands.find((b) => b._id === brandId);
+  const brand = createMode ? undefined : brands.find((b) => b._id === brandId);
 
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(createMode);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [form, setForm] = useState<{ name: string; photoUrl: string; photoCrop: PhotoCrop | undefined; websiteUrl: string; notes: string; types: string[]; foodStyles: string[]; shopStyles: string[] }>({
     name: "", photoUrl: "", photoCrop: undefined, websiteUrl: "", notes: "", types: [], foodStyles: [], shopStyles: [],
@@ -75,17 +86,19 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
   const [editingLocation, setEditingLocation] = useState<Attraction | null>(null);
 
   useEffect(() => {
-    if (!isOpen) { setEditing(false); setConfirmingDelete(false); return; }
-    if (brand) {
+    if (!isOpen) { setEditing(createMode); setConfirmingDelete(false); return; }
+    if (createMode) {
+      setForm({ name: "", photoUrl: "", photoCrop: undefined, websiteUrl: "", notes: "", types: [], foodStyles: [], shopStyles: [] });
+    } else if (brand) {
       setForm({
         name: brand.name, photoUrl: brand.photoUrl ?? "", photoCrop: brand.photoCrop, websiteUrl: brand.websiteUrl ?? "", notes: brand.notes ?? "",
         types: brand.types, foodStyles: brand.foodStyles, shopStyles: brand.shopStyles,
       });
     }
-  }, [isOpen, brand]);
+  }, [isOpen, brand, createMode]);
 
   useEffect(() => {
-    if (!isOpen) { setLocations(null); setCountryFilter(""); setCityFilter(""); return; }
+    if (!isOpen || createMode || !brandId) { setLocations(null); setCountryFilter(""); setCityFilter(""); return; }
     let cancelled = false;
     setLocationsLoading(true);
     getAttractionsByBrand(brandId, token)
@@ -93,7 +106,7 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
       .catch(() => { if (!cancelled) setLocations([]); })
       .finally(() => { if (!cancelled) setLocationsLoading(false); });
     return () => { cancelled = true; };
-  }, [isOpen, brandId, token]);
+  }, [isOpen, brandId, token, createMode]);
 
   const countries = useMemo(
     () => [...new Set((locations ?? []).map((a) => a.country).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
@@ -144,29 +157,38 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
   async function handleSave() {
     if (!token || !form.name.trim()) return;
     setSaving(true);
+    const payload = {
+      name: form.name.trim(),
+      photoUrl: form.photoUrl.trim(),
+      photoCrop: form.photoCrop ?? null,
+      websiteUrl: form.websiteUrl.trim(),
+      notes: form.notes.trim(),
+      types: form.types,
+      foodStyles: formIsDining ? form.foodStyles : [],
+      shopStyles: formIsShopping ? form.shopStyles : [],
+    };
     try {
-      await updateBrand(brandId, token, {
-        name: form.name.trim(),
-        photoUrl: form.photoUrl.trim(),
-        photoCrop: form.photoCrop ?? null,
-        websiteUrl: form.websiteUrl.trim(),
-        notes: form.notes.trim(),
-        types: form.types,
-        foodStyles: formIsDining ? form.foodStyles : [],
-        shopStyles: formIsShopping ? form.shopStyles : [],
-      });
-      invalidateBrandsCache();
-      toast.success("Brand updated");
-      setEditing(false);
+      if (createMode) {
+        const created = await createBrand(token, payload);
+        invalidateBrandsCache();
+        toast.success("Brand created");
+        onCreated?.(created as BrandRecord);
+        onClose();
+      } else {
+        await updateBrand(brandId as string, token, payload);
+        invalidateBrandsCache();
+        toast.success("Brand updated");
+        setEditing(false);
+      }
     } catch {
-      toast.error("Couldn't update the brand. Please try again.");
+      toast.error(createMode ? "Couldn't create the brand. Please try again." : "Couldn't update the brand. Please try again.");
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete() {
-    if (!token) return;
+    if (!token || !brandId) return;
     setDeleting(true);
     try {
       await deleteBrand(brandId, token);
@@ -224,7 +246,7 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
       header={
         <div className={styles.headerTitle}>
           <Store size={18} className={styles.headerIcon} aria-hidden="true" />
-          <h2 id={HEADING_ID} className={styles.title}>{brand?.name ?? "Brand"}</h2>
+          <h2 id={HEADING_ID} className={styles.title}>{createMode ? "New Brand" : (brand?.name ?? "Brand")}</h2>
           {brand && !editing && (
             <div className={styles.headerActions}>
               <WebsiteLinkButton url={brand.websiteUrl} variant="compact" className={styles.headerIconBtn} />
@@ -254,9 +276,9 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
         </div>
       }
     >
-      {!brand ? (
+      {!brand && !createMode ? (
         <div className={styles.placeholder}><Loader2 size={24} className={styles.spin} /></div>
-      ) : editing ? (
+      ) : editing || !brand ? (
         <div className={styles.form}>
           <div className={styles.field}>
             <label className={styles.label}>Name *</label>
@@ -294,24 +316,12 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
             />
           </div>
           <div className={styles.field}>
-            <label className={styles.label}>Default categories/types</label>
-            <div className={styles.typeChips}>
-              {typeOptions.map((t) => {
-                const active = form.types.includes(t.name);
-                return (
-                  <button
-                    key={t._id}
-                    type="button"
-                    className={`${styles.typeChip} ${active ? styles.typeChipActive : ""}`}
-                    aria-pressed={active}
-                    onClick={() => toggleIn("types", t.name)}
-                  >
-                    {renderTypeIcon(t.icon)}
-                    {t.name}
-                  </button>
-                );
-              })}
-            </div>
+            <span id="brand-types-label" className={styles.label}>Default categories/types</span>
+            <AttractionTypePicker
+              selectedTypes={form.types}
+              onToggle={(t) => toggleIn("types", t)}
+              labelId="brand-types-label"
+            />
           </div>
           {formIsDining && (
             <div className={styles.field}>
@@ -357,7 +367,7 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted }: BrandModalPr
             </div>
           )}
           <div className={styles.formActions}>
-            <button type="button" className={styles.cancelBtn} onClick={() => setEditing(false)} disabled={saving}>
+            <button type="button" className={styles.cancelBtn} onClick={() => (createMode ? onClose() : setEditing(false))} disabled={saving}>
               Cancel
             </button>
             <button type="button" className={styles.saveBtn} onClick={handleSave} disabled={saving || !form.name.trim()}>

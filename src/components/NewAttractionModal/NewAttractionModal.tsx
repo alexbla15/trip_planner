@@ -35,7 +35,8 @@ import { SeasonalRangePicker } from "./SeasonalRangePicker";
 import { ParentAttractionPicker } from "./ParentAttractionPicker";
 import { PriceTierEditor } from "./PriceTierEditor";
 import { buildInitialHours, normalizeOpeningHours, hasOpeningHoursData, isAllDay24h, isValidUrl, isYearRound, ALL_MONTHS, deriveOpeningMonthsFromSeasonalHours, formatOpeningMonthsLabel } from "@/lib";
-import { useReverseGeocodeAutofill, useAttractionTypes, useFoodStyles, useShopStyles, useBrands } from "@/hooks";
+import { useReverseGeocodeAutofill, useAttractionTypes, useFoodStyles, useShopStyles, useBrands, type BrandRecord } from "@/hooks";
+import { BrandModal } from "@/components/BrandModal";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { emptyPriceTab, flatPriceTiersToTabs, tabsToFlatPriceTiers } from "./NewAttractionModal.utils";
 import type { Attraction } from "@/types/attraction";
@@ -145,6 +146,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   // typing a name that isn't an exact match) unlinks the brand without needing a dedicated
   // "X" button, the same free-text-driven pattern the field already uses elsewhere.
   const [brandNameInput, setBrandNameInput] = useState("");
+  const [addBrandModalOpen, setAddBrandModalOpen] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
@@ -307,6 +309,13 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   function handleClearBrand() {
     setBrandId(null);
     setBrandNameInput("");
+  }
+
+  // The "+" next to the brand picker opens BrandModal in create mode — once saved, select
+  // it here immediately rather than leaving the admin to re-find it in the dropdown.
+  function handleBrandCreated(newBrand: BrandRecord) {
+    setBrandId(newBrand._id);
+    setBrandNameInput(newBrand.name);
   }
 
   function handleBlur(field: keyof FieldErrors) {
@@ -758,8 +767,9 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
 
       {/* Brand/chain — picking one applies photo/types/website below as defaults (plus
           food/shop styles when relevant), still freely editable afterwards (see
-          handleBrandNameChange). Admin-managed list (see the Admin page's Brands section);
-          this field only selects among existing brands, it doesn't create new ones. */}
+          handleBrandNameChange). The "+" opens BrandModal in create mode for a brand that
+          doesn't exist yet and selects it here immediately on save — admins can otherwise
+          manage the full list from the Admin page's Brands section. */}
       <div className={styles.field}>
         <label htmlFor="attraction-brand" className={styles.labelWithIcon}>
           <Building2 size={14} aria-hidden="true" />
@@ -781,8 +791,25 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
               Remove
             </button>
           )}
+          <button
+            type="button"
+            className={styles.addBrandBtn}
+            onClick={() => setAddBrandModalOpen(true)}
+            aria-label="Add a new brand"
+            title="Add a new brand"
+          >
+            <Plus size={14} aria-hidden="true" />
+          </button>
         </div>
       </div>
+      {addBrandModalOpen && (
+        <BrandModal
+          isOpen={addBrandModalOpen}
+          onClose={() => setAddBrandModalOpen(false)}
+          createMode
+          onCreated={handleBrandCreated}
+        />
+      )}
 
       {/* Type — fully hidden once brand-linked: type/food/shop styles are the brand's own
           defaults and aren't independently viewable or editable here at all, not even as a
