@@ -62,6 +62,9 @@ export interface Attraction {
   /** How many other attractions are nested inside this one. 0 for a child (nesting is one
    *  level only) or a leaf attraction with no children. */
   childAttractionCount?: number;
+  /** Distance in km from the attraction the "Nearby" search was run against — only
+   *  present on results from `GET /api/attractions/:id/nearby`, absent everywhere else. */
+  distanceKm?: number;
   /** The chain/brand this attraction links to (e.g. "Adidas") — `null`/absent means it
    *  isn't linked to one. Unlike parent nesting, this isn't physical containment: two
    *  branches of the same chain both set the same `brandId` without either containing the

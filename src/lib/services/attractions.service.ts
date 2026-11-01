@@ -182,6 +182,78 @@ export async function getAttractionById(id: string): Promise<IAttraction> {
   return attraction;
 }
 
+/** Great-circle distance in km between two lat/lng points. */
+function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const lat1 = (a.lat * Math.PI) / 180;
+  const lat2 = (b.lat * Math.PI) / 180;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+export interface NearbyAttractionResult {
+  attraction: IAttraction;
+  distanceKm: number;
+}
+
+/** Finds other attractions within `radiusKm` of the given attraction's own coordinates —
+ *  powers the attraction detail card's on-demand "Nearby" section (never computed until
+ *  the user asks, since it's an extra query no caller needs by default). Same visibility
+ *  filtering as `searchAttractions` (an attraction only reachable through a private trip
+ *  the caller can't access is hidden). Pre-filters with a cheap lat/lng bounding box using
+ *  the existing coordinates fields (no geospatial index needed at this dataset size), then
+ *  applies the real haversine distance so the box's corner-rounding doesn't leak results
+ *  slightly outside the actual circle into the response. */
+export async function getNearbyAttractions(
+  attractionId: string,
+  userId: string | null,
+  radiusKm: number
+): Promise<NearbyAttractionResult[]> {
+  await dbConnect();
+  const origin = await Attraction.findById(attractionId).select("coordinates");
+  if (!origin) throw notFound("Attraction not found");
+  const coords = origin.coordinates;
+  if (!coords) return [];
+
+  const privateFilter = userId
+    ? { isPrivate: true, ownerId: { $ne: userId }, "collaborators.userId": { $ne: userId } }
+    : { isPrivate: true };
+  const accessibleFilter = userId
+    ? { $or: [{ ownerId: userId }, { "collaborators.userId": userId }, { isPrivate: { $ne: true } }] }
+    : { isPrivate: { $ne: true } };
+  const [privateTrips, accessibleTrips] = await Promise.all([
+    Trip.find(privateFilter).select("attractionIds").lean(),
+    Trip.find(accessibleFilter).select("attractionIds").lean(),
+  ]);
+  const privateIds = new Set(privateTrips.flatMap((t) => (t.attractionIds ?? []).filter(Boolean).map((id) => id.toString())));
+  const accessibleIds = new Set(accessibleTrips.flatMap((t) => (t.attractionIds ?? []).filter(Boolean).map((id) => id.toString())));
+  const hiddenIds = [...privateIds].filter((id) => !accessibleIds.has(id));
+
+  // A generous bounding box — corners of this box can be up to ~radiusKm*sqrt(2) away, so
+  // the exact haversine filter below is still required to trim it down to a real circle.
+  const latDelta = radiusKm / 111;
+  const lngDelta = radiusKm / (111 * Math.cos((coords.lat * Math.PI) / 180) || 1);
+
+  const filter: Record<string, unknown> = {
+    _id: { $ne: attractionId, $nin: hiddenIds },
+    "coordinates.lat": { $gte: coords.lat - latDelta, $lte: coords.lat + latDelta },
+    "coordinates.lng": { $gte: coords.lng - lngDelta, $lte: coords.lng + lngDelta },
+  };
+
+  const candidates = await Attraction.find(filter).populate(["types", "foodStyles", "shopStyles"]).limit(200);
+
+  const results: NearbyAttractionResult[] = [];
+  for (const candidate of candidates) {
+    if (!candidate.coordinates) continue;
+    const distanceKm = haversineKm(coords, candidate.coordinates);
+    if (distanceKm <= radiusKm) results.push({ attraction: candidate, distanceKm });
+  }
+  results.sort((a, b) => a.distanceKm - b.distanceKm);
+  return results.slice(0, 50);
+}
+
 export interface CreateAttractionInput {
   name?: string;
   country?: string;

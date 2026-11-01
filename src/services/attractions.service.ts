@@ -134,6 +134,16 @@ export async function getAttraction(id: string, token?: string | null): Promise<
   return parseOrThrow<unknown>(res);
 }
 
+/** Other attractions within `radiusKm` (server caps at 2km) of the given attraction's own
+ *  coordinates, closest first — only ever called once the user opens the detail card's
+ *  "Nearby" section and clicks to compute it, never on a normal card load. */
+export async function getNearbyAttractions(id: string, radiusKm: number, token?: string | null): Promise<unknown[]> {
+  const res = await fetch(`/api/attractions/${id}/nearby?radiusKm=${radiusKm}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  return parseOrThrow<unknown[]>(res);
+}
+
 /** Direct children of the given attraction (one level of nesting only, see
  *  `nestedAttractions.service.ts`). Used by `AttractionGridCard`'s child-count badge
  *  expansion. */

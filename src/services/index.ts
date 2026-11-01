@@ -30,6 +30,7 @@ export {
   getAttractionsByBrand,
   getAllAttractions,
   getChildAttractions,
+  getNearbyAttractions,
   getOtherLocationsInCity,
   searchAttractionsByCountry,
   searchAttractionsByType,

@@ -36,7 +36,7 @@ import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
 import { Spinner } from "@/components/Spinner";
 import { BrandModal } from "@/components/BrandModal";
 import { useModalZIndex } from "@/components/Modal";
-import { getAttraction, getChildAttractions, getOtherLocationsInCity } from "@/services";
+import { getAttraction, getChildAttractions, getOtherLocationsInCity, getNearbyAttractions } from "@/services";
 import { useAttractionTypes, useShopStyles, useBrands } from "@/hooks";
 import { photoCropStyle } from "@/lib";
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
@@ -45,6 +45,11 @@ const LocationViewMap = dynamic(
   () => import("./LocationViewMap").then((m) => ({ default: m.LocationViewMap })),
   { ssr: false, loading: () => <div className={styles.locationMapLoading} /> }
 );
+const NearbyAttractionsMap = dynamic(
+  () => import("./NearbyAttractionsMap").then((m) => ({ default: m.NearbyAttractionsMap })),
+  { ssr: false, loading: () => <div className={styles.locationMapLoading} /> }
+);
+const NEARBY_RADIUS_KM = 2;
 import type { AttractionType } from "@/components/NewAttractionModal";
 import type { Attraction } from "@/types/attraction";
 import { formatDisplayDate, formatPrice, getStatusChips, getUniformHoursLabel, formatSeasonalRangeLabel, sortSeasonalHoursByStart } from "@/lib";
@@ -114,7 +119,31 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   const [activePriceTab, setActivePriceTab] = useState(0);
   const [activeHoursTab, setActiveHoursTab] = useState(0);
 
+  // "Nearby" section — never computed until the user explicitly clicks the button (see
+  // getNearbyAttractions: an extra query no caller should pay for by default).
+  const [nearbyState, setNearbyState] = useState<"idle" | "loading" | "loaded" | "error">("idle");
+  const [nearbyResults, setNearbyResults] = useState<Attraction[]>([]);
+
   useEffect(() => { setMounted(true); }, []);
+
+  // Reset the nearby search whenever a different attraction is shown — same reasoning as
+  // the children-expansion reset just below.
+  useEffect(() => {
+    setNearbyState("idle");
+    setNearbyResults([]);
+  }, [attraction?._id]);
+
+  async function handleFindNearby() {
+    if (!attraction) return;
+    setNearbyState("loading");
+    try {
+      const data = await getNearbyAttractions(attraction._id, NEARBY_RADIUS_KM);
+      setNearbyResults(Array.isArray(data) ? (data as Attraction[]) : []);
+      setNearbyState("loaded");
+    } catch {
+      setNearbyState("error");
+    }
+  }
 
   // Reset the children expansion whenever a different attraction is shown — otherwise
   // reopening the modal for a new attraction would briefly show the previous one's
@@ -621,6 +650,48 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                   {attraction.coordinates.lat.toFixed(5)}, {attraction.coordinates.lng.toFixed(5)}
                 </span>
               </p>
+            </div>
+          )}
+
+          {/* Nearby attractions — never computed until the user asks (see getNearbyAttractions
+              and the "idle" state above); only offered when this attraction has coordinates
+              to search from. */}
+          {attraction.coordinates && (
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>
+                <Navigation size={14} aria-hidden="true" />
+                Nearby
+              </h3>
+              {nearbyState === "idle" && (
+                <button type="button" className={styles.nearbyFindBtn} onClick={handleFindNearby}>
+                  <Navigation size={13} aria-hidden="true" />
+                  Find attractions within {NEARBY_RADIUS_KM}km
+                </button>
+              )}
+              {nearbyState === "loading" && (
+                <div className={styles.nearbyLoading}>
+                  <Spinner variant="icon" iconSize={16} />
+                </div>
+              )}
+              {nearbyState === "error" && (
+                <p className={styles.hint}>Couldn&apos;t load nearby attractions. <button type="button" className={styles.nearbyRetryBtn} onClick={handleFindNearby}>Try again</button></p>
+              )}
+              {nearbyState === "loaded" && (
+                nearbyResults.length === 0 ? (
+                  <p className={styles.hint}>No other attractions found within {NEARBY_RADIUS_KM}km.</p>
+                ) : (
+                  <>
+                    <div className={styles.locationMapContainer}>
+                      <NearbyAttractionsMap
+                        origin={{ lat: attraction.coordinates.lat, lng: attraction.coordinates.lng, name: attraction.name }}
+                        results={nearbyResults}
+                        onSelect={(a) => onNavigateToAttraction?.(a)}
+                      />
+                    </div>
+                    <p className={styles.hint}>{nearbyResults.length} found — click a pin to view it</p>
+                  </>
+                )
+              )}
             </div>
           )}
 
