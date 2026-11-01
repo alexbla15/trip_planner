@@ -1,34 +1,16 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { useEffect } from "react";
+import { MapContainer, TileLayer, Marker, Tooltip, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { makeAttractionMarkerIcon } from "@/lib/mapIcons";
+import { useAttractionTypes } from "@/hooks";
+import { isAttractionPermanentlyClosed } from "@/lib";
 import type { Attraction } from "@/types/attraction";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-/* eslint-enable @typescript-eslint/no-explicit-any */
-L.Icon.Default.mergeOptions({
-  iconUrl:       "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl:     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
-
-// A visually distinct pin for the attraction the search was run from, so it reads as
-// "you are here" rather than just another result in the list.
-const originIcon = new L.Icon({
-  iconUrl:       "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl:     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [30, 49],
-  iconAnchor: [15, 49],
-  popupAnchor: [1, -40],
-  shadowSize: [49, 49],
-  className: "nearby-origin-marker",
-});
-
 interface NearbyAttractionsMapProps {
-  origin: { lat: number; lng: number; name: string };
+  origin: Attraction;
   results: Attraction[];
   onSelect: (attraction: Attraction) => void;
 }
@@ -48,38 +30,58 @@ function FitBounds({ points }: { points: [number, number][] }) {
   return null;
 }
 
+/** Same pin styling/behavior as Explore's map (ExploreMapWidget) — per-type color/icon,
+ *  visited border, permanently-closed override, name/type tooltip — so this reads as the
+ *  same map the rest of the app already uses, not a bare default-Leaflet-marker view. The
+ *  origin attraction (the one "Nearby" was searched from) reuses the same marker with its
+ *  `selected` accent border to read as "you are here" without a visually different pin
+ *  style breaking that consistency. */
 export function NearbyAttractionsMap({ origin, results, onSelect }: NearbyAttractionsMapProps) {
-  const points: [number, number][] = [
-    [origin.lat, origin.lng],
-    ...results.filter((a) => a.coordinates).map((a) => [a.coordinates!.lat, a.coordinates!.lng] as [number, number]),
-  ];
+  const { findType } = useAttractionTypes();
+
+  const allPins = origin.coordinates ? [origin, ...results] : results;
+  const points: [number, number][] = allPins
+    .filter((a) => a.coordinates)
+    .map((a) => [a.coordinates!.lat, a.coordinates!.lng] as [number, number]);
+  const center = origin.coordinates
+    ? ([origin.coordinates.lat, origin.coordinates.lng] as [number, number])
+    : points[0];
+
+  function markerFor(a: Attraction, isOrigin: boolean) {
+    if (!a.coordinates) return null;
+    const typeRecord = findType(a.types?.[0] ?? "");
+    const color = typeRecord?.color ?? "#64748B";
+    const iconName = typeRecord?.icon ?? "MapPin";
+    const permanentlyClosed = isAttractionPermanentlyClosed(a.openingHours, a.seasonalHours);
+    return (
+      <Marker
+        key={a._id}
+        position={[a.coordinates.lat, a.coordinates.lng]}
+        icon={makeAttractionMarkerIcon(color, iconName, isOrigin, a.isVisited, permanentlyClosed)}
+        eventHandlers={isOrigin ? undefined : { click: () => onSelect(a) }}
+      >
+        <Tooltip direction="top" offset={[0, -17]}>
+          <strong>{a.name}</strong>
+          {a.types?.[0] ? ` · ${a.types[0]}` : ""}
+          {isOrigin ? " · This attraction" : a.distanceKm !== undefined ? ` · ${Math.round(a.distanceKm * 1000)}m away` : ""}
+          {permanentlyClosed ? " · Permanently closed" : ""}
+          {a.isVisited ? " · Visited" : ""}
+        </Tooltip>
+      </Marker>
+    );
+  }
 
   return (
     <MapContainer
-      center={[origin.lat, origin.lng]}
+      center={center}
       zoom={15}
       style={{ height: "100%", width: "100%" }}
       attributionControl={false}
     >
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
       <FitBounds points={points} />
-      <Marker position={[origin.lat, origin.lng]} icon={originIcon}>
-        <Popup>{origin.name}</Popup>
-      </Marker>
-      {results.map((a) =>
-        a.coordinates ? (
-          <Marker
-            key={a._id}
-            position={[a.coordinates.lat, a.coordinates.lng]}
-            eventHandlers={{ click: () => onSelect(a) }}
-          >
-            <Popup>
-              <strong>{a.name}</strong>
-              {a.distanceKm !== undefined && <div>{Math.round(a.distanceKm * 1000)} m away</div>}
-            </Popup>
-          </Marker>
-        ) : null
-      )}
+      {markerFor(origin, true)}
+      {results.map((a) => markerFor(a, false))}
     </MapContainer>
   );
 }

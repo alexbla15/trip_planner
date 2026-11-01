@@ -683,7 +683,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                   <>
                     <div className={styles.locationMapContainer}>
                       <NearbyAttractionsMap
-                        origin={{ lat: attraction.coordinates.lat, lng: attraction.coordinates.lng, name: attraction.name }}
+                        origin={attraction}
                         results={nearbyResults}
                         onSelect={(a) => onNavigateToAttraction?.(a)}
                       />
