@@ -18,11 +18,15 @@ export interface IScheduleEntry {
   typeNames?: string[];
   price?: number | null;
   currency?: string;
-  /** How many of each of the linked Attraction's `prices` tiers (by label) the user
-   *  selected for the trip Costs tab's total — e.g. 3x "Adult", 1x "Child". A tier absent
-   *  from this list (or with quantity 0) isn't included. Per-trip — lives here, not on
-   *  the shared Attraction document. */
-  priceTierQuantities?: { label: string; quantity: number }[];
+  /** How many of each of the linked Attraction's `prices` tiers the user selected for the
+   *  trip Costs tab's total — e.g. 3x "Adult", 1x "Child". A tier absent from this list
+   *  (or with quantity 0) isn't included. Per-trip — lives here, not on the shared
+   *  Attraction document. `product`/`visitorType` disambiguate tiers that share a `label`
+   *  across different products or visitor types (e.g. an "Entry" row with separate
+   *  Adult/Child columns, see AttractionDetailModal.utils' pivot) — absent on either side
+   *  means "no product/visitor type", so older entries saved before this field existed
+   *  still match correctly for the (common) case of an attraction with no such overlap. */
+  priceTierQuantities?: { label: string; quantity: number; product?: string; visitorType?: string }[];
   notes?: string;
   /** Per-trip stay-date override for a shared residence Attraction document — see the
    *  "pick existing residence" flow. Never write these onto the shared document itself;
@@ -128,7 +132,7 @@ const ScheduleEntrySchema = new Schema<IScheduleEntry>(
     typeNames:           [{ type: String }],
     price:               { type: Number, default: null },
     currency:            { type: String },
-    priceTierQuantities: [{ label: { type: String }, quantity: { type: Number }, _id: false }],
+    priceTierQuantities: [{ label: { type: String }, quantity: { type: Number }, product: { type: String }, visitorType: { type: String }, _id: false }],
     notes:               { type: String },
     checkInDate:         { type: String },
     checkOutDate:        { type: String },

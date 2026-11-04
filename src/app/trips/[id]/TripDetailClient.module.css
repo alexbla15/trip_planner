@@ -1224,6 +1224,135 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ── Price tiers/tabs/columns — same shape and tokens as AttractionDetailModal's own
+   price table, so a trip's Costs breakdown reads as the identical grid for a given
+   attraction, just with a quantity stepper per cell instead of a plain price. ── */
+.costsPriceBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.priceTabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.priceTab {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--easing-out);
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.priceTab:hover {
+  color: var(--color-text-primary);
+}
+
+.priceTabActive {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  font-weight: 600;
+}
+
+.priceTableScroll {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.priceTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.priceTable thead {
+  background: var(--color-bg-subtle);
+}
+
+.priceTable thead th {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.priceColField {
+  min-width: 90px;
+}
+
+.priceColVisitor {
+  min-width: 120px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.priceRow {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.priceRow:last-child {
+  border-bottom: none;
+}
+
+.priceRow td {
+  padding: 6px 10px;
+  color: var(--color-text-secondary);
+}
+
+.priceLabel {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.priceCellEmpty {
+  color: var(--color-text-tertiary);
+}
+
+/* Highlighted per the user's own choice (quantity > 0) — distinct from `isPrimary`
+   (the venue's own suggested default, shown as the "Primary" pill below instead). */
+.priceCellSelected {
+  background: var(--color-primary-light);
+}
+
+.costsCellInner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.todayPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
 .costsTotals {
   display: flex;
   align-items: center;

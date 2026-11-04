@@ -102,8 +102,9 @@ export interface Attraction {
   /** How many of each `prices` tier the user selected for THIS scheduled instance of the
    *  trip (e.g. 3x "Adult", 1x "Child") — per-trip, so it's a schedule-entry field, not a
    *  shared-document one. Empty means no explicit choice yet (the Costs tab defaults to
-   *  1x the primary tier). */
-  priceTierQuantities?: { label: string; quantity: number }[];
+   *  1x the primary tier). `product`/`visitorType` disambiguate tiers sharing a `label`
+   *  across different products/visitor types — see `IScheduleEntry.priceTierQuantities`. */
+  priceTierQuantities?: { label: string; quantity: number; product?: string; visitorType?: string }[];
   currency?: string;
   openingHours?: OpeningHours;
   /** Months (1–12) this attraction is open in. Absent/empty means open year-round —

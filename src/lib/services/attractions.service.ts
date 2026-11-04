@@ -1184,9 +1184,9 @@ export interface UpdateTripAttractionScheduleInput {
   // whose stay dates/price/notes are specific to this trip's booking.
   price?: number | null;
   currency?: string;
-  /** How many of each of the linked attraction's `prices` tiers (by label) are selected
-   *  for the trip Costs tab total. Per-trip — see `IScheduleEntry.priceTierQuantities`. */
-  priceTierQuantities?: { label: string; quantity: number }[];
+  /** How many of each of the linked attraction's `prices` tiers are selected for the trip
+   *  Costs tab total. Per-trip — see `IScheduleEntry.priceTierQuantities`. */
+  priceTierQuantities?: { label: string; quantity: number; product?: string; visitorType?: string }[];
   notes?: string;
   checkInDate?: string;
   checkOutDate?: string;

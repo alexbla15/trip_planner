@@ -60,6 +60,8 @@ import type {
 import { FlightsList } from "./FlightsList";
 import { ResidencesList } from "./ResidencesList";
 import { CalendarSection } from "./CalendarSection";
+import { buildPriceTierTabs, buildPricePivot } from "@/components/AttractionDetailModal/AttractionDetailModal.utils";
+import type { PriceTier } from "@/types/attraction";
 import { useAttractionTypes } from "@/hooks";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
@@ -558,22 +560,32 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
 
   const customExpenses = useMemo(() => trip?.customExpenses ?? [], [trip?.customExpenses]);
 
-  // Defaults to 1x the primary tier when the user hasn't made an explicit choice yet —
-  // matches the old single-select behavior's default, now expressed as a quantity.
-  function quantitiesFor(a: Attraction): { label: string; quantity: number }[] {
-    if (a.priceTierQuantities?.length) return a.priceTierQuantities;
-    const primary = a.prices?.find((t) => t.isPrimary);
-    return primary ? [{ label: primary.label, quantity: 1 }] : [];
+  // A tier's `label` alone isn't a unique identity — the same label (e.g. "Entry") can
+  // appear once per product tab and/or once per visitor-type column in the pivot grid
+  // (see AttractionDetailModal.utils' buildPriceTierTabs/buildPricePivot). Absent product/
+  // visitorType normalizes to "" on both sides, so an older stored selection (saved before
+  // this field existed) still matches correctly for the common case of an attraction with
+  // no such overlapping tiers.
+  function tierIdentityKey(label: string, product?: string, visitorType?: string): string {
+    return `${label}||${product ?? ""}||${visitorType ?? ""}`;
   }
 
-  function quantityFor(a: Attraction, label: string): number {
-    return quantitiesFor(a).find((q) => q.label === label)?.quantity ?? 0;
+  // Defaults to 1x the primary tier when the user hasn't made an explicit choice yet —
+  // matches the old single-select behavior's default, now expressed as a quantity.
+  function quantitiesFor(a: Attraction): { label: string; quantity: number; product?: string; visitorType?: string }[] {
+    if (a.priceTierQuantities?.length) return a.priceTierQuantities;
+    const primary = a.prices?.find((t) => t.isPrimary);
+    return primary ? [{ label: primary.label, quantity: 1, product: primary.product, visitorType: primary.visitorType }] : [];
+  }
+
+  function quantityForTier(a: Attraction, tier: PriceTier): number {
+    const key = tierIdentityKey(tier.label, tier.product, tier.visitorType);
+    return quantitiesFor(a).find((q) => tierIdentityKey(q.label, q.product, q.visitorType) === key)?.quantity ?? 0;
   }
 
   function costForRow(a: Attraction): number {
     if (a.prices?.length) {
-      const qtys = quantitiesFor(a);
-      return a.prices.reduce((sum, t) => sum + t.amount * (qtys.find((q) => q.label === t.label)?.quantity ?? 0), 0);
+      return a.prices.reduce((sum, t) => sum + t.amount * quantityForTier(a, t), 0);
     }
     return a.price ?? 0;
   }
@@ -595,6 +607,11 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   }, [scheduledCostRows, customExpenses, trip?.currency]);
 
   const [fxRates, setFxRates] = useState<Record<string, number>>({});
+
+  // Which product tab (see buildPriceTierTabs) is active for each cost row's price-tier
+  // table, keyed by attraction id — mirrors AttractionDetailModal's activePriceTab, just
+  // one per row instead of one for the whole modal.
+  const [activeCostTab, setActiveCostTab] = useState<Record<string, number>>({});
 
   // Fetch (and cache) a conversion rate for every foreign currency currently on the
   // Costs tab, to the trip's own currency — the totals below sum in one currency and
@@ -635,13 +652,15 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scheduledCostRows, customExpenses, fxRates, trip?.currency]);
 
-  async function handleChangeCostTierQty(a: Attraction, tierLabel: string, delta: number) {
+  async function handleChangeCostTierQty(a: Attraction, tier: PriceTier, delta: number) {
     if (!token || !trip) return;
     const current = quantitiesFor(a);
-    const nextQty = Math.max(0, (current.find((q) => q.label === tierLabel)?.quantity ?? 0) + delta);
-    const next = current.some((q) => q.label === tierLabel)
-      ? current.map((q) => (q.label === tierLabel ? { ...q, quantity: nextQty } : q))
-      : [...current, { label: tierLabel, quantity: nextQty }];
+    const key = tierIdentityKey(tier.label, tier.product, tier.visitorType);
+    const existing = current.find((q) => tierIdentityKey(q.label, q.product, q.visitorType) === key);
+    const nextQty = Math.max(0, (existing?.quantity ?? 0) + delta);
+    const next = existing
+      ? current.map((q) => (tierIdentityKey(q.label, q.product, q.visitorType) === key ? { ...q, quantity: nextQty } : q))
+      : [...current, { label: tier.label, quantity: nextQty, product: tier.product, visitorType: tier.visitorType }];
     setAttractions((prev) => prev.map((x) => (x._id === a._id ? { ...x, priceTierQuantities: next } : x)));
     try {
       const res = await updateTripAttractionSchedule(trip._id, a._id, token, { priceTierQuantities: next });
@@ -1480,45 +1499,103 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                                   <div className={styles.costsRowHeader}>
                                     <span className={styles.costsRowName}>{a.name}</span>
                                   </div>
-                                  {a.prices?.length ? (
-                                    <div className={styles.costsTierList}>
-                                      {a.prices.map((tier) => {
-                                        const qty = quantityFor(a, tier.label);
-                                        return (
-                                          <div key={tier.label} className={styles.costsTierRow}>
-                                            <span className={styles.costsTierLabel}>{tier.label}</span>
-                                            <span className={styles.costsTierUnitPrice}>
-                                              {formatPrice(tier.amount, a.currency ?? "USD")}
-                                            </span>
-                                            <div className={styles.costsQtyStepper}>
+                                  {a.prices?.length ? (() => {
+                                    // Same grouping/pivoting the attraction's own detail card
+                                    // uses (buildPriceTierTabs/buildPricePivot) — one tab per
+                                    // product, each tab a Tier x Visitor Type grid — so the
+                                    // Costs tab reads as the identical table, just with a
+                                    // quantity stepper per cell instead of a plain price.
+                                    const priceTabs = buildPriceTierTabs(a.prices);
+                                    const showTabs = priceTabs.length > 1;
+                                    const activeIdx = Math.min(activeCostTab[a._id] ?? 0, priceTabs.length - 1);
+                                    const pivot = buildPricePivot(priceTabs[activeIdx].tiers);
+                                    return (
+                                      <div className={styles.costsPriceBlock}>
+                                        {showTabs && (
+                                          <div className={styles.priceTabs} role="tablist" aria-label={`${a.name} price options`}>
+                                            {priceTabs.map((tab, i) => (
                                               <button
+                                                key={tab.key}
                                                 type="button"
-                                                className={styles.costsQtyBtn}
-                                                onClick={() => handleChangeCostTierQty(a, tier.label, -1)}
-                                                disabled={!effectiveCanEdit || qty === 0}
-                                                aria-label={`Decrease ${tier.label} quantity`}
+                                                role="tab"
+                                                aria-selected={i === activeIdx}
+                                                className={`${styles.priceTab} ${i === activeIdx ? styles.priceTabActive : ""}`}
+                                                onClick={() => setActiveCostTab((prev) => ({ ...prev, [a._id]: i }))}
                                               >
-                                                <Minus size={12} aria-hidden="true" />
+                                                {tab.label}
                                               </button>
-                                              <span className={styles.costsQtyValue}>{qty}</span>
-                                              <button
-                                                type="button"
-                                                className={styles.costsQtyBtn}
-                                                onClick={() => handleChangeCostTierQty(a, tier.label, 1)}
-                                                disabled={!effectiveCanEdit}
-                                                aria-label={`Increase ${tier.label} quantity`}
-                                              >
-                                                <Plus size={12} aria-hidden="true" />
-                                              </button>
-                                            </div>
-                                            <span className={styles.costsTierAmount}>
-                                              {formatPrice(tier.amount * qty, a.currency ?? "USD")}
-                                            </span>
+                                            ))}
                                           </div>
-                                        );
-                                      })}
-                                    </div>
-                                  ) : a.price != null && (
+                                        )}
+                                        <div className={styles.priceTableScroll}>
+                                          <table key={priceTabs[activeIdx].key} className={styles.priceTable} aria-label={`${priceTabs[activeIdx].label} pricing`}>
+                                            <thead>
+                                              <tr>
+                                                <th className={styles.priceColField} scope="col">Tier</th>
+                                                {pivot.columns.map((col) => (
+                                                  <th key={col.key} className={styles.priceColVisitor} scope="col">{col.label}</th>
+                                                ))}
+                                              </tr>
+                                            </thead>
+                                            <tbody>
+                                              {pivot.rows.map((row) => (
+                                                <tr key={row.label} className={styles.priceRow}>
+                                                  <td className={styles.priceColField}>
+                                                    <span className={styles.priceLabel}>{row.label}</span>
+                                                  </td>
+                                                  {pivot.columns.map((col) => {
+                                                    const tier = row.cells.get(col.key);
+                                                    const qty = tier ? quantityForTier(a, tier) : 0;
+                                                    return (
+                                                      <td
+                                                        key={col.key}
+                                                        className={`${styles.priceColVisitor} ${qty > 0 ? styles.priceCellSelected : ""}`}
+                                                      >
+                                                        {tier ? (
+                                                          <div className={styles.costsCellInner}>
+                                                            <div className={styles.costsQtyStepper}>
+                                                              <button
+                                                                type="button"
+                                                                className={styles.costsQtyBtn}
+                                                                onClick={() => handleChangeCostTierQty(a, tier, -1)}
+                                                                disabled={!effectiveCanEdit || qty === 0}
+                                                                aria-label={`Decrease ${row.label} ${col.label} quantity`}
+                                                              >
+                                                                <Minus size={12} aria-hidden="true" />
+                                                              </button>
+                                                              <span className={styles.costsQtyValue}>{qty}</span>
+                                                              <button
+                                                                type="button"
+                                                                className={styles.costsQtyBtn}
+                                                                onClick={() => handleChangeCostTierQty(a, tier, 1)}
+                                                                disabled={!effectiveCanEdit}
+                                                                aria-label={`Increase ${row.label} ${col.label} quantity`}
+                                                              >
+                                                                <Plus size={12} aria-hidden="true" />
+                                                              </button>
+                                                            </div>
+                                                            <span className={styles.costsTierUnitPrice}>
+                                                              {formatPrice(tier.amount, a.currency ?? "USD")} each
+                                                            </span>
+                                                            <span className={styles.costsTierAmount}>
+                                                              {formatPrice(tier.amount * qty, a.currency ?? "USD")}
+                                                            </span>
+                                                            {tier.isPrimary && <span className={styles.todayPill}>Primary</span>}
+                                                          </div>
+                                                        ) : (
+                                                          <span className={styles.priceCellEmpty}>—</span>
+                                                        )}
+                                                      </td>
+                                                    );
+                                                  })}
+                                                </tr>
+                                              ))}
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      </div>
+                                    );
+                                  })() : a.price != null && (
                                     <div className={styles.costsTierRow}>
                                       <span className={styles.costsTierLabel}>Cost</span>
                                       <span className={styles.costsTierAmount}>{formatPrice(a.price, a.currency ?? "USD")}</span>
