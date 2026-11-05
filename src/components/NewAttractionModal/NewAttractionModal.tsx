@@ -65,6 +65,7 @@ interface FieldErrors {
   country?: string;
   types?: string;
   websiteUrl?: string;
+  seasonalHours?: string;
 }
 
 export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, prefillCountry, prefillCity, initialData, initialCoordinates, editingAttractionId, token }: NewAttractionModalProps) {
@@ -223,7 +224,11 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
+  // Turning 24/7 off would leave seasonal ranges sitting on top of a non-24/7 base, which
+  // the rule forbids — the user has to remove those ranges first, so this is blocked here
+  // (the toggle is also disabled in the UI while seasonal ranges exist).
   function handle24hToggle(checked: boolean) {
+    if (!checked && seasonalHours.length > 0) return;
     setIs24h(checked);
     if (checked) setOpeningHours(build24hHours());
   }
@@ -267,6 +272,11 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     // case, so there'd be no way to clear this error anyway.
     if (!brandId && selectedTypes.length === 0) errs.types = "Select at least one type";
     if (!isValidUrl(websiteUrl)) errs.websiteUrl = "Enter a valid URL (e.g. https://example.com)";
+    // Seasonal hours only ever layer on top of a 24/7 base — anything else would store two
+    // competing schedules. Catches data loaded from before this rule existed.
+    if (!isEditingResidence && hasSeasonalHours && !is24h) {
+      errs.seasonalHours = "Seasonal hours need Opening Hours set to 24/7 — turn on 24/7 or remove the seasonal ranges.";
+    }
     return errs;
   }
 
@@ -916,11 +926,9 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
       )}
 
       {/* Opening Hours — omitted for a residence: always treated as open 24/7, no
-          per-day pickers needed. Also omitted once any Seasonal Hours entry exists: each
-          entry has its own full weekly hours grid, and the base schedule here is never
-          used once those exist (see resolveOpeningHoursForDate) — showing it would just
-          be a dead-weight duplicate of the same UI. */}
-      {!isEditingResidence && !hasSeasonalHours && (
+          per-day pickers needed. Seasonal Hours are only allowed on top of a 24/7 base, so
+          while any seasonal range exists this stays on 24/7 and its toggle is locked. */}
+      {!isEditingResidence && (
         is24h ? (
           <div className={styles.field}>
             <div className={styles.sectionSummaryStatic}>
@@ -932,6 +940,8 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
                 aria-checked={is24h}
                 className={`${styles.toggle24h} ${styles.toggle24hActive}`}
                 onClick={() => handle24hToggle(!is24h)}
+                disabled={hasSeasonalHours}
+                title={hasSeasonalHours ? "Remove the seasonal ranges to change Opening Hours" : undefined}
               >
                 24/7
               </button>
@@ -948,6 +958,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
                 aria-checked={is24h}
                 className={styles.toggle24h}
                 onClick={(e) => { e.preventDefault(); handle24hToggle(!is24h); }}
+                disabled={hasSeasonalHours}
               >
                 24/7
               </button>
@@ -1029,8 +1040,9 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           <div className={styles.sectionBody}>
             <div className={styles.field}>
               <p className={styles.helperText}>
-                Add a date range with different hours than usual (e.g. summer 9–20, rest of the year 10–18).
-                Leave empty if hours are the same all year.
+                {is24h
+                  ? "Add a date range with different hours than usual (e.g. summer 9–20, rest of the year 10–18). Leave empty if hours are the same all year."
+                  : "Only available when Opening Hours is 24/7 — seasonal ranges layer on top of that base."}
               </p>
               {seasonalHours.map((entry, i) => (
                 <div key={entry.id} className={styles.seasonalHoursEntry}>
@@ -1064,10 +1076,18 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
                   />
                 </div>
               ))}
-              <button type="button" className={styles.addTierBtn} onClick={addSeasonalHoursEntry}>
-                <Plus size={14} aria-hidden="true" />
-                Add seasonal hours
-              </button>
+              {is24h && (
+                <button type="button" className={styles.addTierBtn} onClick={addSeasonalHoursEntry}>
+                  <Plus size={14} aria-hidden="true" />
+                  Add seasonal hours
+                </button>
+              )}
+              {errors.seasonalHours && (
+                <p className={styles.errorMsg} role="alert">
+                  <AlertCircle size={12} aria-hidden="true" />
+                  {errors.seasonalHours}
+                </p>
+              )}
             </div>
           </div>
         </details>
