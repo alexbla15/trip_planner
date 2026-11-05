@@ -202,8 +202,8 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
         : (initialData?.seasonalHours ?? []).map((entry, i) => ({
             id: `existing-${i}`,
             title: entry.title,
-            start: entry.start,
-            end: entry.end,
+            start: entry.start ?? null,
+            end: entry.end ?? null,
             hours: entry.hours,
           }))
     );
@@ -364,7 +364,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     const primaryTier = flatTiers.find((t) => t.isPrimary) ?? flatTiers[0];
     const completeSeasonalHours = seasonalHours
       .filter((entry): entry is typeof entry & { start: NonNullable<typeof entry.start>; end: NonNullable<typeof entry.end> } =>
-        entry.start !== null && entry.end !== null)
+        entry.start != null && entry.end != null)
       .map((entry) => ({ title: entry.title, start: entry.start, end: entry.end, hours: entry.hours }));
     const data: AttractionFormData = {
       name: name.trim(),
@@ -509,7 +509,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   // Once any seasonal-hours entry has both dates set, Opening Months is derived from
   // those ranges — the manual Year-round toggle/grid is replaced with a read-only note.
   // Declared before formIsValid: validate() reads hasSeasonalHours, so it must come first.
-  const seasonalHoursForMonths = seasonalHours.filter((e) => e.start !== null && e.end !== null) as
+  const seasonalHoursForMonths = seasonalHours.filter((e) => e.start != null && e.end != null) as
     { start: NonNullable<SeasonalHoursEntry["start"]>; end: NonNullable<SeasonalHoursEntry["end"]>; hours: OpeningHours }[];
   const hasSeasonalHours = seasonalHoursForMonths.length > 0;
   const derivedOpeningMonths = hasSeasonalHours ? deriveOpeningMonthsFromSeasonalHours(seasonalHoursForMonths) : [];
