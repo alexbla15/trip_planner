@@ -88,6 +88,8 @@ export {
   createBrand,
   updateBrand,
   deleteBrand,
+  fetchStaleBrandCopies,
+  clearStaleBrandCopies,
 } from "./brands.service";
 
 export { getCityBoundary, getCountryBoundary, getRegionBoundary, getWorldCountriesGeoJson } from "./geo.service";

@@ -31,3 +31,18 @@ export function deleteBrand(id: string, token: string): Promise<Response> {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
+
+export async function fetchStaleBrandCopies(token: string): Promise<number> {
+  const res = await fetch("/api/brands/stale-copies", { headers: { Authorization: `Bearer ${token}` } });
+  const data = await parseOrThrow<{ count: number }>(res);
+  return data.count;
+}
+
+export async function clearStaleBrandCopies(token: string): Promise<number> {
+  const res = await fetch("/api/brands/stale-copies", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await parseOrThrow<{ cleared: number }>(res);
+  return data.cleared;
+}
