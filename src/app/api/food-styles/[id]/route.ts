@@ -6,7 +6,7 @@ import { User } from "@/models/User";
 import { getUserFromRequest } from "@/lib/auth";
 import { withApiHandler } from "@/lib/withApiHandler";
 import { corsPreflight } from "@/lib/cors";
-import { badRequest, forbidden, notFound, serverError } from "@/lib/apiError";
+import { badRequest, conflict, forbidden, notFound, serverError } from "@/lib/apiError";
 
 export const OPTIONS = corsPreflight;
 
@@ -44,7 +44,9 @@ export const PUT = withApiHandler("PUT /api/food-styles/[id]", async (req: Reque
   return NextResponse.json(formatFoodStyle(updated));
 });
 
-/** Admin only — deletes a food style and removes it from every attraction referencing it. */
+/** Admin only — deletes a food style and removes it from every attraction referencing it.
+ *  Refuses while attractions still use it unless the caller passes `force=true`, so an
+ *  admin can't strip a style off many attractions by accident. */
 export const DELETE = withApiHandler("DELETE /api/food-styles/[id]", async (req: Request, { params }: Params) => {
   const { id } = await params;
   const payload = getUserFromRequest(req);
@@ -53,6 +55,14 @@ export const DELETE = withApiHandler("DELETE /api/food-styles/[id]", async (req:
   const caller = await User.findById(payload.userId).select("role");
   if (caller?.role !== "admin") {
     throw forbidden("Forbidden");
+  }
+
+  const force = new URL(req.url).searchParams.get("force") === "true";
+  if (!force) {
+    const inUse = await Attraction.countDocuments({ foodStyles: id });
+    if (inUse > 0) {
+      throw conflict(`This food style is used by ${inUse} attraction${inUse === 1 ? "" : "s"}. Delete it anyway?`, "IN_USE");
+    }
   }
 
   const deleted = await FoodStyle.findByIdAndDelete(id);

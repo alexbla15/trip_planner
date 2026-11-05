@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -45,6 +45,8 @@ import {
   createBrand,
   updateBrand,
   deleteBrand,
+  fetchStaleBrandCopies,
+  clearStaleBrandCopies,
   ApiError,
 } from "@/services";
 import { getIconComponent, renderTypeIcon, IconPicker, SectionCard, BrandModal } from "@/components";
@@ -492,6 +494,33 @@ export function AdminClient() {
   const [brandDeleting, setBrandDeleting]   = useState(false);
   const [viewingBrandId, setViewingBrandId] = useState<string | null>(null);
   const [addingBrand, setAddingBrand]       = useState(false);
+  // Attractions still holding their own copy of brand types/styles (should be none — they
+  // live-fall-back to the brand). Refreshed whenever the brand list changes.
+  const [staleBrandCopies, setStaleBrandCopies] = useState(0);
+  const [clearingStaleCopies, setClearingStaleCopies] = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    fetchStaleBrandCopies(token)
+      .then((n) => { if (!cancelled) setStaleBrandCopies(n); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [token, brandRecords]);
+
+  async function handleClearStaleCopies() {
+    if (!token) return;
+    setClearingStaleCopies(true);
+    try {
+      const cleared = await clearStaleBrandCopies(token);
+      setStaleBrandCopies(0);
+      toast.success(`Cleared ${cleared} stale copies`);
+    } catch {
+      toast.error("Couldn't clean up. Please try again.");
+    } finally {
+      setClearingStaleCopies(false);
+    }
+  }
 
   const loading = authLoading || typesLoading;
 
@@ -592,11 +621,21 @@ export function AdminClient() {
   async function handleFoodStyleDelete(id: string) {
     if (!token) return;
     setFoodStyleDeleting(true);
-    await deleteFoodStyle(id, token);
+    let res = await deleteFoodStyle(id, token);
+    // Still used by attractions: the server refuses until the admin confirms the removal.
+    if (res.status === 409) {
+      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!window.confirm(body?.error ?? "This food style is still in use. Delete it anyway?")) {
+        setFoodStyleDeleting(false);
+        return;
+      }
+      res = await deleteFoodStyle(id, token, true);
+    }
     invalidateFoodStylesCache();
     setFoodStyleDeleting(false);
     setFoodStyleDeleteId(null);
-    toast.success("Food style deleted");
+    if (res.ok) toast.success("Food style deleted");
+    else toast.error("Couldn't delete the food style. Please try again.");
   }
 
   function handleFoodStyleFormDone() {
@@ -1095,6 +1134,18 @@ export function AdminClient() {
             </button>
           }
         >
+          {staleBrandCopies > 0 && (
+            <div className={styles.staleNotice} role="status">
+              <span>
+                {staleBrandCopies} brand-linked attraction{staleBrandCopies === 1 ? " still has" : "s still have"} their own
+                types or styles instead of following the brand.
+              </span>
+              <button type="button" className={styles.staleNoticeBtn} onClick={handleClearStaleCopies} disabled={clearingStaleCopies}>
+                {clearingStaleCopies ? "Cleaning up…" : "Clean up"}
+              </button>
+            </div>
+          )}
+
           {brandsLoading ? (
             <div className={styles.center}><Loader2 size={24} className={styles.spin} /></div>
           ) : (
