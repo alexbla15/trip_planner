@@ -308,10 +308,27 @@ button.typeChip {
 }
 
 .locationsTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 13px;
   font-weight: 700;
   color: var(--color-text-primary);
   margin: 0 0 10px;
+}
+
+.notesSection {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.notesText {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  margin: 0;
+  white-space: pre-wrap;
 }
 
 .locationFilters {

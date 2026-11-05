@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Store, Pencil, Trash2, Loader2, MapPin, X as XIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { Store, Pencil, Trash2, Loader2, MapPin, X as XIcon, ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import { ModalShell } from "@/components/Modal";
 import { SearchableSelect } from "@/components/SearchableSelect";
 import { CoverImageField } from "@/components/CoverImageField";
@@ -398,7 +398,15 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted, createMode = f
               })}
             </div>
           )}
-          {brand.notes && <p className={styles.hint}>{brand.notes}</p>}
+          {brand.notes && (
+            <div className={styles.notesSection}>
+              <h3 className={styles.locationsTitle}>
+                <FileText size={13} aria-hidden="true" />
+                Notes
+              </h3>
+              <p className={styles.notesText}>{brand.notes}</p>
+            </div>
+          )}
 
           <div className={styles.locationsSection}>
             <h3 className={styles.locationsTitle}>
