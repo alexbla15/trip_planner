@@ -506,13 +506,15 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     onClose();
   }
 
-  const formIsValid = Object.keys(validate()).length === 0;
   // Once any seasonal-hours entry has both dates set, Opening Months is derived from
   // those ranges — the manual Year-round toggle/grid is replaced with a read-only note.
+  // Declared before formIsValid: validate() reads hasSeasonalHours, so it must come first.
   const seasonalHoursForMonths = seasonalHours.filter((e) => e.start !== null && e.end !== null) as
     { start: NonNullable<SeasonalHoursEntry["start"]>; end: NonNullable<SeasonalHoursEntry["end"]>; hours: OpeningHours }[];
   const hasSeasonalHours = seasonalHoursForMonths.length > 0;
   const derivedOpeningMonths = hasSeasonalHours ? deriveOpeningMonthsFromSeasonalHours(seasonalHoursForMonths) : [];
+
+  const formIsValid = Object.keys(validate()).length === 0;
 
   return (
     <>
