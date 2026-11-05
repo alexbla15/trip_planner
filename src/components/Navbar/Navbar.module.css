@@ -357,7 +357,13 @@ button.mobileNavLink {
   border: none;
   background: none;
   cursor: pointer;
-  font: inherit;
+  /* Only the family needs normalizing (buttons don't inherit it by default) — the
+     shorthand `font: inherit` also resets size/weight to inherit-from-parent, which
+     clobbered the 14px/500 (mobile: 15px/500) set on .dropdownLink/.mobileNavLink above,
+     so a <button> variant of these items (e.g. "Download Backup") rendered in a
+     different size/weight than the sibling <Link> items ("My Profile", "Log out").
+     Leaving size/weight untouched here lets those rules' own values win instead. */
+  font-family: inherit;
   text-align: left;
 }
 
