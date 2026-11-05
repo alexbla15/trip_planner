@@ -1224,133 +1224,206 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ── Price tiers/tabs/columns — same shape and tokens as AttractionDetailModal's own
-   price table, so a trip's Costs breakdown reads as the identical grid for a given
-   attraction, just with a quantity stepper per cell instead of a plain price. ── */
-.costsPriceBlock {
+/* ── Costs header actions (Add expense + Save) ── */
+.costsHeaderActions {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
 }
 
-.priceTabs {
+.costsSaveBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--easing-out),
+    border-color var(--duration-fast) var(--easing-out),
+    color var(--duration-fast) var(--easing-out);
+}
+
+.costsSaveBtnActive {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.costsSaveBtnActive:hover {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.costsSaveBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.costsSaveBtnOk {
+  border-color: var(--color-success);
+  color: var(--color-success);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.costsSaveBtnOk:hover {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.costsSaveErrorText {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--color-error);
+}
+
+/* ── Scoping note shown in the add-expense form when opened from a specific
+   attraction's row rather than the whole-trip "Add expense" button ── */
+.customExpenseScopeNote {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.customExpenseScopeClear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* ── Day tabs — one per trip day, replacing the old vertical day-by-day stack ── */
+.costsDayTabs {
   display: flex;
   gap: 2px;
   border-bottom: 1px solid var(--color-border);
   overflow-x: auto;
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
+  margin-bottom: 12px;
 }
 
-.priceTab {
+.costsDayTab {
   flex-shrink: 0;
-  padding: 6px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 14px;
   border: none;
   border-bottom: 3px solid transparent;
   background: transparent;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--color-text-secondary);
   cursor: pointer;
   transition: all var(--duration-fast) var(--easing-out);
   font-family: inherit;
   white-space: nowrap;
 }
 
-.priceTab:hover {
-  color: var(--color-text-primary);
-}
-
-.priceTabActive {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
-  font-weight: 600;
-}
-
-.priceTableScroll {
-  overflow-x: auto;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-subtle);
-}
-
-.priceTable {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-
-.priceTable thead {
+.costsDayTab:hover {
   background: var(--color-bg-subtle);
 }
 
-.priceTable thead th {
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--color-border);
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--color-text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  text-align: left;
-  white-space: nowrap;
+.costsDayTabActive {
+  border-bottom-color: var(--color-primary);
 }
 
-.priceColField {
-  min-width: 90px;
-}
-
-.priceColVisitor {
-  min-width: 120px;
-  text-align: left;
-  vertical-align: top;
-}
-
-.priceRow {
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-
-.priceRow:last-child {
-  border-bottom: none;
-}
-
-.priceRow td {
-  padding: 6px 10px;
+.costsDayTabLabel {
+  font-size: 13px;
+  font-weight: 500;
   color: var(--color-text-secondary);
 }
 
-.priceLabel {
-  font-weight: 600;
-  color: var(--color-text-primary);
+.costsDayTabActive .costsDayTabLabel {
+  color: var(--color-primary);
+  font-weight: 700;
 }
 
-.priceCellEmpty {
+.costsDayTabAmount {
+  font-size: 11px;
   color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
 }
 
-/* Highlighted per the user's own choice (quantity > 0) — distinct from `isPrimary`
-   (the venue's own suggested default, shown as the "Primary" pill below instead). */
-.priceCellSelected {
-  background: var(--color-primary-light);
-}
-
-.costsCellInner {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-}
-
-.todayPill {
+/* ── Per-row "View prices" popup trigger + "+ expense" button ── */
+.costsViewPricesBtn {
   display: inline-flex;
   align-items: center;
-  padding: 1px 6px;
+  gap: 6px;
+  align-self: flex-start;
+  height: 30px;
+  padding: 0 12px;
   border-radius: var(--radius-full);
-  background: var(--color-primary);
-  color: #fff;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--easing-out);
+}
+
+.costsViewPricesBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.costsAddExpenseBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--easing-out);
+}
+
+.costsAddExpenseBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* ── Expenses nested under their own attraction's cost row ── */
+.costsNestedExpenseList {
+  list-style: none;
+  padding: 8px 0 0;
+  margin: 8px 0 0;
+  border-top: 1px dashed var(--color-border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.costsNestedExpenseRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.costsNestedExpenseLabel {
+  flex: 1;
+  color: var(--color-text-secondary);
 }
 
 .costsTotals {

@@ -29,6 +29,7 @@ import {
   Compass,
   Minus,
   X,
+  Wallet,
 } from "lucide-react";
 import {
   MoodTagChip,
@@ -60,7 +61,7 @@ import type {
 import { FlightsList } from "./FlightsList";
 import { ResidencesList } from "./ResidencesList";
 import { CalendarSection } from "./CalendarSection";
-import { buildPriceTierTabs, buildPricePivot } from "@/components/AttractionDetailModal/AttractionDetailModal.utils";
+import { CostsPriceTierModal } from "./CostsPriceTierModal";
 import type { PriceTier } from "@/types/attraction";
 import { useAttractionTypes } from "@/hooks";
 import { useAuth } from "@/contexts/AuthContext";
@@ -652,8 +653,21 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scheduledCostRows, customExpenses, fxRates, trip?.currency]);
 
-  async function handleChangeCostTierQty(a: Attraction, tier: PriceTier, delta: number) {
-    if (!token || !trip) return;
+  // Price-tier quantity edits are local-only until "Save" (below) flushes them — same
+  // deferred-save pattern as CalendarSection's itinerary editor (pending Map + explicit
+  // Save button), instead of a network round trip on every single +/- click.
+  const [costsPending, setCostsPending] = useState<Map<string, { label: string; quantity: number; product?: string; visitorType?: string }[]>>(new Map());
+  const [costsSaving, setCostsSaving] = useState(false);
+  const [costsSavedOk, setCostsSavedOk] = useState(false);
+  const [costsSaveError, setCostsSaveError] = useState("");
+  const costsHasPending = costsPending.size > 0;
+
+  // Which day's costs are shown (one tab per day, like the itinerary's own day switcher)
+  // and which attraction's price-tier table is currently open as a popup.
+  const [activeCostDay, setActiveCostDay] = useState<string | null>(null);
+  const [costTierModalAttractionId, setCostTierModalAttractionId] = useState<string | null>(null);
+
+  function handleChangeCostTierQty(a: Attraction, tier: PriceTier, delta: number) {
     const current = quantitiesFor(a);
     const key = tierIdentityKey(tier.label, tier.product, tier.visitorType);
     const existing = current.find((q) => tierIdentityKey(q.label, q.product, q.visitorType) === key);
@@ -662,12 +676,34 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
       ? current.map((q) => (tierIdentityKey(q.label, q.product, q.visitorType) === key ? { ...q, quantity: nextQty } : q))
       : [...current, { label: tier.label, quantity: nextQty, product: tier.product, visitorType: tier.visitorType }];
     setAttractions((prev) => prev.map((x) => (x._id === a._id ? { ...x, priceTierQuantities: next } : x)));
+    setCostsPending((prev) => {
+      const nextMap = new Map(prev);
+      nextMap.set(a._id, next);
+      return nextMap;
+    });
+    setCostsSavedOk(false);
+  }
+
+  async function handleSaveCosts() {
+    if (!token || !trip) return;
+    if (costsPending.size === 0) { setCostsSaveError("No unsaved changes."); return; }
+    setCostsSaving(true);
+    setCostsSaveError("");
+    setCostsSavedOk(false);
     try {
-      const res = await updateTripAttractionSchedule(trip._id, a._id, token, { priceTierQuantities: next });
-      if (!res.ok) throw new Error("Failed to save cost selection");
+      await Promise.all(
+        [...costsPending.entries()].map(async ([id, priceTierQuantities]) => {
+          const res = await updateTripAttractionSchedule(trip._id, id, token, { priceTierQuantities });
+          if (!res.ok) throw new Error("Save failed");
+        })
+      );
+      setCostsPending(new Map());
+      setCostsSavedOk(true);
+      setTimeout(() => setCostsSavedOk(false), 3000);
     } catch {
-      setAttractions((prev) => prev.map((x) => (x._id === a._id ? { ...x, priceTierQuantities: current } : x)));
-      toast.error("Couldn't save cost selection. Please try again.");
+      setCostsSaveError("Couldn't save cost changes. Please try again.");
+    } finally {
+      setCostsSaving(false);
     }
   }
 
@@ -676,11 +712,20 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   const [customExpenseAmount, setCustomExpenseAmount] = useState("");
   const [customExpenseCurrency, setCustomExpenseCurrency] = useState(trip?.currency ?? "USD");
   const [customExpenseDate, setCustomExpenseDate] = useState("");
+  // Set when "+ Expense" is opened from a specific attraction's row rather than the
+  // whole-trip "Add expense" button — the new expense is tied to that attraction and
+  // nests under its cost row instead of the day's general expense list.
+  const [customExpenseAttractionId, setCustomExpenseAttractionId] = useState<string | null>(null);
   const [customExpenseSaving, setCustomExpenseSaving] = useState(false);
 
-  function openCustomExpenseForm() {
+  // `forAttraction` scopes the new expense to that attraction (nests it under the
+  // attraction's own cost row instead of the day's general list) and prefills its day to
+  // match — omit for the whole-trip "Add expense" button at the top of the tab.
+  function openCustomExpenseForm(forAttraction?: Attraction) {
     setCustomExpenseCurrency(trip?.currency ?? "USD");
-    setCustomExpenseFormOpen((v) => !v);
+    setCustomExpenseAttractionId(forAttraction?._id ?? null);
+    if (forAttraction?.plannedDate) setCustomExpenseDate(forAttraction.plannedDate);
+    setCustomExpenseFormOpen(true);
   }
 
   async function handleAddCustomExpense() {
@@ -689,8 +734,8 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     if (!customExpenseLabel.trim() || isNaN(amount)) return;
     setCustomExpenseSaving(true);
     const next = [
-      ...customExpenses.map((e) => ({ label: e.label, amount: e.amount, currency: e.currency, date: e.date })),
-      { label: customExpenseLabel.trim(), amount, currency: customExpenseCurrency, date: customExpenseDate || null },
+      ...customExpenses.map((e) => ({ label: e.label, amount: e.amount, currency: e.currency, date: e.date, attractionId: e.attractionId })),
+      { label: customExpenseLabel.trim(), amount, currency: customExpenseCurrency, date: customExpenseDate || null, attractionId: customExpenseAttractionId },
     ];
     try {
       const res = await updateTrip(trip._id, token, { customExpenses: next });
@@ -700,6 +745,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
       setCustomExpenseLabel("");
       setCustomExpenseAmount("");
       setCustomExpenseDate("");
+      setCustomExpenseAttractionId(null);
       setCustomExpenseFormOpen(false);
       toast.success("Expense added");
     } catch {
@@ -712,26 +758,43 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   // Groups every scheduled cost row + custom expense by trip day (plus a trailing "No
   // specific day" bucket for custom expenses with no date, or a stray row whose
   // plannedDate somehow falls outside the trip's own date range) — days with nothing
-  // in them are dropped rather than showing a run of empty day sections.
+  // in them are dropped rather than showing a run of empty day sections. Each day's
+  // expenses are further split into general (shown in the day's own list) and
+  // attraction-scoped (shown nested under that attraction's row instead).
   const costsByDay = useMemo(() => {
-    const perDay = tripDays.map((day) => ({
-      day,
-      label: formatDayLabel(day),
-      rows: scheduledCostRows.filter((a) => a.plannedDate === day),
-      expenses: customExpenses.filter((e) => e.date === day),
-    }));
+    const perDay = tripDays.map((day) => {
+      const dayExpenses = customExpenses.filter((e) => e.date === day);
+      return {
+        day,
+        label: formatDayLabel(day),
+        rows: scheduledCostRows.filter((a) => a.plannedDate === day),
+        expenses: dayExpenses.filter((e) => !e.attractionId),
+        attractionExpenses: dayExpenses.filter((e) => !!e.attractionId),
+      };
+    });
     const noDateExpenses = customExpenses.filter((e) => !e.date);
     const strayRows = scheduledCostRows.filter((a) => !tripDays.includes(a.plannedDate!));
     const extra = noDateExpenses.length > 0 || strayRows.length > 0
-      ? [{ day: null as string | null, label: "No specific day", rows: strayRows, expenses: noDateExpenses }]
+      ? [{
+          day: null as string | null, label: "No specific day", rows: strayRows,
+          expenses: noDateExpenses.filter((e) => !e.attractionId),
+          attractionExpenses: noDateExpenses.filter((e) => !!e.attractionId),
+        }]
       : [];
-    return [...perDay, ...extra].filter((d) => d.rows.length > 0 || d.expenses.length > 0);
+    return [...perDay, ...extra].filter((d) => d.rows.length > 0 || d.expenses.length > 0 || d.attractionExpenses.length > 0);
   }, [tripDays, scheduledCostRows, customExpenses]);
 
-  function daySubtotal(rows: Attraction[], expenses: CustomExpense[]): number {
+  // Keeps the selected day tab valid as the day list changes (e.g. the active day's last
+  // cost row gets removed) — falls back to the first day with anything in it.
+  useEffect(() => {
+    if (costsByDay.length === 0) { setActiveCostDay(null); return; }
+    if (!costsByDay.some((d) => d.day === activeCostDay)) setActiveCostDay(costsByDay[0].day);
+  }, [costsByDay, activeCostDay]);
+
+  function daySubtotal(rows: Attraction[], expenses: CustomExpense[], attractionExpenses: CustomExpense[]): number {
     let total = 0;
     for (const a of rows) total += toTripCurrency(costForRow(a), a.currency ?? "USD");
-    for (const e of expenses) total += toTripCurrency(e.amount, e.currency ?? trip?.currency ?? "USD");
+    for (const e of [...expenses, ...attractionExpenses]) total += toTripCurrency(e.amount, e.currency ?? trip?.currency ?? "USD");
     return total;
   }
 
@@ -739,7 +802,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     if (!token || !trip) return;
     const next = customExpenses
       .filter((e) => e._id !== expenseId)
-      .map((e) => ({ label: e.label, amount: e.amount, date: e.date }));
+      .map((e) => ({ label: e.label, amount: e.amount, currency: e.currency, date: e.date, attractionId: e.attractionId }));
     try {
       const res = await updateTrip(trip._id, token, { customExpenses: next });
       if (!res.ok) throw new Error("Failed to remove expense");
@@ -1417,20 +1480,46 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
               <div className={styles.card}>
                 <div className={styles.attractionsHeader}>
                   <h2 className={styles.sectionHeading}>Costs</h2>
-                  {effectiveCanEdit && (
-                    <button
-                      type="button"
-                      className={styles.addBtn}
-                      onClick={openCustomExpenseForm}
-                    >
-                      <Plus size={14} aria-hidden="true" />
-                      Add expense
-                    </button>
-                  )}
+                  <div className={styles.costsHeaderActions}>
+                    {effectiveCanEdit && (
+                      <button
+                        type="button"
+                        className={styles.addBtn}
+                        onClick={() => openCustomExpenseForm()}
+                      >
+                        <Plus size={14} aria-hidden="true" />
+                        Add expense
+                      </button>
+                    )}
+                    {effectiveCanEdit && (
+                      <button
+                        type="button"
+                        className={`${styles.costsSaveBtn} ${costsHasPending ? styles.costsSaveBtnActive : ""} ${costsSavedOk ? styles.costsSaveBtnOk : ""}`}
+                        onClick={handleSaveCosts}
+                        disabled={costsSaving}
+                        aria-label={costsHasPending ? "Save cost changes" : "No unsaved cost changes"}
+                      >
+                        {costsSaving
+                          ? <><Loader2 size={13} className={styles.loadingIcon} aria-hidden="true" /> Saving…</>
+                          : costsSavedOk
+                            ? <><Check size={13} aria-hidden="true" /> Saved ✓</>
+                            : <><Check size={13} aria-hidden="true" /> {costsHasPending ? "Save *" : "Save"}</>}
+                      </button>
+                    )}
+                  </div>
                 </div>
+                {costsSaveError && <p className={styles.costsSaveErrorText}>{costsSaveError}</p>}
 
                 {customExpenseFormOpen && (
                   <div className={styles.customExpenseForm}>
+                    {customExpenseAttractionId && (
+                      <span className={styles.customExpenseScopeNote}>
+                        For {attractions.find((a) => a._id === customExpenseAttractionId)?.name ?? "this attraction"}
+                        <button type="button" className={styles.customExpenseScopeClear} onClick={() => setCustomExpenseAttractionId(null)}>
+                          <X size={11} aria-hidden="true" />
+                        </button>
+                      </span>
+                    )}
                     <input
                       type="text"
                       placeholder="e.g. Taxi from airport"
@@ -1482,153 +1571,119 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                   </p>
                 ) : (
                   <>
-                    <div className={styles.costsDayList}>
-                      {costsByDay.map(({ day, label, rows, expenses }) => {
-                        const subtotal = daySubtotal(rows, expenses);
+                    {/* One tab per day, like the itinerary's own day switcher — the Costs
+                        tab used to stack every day vertically, which got unwieldy fast on
+                        a long trip. */}
+                    <div className={styles.costsDayTabs} role="tablist" aria-label="Costs by day">
+                      {costsByDay.map((d) => {
+                        const subtotal = daySubtotal(d.rows, d.expenses, d.attractionExpenses);
                         return (
-                          <div key={day ?? "no-date"} className={styles.costsDaySection}>
-                            <div className={styles.costsDayHeader}>
-                              <h3 className={styles.costsDayTitle}>{label}</h3>
-                              <span className={styles.costsDaySubtotal}>
-                                {formatPrice(subtotal, trip?.currency ?? "USD")}
-                              </span>
-                            </div>
-                            <ul className={styles.costsList}>
-                              {rows.map((a) => (
+                          <button
+                            key={d.day ?? "no-date"}
+                            type="button"
+                            role="tab"
+                            aria-selected={activeCostDay === d.day}
+                            className={`${styles.costsDayTab} ${activeCostDay === d.day ? styles.costsDayTabActive : ""}`}
+                            onClick={() => setActiveCostDay(d.day)}
+                          >
+                            <span className={styles.costsDayTabLabel}>{d.label}</span>
+                            <span className={styles.costsDayTabAmount}>{formatPrice(subtotal, trip?.currency ?? "USD")}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {(() => {
+                      const activeDay = costsByDay.find((d) => d.day === activeCostDay);
+                      if (!activeDay) return null;
+                      const { rows, expenses, attractionExpenses } = activeDay;
+                      return (
+                        <div className={styles.costsDaySection}>
+                          <ul className={styles.costsList}>
+                            {rows.map((a) => {
+                              const ownExpenses = attractionExpenses.filter((e) => e.attractionId === a._id);
+                              const selectedCount = quantitiesFor(a).reduce((sum, q) => sum + q.quantity, 0);
+                              return (
                                 <li key={a._id} className={styles.costsRow}>
                                   <div className={styles.costsRowHeader}>
                                     <span className={styles.costsRowName}>{a.name}</span>
+                                    {effectiveCanEdit && (
+                                      <button
+                                        type="button"
+                                        className={styles.costsAddExpenseBtn}
+                                        onClick={() => openCustomExpenseForm(a)}
+                                        aria-label={`Add expense for ${a.name}`}
+                                        title="Add expense for this attraction"
+                                      >
+                                        <Plus size={12} aria-hidden="true" />
+                                      </button>
+                                    )}
                                   </div>
-                                  {a.prices?.length ? (() => {
-                                    // Same grouping/pivoting the attraction's own detail card
-                                    // uses (buildPriceTierTabs/buildPricePivot) — one tab per
-                                    // product, each tab a Tier x Visitor Type grid — so the
-                                    // Costs tab reads as the identical table, just with a
-                                    // quantity stepper per cell instead of a plain price.
-                                    const priceTabs = buildPriceTierTabs(a.prices);
-                                    const showTabs = priceTabs.length > 1;
-                                    const activeIdx = Math.min(activeCostTab[a._id] ?? 0, priceTabs.length - 1);
-                                    const pivot = buildPricePivot(priceTabs[activeIdx].tiers);
-                                    return (
-                                      <div className={styles.costsPriceBlock}>
-                                        {showTabs && (
-                                          <div className={styles.priceTabs} role="tablist" aria-label={`${a.name} price options`}>
-                                            {priceTabs.map((tab, i) => (
-                                              <button
-                                                key={tab.key}
-                                                type="button"
-                                                role="tab"
-                                                aria-selected={i === activeIdx}
-                                                className={`${styles.priceTab} ${i === activeIdx ? styles.priceTabActive : ""}`}
-                                                onClick={() => setActiveCostTab((prev) => ({ ...prev, [a._id]: i }))}
-                                              >
-                                                {tab.label}
-                                              </button>
-                                            ))}
-                                          </div>
-                                        )}
-                                        <div className={styles.priceTableScroll}>
-                                          <table key={priceTabs[activeIdx].key} className={styles.priceTable} aria-label={`${priceTabs[activeIdx].label} pricing`}>
-                                            <thead>
-                                              <tr>
-                                                <th className={styles.priceColField} scope="col">Tier</th>
-                                                {pivot.columns.map((col) => (
-                                                  <th key={col.key} className={styles.priceColVisitor} scope="col">{col.label}</th>
-                                                ))}
-                                              </tr>
-                                            </thead>
-                                            <tbody>
-                                              {pivot.rows.map((row) => (
-                                                <tr key={row.label} className={styles.priceRow}>
-                                                  <td className={styles.priceColField}>
-                                                    <span className={styles.priceLabel}>{row.label}</span>
-                                                  </td>
-                                                  {pivot.columns.map((col) => {
-                                                    const tier = row.cells.get(col.key);
-                                                    const qty = tier ? quantityForTier(a, tier) : 0;
-                                                    return (
-                                                      <td
-                                                        key={col.key}
-                                                        className={`${styles.priceColVisitor} ${qty > 0 ? styles.priceCellSelected : ""}`}
-                                                      >
-                                                        {tier ? (
-                                                          <div className={styles.costsCellInner}>
-                                                            <div className={styles.costsQtyStepper}>
-                                                              <button
-                                                                type="button"
-                                                                className={styles.costsQtyBtn}
-                                                                onClick={() => handleChangeCostTierQty(a, tier, -1)}
-                                                                disabled={!effectiveCanEdit || qty === 0}
-                                                                aria-label={`Decrease ${row.label} ${col.label} quantity`}
-                                                              >
-                                                                <Minus size={12} aria-hidden="true" />
-                                                              </button>
-                                                              <span className={styles.costsQtyValue}>{qty}</span>
-                                                              <button
-                                                                type="button"
-                                                                className={styles.costsQtyBtn}
-                                                                onClick={() => handleChangeCostTierQty(a, tier, 1)}
-                                                                disabled={!effectiveCanEdit}
-                                                                aria-label={`Increase ${row.label} ${col.label} quantity`}
-                                                              >
-                                                                <Plus size={12} aria-hidden="true" />
-                                                              </button>
-                                                            </div>
-                                                            <span className={styles.costsTierUnitPrice}>
-                                                              {formatPrice(tier.amount, a.currency ?? "USD")} each
-                                                            </span>
-                                                            <span className={styles.costsTierAmount}>
-                                                              {formatPrice(tier.amount * qty, a.currency ?? "USD")}
-                                                            </span>
-                                                            {tier.isPrimary && <span className={styles.todayPill}>Primary</span>}
-                                                          </div>
-                                                        ) : (
-                                                          <span className={styles.priceCellEmpty}>—</span>
-                                                        )}
-                                                      </td>
-                                                    );
-                                                  })}
-                                                </tr>
-                                              ))}
-                                            </tbody>
-                                          </table>
-                                        </div>
-                                      </div>
-                                    );
-                                  })() : a.price != null && (
+                                  {a.prices?.length ? (
+                                    <button
+                                      type="button"
+                                      className={styles.costsViewPricesBtn}
+                                      onClick={() => setCostTierModalAttractionId(a._id)}
+                                    >
+                                      <Wallet size={13} aria-hidden="true" />
+                                      {selectedCount > 0
+                                        ? `${selectedCount} selected · ${formatPrice(costForRow(a), a.currency ?? "USD")}`
+                                        : "View prices"}
+                                    </button>
+                                  ) : a.price != null && (
                                     <div className={styles.costsTierRow}>
                                       <span className={styles.costsTierLabel}>Cost</span>
                                       <span className={styles.costsTierAmount}>{formatPrice(a.price, a.currency ?? "USD")}</span>
                                     </div>
                                   )}
+                                  {ownExpenses.length > 0 && (
+                                    <ul className={styles.costsNestedExpenseList}>
+                                      {ownExpenses.map((e) => (
+                                        <li key={e._id} className={styles.costsNestedExpenseRow}>
+                                          <span className={styles.costsNestedExpenseLabel}>{e.label}</span>
+                                          <span className={styles.costsTierAmount}>{formatPrice(e.amount, e.currency ?? trip?.currency ?? "USD")}</span>
+                                          {effectiveCanEdit && (
+                                            <button
+                                              type="button"
+                                              className={styles.removeBtn}
+                                              onClick={() => handleRemoveCustomExpense(e._id)}
+                                              aria-label={`Remove ${e.label}`}
+                                            >
+                                              <X size={12} aria-hidden="true" />
+                                            </button>
+                                          )}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
                                 </li>
-                              ))}
-                              {expenses.map((e) => (
-                                <li key={e._id} className={styles.costsRow}>
-                                  <div className={styles.costsRowHeader}>
-                                    <span className={styles.costsRowName}>{e.label}</span>
-                                    {effectiveCanEdit && (
-                                      <button
-                                        type="button"
-                                        className={styles.removeBtn}
-                                        onClick={() => handleRemoveCustomExpense(e._id)}
-                                        aria-label={`Remove ${e.label}`}
-                                      >
-                                        <X size={14} aria-hidden="true" />
-                                      </button>
-                                    )}
-                                  </div>
-                                  <div className={styles.costsTierRow}>
-                                    <span className={styles.costsTierLabel}>Custom expense</span>
-                                    <span className={styles.costsTierAmount}>{formatPrice(e.amount, e.currency ?? trip?.currency ?? "USD")}</span>
-                                  </div>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        );
-                      })}
-                    </div>
+                              );
+                            })}
+                            {expenses.map((e) => (
+                              <li key={e._id} className={styles.costsRow}>
+                                <div className={styles.costsRowHeader}>
+                                  <span className={styles.costsRowName}>{e.label}</span>
+                                  {effectiveCanEdit && (
+                                    <button
+                                      type="button"
+                                      className={styles.removeBtn}
+                                      onClick={() => handleRemoveCustomExpense(e._id)}
+                                      aria-label={`Remove ${e.label}`}
+                                    >
+                                      <X size={14} aria-hidden="true" />
+                                    </button>
+                                  )}
+                                </div>
+                                <div className={styles.costsTierRow}>
+                                  <span className={styles.costsTierLabel}>Custom expense</span>
+                                  <span className={styles.costsTierAmount}>{formatPrice(e.amount, e.currency ?? trip?.currency ?? "USD")}</span>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })()}
 
                     <div className={styles.costsTotals}>
                       <span className={styles.costsTotalsLabel}>Total</span>
@@ -1698,6 +1753,22 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
             : undefined
         }
       />
+
+      {costTierModalAttractionId && (() => {
+        const modalAttraction = attractions.find((a) => a._id === costTierModalAttractionId);
+        if (!modalAttraction) return null;
+        return (
+          <CostsPriceTierModal
+            attraction={modalAttraction}
+            onClose={() => setCostTierModalAttractionId(null)}
+            canEdit={effectiveCanEdit}
+            activeTab={activeCostTab[modalAttraction._id] ?? 0}
+            onTabChange={(i) => setActiveCostTab((prev) => ({ ...prev, [modalAttraction._id]: i }))}
+            getQty={(tier) => quantityForTier(modalAttraction, tier)}
+            onChangeQty={(tier, delta) => handleChangeCostTierQty(modalAttraction, tier, delta)}
+          />
+        );
+      })()}
 
       {/* No existingAttractionIds here, deliberately: unlike regular attractions, re-picking the
           same residence for a second stay (different dates) within the same trip is legitimate —

@@ -15,6 +15,9 @@ export interface CustomExpense {
   /** YYYY-MM-DD — which day of the trip this belongs to on the Costs tab. Null means a
    *  general trip expense not tied to a specific day. */
   date?: string | null;
+  /** The attraction this expense is for — shown nested under that attraction's own cost
+   *  row instead of the day's general expense list. Null means a general expense. */
+  attractionId?: string | null;
 }
 
 /** A day's alternate plan — name/id only; its actual schedule content isn't shipped to

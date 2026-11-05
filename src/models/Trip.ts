@@ -78,6 +78,12 @@ export interface ICustomExpense {
    *  this expense belongs to on the Costs tab's daily breakdown. Absent/null means a
    *  general trip expense not tied to a specific day. */
   date?: string | null;
+  /** The attraction this expense was added "for" (e.g. a venue's cloakroom fee, a guided
+   *  tour add-on not captured by its own price tiers) — shown nested under that
+   *  attraction's own cost row instead of the day's general expense list. Absent/null
+   *  means a general expense not tied to any one attraction (unchanged from before this
+   *  field existed). Purely a display grouping — doesn't affect the day/total math. */
+  attractionId?: string | null;
 }
 
 export interface ITrip extends Document {
@@ -114,10 +120,11 @@ const CollaboratorSchema = new Schema<ICollaborator>(
 );
 
 const CustomExpenseSchema = new Schema<ICustomExpense>({
-  label:    { type: String, required: true, trim: true },
-  amount:   { type: Number, required: true },
-  currency: { type: String },
-  date:     { type: String, default: null },
+  label:        { type: String, required: true, trim: true },
+  amount:       { type: Number, required: true },
+  currency:     { type: String },
+  date:         { type: String, default: null },
+  attractionId: { type: String, default: null },
 });
 
 const ScheduleEntrySchema = new Schema<IScheduleEntry>(
@@ -249,6 +256,7 @@ export function formatTrip(doc: ITrip): import("@/types/trip").Trip {
       amount: e.amount,
       currency: e.currency,
       date: e.date ?? null,
+      attractionId: e.attractionId ?? null,
     })),
     // userId is populated via .populate('collaborators.userId', 'name email avatarUrl'); a
     // collaborator whose user document was deleted populates to null — drop that entry rather
