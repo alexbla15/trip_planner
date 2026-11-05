@@ -645,6 +645,14 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
     return rate != null ? amount * rate : amount;
   }
 
+  // Every cost amount on the Costs tab is displayed in the trip's own currency — this is
+  // the one formatter all of them go through so none falls back to its source currency.
+  function formatInTripCurrency(amount: number, currency: string): string {
+    return formatPrice(toTripCurrency(amount, currency), trip?.currency ?? "USD");
+  }
+
+  const costsConverting = [...foreignCostCurrencies].some((c) => !(c in fxRates));
+
   const costTotal = useMemo(() => {
     let total = 0;
     for (const a of scheduledCostRows) total += toTripCurrency(costForRow(a), a.currency ?? "USD");
@@ -1627,13 +1635,13 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                                     >
                                       <Wallet size={13} aria-hidden="true" />
                                       {selectedCount > 0
-                                        ? `${selectedCount} selected · ${formatPrice(costForRow(a), a.currency ?? "USD")}`
+                                        ? `${selectedCount} selected · ${formatInTripCurrency(costForRow(a), a.currency ?? "USD")}`
                                         : "View prices"}
                                     </button>
                                   ) : a.price != null && (
                                     <div className={styles.costsTierRow}>
                                       <span className={styles.costsTierLabel}>Cost</span>
-                                      <span className={styles.costsTierAmount}>{formatPrice(a.price, a.currency ?? "USD")}</span>
+                                      <span className={styles.costsTierAmount}>{formatInTripCurrency(a.price, a.currency ?? "USD")}</span>
                                     </div>
                                   )}
                                   {ownExpenses.length > 0 && (
@@ -1641,7 +1649,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                                       {ownExpenses.map((e) => (
                                         <li key={e._id} className={styles.costsNestedExpenseRow}>
                                           <span className={styles.costsNestedExpenseLabel}>{e.label}</span>
-                                          <span className={styles.costsTierAmount}>{formatPrice(e.amount, e.currency ?? trip?.currency ?? "USD")}</span>
+                                          <span className={styles.costsTierAmount}>{formatInTripCurrency(e.amount, e.currency ?? trip?.currency ?? "USD")}</span>
                                           {effectiveCanEdit && (
                                             <button
                                               type="button"
@@ -1676,7 +1684,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                                 </div>
                                 <div className={styles.costsTierRow}>
                                   <span className={styles.costsTierLabel}>Custom expense</span>
-                                  <span className={styles.costsTierAmount}>{formatPrice(e.amount, e.currency ?? trip?.currency ?? "USD")}</span>
+                                  <span className={styles.costsTierAmount}>{formatInTripCurrency(e.amount, e.currency ?? trip?.currency ?? "USD")}</span>
                                 </div>
                               </li>
                             ))}
@@ -1686,7 +1694,10 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                     })()}
 
                     <div className={styles.costsTotals}>
-                      <span className={styles.costsTotalsLabel}>Total</span>
+                      <span className={styles.costsTotalsLabel}>
+                        Total
+                        {costsConverting && <span className={styles.costsConvertingHint}> · converting…</span>}
+                      </span>
                       <span className={styles.costsTotalsAmount}>
                         {formatPrice(costTotal, trip?.currency ?? "USD")}
                       </span>
@@ -1766,6 +1777,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
             onTabChange={(i) => setActiveCostTab((prev) => ({ ...prev, [modalAttraction._id]: i }))}
             getQty={(tier) => quantityForTier(modalAttraction, tier)}
             onChangeQty={(tier, delta) => handleChangeCostTierQty(modalAttraction, tier, delta)}
+            formatAmount={(amount) => formatInTripCurrency(amount, modalAttraction.currency ?? "USD")}
           />
         );
       })()}

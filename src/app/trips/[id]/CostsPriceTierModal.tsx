@@ -3,7 +3,6 @@
 import { Minus, Plus } from "lucide-react";
 import { ModalShell } from "@/components/Modal";
 import { buildPriceTierTabs, buildPricePivot } from "@/components/AttractionDetailModal/AttractionDetailModal.utils";
-import { formatPrice } from "@/lib";
 import type { Attraction, PriceTier } from "@/types/attraction";
 import styles from "./CostsPriceTierModal.module.css";
 
@@ -19,18 +18,19 @@ interface CostsPriceTierModalProps {
   onTabChange: (i: number) => void;
   getQty: (tier: PriceTier) => number;
   onChangeQty: (tier: PriceTier, delta: number) => void;
+  /** Formats an amount in the attraction's own currency converted to the trip currency — the parent owns FX rates. */
+  formatAmount: (amount: number) => string;
 }
 
 /** The attraction's own price tiers/tabs/columns (same buildPriceTierTabs/buildPricePivot
  *  shape and order as its detail card), opened as a popup from the Costs tab's "View
  *  prices" button instead of rendered inline — a quantity stepper per cell in place of a
  *  plain price, with cells the user has put a quantity against highlighted. */
-export function CostsPriceTierModal({ attraction, onClose, canEdit, activeTab, onTabChange, getQty, onChangeQty }: CostsPriceTierModalProps) {
+export function CostsPriceTierModal({ attraction, onClose, canEdit, activeTab, onTabChange, getQty, onChangeQty, formatAmount }: CostsPriceTierModalProps) {
   const priceTabs = buildPriceTierTabs(attraction.prices ?? []);
   if (priceTabs.length === 0) return null;
   const activeIdx = Math.min(activeTab, priceTabs.length - 1);
   const pivot = buildPricePivot(priceTabs[activeIdx].tiers);
-  const currency = attraction.currency ?? "USD";
 
   return (
     <ModalShell
@@ -107,8 +107,8 @@ export function CostsPriceTierModal({ attraction, onClose, canEdit, activeTab, o
                               <Plus size={12} aria-hidden="true" />
                             </button>
                           </div>
-                          <span className={styles.unitPrice}>{formatPrice(tier.amount, currency)} each</span>
-                          <span className={styles.lineAmount}>{formatPrice(tier.amount * qty, currency)}</span>
+                          <span className={styles.unitPrice}>{formatAmount(tier.amount)} each</span>
+                          <span className={styles.lineAmount}>{formatAmount(tier.amount * qty)}</span>
                           {tier.isPrimary && <span className={styles.primaryPill}>Primary</span>}
                         </div>
                       ) : (
