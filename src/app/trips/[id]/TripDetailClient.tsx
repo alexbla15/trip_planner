@@ -149,6 +149,11 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   }, []);
 
   function switchTab(id: string) {
+    // Leaving the Costs tab with unsaved quantity changes would silently drop them — confirm first.
+    if (activeTab === "costs" && id !== "costs" && costsPending.size > 0
+        && !window.confirm("You have unsaved cost changes. Leave without saving?")) {
+      return;
+    }
     setActiveTab(id as TripTabId);
     window.history.replaceState({}, "", `?tab=${id}`);
   }
@@ -669,6 +674,16 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
   const [costsSavedOk, setCostsSavedOk] = useState(false);
   const [costsSaveError, setCostsSaveError] = useState("");
   const costsHasPending = costsPending.size > 0;
+
+  // Closing or reloading the page with unsaved cost changes would drop them — let the browser warn.
+  useEffect(() => {
+    if (!costsHasPending) return;
+    function warnBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [costsHasPending]);
 
   // Which day's costs are shown (one tab per day, like the itinerary's own day switcher)
   // and which attraction's price-tier table is currently open as a popup.
@@ -1611,10 +1626,19 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                             {rows.map((a) => {
                               const ownExpenses = attractionExpenses.filter((e) => e.attractionId === a._id);
                               const selectedCount = quantitiesFor(a).reduce((sum, q) => sum + q.quantity, 0);
+                              // Attraction total = its own price/tiers plus any expenses added for it, all in trip currency.
+                              const baseTotal = toTripCurrency(a.prices?.length ? costForRow(a) : (a.price ?? 0), a.currency ?? "USD");
+                              const rowTotal = ownExpenses.reduce(
+                                (sum, e) => sum + toTripCurrency(e.amount, e.currency ?? trip?.currency ?? "USD"),
+                                baseTotal
+                              );
                               return (
                                 <li key={a._id} className={styles.costsRow}>
                                   <div className={styles.costsRowHeader}>
                                     <span className={styles.costsRowName}>{a.name}</span>
+                                    {rowTotal > 0 && (
+                                      <span className={styles.costsRowTotal}>{formatPrice(rowTotal, trip?.currency ?? "USD")}</span>
+                                    )}
                                     {effectiveCanEdit && (
                                       <button
                                         type="button"
