@@ -86,6 +86,26 @@
   flex-shrink: 0;
 }
 
+/* A long title squeezed next to several fixed-width action icons (website, brand,
+   verified, visited, close) wrapped into a narrow, ragged column instead of using the
+   row's full width. Below this width, give the title its own full-width row and push
+   the action icons to a second row underneath, right-aligned — same icons, just no
+   longer fighting the title for horizontal space. */
+@media (max-width: 480px) {
+  .header {
+    flex-wrap: wrap;
+  }
+
+  .headerTitle {
+    flex: 1 1 100%;
+  }
+
+  .headerActions {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+  }
+}
+
 /* Aligns WebsiteLinkButton's compact variant to this header's 36px icon-button
    family (closeBtn/visitedToggleBtn) instead of its own default 32px/shadowed look. */
 .websiteBtn {
