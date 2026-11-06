@@ -76,6 +76,7 @@ function monthsInRange(start: MonthDay, end: MonthDay): number[] {
 export function deriveOpeningMonthsFromSeasonalHours(entries: SeasonalHoursEntry[]): number[] {
   const months = new Set<number>();
   for (const entry of entries) {
+    if (!entry.start?.month || !entry.end?.month) continue;
     if (isPermanentlyClosed(entry.hours)) continue;
     for (const m of monthsInRange(entry.start, entry.end)) months.add(m);
   }
@@ -97,7 +98,7 @@ export function resolveOpeningHoursForDate(
 ): OpeningHours | undefined {
   if (seasonalHours?.length) {
     const point: MonthDay = { month: date.getUTCMonth() + 1, day: date.getUTCDate() };
-    return seasonalHours.find((entry) => isMonthDayInRange(point, entry.start, entry.end))?.hours;
+    return seasonalHours.find((entry) => entry.start?.month && entry.end?.month && isMonthDayInRange(point, entry.start, entry.end))?.hours;
   }
   return baseHours;
 }

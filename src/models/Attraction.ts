@@ -354,7 +354,10 @@ export function formatAttraction(
     priceTierQuantities: schedule?.priceTierQuantities ?? [],
     openingHours: doc.openingHours as AttractionShape["openingHours"],
     openingMonths: doc.openingMonths,
-    seasonalHours: doc.seasonalHours,
+    // Only complete ranges leave the server — a stored entry missing its start or end date
+    // (legacy/corrupt data) has no meaningful date window, and every client reader of these
+    // ranges assumes both are present.
+    seasonalHours: doc.seasonalHours?.filter((e) => e.start?.month && e.end?.month),
     notes: schedule?.notes || doc.notes || brand?.notes,
     ownNotes: doc.notes || undefined,
     photoUrl: doc.photoUrl || brand?.photoUrl,
