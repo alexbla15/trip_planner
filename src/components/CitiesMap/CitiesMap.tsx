@@ -124,13 +124,15 @@ export function CitiesMap({ cities, selectedCountry, countLabel = "attraction" }
         const isLoading = !cityBoundaries.has(city._id);
 
         if (!isLoading && boundary) {
-          const isFallback = (boundary as { properties?: Record<string, unknown> }).properties?.isFallbackBoundary === true;
+          const boundaryProps = (boundary as { properties?: Record<string, unknown> }).properties;
+          const isFallback = boundaryProps?.isFallbackBoundary === true;
+          const fallbackArea = typeof boundaryProps?.fallbackLabel === "string" ? boundaryProps.fallbackLabel : "surrounding";
           const label = `${city.count.toLocaleString()} ${countLabel}${city.count !== 1 ? "s" : ""}`;
           const tooltipHtml =
             `<strong>${city._id}</strong>` +
             (city.country ? `, ${city.country}` : "") +
             ` · ${label}` +
-            (isFallback ? ` <em>(approximate — municipality boundary)</em>` : "");
+            (isFallback ? ` <em>(approximate — shows the wider ${fallbackArea} area)</em>` : "");
           return (
             <GeoJSONLayer
               key={city._id}

@@ -218,6 +218,13 @@ function isFallbackBoundary(boundary: GeoJsonObject): boolean {
   return props?.isFallbackBoundary === true;
 }
 
+/** Name of the wider area a fallback boundary actually draws (e.g. "Highland"), so the map
+ *  can say which area is shown instead of implying it's the town itself. */
+function fallbackAreaLabel(boundary: GeoJsonObject): string | undefined {
+  const props = (boundary as { properties?: Record<string, unknown> }).properties;
+  return typeof props?.fallbackLabel === "string" ? props.fallbackLabel : undefined;
+}
+
 // ── Main widget ───────────────────────────────────────────────────────────────
 
 interface ExploreMapWidgetProps {
@@ -560,6 +567,11 @@ export function ExploreMapWidget({
             opacity: 1,
             dashArray: isFallbackBoundary(cityBoundary) ? "6 4" : undefined,
           })}
+          onEachFeature={(_, layer) => {
+            if (!isFallbackBoundary(cityBoundary)) return;
+            const area = fallbackAreaLabel(cityBoundary) ?? "surrounding";
+            layer.bindTooltip(`<em>Approximate — shows the wider ${area} area, not this town's own boundary</em>`, { sticky: true });
+          }}
         />
       )}
       {view === "city" && !cityBoundary && cityEntry && (
