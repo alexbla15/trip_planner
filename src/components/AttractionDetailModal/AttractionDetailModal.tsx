@@ -196,19 +196,26 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attraction?._id]);
 
+  // A related attraction opened from this card stacks on top of it, the same way the brand
+  // card does — closing that one reveals this card again.
+  const [stackedAttraction, setStackedAttraction] = useState<Attraction | null>(null);
+
+  useEffect(() => { setStackedAttraction(null); }, [attraction?._id]);
+
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === "Escape") onClose();
   }, [onClose]);
 
+  // Only the topmost card listens for Escape, so one press closes one layer, not the stack.
   useEffect(() => {
-    if (!attraction) return;
+    if (!attraction || stackedAttraction) return;
     document.addEventListener("keydown", handleKeyDown);
     document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "";
     };
-  }, [attraction, handleKeyDown]);
+  }, [attraction, stackedAttraction, handleKeyDown]);
 
   if (!mounted || !attraction) return null;
 
@@ -314,7 +321,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
     if (!attraction || !attraction.parentAttractionId || !onNavigateToAttraction || parentLoading) return;
     setParentLoading(true);
     getAttraction(attraction.parentAttractionId)
-      .then((parent) => onNavigateToAttraction(parent as Attraction))
+      .then((parent) => setStackedAttraction(parent as Attraction))
       .finally(() => setParentLoading(false));
   }
 
@@ -525,7 +532,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                             className={`${styles.childRow} ${styles.childRowButton}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              onNavigateToAttraction(child);
+                              setStackedAttraction(child);
                             }}
                             aria-label={`View details for ${child.name}`}
                           >
@@ -603,7 +610,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                             className={`${styles.childRow} ${styles.childRowButton}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              onNavigateToAttraction(other);
+                              setStackedAttraction(other);
                             }}
                             aria-label={`View details for ${other.name}`}
                           >
@@ -688,7 +695,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                     <NearbyAttractionsMap
                       origin={attraction}
                       results={nearbyResults}
-                      onSelect={(a) => onNavigateToAttraction?.(a)}
+                      onSelect={(a) => setStackedAttraction(a)}
                     />
                   </div>
                   <p className={styles.hint}>{nearbyResults.length} found — click a pin to view it</p>
@@ -1072,6 +1079,13 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
   return (
     <>
       {createPortal(modal, document.body)}
+      {stackedAttraction && (
+        <AttractionDetailModal
+          attraction={stackedAttraction}
+          onClose={() => setStackedAttraction(null)}
+          onNavigateToAttraction={setStackedAttraction}
+        />
+      )}
       {attraction.brandId && (
         <BrandModal
           isOpen={brandModalOpen}
