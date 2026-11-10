@@ -1,4 +1,6 @@
 :root {
+  --font-inter: "Inter", system-ui, sans-serif;
+  --font-plus-jakarta-sans: "Plus Jakarta Sans", system-ui, sans-serif;
   /* Brand — sky-600/700 for WCAG AA (white on primary = 5.2:1) */
   --color-primary:       #0284c7;   /* sky-600 */
   --color-primary-dark:  #0369a1;   /* sky-700 */
