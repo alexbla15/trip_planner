@@ -36,7 +36,8 @@ export function SeasonalRangePicker({ start, end, onChange }: SeasonalRangePicke
 
   function handleEndMonth(e: ChangeEvent<HTMLSelectElement>) {
     const month = Number(e.target.value);
-    onChange(start, month ? { month, day: Math.min(end?.day ?? 1, DAYS_IN_MONTH[month - 1]) } : null);
+    // An end date defaults to the last day of the chosen month; the day can still be changed.
+    onChange(start, month ? { month, day: DAYS_IN_MONTH[month - 1] } : null);
   }
 
   function handleEndDay(e: ChangeEvent<HTMLSelectElement>) {
