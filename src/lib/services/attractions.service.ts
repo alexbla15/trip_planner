@@ -1,6 +1,7 @@
 import { Types } from "mongoose";
 import { dbConnect } from "@/lib/mongoose";
 import { badRequest, notFound, conflict, forbidden } from "@/lib/apiError";
+import { isAllDay24h } from "@/lib/openingHours";
 import { Attraction, formatAttraction, type IAttraction, type IPriceTier } from "@/models/Attraction";
 import { AttractionType } from "@/models/AttractionType";
 import { FoodStyle } from "@/models/FoodStyle";
@@ -293,9 +294,19 @@ export interface CreateAttractionInput {
   region?: string;
 }
 
+// Seasonal hours only layer on top of a 24/7 base — a non-24/7 base alongside seasonal
+// ranges stores two competing schedules. Enforced here so no client (or API call) can save one.
+function assertSeasonalOnlyOn24h(openingHours: OpeningHours | undefined | null, seasonalHours: unknown) {
+  if (!Array.isArray(seasonalHours) || seasonalHours.length === 0) return;
+  if (!openingHours || !isAllDay24h(openingHours)) {
+    throw badRequest("Seasonal hours can only be used when Opening Hours is 24/7");
+  }
+}
+
 export async function createAttraction(payload: JwtPayload, body: CreateAttractionInput): Promise<IAttraction> {
   const { name, country, region, city, coordinates, parentAttractionId, brandId, types, foodStyles, shopStyles, durationValue, durationUnit,
     price, prices: priceTiersInput, currency, openingHours, openingMonths, seasonalHours, notes, photoUrl, photoCrop, websiteUrl } = body;
+  assertSeasonalOnlyOn24h(openingHours, seasonalHours);
 
   if (!name?.trim() || (!parentAttractionId && (!country?.trim() || !city?.trim()))) {
     // A child's country/city are inherited from its parent — only required directly when
@@ -398,6 +409,10 @@ export async function updateAttraction(
   if (!attraction) {
     throw notFound("Attraction not found");
   }
+  assertSeasonalOnlyOn24h(
+    body.openingHours !== undefined ? (body.openingHours as OpeningHours) : attraction.openingHours,
+    body.seasonalHours !== undefined ? body.seasonalHours : attraction.seasonalHours
+  );
 
   const isAttractionOwner = attraction.ownerId.toString() === payload.userId;
   if (!isAttractionOwner) {
