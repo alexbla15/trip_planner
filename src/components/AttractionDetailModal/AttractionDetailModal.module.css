@@ -411,7 +411,7 @@
 
 .childrenList {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   width: 100%;
   margin-top: 6px;
   border: 1px solid var(--color-border-subtle);
@@ -429,7 +429,7 @@
 
 .childRow {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   width: 100%;
   padding: 8px 12px;
@@ -460,9 +460,15 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  margin-top: 1px;
   color: var(--color-primary);
 }
 .childRowIcon svg { width: 13px; height: 13px; }
+
+/* Two columns read well on a wide card; on a phone a long name needs the full row width. */
+@media (max-width: 480px) {
+  .childrenList { grid-template-columns: minmax(0, 1fr); }
+}
 
 .childrenPagination {
   grid-column: 1 / -1;
@@ -501,15 +507,16 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Names wrap onto as many lines as they need — a truncated name in a long child list
+   is unreadable, and the row grows to fit it instead. */
 .childRowName {
   flex: 1;
   min-width: 0;
   font-size: 13px;
   font-weight: 500;
+  line-height: 1.35;
   color: var(--color-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .otherLocationParent {
