@@ -421,6 +421,12 @@ export function ExploreClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibleCities, visitedFilter, tripUsageFilter, verifiedFilter, worldCountsByCity]);
 
+  // World-view totals for the same "X of Y attractions" line country view shows — Y is every
+  // attraction across the fetched cities, X is what survives the active visited/trip/verified
+  // filters (the per-country counts already reflect those).
+  const worldAttractionTotal = useMemo(() => cities.reduce((sum, c) => sum + c.count, 0), [cities]);
+  const worldAttractionShown = useMemo(() => countries.reduce((sum, c) => sum + c.count, 0), [countries]);
+
   // Cities scoped for the map — same cities as visibleCities, but with `count` overridden
   // to the exact count matching the active filter combination (countFor), not each city's
   // raw unfiltered total. Without this, map pins/cluster totals kept showing the raw count
@@ -1757,6 +1763,13 @@ export function ExploreClient() {
               ) : (
                 <p className={styles.worldPrompt}>
                   Choose a country from the map or list below to see available cities.
+                </p>
+              )}
+              {!citiesLoading && worldAttractionTotal > 0 && (
+                <p className={styles.cityCount}>
+                  {worldAttractionShown !== worldAttractionTotal
+                    ? `${worldAttractionShown.toLocaleString()} of ${worldAttractionTotal.toLocaleString()} attractions`
+                    : `${worldAttractionTotal.toLocaleString()} attraction${worldAttractionTotal !== 1 ? "s" : ""}`}
                 </p>
               )}
               {!citiesLoading && countries.length > 0 && (
