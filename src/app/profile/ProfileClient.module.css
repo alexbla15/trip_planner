@@ -16,7 +16,7 @@
 }
 
 .heroTitle {
-  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
+  font-family: var(--font-heading), system-ui, sans-serif;
   font-size: clamp(24px, 3vw, 36px);
   font-weight: 800;
   color: var(--color-text-primary);
@@ -72,7 +72,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
+  font-family: var(--font-heading), system-ui, sans-serif;
   font-size: 32px;
   font-weight: 800;
   color: var(--color-text-inverse);
@@ -99,7 +99,7 @@
 }
 
 .userName {
-  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
+  font-family: var(--font-heading), system-ui, sans-serif;
   font-size: 22px;
   font-weight: 700;
   color: var(--color-text-primary);
@@ -432,7 +432,7 @@
 }
 
 .quickTitle {
-  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
+  font-family: var(--font-heading), system-ui, sans-serif;
   font-size: 16px;
   font-weight: 700;
   color: var(--color-text-primary);
@@ -488,7 +488,7 @@
 }
 
 .detailPanelHeading {
-  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
+  font-family: var(--font-heading), system-ui, sans-serif;
   font-size: 16px;
   font-weight: 700;
   color: var(--color-text-primary);

@@ -27,7 +27,7 @@
 .heading {
   flex: 1;
   min-width: 0;
-  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
+  font-family: var(--font-heading), system-ui, sans-serif;
   font-size: 18px;
   font-weight: 700;
   color: var(--color-text-primary);

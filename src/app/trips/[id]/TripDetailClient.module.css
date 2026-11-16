@@ -240,7 +240,7 @@
 }
 
 .destination {
-  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
+  font-family: var(--font-heading), system-ui, sans-serif;
   font-size: clamp(24px, 4vw, 36px);
   font-weight: 800;
   color: #fff;
