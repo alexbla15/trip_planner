@@ -40,12 +40,13 @@
 .header {
   flex-shrink: 0;
   background: var(--color-surface);
-  padding: 18px 20px 14px;
+  padding: 12px 16px 16px 20px;
   border-bottom: 1px solid var(--color-border-subtle);
+  /* Actions sit on top, the icon and title below them. */
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
   z-index: 1;
 }
 
@@ -79,31 +80,15 @@
   overflow-wrap: break-word;
 }
 
+/* Action icons render first (top row, right-aligned). The title sits below them, so a
+   long name gets the full width instead of being squeezed beside the icons. */
 .headerActions {
+  order: -1;
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: flex-end;
+  gap: 6px;
   flex-shrink: 0;
-}
-
-/* A long title squeezed next to several fixed-width action icons (website, brand,
-   verified, visited, close) wrapped into a narrow, ragged column instead of using the
-   row's full width. Below this width, give the title its own full-width row and push
-   the action icons to a second row underneath, right-aligned — same icons, just no
-   longer fighting the title for horizontal space. */
-@media (max-width: 480px) {
-  .header {
-    flex-wrap: wrap;
-  }
-
-  .headerTitle {
-    flex: 1 1 100%;
-  }
-
-  .headerActions {
-    flex: 1 1 100%;
-    justify-content: flex-end;
-  }
 }
 
 /* Aligns WebsiteLinkButton's compact variant to this header's 36px icon-button
@@ -190,15 +175,18 @@
 
 /* ── Body ── */
 .body {
-  padding: 20px 14px 20px 20px;
+  padding: 20px 20px 24px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 22px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .body::-webkit-scrollbar {
@@ -541,10 +529,11 @@
 .infoItem {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
+  gap: 12px;
+  padding: 12px 14px;
   border-radius: var(--radius-md);
-  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface);
   min-width: 0;
 }
 
@@ -552,11 +541,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-full);
-  background: var(--color-surface);
-  color: var(--color-text-tertiary);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 
@@ -568,15 +557,13 @@
 }
 
 .infoLabel {
-  font-size: 10.5px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--color-text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .infoValue {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-text-primary);
   overflow-wrap: break-word;
@@ -702,13 +689,16 @@
 .sectionTitle {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 8px;
+  font-size: 15px;
   font-weight: 600;
-  color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
+  color: var(--color-text-primary);
   margin: 0;
+}
+
+.sectionTitle svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
 }
 
 /* ── Price tabs (one per product/brand) — rendered only when there's >1 product.
