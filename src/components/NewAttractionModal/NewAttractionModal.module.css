@@ -489,48 +489,51 @@
   margin-top: 2px;
 }
 
-/* Footer — pinned outside scroll area so buttons always have space beneath */
+/* Footer — pinned outside scroll area so buttons always have space beneath.
+   Both actions share one row at every width: same height, radius, type and width. */
 .footer {
   flex-shrink: 0;
   display: flex;
+  flex-direction: row;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
   padding: 16px 24px;
   border-top: 1px solid var(--color-border);
   background: var(--color-surface);
 }
 
-@media (max-width: 480px) {
-  .footer {
-    flex-direction: column-reverse;
-    align-items: stretch;
-  }
+.cancelBtn,
+.saveBtn {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 200px;
+  height: 44px;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
 }
 
 .cancelBtn {
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 44px;
   padding: 0 20px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: transparent;
-  font-size: 14px;
-  font-weight: 600;
+  background: var(--color-bg-subtle);
   color: var(--color-text-secondary);
   cursor: pointer;
   transition: border-color var(--duration-fast) var(--easing-out),
     color var(--duration-fast) var(--easing-out),
     background var(--duration-fast) var(--easing-out);
-  font-family: inherit;
 }
 
 .cancelBtn:hover {
   border-color: var(--color-text-secondary);
   color: var(--color-text-primary);
-  background: var(--color-bg-subtle);
+  background: var(--color-border-subtle);
 }
 
 .cancelBtn:focus-visible {
@@ -543,19 +546,14 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 44px;
-  padding: 0 24px;
-  border: none;
-  border-radius: var(--radius-md);
+  padding: 0 20px;
+  border: 1px solid var(--color-primary);
   background: var(--color-primary);
   color: var(--color-text-inverse);
-  font-size: 14px;
-  font-weight: 600;
   cursor: pointer;
   transition: background var(--duration-fast) var(--easing-out),
     transform var(--duration-fast) var(--easing-out),
     opacity var(--duration-fast) var(--easing-out);
-  font-family: inherit;
 }
 
 .saveBtn:hover:not(:disabled) {
