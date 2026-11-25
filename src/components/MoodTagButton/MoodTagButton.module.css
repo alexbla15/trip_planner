@@ -9,15 +9,16 @@
   font-weight: 500;
   cursor: pointer;
   transition: all var(--duration-fast) var(--easing-out);
-  opacity: 0.7;
   font-family: inherit;
   white-space: nowrap;
-  color: var(--tag-color, #888);
+  /* Text is the mood hue darkened 50% toward black so it clears 4.5:1 on the tint even for
+     very pale hues. Selection shows through border and weight, not opacity. */
+  color: color-mix(in srgb, var(--tag-color, #888) 50%, #000);
   background: var(--tag-bg, #f5f5f5);
 }
 
 .moodBtn:hover {
-  opacity: 0.9;
+  border-color: currentColor;
 }
 
 .moodBtn:focus-visible {

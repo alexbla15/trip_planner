@@ -8,7 +8,9 @@
   font-weight: 600;
   line-height: 1.5;
   white-space: nowrap;
-  color: var(--tag-color, #888);
+  /* Light-mode text is the mood's hue darkened 50% toward black, so it clears 4.5:1
+     on the pale tint even for very light moods, keeping each mood's hue. */
+  color: color-mix(in srgb, var(--tag-color, #888) 50%, #000);
   background: var(--tag-bg, #f5f5f5);
 }
 
