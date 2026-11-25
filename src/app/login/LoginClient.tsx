@@ -105,6 +105,7 @@ export function LoginClient() {
         </div>
 
         <h1 className={styles.heading}>Welcome back</h1>
+        <p className={styles.valueProp}>Plan one shared itinerary for your whole group, on one calendar.</p>
         <p className={styles.subheading}>Sign in to plan your next adventure</p>
 
         {/* API error banner */}
@@ -180,7 +181,6 @@ export function LoginClient() {
             type="submit"
             className={styles.submitBtn}
             disabled={loading || quickLoginRole !== null}
-            aria-disabled={loading || quickLoginRole !== null}
           >
             {loading ? (
               <>
@@ -235,13 +235,10 @@ export function LoginClient() {
           )}
         </div>
 
-        {/* Switch link */}
-        <p className={styles.switchText}>
-          Don&apos;t have an account?{" "}
-          <Link href="/register" className={styles.switchLink}>
-            Sign up
-          </Link>
-        </p>
+        {/* Sign-up */}
+        <Link href="/register" className={styles.signupBtn}>
+          Create an account
+        </Link>
       </div>
     </div>
   );

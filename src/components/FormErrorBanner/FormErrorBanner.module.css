@@ -6,7 +6,7 @@
   border-radius: var(--radius-md);
   background: #fef2f2;
   border: 1px solid #fecaca;
-  color: var(--color-error);
+  color: var(--color-error-text);
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 20px;

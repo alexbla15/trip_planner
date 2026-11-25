@@ -30,7 +30,7 @@ export function ModalShell({
   if (!mounted || !isOpen) return null;
 
   const modal = (
-    <div className={styles.backdrop} style={{ zIndex }} onClick={handleBackdropClick} aria-hidden="true">
+    <div className={styles.backdrop} style={{ zIndex }} onClick={handleBackdropClick}>
       <div
         ref={dialogRef}
         role="dialog"

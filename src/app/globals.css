@@ -9,7 +9,7 @@
   --color-accent-dark:   #b45309;   /* amber-700 */
   --color-primary-text:  #0369a1;   /* text-safe primary on primary-light (same as --color-primary) */
   --color-accent-text:   #b45309;   /* text-safe amber on light surfaces (amber-700, 5.0:1 on white) */
-  --color-error-text:    #dc2626;   /* red-600 on white, text-safe */
+  --color-error-text:    #b91c1c;   /* red-700: text-safe on white and on the error banner tint (red-600 was ~4.4:1 there) */
   --color-warning-light: #fef3c7;   /* amber-100 notice surface */
   --color-private-border: #475569;  /* private-trip card edge on light surfaces */
 

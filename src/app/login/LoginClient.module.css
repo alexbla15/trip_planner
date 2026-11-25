@@ -54,6 +54,13 @@
   margin: 0 0 6px;
 }
 
+.valueProp {
+  font-size: 15px;
+  color: var(--color-text-primary);
+  text-align: center;
+  margin: 0 0 8px;
+}
+
 .subheading {
   font-size: 14px;
   color: var(--color-text-secondary);
@@ -255,20 +262,39 @@
   cursor: not-allowed;
 }
 
-/* ── Switch link ── */
-.switchText {
-  text-align: center;
+/* ── Sign-up (secondary) ── */
+.signupBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 44px;
   margin-top: 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
   font-size: 14px;
-  color: var(--color-text-secondary);
-}
-
-.switchLink {
-  color: var(--color-primary);
   font-weight: 600;
   text-decoration: none;
+  transition: background var(--duration-fast) var(--easing-out);
 }
 
-.switchLink:hover {
-  text-decoration: underline;
+.signupBtn:hover {
+  background: var(--color-primary-light);
+}
+
+.signupBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Touch targets ── */
+@media (pointer: coarse) {
+  .forgotLink {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 4px;
+  }
 }

@@ -150,6 +150,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
   const [addBrandModalOpen, setAddBrandModalOpen] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [typesOpen, setTypesOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const firstInputRef = useRef<HTMLInputElement>(null);
@@ -357,6 +358,12 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
     setTouched(allTouched);
     const errs = validate();
     setErrors(errs);
+    if (errs.types) {
+      // Type lives in a collapsed section; open it and bring the message into view so the
+      // missing required field is visible instead of Save doing nothing.
+      setTypesOpen(true);
+      setTimeout(() => document.getElementById("error-types")?.scrollIntoView({ block: "center" }), 50);
+    }
     if (Object.keys(errs).length > 0) return;
 
     setSaving(true);
@@ -825,7 +832,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
           </p>
         </div>
       ) : (
-        <details className={styles.sectionDetails}>
+        <details className={styles.sectionDetails} open={typesOpen} onToggle={(e) => setTypesOpen(e.currentTarget.open)}>
           <summary className={styles.sectionSummary}>
             <Layers size={14} aria-hidden="true" />
             Type

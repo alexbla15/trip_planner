@@ -18,16 +18,38 @@ export function HomeClient() {
 
   const [trips, setTrips] = useState<Trip[]>([]);
   const [tripsLoading, setTripsLoading] = useState(true);
+  const [tripsError, setTripsError] = useState(false);
+  const [tripsReloadKey, setTripsReloadKey] = useState(0);
 
   const [exploreItems, setExploreItems] = useState<ExploreItem[]>([]);
 
   useEffect(() => {
     if (!token) return;
+    let cancelled = false;
     listTrips(token)
-      .then((data) => setTrips(Array.isArray(data) ? (data as Trip[]) : []))
-      .catch(() => setTrips([]))
-      .finally(() => setTripsLoading(false));
-  }, [token]);
+      .then((data) => {
+        if (cancelled) return;
+        setTrips(Array.isArray(data) ? (data as Trip[]) : []);
+        setTripsError(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setTrips([]);
+        setTripsError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setTripsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token, tripsReloadKey]);
+
+  function retryTrips() {
+    setTripsError(false);
+    setTripsLoading(true);
+    setTripsReloadKey((k) => k + 1);
+  }
 
   useEffect(() => {
     getExploreItems()
@@ -41,7 +63,7 @@ export function HomeClient() {
       <section className={styles.hero} aria-labelledby="hero-heading">
         <div className={styles.heroInner}>
           <h1 id="hero-heading" className={styles.heroGreeting}>
-            {greeting}, {user?.name ?? "Traveler"}! ✈️
+            {greeting}, {user?.name ?? "Traveler"}!
           </h1>
           <p className={styles.heroSubline}>
             Where will your next adventure take you?
@@ -59,7 +81,7 @@ export function HomeClient() {
             <h2 id="my-trips-heading" className={styles.sectionTitle}>
               My Trips
             </h2>
-            {!tripsLoading && (
+            {!tripsLoading && !tripsError && (
               <span className={styles.sectionCount} aria-label={`${trips.length} trips`}>
                 ({trips.length})
               </span>
@@ -68,6 +90,19 @@ export function HomeClient() {
               See all <ArrowRight size={14} aria-hidden="true" />
             </Link>
           </div>
+
+          {tripsError && (
+            <div className={styles.tripsAlert} role="alert">
+              <span>We couldn&apos;t load your trips.</span>
+              <button type="button" className={styles.retryBtn} onClick={retryTrips}>
+                Try again
+              </button>
+            </div>
+          )}
+
+          {!tripsLoading && !tripsError && trips.length === 0 && (
+            <p className={styles.emptyText}>No trips yet. Start with one.</p>
+          )}
 
           <div aria-busy={tripsLoading}>
             <Carousel ariaLabel="Your trips">
