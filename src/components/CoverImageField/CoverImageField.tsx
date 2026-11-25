@@ -233,6 +233,7 @@ export function CoverImageField({
       <input
         id={id}
         type="url"
+        aria-label={hideLabel ? label : undefined}
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}

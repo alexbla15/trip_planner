@@ -25,6 +25,13 @@
   outline-offset: 2px;
 }
 
+@media (pointer: coarse) {
+  .toggle {
+    width: 44px;
+    height: 44px;
+  }
+}
+
 /* Show Moon in light mode, Sun in dark mode */
 .moonIcon {
   display: flex;

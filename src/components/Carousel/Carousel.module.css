@@ -76,6 +76,13 @@
   cursor: not-allowed;
 }
 
+@media (pointer: coarse) {
+  .arrow {
+    width: 44px;
+    height: 44px;
+  }
+}
+
 /* Offset relative to .wrapper's edge, which moved outward by the 40px
    horizontal shadow-clearance margin above. Previously these overlapped the
    card by 20px (an opaque button sitting on the card edge) — harmless when

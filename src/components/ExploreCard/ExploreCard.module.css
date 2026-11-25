@@ -72,7 +72,15 @@
   left: 0;
   right: 0;
   padding: 24px 12px 10px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent);
+  /* Scrim is theme-independent (white username text in both themes), so it uses the
+     black keyword rather than a theme token. At 0.5 a fully white photo left the 12px
+     username near 3.6:1; this stronger base keeps it above 4.5:1 on light photos. */
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, black 75%, transparent) 0%,
+    color-mix(in srgb, black 40%, transparent) 60%,
+    transparent 100%
+  );
   display: flex;
   align-items: center;
   gap: 8px;

@@ -252,6 +252,24 @@
   outline-offset: 2px;
 }
 
+@media (pointer: coarse) {
+  .brand {
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .avatar {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+
+  .menuButton {
+    width: 44px;
+    height: 44px;
+  }
+}
+
 .dropdown {
   position: absolute;
   top: calc(100% + 8px);

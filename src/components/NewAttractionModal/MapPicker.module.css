@@ -43,6 +43,20 @@
   color: var(--color-text-tertiary);
 }
 
+@media (pointer: coarse) {
+  .searchInput {
+    min-height: 44px;
+  }
+
+  /* Leaflet's zoom buttons are rendered by leaflet.css, outside this module, so they
+     are targeted through the wrapper that contains the map. */
+  .wrapper :global(.leaflet-control-zoom a) {
+    width: 44px;
+    height: 44px;
+    line-height: 44px;
+  }
+}
+
 .suggestions {
   position: absolute;
   top: calc(100% + 4px);

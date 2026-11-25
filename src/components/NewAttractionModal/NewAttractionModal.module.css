@@ -786,3 +786,10 @@
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
+
+@media (pointer: coarse) {
+  .addBrandBtn {
+    width: 44px;
+    height: 44px;
+  }
+}

@@ -108,6 +108,12 @@
   opacity: 0.75;
 }
 
+@media (pointer: coarse) {
+  .sectionSeeAll {
+    min-height: 44px;
+  }
+}
+
 .cardLink {
   text-decoration: none;
   display: block;

@@ -1197,6 +1197,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
         <div className={styles.sectionBody}>
           <CoverImageField
             id="attraction-photo"
+            label="Photo URL"
             hideLabel
             value={photoUrl}
             onChange={(v) => { setPhotoUrl(v); setPhotoCrop(undefined); }}

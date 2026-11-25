@@ -36,6 +36,12 @@
   color: var(--color-primary);
 }
 
+@media (pointer: coarse) {
+  .categoryChip {
+    min-height: 44px;
+  }
+}
+
 .categoryChipActive {
   background: var(--color-primary-light);
   border-color: var(--color-primary);
