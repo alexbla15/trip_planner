@@ -56,7 +56,7 @@
 .headerTitle {
   display: flex;
   flex: 1 1 auto;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   min-width: 0;
 }

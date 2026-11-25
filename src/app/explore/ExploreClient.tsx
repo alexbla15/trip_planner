@@ -217,7 +217,14 @@ export function ExploreClient() {
       selectedCountry ? undefined : selectedTypes,
       selectedCountry ? undefined : selectedFoodStyles
     )
-      .then((data) => { if (!cancelled) setCities((data as { cities: CityEntry[] }).cities ?? []); })
+      // Drop any entry without a city name or country: the sorts below call localeCompare on
+      // these fields, and one nameless record would otherwise crash the whole page.
+      .then((data) => {
+        if (!cancelled) {
+          const list = (data as { cities?: CityEntry[] }).cities ?? [];
+          setCities(list.filter((c) => !!c.name && !!c.country));
+        }
+      })
       .catch(() => { if (!cancelled) setCitiesLoadError(true); })
       .finally(() => { if (!cancelled) setCitiesLoading(false); });
     // token flips from null to its real value once auth hydrates, re-running this effect

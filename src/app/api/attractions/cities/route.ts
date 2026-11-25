@@ -115,6 +115,9 @@ export const GET = withApiHandler("GET /api/attractions/cities", async (req: Req
   }
 
   pipeline.push(
+    // An attraction with no city or country can't be placed on the city list, and grouping
+    // it would produce a city/country entry with no name, which crashed the Explore sorts.
+    { $match: { city: { $nin: [null, ""] }, country: { $nin: [null, ""] } } },
     {
       $addFields: {
         isVisited: { $in: ["$_id", visitedObjectIds] },

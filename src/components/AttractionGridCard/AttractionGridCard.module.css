@@ -291,7 +291,7 @@
 
 .nameRow {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 5px;
   min-width: 0;
 }
