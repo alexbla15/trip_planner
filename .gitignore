@@ -43,3 +43,6 @@ next-env.d.ts
 
 # local scripts (may contain credentials)
 /scripts/
+
+# impeccable skill engine (downloaded and checksum-verified at runtime)
+.claude/skills/impeccable/scripts/bin/
