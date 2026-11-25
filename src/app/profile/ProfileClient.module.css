@@ -91,6 +91,39 @@
   flex: 1;
 }
 
+@media (max-width: 640px) {
+  .infoBlock {
+    width: 100%;
+    text-align: center;
+  }
+
+  .nameRow {
+    justify-content: center;
+  }
+
+  .editLabel {
+    text-align: left;
+  }
+
+  .editBtns {
+    justify-content: center;
+  }
+}
+
+/* Touch targets: 44px minimum on coarse pointers (WCAG 2.5.5). */
+@media (pointer: coarse) {
+  .editTrigger,
+  .saveBtn,
+  .cancelBtn,
+  .pwTriggerBtn {
+    min-height: 44px;
+  }
+
+  .editTrigger {
+    min-width: 44px;
+  }
+}
+
 .nameRow {
   display: flex;
   align-items: center;
@@ -187,6 +220,12 @@
   color: var(--color-text-tertiary);
 }
 
+.fieldHint {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  margin: 0;
+}
+
 /* ── Avatar picker ── */
 .avatarPicker {
   display: flex;
@@ -196,17 +235,18 @@
 }
 
 .avatarOption {
+  position: relative;
   width: 56px;
   height: 56px;
   border-radius: var(--radius-full);
-  border: 2px solid var(--color-border);
+  /* text-tertiary, not border: slate-300 is ~1.5:1 on white; this clears 3:1 in both themes. */
+  border: 2px solid var(--color-text-tertiary);
   background: none;
   padding: 0;
   cursor: pointer;
   overflow: hidden;
   flex-shrink: 0;
-  transition: border-color var(--duration-fast) var(--easing-out),
-    box-shadow var(--duration-fast) var(--easing-out);
+  transition: border-color var(--duration-fast) var(--easing-out);
 }
 
 .avatarOption:hover {
@@ -219,8 +259,23 @@
 }
 
 .avatarOptionSelected {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-light);
+  border: 3px solid var(--color-primary);
+}
+
+.avatarCheck {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 2px var(--color-surface);
+  pointer-events: none;
 }
 
 .avatarOptionImg {
@@ -300,7 +355,26 @@
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: var(--color-error);
+  color: var(--color-error-text);
+  margin: 0;
+}
+
+.statsError {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 28px;
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  color: var(--color-error-text);
+  text-align: center;
+}
+
+.statsErrorText {
+  font-size: 14px;
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
@@ -395,61 +469,6 @@
   text-align: right;
   flex-shrink: 0;
 }
-
-/* ── Quick links ── */
-.quickLinks {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-@media (max-width: 480px) {
-  .quickLinks { grid-template-columns: 1fr; }
-}
-
-.quickCard {
-  background: var(--color-surface);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  text-decoration: none;
-  border: 2px solid transparent;
-  transition: border-color var(--duration-fast) var(--easing-out),
-    box-shadow var(--duration-fast) var(--easing-out);
-}
-
-.quickCard:hover {
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-card-hover);
-}
-
-.quickCard:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-.quickTitle {
-  font-family: var(--font-heading), system-ui, sans-serif;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-}
-
-.quickSubtitle {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
-
-.quickArrowRow {
-  display: flex;
-  align-items: center;
-  margin-top: auto;
-}
-
-.quickArrow { color: var(--color-primary); margin-left: auto; }
 
 /* ── Map container (inside detail panel) ── */
 .mapContainer {

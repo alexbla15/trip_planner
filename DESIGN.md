@@ -42,10 +42,13 @@ single radius reused everywhere.
 
 ## Component patterns worth calling out
 
-- **Carousel** (`src/components/Carousel/`) — "My Trips" never wraps to a second row, at any
-  breakpoint; it's a horizontal scroll-snap container instead. This was a deliberate choice
-  to keep the dashboard's most important row scannable in one glance rather than pushing
-  content below the fold on mobile.
+- **Carousel** (`src/components/Carousel/`) — the Home dashboard's "My Trips" rail never wraps
+  to a second row, at any breakpoint; it's a horizontal scroll-snap container instead. This was
+  a deliberate choice to keep the dashboard's most important row scannable in one glance rather
+  than pushing content below the fold on mobile.
+- **My Trips page** (`/trips`, `src/app/trips/`) — a wrapping grid (1 column, 2 at 640px, 4 at
+  1024px). Trip cards and the New Trip CTA flow onto as many rows as needed; the no-wrap rule
+  above does not apply here.
 - **Collapsible section** (`src/components/SectionCard/`) — used for dense admin/data
   sections; always defaults to expanded (`defaultOpen: true`) so collapsing is opt-in
   decluttering, never a surprise-hidden default that hides content from a first-time user.

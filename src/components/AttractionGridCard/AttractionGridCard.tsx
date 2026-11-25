@@ -33,7 +33,10 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
     : attraction.parentAttractionPhotoUrl?.startsWith("http")
       ? attraction.parentAttractionPhotoUrl
       : undefined;
-  const hasPhoto = !!displayPhotoUrl;
+  const [failedPhotoUrl, setFailedPhotoUrl] = useState<string | null>(null);
+  // A URL that failed to load is treated as "no photo" so the icon tile shows instead of an
+  // endless skeleton. Keyed on the URL itself, so a changed photo gets a fresh attempt.
+  const hasPhoto = !!displayPhotoUrl && displayPhotoUrl !== failedPhotoUrl;
   const icon = renderTypeIcon(findType(attraction.types?.[0] ?? "")?.icon ?? "Globe");
   const canEdit = !!currentUserId && attraction.ownerId === currentUserId;
   const permanentlyClosed = isAttractionPermanentlyClosed(attraction.openingHours, attraction.seasonalHours);
@@ -91,7 +94,9 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
       <div className={`${styles.photoArea} ${permanentlyClosed ? styles.photoAreaClosed : ""}`}>
         {hasPhoto ? (
           <ImageWithSkeleton
+            key={displayPhotoUrl}
             src={displayPhotoUrl!}
+            onLoadError={() => setFailedPhotoUrl(displayPhotoUrl!)}
             alt=""
             fill
             unoptimized
@@ -120,7 +125,7 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
             </span>
           )}
           {attraction.isVisited && (
-            <span className={styles.badge} title="Visited" aria-label="Visited">
+            <span className={`${styles.badge} ${styles.badgeVisited}`} title="Visited" aria-label="Visited">
               <Check size={12} aria-hidden="true" />
             </span>
           )}
@@ -144,7 +149,7 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
         </div>
       </div>
 
-      <div className={styles.body}>
+      <div className={`${styles.body}${permanentlyClosed ? ` ${styles.bodyClosed}` : ""}`}>
         <span className={styles.nameRow}>
           <span className={styles.typeIcon} aria-hidden="true">{icon}</span>
           <button
@@ -176,7 +181,7 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
             aria-label={`View details for ${attraction.parentAttractionName}, which ${attraction.name} is part of`}
           >
             <ArrowUpRight size={11} aria-hidden="true" />
-            ({attraction.parentAttractionName})
+            <span className={styles.parentLineText}>Part of {attraction.parentAttractionName}</span>
           </button>
         )}
         {attraction.city && (

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { AlertCircle, ChevronLeft, MapPinned, Search, X } from "lucide-react";
+import { AlertCircle, ChevronLeft, Compass, MapPinned, Search, X } from "lucide-react";
 import { TripCard, TripCardSkeleton, NewTripCard } from "@/components";
 import { useAuth } from "@/contexts/AuthContext";
 import { listTrips } from "@/services";
@@ -97,10 +97,10 @@ export function TripsClient() {
 
         {loading ? (
           <div className={styles.grid}>
+            <NewTripCard className={styles.newTripCard} />
             {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
               <TripCardSkeleton key={i} />
             ))}
-            <NewTripCard />
           </div>
         ) : loadError ? (
           <div className={styles.emptyState}>
@@ -113,7 +113,11 @@ export function TripsClient() {
           </div>
         ) : filtered.length === 0 ? (
           <div className={styles.emptyState}>
-            <Search size={40} className={styles.emptyIcon} aria-hidden="true" />
+            {trips.length === 0 ? (
+              <Compass size={40} className={styles.emptyIcon} aria-hidden="true" />
+            ) : (
+              <Search size={40} className={styles.emptyIcon} aria-hidden="true" />
+            )}
             <p className={styles.emptyHeading}>{trips.length === 0 ? "No trips yet" : "No trips found"}</p>
             <p className={styles.emptyBody}>
               {trips.length === 0
@@ -125,19 +129,19 @@ export function TripsClient() {
                 Clear search
               </button>
             ) : (
-              <Link href="/new-trip" className={styles.clearSearchBtn}>
+              <Link href="/new-trip" className={styles.primaryBtn}>
                 Plan a Trip
               </Link>
             )}
           </div>
         ) : (
           <div className={styles.grid}>
+            <NewTripCard className={styles.newTripCard} />
             {filtered.map((trip) => (
               <Link key={trip._id} href={`/trips/${trip._id}`} className={styles.cardLink}>
                 <TripCard trip={trip} />
               </Link>
             ))}
-            <NewTripCard />
           </div>
         )}
       </div>

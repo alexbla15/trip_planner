@@ -41,7 +41,7 @@
   padding: 4px 12px;
   border-radius: var(--radius-full);
   background: var(--color-primary-light);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   font-size: 12px;
   font-weight: 600;
   width: fit-content;
@@ -130,7 +130,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: var(--color-accent);
+  color: var(--color-accent-text);
 }
 
 .explorerCell {
@@ -266,6 +266,34 @@
   font-size: 15px;
   color: var(--color-text-tertiary);
   margin: 0;
+}
+
+.errorIcon {
+  color: var(--color-error-text);
+}
+
+.retryButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--easing-out);
+}
+
+.retryButton:hover {
+  background: var(--color-primary-dark);
+}
+
+.retryButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 /* ── Stat card detail panel ── */

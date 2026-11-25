@@ -1,18 +1,20 @@
 import type { PathOptions } from "leaflet";
+import styles from "./CitiesMap.module.css";
 
-/** Selected-country outline — amber, matches the design system's accent hue. */
+// Colours come from CitiesMap.module.css so they follow the theme; these objects carry
+// only the geometry and opacity, plus the class that paints the stroke and fill.
+
+/** Selected-country outline. */
 export const COUNTRY_BOUNDARY_STYLE: PathOptions = {
-  color: "#B45309",
-  fillColor: "#F59E0B",
+  className: styles.countryBoundary,
   fillOpacity: 0.12,
   weight: 2.5,
   opacity: 1,
 };
 
-/** Resolved city boundary polygon outline — sky, matches the design system's primary hue. */
+/** Resolved city boundary polygon outline. */
 export const CITY_BOUNDARY_STYLE: PathOptions = {
-  color: "#0369A1",
-  fillColor: "#38BDF8",
+  className: styles.cityBoundary,
   fillOpacity: 0.25,
   weight: 2.5,
   opacity: 1,
@@ -20,16 +22,14 @@ export const CITY_BOUNDARY_STYLE: PathOptions = {
 
 /** City marker once its boundary has resolved (falls back to a circle when no polygon exists). */
 export const CITY_MARKER_STYLE: PathOptions = {
-  color: "#0369A1",
-  fillColor: "#38BDF8",
+  className: styles.cityMarker,
   fillOpacity: 0.7,
   weight: 1.5,
 };
 
-/** City marker while its boundary lookup is still in flight — neutral slate. */
+/** City marker while its boundary lookup is still in flight. */
 export const CITY_MARKER_LOADING_STYLE: PathOptions = {
-  color: "#94A3B8",
-  fillColor: "#CBD5E1",
+  className: styles.cityMarkerLoading,
   fillOpacity: 0.5,
   weight: 1.5,
 };

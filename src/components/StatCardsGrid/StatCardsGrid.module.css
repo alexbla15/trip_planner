@@ -52,6 +52,26 @@
   outline-offset: 2px;
 }
 
+/* Visible affordance: the tile is a button, so say so with a labelled cue. */
+.hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary-text);
+}
+
+.chevron,
+.chevronOpen {
+  transition: transform var(--duration-fast) var(--easing-out);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
 .cardActive {
   border-color: var(--color-primary);
   background: var(--color-primary-light);

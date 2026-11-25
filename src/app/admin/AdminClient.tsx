@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -88,6 +88,7 @@ function TypeForm({
   onCancel: () => void;
 }) {
   const [form, setForm] = useState<TypeFormState>(initial);
+  const uid = useId();
 
   function set(key: keyof TypeFormState, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -116,8 +117,9 @@ function TypeForm({
     <AdminEntityForm validate={validate} onSave={handleSave} onDone={onDone} onCancel={onCancel} isEditing={!!typeId}>
       {/* Name */}
       <div className={styles.formField}>
-        <label className={styles.formLabel}>Name *</label>
+        <label htmlFor={`${uid}-name`} className={styles.formLabel}>Name *</label>
         <input
+          id={`${uid}-name`}
           className={styles.input}
           value={form.name}
           onChange={(e) => set("name", e.target.value)}
@@ -127,9 +129,10 @@ function TypeForm({
 
       {/* Category */}
       <div className={styles.formField}>
-        <label className={styles.formLabel}>Category *</label>
+        <label htmlFor={`${uid}-category`} className={styles.formLabel}>Category *</label>
         <div className={styles.selectWrap}>
           <select
+            id={`${uid}-category`}
             className={styles.select}
             value={form.categoryId}
             onChange={(e) => set("categoryId", e.target.value)}
@@ -148,15 +151,17 @@ function TypeForm({
 
       {/* Type icon */}
       <div className={styles.formField}>
-        <label className={styles.formLabel}>Icon *</label>
-        <IconPicker value={form.icon} onChange={(v) => set("icon", v)} />
+        <span id={`${uid}-icon`} className={styles.formLabel}>Icon *</span>
+        <div role="group" aria-labelledby={`${uid}-icon`}>
+          <IconPicker value={form.icon} onChange={(v) => set("icon", v)} />
+        </div>
       </div>
 
       {/* Subtype */}
       <div className={styles.formField}>
-        <label className={styles.formLabel}>Subtype</label>
+        <label htmlFor={`${uid}-subtype`} className={styles.formLabel}>Subtype</label>
         <div className={styles.selectWrap}>
-          <select className={styles.select} value={form.subtype} onChange={(e) => set("subtype", e.target.value)}>
+          <select id={`${uid}-subtype`} className={styles.select} value={form.subtype} onChange={(e) => set("subtype", e.target.value)}>
             <option value="">None</option>
             <option value="flight">flight</option>
             <option value="residence">residence</option>
@@ -188,6 +193,7 @@ function CategoryForm({
   onCancel: () => void;
 }) {
   const [form, setForm] = useState<CategoryFormState>(initial);
+  const uid = useId();
 
   function set(key: keyof CategoryFormState, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -215,8 +221,9 @@ function CategoryForm({
   return (
     <AdminEntityForm validate={validate} onSave={handleSave} onDone={onDone} onCancel={onCancel} isEditing={!!catId}>
       <div className={styles.formField}>
-        <label className={styles.formLabel}>Name *</label>
+        <label htmlFor={`${uid}-name`} className={styles.formLabel}>Name *</label>
         <input
+          id={`${uid}-name`}
           className={styles.input}
           value={form.name}
           onChange={(e) => set("name", e.target.value)}
@@ -225,15 +232,17 @@ function CategoryForm({
       </div>
 
       <div className={styles.formField}>
-        <label className={styles.formLabel}>Icon *</label>
-        <IconPicker value={form.icon} onChange={(v) => set("icon", v)} />
+        <span id={`${uid}-icon`} className={styles.formLabel}>Icon *</span>
+        <div role="group" aria-labelledby={`${uid}-icon`}>
+          <IconPicker value={form.icon} onChange={(v) => set("icon", v)} />
+        </div>
       </div>
 
       <div className={styles.formField}>
-        <label className={styles.formLabel}>Color *</label>
+        <label htmlFor={`${uid}-color`} className={styles.formLabel}>Color *</label>
         <div className={styles.colorRow}>
           <input type="color" className={styles.colorPicker} value={form.color} onChange={(e) => set("color", e.target.value)} />
-          <input className={styles.input} value={form.color} onChange={(e) => set("color", e.target.value)} placeholder="#F59E0B" />
+          <input className={styles.input} value={form.color} onChange={(e) => set("color", e.target.value)} id={`${uid}-color`} placeholder="#F59E0B" />
         </div>
       </div>
     </AdminEntityForm>
@@ -254,6 +263,7 @@ function FoodStyleForm({
   onCancel: () => void;
 }) {
   const [form, setForm] = useState<FoodStyleFormState>(initial);
+  const uid = useId();
 
   function validate(): string | null {
     if (!form.name.trim()) return "Name is required.";
@@ -270,8 +280,9 @@ function FoodStyleForm({
   return (
     <AdminEntityForm validate={validate} onSave={handleSave} onDone={onDone} onCancel={onCancel} isEditing={!!styleId}>
       <div className={styles.formField}>
-        <label className={styles.formLabel}>Name *</label>
+        <label htmlFor={`${uid}-name`} className={styles.formLabel}>Name *</label>
         <input
+          id={`${uid}-name`}
           className={styles.input}
           value={form.name}
           onChange={(e) => setForm({ name: e.target.value })}
@@ -296,6 +307,7 @@ function ShopStyleForm({
   onCancel: () => void;
 }) {
   const [form, setForm] = useState<ShopStyleFormState>(initial);
+  const uid = useId();
 
   function set(key: keyof ShopStyleFormState, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -318,8 +330,9 @@ function ShopStyleForm({
   return (
     <AdminEntityForm validate={validate} onSave={handleSave} onDone={onDone} onCancel={onCancel} isEditing={!!styleId}>
       <div className={styles.formField}>
-        <label className={styles.formLabel}>Name *</label>
+        <label htmlFor={`${uid}-name`} className={styles.formLabel}>Name *</label>
         <input
+          id={`${uid}-name`}
           className={styles.input}
           value={form.name}
           onChange={(e) => set("name", e.target.value)}
@@ -328,8 +341,10 @@ function ShopStyleForm({
       </div>
 
       <div className={styles.formField}>
-        <label className={styles.formLabel}>Icon *</label>
-        <IconPicker value={form.icon} onChange={(v) => set("icon", v)} />
+        <span id={`${uid}-icon`} className={styles.formLabel}>Icon *</span>
+        <div role="group" aria-labelledby={`${uid}-icon`}>
+          <IconPicker value={form.icon} onChange={(v) => set("icon", v)} />
+        </div>
       </div>
     </AdminEntityForm>
   );
@@ -353,6 +368,7 @@ function MoodTagForm({
   onCancel: () => void;
 }) {
   const [form, setForm] = useState<MoodTagFormState>(initial);
+  const uid = useId();
 
   function set(key: keyof MoodTagFormState, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -382,8 +398,9 @@ function MoodTagForm({
   return (
     <AdminEntityForm validate={validate} onSave={handleSave} onDone={onDone} onCancel={onCancel} isEditing={!!tagId}>
       <div className={styles.formField}>
-        <label className={styles.formLabel}>Name *</label>
+        <label htmlFor={`${uid}-name`} className={styles.formLabel}>Name *</label>
         <input
+          id={`${uid}-name`}
           className={styles.input}
           value={form.name}
           onChange={(e) => set("name", e.target.value)}
@@ -392,39 +409,41 @@ function MoodTagForm({
       </div>
 
       <div className={styles.formField}>
-        <label className={styles.formLabel}>Icon *</label>
-        <IconPicker value={form.icon} onChange={(v) => set("icon", v)} />
+        <span id={`${uid}-icon`} className={styles.formLabel}>Icon *</span>
+        <div role="group" aria-labelledby={`${uid}-icon`}>
+          <IconPicker value={form.icon} onChange={(v) => set("icon", v)} />
+        </div>
       </div>
 
       <div className={styles.formField}>
-        <label className={styles.formLabel}>Text color (light)</label>
+        <label htmlFor={`${uid}-color-light`} className={styles.formLabel}>Text color (light)</label>
         <div className={styles.colorRow}>
           <input type="color" className={styles.colorPicker} value={form.color} onChange={(e) => set("color", e.target.value)} />
-          <input className={styles.input} value={form.color} onChange={(e) => set("color", e.target.value)} placeholder="#888888" />
+          <input className={styles.input} value={form.color} onChange={(e) => set("color", e.target.value)} id={`${uid}-color-light`} placeholder="#888888" />
         </div>
       </div>
 
       <div className={styles.formField}>
-        <label className={styles.formLabel}>Background (light)</label>
+        <label htmlFor={`${uid}-bg-light`} className={styles.formLabel}>Background (light)</label>
         <div className={styles.colorRow}>
           <input type="color" className={styles.colorPicker} value={form.bgColor} onChange={(e) => set("bgColor", e.target.value)} />
-          <input className={styles.input} value={form.bgColor} onChange={(e) => set("bgColor", e.target.value)} placeholder="#f5f5f5" />
+          <input className={styles.input} value={form.bgColor} onChange={(e) => set("bgColor", e.target.value)} id={`${uid}-bg-light`} placeholder="#f5f5f5" />
         </div>
       </div>
 
       <div className={styles.formField}>
-        <label className={styles.formLabel}>Text color (dark)</label>
+        <label htmlFor={`${uid}-color-dark`} className={styles.formLabel}>Text color (dark)</label>
         <div className={styles.colorRow}>
           <input type="color" className={styles.colorPicker} value={form.darkColor} onChange={(e) => set("darkColor", e.target.value)} />
-          <input className={styles.input} value={form.darkColor} onChange={(e) => set("darkColor", e.target.value)} placeholder="#cccccc" />
+          <input className={styles.input} value={form.darkColor} onChange={(e) => set("darkColor", e.target.value)} id={`${uid}-color-dark`} placeholder="#cccccc" />
         </div>
       </div>
 
       <div className={styles.formField}>
-        <label className={styles.formLabel}>Background (dark)</label>
+        <label htmlFor={`${uid}-bg-dark`} className={styles.formLabel}>Background (dark)</label>
         <div className={styles.colorRow}>
           <input type="color" className={styles.colorPicker} value={form.darkBgColor} onChange={(e) => set("darkBgColor", e.target.value)} />
-          <input className={styles.input} value={form.darkBgColor} onChange={(e) => set("darkBgColor", e.target.value)} placeholder="#333333" />
+          <input className={styles.input} value={form.darkBgColor} onChange={(e) => set("darkBgColor", e.target.value)} id={`${uid}-bg-dark`} placeholder="#333333" />
         </div>
       </div>
     </AdminEntityForm>
@@ -461,6 +480,7 @@ export function AdminClient() {
   const [catDeleting, setCatDeleting]   = useState(false);
   const [migrating, setMigrating]       = useState(false);
   const [migrateMsg, setMigrateMsg]     = useState("");
+  const [confirmingMigrate, setConfirmingMigrate] = useState(false);
 
   // Attraction type CRUD state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -480,6 +500,9 @@ export function AdminClient() {
   const [foodStyleAdding, setFoodStyleAdding]       = useState(false);
   const [foodStyleDeleteId, setFoodStyleDeleteId]   = useState<string | null>(null);
   const [foodStyleDeleting, setFoodStyleDeleting]   = useState(false);
+  // Set when the server refuses a delete because attractions still use the style; the inline
+  // prompt then asks for a second, explicit confirmation before forcing the delete.
+  const [foodStyleForce, setFoodStyleForce]         = useState<{ id: string; name: string; message: string } | null>(null);
 
   // Shop style CRUD state
   const [shopStyleEditingId, setShopStyleEditingId] = useState<string | null>(null);
@@ -498,6 +521,7 @@ export function AdminClient() {
   // live-fall-back to the brand). Refreshed whenever the brand list changes.
   const [staleBrandCopies, setStaleBrandCopies] = useState(0);
   const [clearingStaleCopies, setClearingStaleCopies] = useState(false);
+  const [confirmingCleanup, setConfirmingCleanup]     = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -508,8 +532,15 @@ export function AdminClient() {
     return () => { cancelled = true; };
   }, [token, brandRecords]);
 
+  // Non-admins are sent home. Done in an effect: calling router.replace during render is a
+  // side effect that React warns about and can repeat on every render.
+  useEffect(() => {
+    if (!authLoading && user && user.role !== "admin") router.replace("/");
+  }, [authLoading, user, router]);
+
   async function handleClearStaleCopies() {
     if (!token) return;
+    setConfirmingCleanup(false);
     setClearingStaleCopies(true);
     try {
       const cleared = await clearStaleBrandCopies(token);
@@ -532,30 +563,27 @@ export function AdminClient() {
     );
   }
 
-  if (user.role !== "admin") {
-    router.replace("/");
-    return null;
-  }
+  // Non-admins are redirected by the effect above; render nothing meanwhile.
+  if (user.role !== "admin") return null;
 
   // ── Category handlers ────────────────────────────────────────────────────────
 
-  async function handleCatDelete(id: string) {
+  async function handleCatDelete(id: string, name: string) {
     if (!token) return;
     setCatDeleting(true);
     try {
       await deleteAttractionCategory(id, token);
+      invalidateAttractionCategoriesCache();
+      invalidateAttractionTypesCache();
+      setCatDeleteId(null);
+      toast.success("Category deleted");
     } catch (err) {
       const body = err instanceof ApiError ? (err.body as { error?: string } | null) : null;
-      alert(body?.error ?? "Failed to delete category");
-      setCatDeleting(false);
+      toast.error(body?.error ?? `Couldn't delete "${name}". Please try again.`);
       setCatDeleteId(null);
-      return;
+    } finally {
+      setCatDeleting(false);
     }
-    invalidateAttractionCategoriesCache();
-    invalidateAttractionTypesCache();
-    setCatDeleting(false);
-    setCatDeleteId(null);
-    toast.success("Category deleted");
   }
 
   function handleCatFormDone() {
@@ -567,27 +595,41 @@ export function AdminClient() {
 
   async function handleMigrate() {
     if (!token) return;
+    setConfirmingMigrate(false);
     setMigrating(true);
     setMigrateMsg("");
-    const res = await migrateLegacyTypes(token);
-    const data = await res.json() as { message?: string };
-    setMigrateMsg(data.message ?? "Done.");
-    setMigrating(false);
-    invalidateAttractionCategoriesCache();
-    invalidateAttractionTypesCache();
-    toast.success(data.message ?? "Legacy types migrated");
+    try {
+      const res = await migrateLegacyTypes(token);
+      if (!res.ok) throw new Error(`Migration failed (${res.status})`);
+      const data = await res.json() as { message?: string };
+      setMigrateMsg(data.message ?? "Done.");
+      toast.success(data.message ?? "Legacy types migrated");
+    } catch {
+      toast.error("Couldn't migrate legacy types. Please try again.");
+    } finally {
+      invalidateAttractionCategoriesCache();
+      invalidateAttractionTypesCache();
+      setMigrating(false);
+    }
   }
 
   // ── Type handlers ────────────────────────────────────────────────────────────
 
-  async function handleDelete(id: string) {
+  async function handleDelete(id: string, name: string) {
     if (!token) return;
     setDeleting(true);
-    await deleteAttractionType(id, token);
-    invalidateAttractionTypesCache();
-    setDeleting(false);
-    setDeleteId(null);
-    toast.success("Type deleted");
+    try {
+      const res = await deleteAttractionType(id, token);
+      if (!res.ok) throw new Error(`Delete failed (${res.status})`);
+      invalidateAttractionTypesCache();
+      setDeleteId(null);
+      toast.success("Type deleted");
+    } catch {
+      toast.error(`Couldn't delete "${name}". Please try again.`);
+      setDeleteId(null);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   function handleFormDone() {
@@ -599,14 +641,21 @@ export function AdminClient() {
 
   // ── Mood tag handlers ────────────────────────────────────────────────────────
 
-  async function handleMoodDelete(id: string) {
+  async function handleMoodDelete(id: string, name: string) {
     if (!token) return;
     setMoodDeleting(true);
-    await deleteMoodTag(id, token);
-    invalidateMoodTagsCache();
-    setMoodDeleting(false);
-    setMoodDeleteId(null);
-    toast.success("Mood deleted");
+    try {
+      const res = await deleteMoodTag(id, token);
+      if (!res.ok) throw new Error(`Delete failed (${res.status})`);
+      invalidateMoodTagsCache();
+      setMoodDeleteId(null);
+      toast.success("Mood deleted");
+    } catch {
+      toast.error(`Couldn't delete "${name}". Please try again.`);
+      setMoodDeleteId(null);
+    } finally {
+      setMoodDeleting(false);
+    }
   }
 
   function handleMoodFormDone() {
@@ -618,24 +667,35 @@ export function AdminClient() {
 
   // ── Food style handlers ──────────────────────────────────────────────────────
 
-  async function handleFoodStyleDelete(id: string) {
+  async function handleFoodStyleDelete(id: string, name: string, force = false) {
     if (!token) return;
     setFoodStyleDeleting(true);
-    let res = await deleteFoodStyle(id, token);
-    // Still used by attractions: the server refuses until the admin confirms the removal.
-    if (res.status === 409) {
-      const body = (await res.json().catch(() => null)) as { error?: string } | null;
-      if (!window.confirm(body?.error ?? "This food style is still in use. Delete it anyway?")) {
-        setFoodStyleDeleting(false);
+    try {
+      const res = await deleteFoodStyle(id, token, force);
+      // Still used by attractions: the server refuses until the admin confirms the removal.
+      // Ask inline (same Yes/No pattern) rather than with window.confirm.
+      if (res.status === 409 && !force) {
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        setFoodStyleForce({
+          id,
+          name,
+          message: body?.error ?? `"${name}" is still used by attractions. Delete it anyway?`,
+        });
+        setFoodStyleDeleteId(null);
         return;
       }
-      res = await deleteFoodStyle(id, token, true);
+      if (!res.ok) throw new Error(`Delete failed (${res.status})`);
+      invalidateFoodStylesCache();
+      setFoodStyleDeleteId(null);
+      setFoodStyleForce(null);
+      toast.success("Food style deleted");
+    } catch {
+      toast.error(`Couldn't delete "${name}". Please try again.`);
+      setFoodStyleDeleteId(null);
+      setFoodStyleForce(null);
+    } finally {
+      setFoodStyleDeleting(false);
     }
-    invalidateFoodStylesCache();
-    setFoodStyleDeleting(false);
-    setFoodStyleDeleteId(null);
-    if (res.ok) toast.success("Food style deleted");
-    else toast.error("Couldn't delete the food style. Please try again.");
   }
 
   function handleFoodStyleFormDone() {
@@ -647,14 +707,21 @@ export function AdminClient() {
 
   // ── Shop style handlers ──────────────────────────────────────────────────────
 
-  async function handleShopStyleDelete(id: string) {
+  async function handleShopStyleDelete(id: string, name: string) {
     if (!token) return;
     setShopStyleDeleting(true);
-    await deleteShopStyle(id, token);
-    invalidateShopStylesCache();
-    setShopStyleDeleting(false);
-    setShopStyleDeleteId(null);
-    toast.success("Shop style deleted");
+    try {
+      const res = await deleteShopStyle(id, token);
+      if (!res.ok) throw new Error(`Delete failed (${res.status})`);
+      invalidateShopStylesCache();
+      setShopStyleDeleteId(null);
+      toast.success("Shop style deleted");
+    } catch {
+      toast.error(`Couldn't delete "${name}". Please try again.`);
+      setShopStyleDeleteId(null);
+    } finally {
+      setShopStyleDeleting(false);
+    }
   }
 
   function handleShopStyleFormDone() {
@@ -666,23 +733,36 @@ export function AdminClient() {
 
   // ── Brand handlers ───────────────────────────────────────────────────────────
 
-  async function handleBrandDelete(id: string) {
+  async function handleBrandDelete(id: string, name: string) {
     if (!token) return;
     setBrandDeleting(true);
-    await deleteBrand(id, token);
-    invalidateBrandsCache();
-    setBrandDeleting(false);
-    setBrandDeleteId(null);
-    toast.success("Brand deleted");
+    try {
+      const res = await deleteBrand(id, token);
+      if (!res.ok) throw new Error(`Delete failed (${res.status})`);
+      invalidateBrandsCache();
+      setBrandDeleteId(null);
+      toast.success("Brand deleted");
+    } catch {
+      toast.error(`Couldn't delete "${name}". Please try again.`);
+      setBrandDeleteId(null);
+    } finally {
+      setBrandDeleting(false);
+    }
   }
 
   async function handleSeedMoodTags() {
     if (!token) return;
     setSeeding(true);
-    await seedMoodTags(token);
-    invalidateMoodTagsCache();
-    setSeeding(false);
-    toast.success("Default moods seeded");
+    try {
+      const res = await seedMoodTags(token);
+      if (!res.ok) throw new Error(`Seed failed (${res.status})`);
+      toast.success("Default moods seeded");
+    } catch {
+      toast.error("Couldn't seed the default moods. Please try again.");
+    } finally {
+      invalidateMoodTagsCache();
+      setSeeding(false);
+    }
   }
 
   // ── Legacy types that haven't been migrated yet ──────────────────────────────
@@ -715,8 +795,8 @@ export function AdminClient() {
                 {legacyTypes.length > 0 && (
                   <button
                     className={styles.addBtn}
-                    onClick={handleMigrate}
-                    disabled={migrating}
+                    onClick={() => setConfirmingMigrate(true)}
+                    disabled={migrating || confirmingMigrate}
                     aria-label={`Migrate legacy (${legacyTypes.length})`}
                     title={`Migrate legacy (${legacyTypes.length})`}
                   >
@@ -728,6 +808,20 @@ export function AdminClient() {
             )
           }
         >
+          {confirmingMigrate && (
+            <div className={styles.inlineConfirm} role="group" aria-label="Confirm migration">
+              <span>Migrate {legacyTypes.length} legacy {legacyTypes.length === 1 ? "type" : "types"} into categories?</span>
+              <div className={styles.inlineConfirmActions}>
+                <button type="button" className={styles.confirmYes} onClick={handleMigrate} disabled={migrating}>
+                  Yes
+                </button>
+                <button type="button" className={styles.confirmNo} onClick={() => setConfirmingMigrate(false)}>
+                  No
+                </button>
+              </div>
+            </div>
+          )}
+
           {migrateMsg && (
             <p className={styles.fieldHint}>{migrateMsg}</p>
           )}
@@ -764,10 +858,12 @@ export function AdminClient() {
                   <div key={cat._id} className={styles.compactChip}>
                     <span className={styles.compactIndex}>#{index + 1}</span>
                     <span className={styles.typeIcon}>{renderTypeIcon(cat.icon, 15)}</span>
-                    <span
-                      className={styles.typeNameColored}
-                      style={{ "--type-color": cat.color } as CSSProperties}
-                    >
+                    <span className={styles.typeNameColored}>
+                      <span
+                        className={styles.colorSwatch}
+                        style={{ "--type-color": cat.color } as CSSProperties}
+                        aria-hidden="true"
+                      />
                       {cat.name}
                     </span>
                     <div className={styles.typeActions}>
@@ -780,10 +876,10 @@ export function AdminClient() {
                       </button>
                       {catDeleteId === cat._id ? (
                         <div className={styles.confirmDelete}>
-                          <span>Delete?</span>
+                          <span className={styles.confirmLabel} title={`Delete ${cat.name}?`}>Delete {cat.name}?</span>
                           <button
                             className={styles.confirmYes}
-                            onClick={() => handleCatDelete(cat._id)}
+                            onClick={() => handleCatDelete(cat._id, cat.name)}
                             disabled={catDeleting}
                           >
                             Yes
@@ -854,10 +950,12 @@ export function AdminClient() {
                       aria-controls={bodyId}
                     >
                       <CatIcon size={16} aria-hidden="true" />
-                      <h3
-                        className={styles.categoryNameColored}
-                        style={{ "--type-color": first?.color } as CSSProperties}
-                      >
+                      <h3 className={styles.categoryNameColored}>
+                        <span
+                          className={styles.colorSwatch}
+                          style={{ "--type-color": first?.color } as CSSProperties}
+                          aria-hidden="true"
+                        />
                         {cat}
                       </h3>
                       <span className={styles.categoryCount}>{byCategory[cat]?.length}</span>
@@ -900,10 +998,10 @@ export function AdminClient() {
                                     </button>
                                     {deleteId === typeRecord._id ? (
                                       <div className={styles.confirmDelete}>
-                                        <span>Delete?</span>
+                                        <span className={styles.confirmLabel} title={`Delete ${typeRecord.name}?`}>Delete {typeRecord.name}?</span>
                                         <button
                                           className={styles.confirmYes}
-                                          onClick={() => handleDelete(typeRecord._id)}
+                                          onClick={() => handleDelete(typeRecord._id, typeRecord.name)}
                                           disabled={deleting}
                                         >
                                           Yes
@@ -997,7 +1095,7 @@ export function AdminClient() {
                     <span className={styles.moodIcon} style={getMoodTagStyle(tagRecord)}>
                       {renderTypeIcon(tagRecord.icon, 15)}
                     </span>
-                    <span className={styles.moodName} style={getMoodTagStyle(tagRecord)}>{tagRecord.name}</span>
+                    <span className={styles.moodName}>{tagRecord.name}</span>
                     <div className={styles.typeActions}>
                       <button
                         className={styles.iconBtn}
@@ -1008,10 +1106,10 @@ export function AdminClient() {
                       </button>
                       {moodDeleteId === tagRecord._id ? (
                         <div className={styles.confirmDelete}>
-                          <span>Delete?</span>
+                          <span className={styles.confirmLabel} title={`Delete ${tagRecord.name}?`}>Delete {tagRecord.name}?</span>
                           <button
                             className={styles.confirmYes}
-                            onClick={() => handleMoodDelete(tagRecord._id)}
+                            onClick={() => handleMoodDelete(tagRecord._id, tagRecord.name)}
                             disabled={moodDeleting}
                           >
                             Yes
@@ -1090,12 +1188,26 @@ export function AdminClient() {
                       >
                         <Pencil size={13} />
                       </button>
-                      {foodStyleDeleteId === record._id ? (
-                        <div className={styles.confirmDelete}>
-                          <span>Delete?</span>
+                      {foodStyleForce?.id === record._id ? (
+                        <div className={styles.confirmDelete} role="group" aria-label={foodStyleForce.message}>
+                          <span className={styles.confirmLabel} title={foodStyleForce.message}>{foodStyleForce.message}</span>
                           <button
                             className={styles.confirmYes}
-                            onClick={() => handleFoodStyleDelete(record._id)}
+                            onClick={() => handleFoodStyleDelete(record._id, record.name, true)}
+                            disabled={foodStyleDeleting}
+                          >
+                            Yes
+                          </button>
+                          <button className={styles.confirmNo} onClick={() => setFoodStyleForce(null)}>
+                            No
+                          </button>
+                        </div>
+                      ) : foodStyleDeleteId === record._id ? (
+                        <div className={styles.confirmDelete}>
+                          <span className={styles.confirmLabel} title={`Delete ${record.name}?`}>Delete {record.name}?</span>
+                          <button
+                            className={styles.confirmYes}
+                            onClick={() => handleFoodStyleDelete(record._id, record.name)}
                             disabled={foodStyleDeleting}
                           >
                             Yes
@@ -1134,15 +1246,31 @@ export function AdminClient() {
             </button>
           }
         >
-          {staleBrandCopies > 0 && (
+          {staleBrandCopies > 0 && !confirmingCleanup && (
             <div className={styles.staleNotice} role="status">
               <span>
                 {staleBrandCopies} brand-linked attraction{staleBrandCopies === 1 ? " still has" : "s still have"} their own
                 types or styles instead of following the brand.
               </span>
-              <button type="button" className={styles.staleNoticeBtn} onClick={handleClearStaleCopies} disabled={clearingStaleCopies}>
+              <button type="button" className={styles.staleNoticeBtn} onClick={() => setConfirmingCleanup(true)} disabled={clearingStaleCopies}>
                 {clearingStaleCopies ? "Cleaning up…" : "Clean up"}
               </button>
+            </div>
+          )}
+
+          {staleBrandCopies > 0 && confirmingCleanup && (
+            <div className={styles.inlineConfirm} role="group" aria-label="Confirm clean up">
+              <span>
+                Clear {staleBrandCopies} stale {staleBrandCopies === 1 ? "copy" : "copies"}? These attractions will follow their brand again.
+              </span>
+              <div className={styles.inlineConfirmActions}>
+                <button type="button" className={styles.confirmYes} onClick={handleClearStaleCopies} disabled={clearingStaleCopies}>
+                  Yes
+                </button>
+                <button type="button" className={styles.confirmNo} onClick={() => setConfirmingCleanup(false)}>
+                  No
+                </button>
+              </div>
             </div>
           )}
 
@@ -1172,10 +1300,10 @@ export function AdminClient() {
                     </button>
                     {brandDeleteId === record._id ? (
                       <div className={styles.confirmDelete}>
-                        <span>Delete?</span>
+                        <span className={styles.confirmLabel} title={`Delete ${record.name}?`}>Delete {record.name}?</span>
                         <button
                           className={styles.confirmYes}
-                          onClick={() => handleBrandDelete(record._id)}
+                          onClick={() => handleBrandDelete(record._id, record.name)}
                           disabled={brandDeleting}
                         >
                           Yes
@@ -1256,10 +1384,10 @@ export function AdminClient() {
                       </button>
                       {shopStyleDeleteId === record._id ? (
                         <div className={styles.confirmDelete}>
-                          <span>Delete?</span>
+                          <span className={styles.confirmLabel} title={`Delete ${record.name}?`}>Delete {record.name}?</span>
                           <button
                             className={styles.confirmYes}
-                            onClick={() => handleShopStyleDelete(record._id)}
+                            onClick={() => handleShopStyleDelete(record._id, record.name)}
                             disabled={shopStyleDeleting}
                           >
                             Yes

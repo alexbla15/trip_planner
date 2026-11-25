@@ -114,7 +114,6 @@ export function CategoryDonutChart({
               key={cat._id}
               d={donutSlicePath(CX, CY, OUTER_R, INNER_R, startAngle, endAngle)}
               fill={color}
-              stroke="white"
               strokeWidth="2"
               className={[
                 hoveredIndex === i ? styles.sliceHovered : styles.slice,
@@ -148,6 +147,8 @@ export function CategoryDonutChart({
                 ]
                   .filter(Boolean)
                   .join(" ")}
+                role="button"
+                aria-pressed={isSelected}
                 tabIndex={0}
                 onMouseEnter={() => setHoveredIndex(i)}
                 onMouseLeave={() => setHoveredIndex(null)}
@@ -199,7 +200,6 @@ export function CategoryDonutChart({
                   key={_id}
                   d={donutSlicePath(CX, CY, OUTER_R, INNER_R, startAngle, endAngle)}
                   fill={color}
-                  stroke="white"
                   strokeWidth="2"
                   className={styles.slice}
                   onClick={() => handleSubSliceClick(_id)}
@@ -217,6 +217,7 @@ export function CategoryDonutChart({
                   <li
                     key={_id}
                     className={styles.subLegendItem}
+                    role="button"
                     tabIndex={0}
                     onClick={() => handleSubSliceClick(_id)}
                     onKeyDown={(e) => {

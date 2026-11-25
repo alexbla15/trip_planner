@@ -154,12 +154,19 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
-.badgeTrip {
+/* Each status badge gets its own hue so the icons don't read as one thing:
+   verified = brand blue, visited = success green, in-trip = amber (accent-dark keeps
+   white icon contrast at 4.5:1+). */
+.badgeVerified {
   background: var(--color-primary);
 }
 
-.badgeVerified {
-  background: var(--color-primary);
+.badgeVisited {
+  background: var(--color-success);
+}
+
+.badgeTrip {
+  background: var(--color-accent-dark);
 }
 
 .badgeChildren {
@@ -289,6 +296,13 @@
   min-width: 0;
 }
 
+/* Permanently closed: mute the name and city so the card reads as inactive, matching the
+   grayscaled photo above. */
+.bodyClosed .name,
+.bodyClosed .meta {
+  color: var(--color-text-tertiary);
+}
+
 .nameRow {
   display: flex;
   align-items: center;
@@ -401,6 +415,16 @@
   outline-offset: 2px;
 }
 
+/* Touch: grow the tap target to 44px without changing the 20px visual. The ::before
+   pseudo-element extends the hit area 12px past each edge. */
+@media (hover: none) {
+  .nameIconBtn::before {
+    content: "";
+    position: absolute;
+    inset: -12px;
+  }
+}
+
 /* "Part of {parent}" — a distinct color from .meta (city) below so the two don't read
    as the same kind of fact; matches the accent color used for the same "nesting"
    concept in AttractionDetailModal's childCountBadge. */
@@ -425,6 +449,12 @@
 }
 .parentLine:hover {
   text-decoration: underline;
+}
+.parentLineText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .parentLine:focus-visible {
   outline: 2px solid var(--color-accent-dark);

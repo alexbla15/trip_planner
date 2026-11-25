@@ -1,6 +1,6 @@
 "use client";
 
-import type { LucideIcon } from "lucide-react";
+import { ChevronDown, type LucideIcon } from "lucide-react";
 import styles from "./StatCardsGrid.module.css";
 
 export interface StatCardItem {
@@ -66,9 +66,17 @@ export function StatCardsGrid({
               className={`${styles.card} ${styles.cardClickable} ${isActive ? styles.cardActive : ""}`}
               onClick={() => onStatClick!(label)}
               aria-pressed={isActive}
-              aria-controls={panelId}
+              aria-controls={isActive ? panelId : undefined}
             >
               {inner}
+              <span className={styles.hint}>
+                {isActive ? "Hide details" : "View details"}
+                <ChevronDown
+                  size={14}
+                  aria-hidden="true"
+                  className={isActive ? styles.chevronOpen : styles.chevron}
+                />
+              </span>
             </button>
           );
         }

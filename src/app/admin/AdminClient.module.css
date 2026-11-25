@@ -45,9 +45,8 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  width: 40px;
   height: 40px;
-  padding: 0;
+  padding: 0 12px;
   border: 1px solid var(--color-primary);
   border-radius: var(--radius-md);
   background: transparent;
@@ -60,11 +59,17 @@
 }
 .addBtn:hover { background: var(--color-primary-light); }
 
-/* Icon-only now at every width — the label text is still present in the DOM (see
-   aria-label on each button) for screen readers, just visually hidden always rather than
-   only below 640px. */
-.addBtnLabel {
-  display: none;
+/* The text label shows at desktop widths. On phones the buttons go icon-only (40px square)
+   because the header row cannot fit two labelled buttons; each button keeps its aria-label,
+   so the accessible name is unchanged. */
+@media (max-width: 639px) {
+  .addBtn {
+    width: 40px;
+    padding: 0;
+  }
+  .addBtnLabel {
+    display: none;
+  }
 }
 
 
@@ -102,12 +107,25 @@
   outline-offset: -2px;
 }
 
+/* Category name is text, so it stays in the primary text color; the DB color is shown as a
+   swatch dot beside it (DB colors such as amber fail 4.5:1 as text on light surfaces). */
 .categoryNameColored {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 14px;
   font-weight: 700;
-  color: var(--type-color, var(--color-text-primary));
+  color: var(--color-text-primary);
   margin: 0;
   flex: 1;
+}
+
+.colorSwatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--type-color, var(--color-text-tertiary));
+  flex-shrink: 0;
 }
 
 .categoryCount {
@@ -221,8 +239,11 @@
 
 .typeNameColored {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 14px;
-  color: var(--type-color, var(--color-text-primary));
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 
@@ -236,10 +257,11 @@
   flex-shrink: 0;
 }
 
+/* Mood name is text: primary text color for contrast. The tag color only tints the icon. */
 .moodName {
   flex: 1;
   font-size: 14px;
-  color: var(--tag-color, var(--color-text-primary));
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 
@@ -247,15 +269,11 @@
   color: var(--tag-dark-color, var(--tag-color, var(--color-text-secondary)));
 }
 
-:global([data-theme="dark"]) .moodName {
-  color: var(--tag-dark-color, var(--tag-color, var(--color-text-primary)));
-}
-
 .subtypeBadge {
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-primary);
-  background: var(--color-primary-light);
+  color: var(--color-accent-text);
+  background: var(--color-warning-light);
   border-radius: var(--radius-sm);
   padding: 2px 7px;
 }
@@ -281,7 +299,10 @@
   transition: color var(--duration-fast), background var(--duration-fast);
 }
 .iconBtn:hover { color: var(--color-text-primary); background: var(--color-bg-subtle); }
-.deleteBtn:hover { color: var(--color-error); background: #fef2f2; }
+.deleteBtn:hover {
+  color: var(--color-error-text);
+  background: color-mix(in srgb, var(--color-error) 12%, transparent);
+}
 
 .confirmDelete {
   display: flex;
@@ -289,6 +310,14 @@
   gap: 6px;
   font-size: 12px;
   color: var(--color-text-secondary);
+}
+
+/* Names the item being deleted; truncates so a long name cannot break the chip */
+.confirmLabel {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .confirmYes, .confirmNo {
@@ -421,7 +450,7 @@
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: var(--color-error);
+  color: var(--color-error-text);
   margin: 0;
 }
 
@@ -498,9 +527,31 @@
   padding: 10px 12px;
   margin-bottom: 12px;
   border-radius: var(--radius-md);
-  background: var(--color-warning-light, #fef3c7);
+  background: var(--color-warning-light);
   color: var(--color-text-primary);
   font-size: 13px;
+}
+
+/* Inline "are you sure?" bar for bulk actions (migrate, clean up) */
+.inlineConfirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  font-size: 13px;
+}
+
+.inlineConfirmActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .staleNoticeBtn {

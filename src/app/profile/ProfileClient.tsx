@@ -62,6 +62,8 @@ export function ProfileClient() {
 
   const [analytics, setAnalytics] = useState<PersonalAnalytics | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
+  const [analyticsError, setAnalyticsError] = useState(false);
+  const [analyticsReloadKey, setAnalyticsReloadKey] = useState(0);
 
   // Edit form state
   const [isEditing, setIsEditing] = useState(false);
@@ -85,11 +87,31 @@ export function ProfileClient() {
   // Fetch personal analytics
   useEffect(() => {
     if (!token) return;
+    let cancelled = false;
     getPersonalAnalytics(token)
-      .then((d) => setAnalytics(d as PersonalAnalytics))
-      .catch(() => setAnalytics(null))
-      .finally(() => setAnalyticsLoading(false));
-  }, [token]);
+      .then((d) => {
+        if (cancelled) return;
+        setAnalytics(d as PersonalAnalytics);
+        setAnalyticsError(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setAnalytics(null);
+        setAnalyticsError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setAnalyticsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token, analyticsReloadKey]);
+
+  function retryAnalytics() {
+    setAnalyticsError(false);
+    setAnalyticsLoading(true);
+    setAnalyticsReloadKey((k) => k + 1);
+  }
 
   // Seed edit form when user is available
   useEffect(() => {
@@ -296,6 +318,11 @@ export function ProfileClient() {
                           aria-label={src.split("/").pop()?.replace(/\.\w+$/, "")}
                         >
                           <ImageWithSkeleton src={src} alt="" width={56} height={56} className={styles.avatarOptionImg} />
+                          {editAvatarUrl === src && (
+                            <span className={styles.avatarCheck} aria-hidden="true">
+                              <Check size={12} />
+                            </span>
+                          )}
                         </button>
                       ))}
                     </div>
@@ -381,7 +408,9 @@ export function ProfileClient() {
                   onChange={(e) => setNewPw(e.target.value)}
                   className={styles.editInput}
                   autoComplete="new-password"
+                  aria-describedby={pwError ? "new-pw-hint pw-error" : "new-pw-hint"}
                 />
+                <p id="new-pw-hint" className={styles.fieldHint}>Must be at least 8 characters.</p>
               </div>
               <div className={styles.editField}>
                 <label htmlFor="confirm-pw" className={styles.editLabel}>Confirm new password</label>
@@ -392,6 +421,7 @@ export function ProfileClient() {
                   onChange={(e) => setConfirmPw(e.target.value)}
                   className={styles.editInput}
                   autoComplete="new-password"
+                  aria-describedby={pwError ? "pw-error" : undefined}
                 />
               </div>
               <div className={styles.editBtns}>
@@ -413,7 +443,7 @@ export function ProfileClient() {
                 </button>
               </div>
               {pwError && (
-                <p className={styles.saveError} role="alert">
+                <p id="pw-error" className={styles.saveError} role="alert">
                   <AlertCircle size={12} aria-hidden="true" />
                   {pwError}
                 </p>
@@ -423,16 +453,26 @@ export function ProfileClient() {
         </SectionCard>
 
         {/* ── Personal stats cards ── */}
-        <StatCardsGrid
-          items={statItems}
-          loading={analyticsLoading}
-          skeletonCount={5}
-          activeStat={activeStat}
-          onStatClick={(label) => {
-            setActiveStat((prev) => (prev === label ? null : label));
-            setCityCountryFilter("all");
-          }}
-        />
+        {analyticsError ? (
+          <div className={styles.statsError} role="alert">
+            <AlertCircle size={16} aria-hidden="true" />
+            <p className={styles.statsErrorText}>Couldn&apos;t load your travel stats.</p>
+            <button type="button" className={styles.pwTriggerBtn} onClick={retryAnalytics}>
+              Try again
+            </button>
+          </div>
+        ) : (
+          <StatCardsGrid
+            items={statItems}
+            loading={analyticsLoading}
+            skeletonCount={5}
+            activeStat={activeStat}
+            onStatClick={(label) => {
+              setActiveStat((prev) => (prev === label ? null : label));
+              setCityCountryFilter("all");
+            }}
+          />
+        )}
 
         {/* ── Stat detail panel ── */}
         {!analyticsLoading && analytics && activeStat &&

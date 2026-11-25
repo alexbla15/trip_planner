@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import L from "leaflet";
 import { getWorldCountriesGeoJson } from "@/services";
 import { colorForBoundaryIndex } from "@/lib/mapBoundaryColors";
+import styles from "./CountriesMap.module.css";
 import "leaflet/dist/leaflet.css";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -79,9 +80,9 @@ export function CountriesMap({ countries, countLabel = "attraction" }: Countries
     if (count) {
       const fillColor = colorForBoundaryIndex(countryIndexMap[key] ?? 0);
       const fillOpacity = 0.35 + (count / maxCount) * 0.45;
-      return { fillColor, fillOpacity, color: "#ffffff", weight: 0.5, opacity: 0.6 };
+      return { fillColor, fillOpacity, className: styles.visited, weight: 0.5, opacity: 0.6 };
     }
-    return { fillColor: "#E2E8F0", fillOpacity: 0.6, color: "#CBD5E1", weight: 0.5, opacity: 0.5 };
+    return { fillOpacity: 0.6, className: styles.unvisited, weight: 0.5, opacity: 0.5 };
   }
 
   function onEachFeature(feature: GeoJSON.Feature, layer: L.Layer) {
@@ -97,6 +98,7 @@ export function CountriesMap({ countries, countLabel = "attraction" }: Countries
 
   return (
     <MapContainer
+      className={styles.map}
       center={[20, 0]}
       zoom={2}
       style={{ height: "100%", width: "100%" }}

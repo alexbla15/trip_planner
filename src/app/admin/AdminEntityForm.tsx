@@ -45,11 +45,18 @@ export function AdminEntityForm({ validate, onSave, onDone, onCancel, isEditing,
   }
 
   return (
-    <div className={styles.formCard}>
+    <form
+      className={styles.formCard}
+      noValidate
+      onSubmit={(e) => {
+        e.preventDefault();
+        void handleSave();
+      }}
+    >
       <div className={styles.formGrid}>{children}</div>
 
       {error && (
-        <p className={styles.formError}>
+        <p className={styles.formError} role="alert">
           <AlertCircle size={13} aria-hidden="true" /> {error}
         </p>
       )}
@@ -58,11 +65,11 @@ export function AdminEntityForm({ validate, onSave, onDone, onCancel, isEditing,
         <button type="button" className={styles.cancelBtn} onClick={onCancel} disabled={saving}>
           <XIcon size={14} /> Cancel
         </button>
-        <button type="button" className={styles.saveBtn} onClick={handleSave} disabled={saving}>
+        <button type="submit" className={styles.saveBtn} disabled={saving}>
           {saving ? <Loader2 size={14} className={styles.spin} /> : <Check size={14} />}
           {isEditing ? "Update" : "Create"}
         </button>
       </div>
-    </div>
+    </form>
   );
 }

@@ -10,7 +10,7 @@
 }
 
 .cardPrivate {
-  border-color: #475569;
+  border-color: var(--color-private-border);
 }
 
 .card:hover {

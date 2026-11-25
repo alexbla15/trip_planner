@@ -121,6 +121,12 @@
   color: var(--color-text-tertiary);
 }
 
+/* Chromium draws a native clear (X) on type="search"; the custom .clearBtn is the one control. */
+.searchInput::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 .clearBtn {
   position: absolute;
   right: 10px;
@@ -169,6 +175,11 @@
   display: block;
 }
 
+/* Matches the trip card's image + body height so the CTA is not a shorter tile. */
+.newTripCard {
+  min-height: 300px;
+}
+
 /* ── Empty state ── */
 .emptyState {
   display: flex;
@@ -215,4 +226,30 @@
 .clearSearchBtn:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
+}
+
+.primaryBtn {
+  height: 40px;
+  padding: 0 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  margin-top: 8px;
+  transition: background var(--duration-fast) var(--easing-out);
+}
+
+.primaryBtn:hover {
+  background: var(--color-primary-dark);
+}
+
+.primaryBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }

@@ -1,0 +1,30 @@
+/* Map surface tokens. The Leaflet SVG paths read these through their class names,
+   so the country fills follow the active theme. */
+.map {
+  --map-fill-default: #E2E8F0;
+  --map-stroke-default: #CBD5E1;
+  --map-stroke-visited: #ffffff;
+}
+
+[data-theme="dark"] .map {
+  --map-fill-default: #334155;
+  --map-stroke-default: #475569;
+  --map-stroke-visited: #0f172a;
+}
+
+/* Countries with no attractions */
+.unvisited {
+  fill: var(--map-fill-default);
+  stroke: var(--map-stroke-default);
+}
+
+/* Countries with attractions keep their categorical fill; only the border is themed */
+.visited {
+  stroke: var(--map-stroke-visited);
+}
+
+/* Dark theme: the OpenStreetMap basemap is light, so invert it into a dark basemap.
+   Markers live in their own pane and are not affected. */
+[data-theme="dark"] .map :global(.leaflet-tile-pane) {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9);
+}

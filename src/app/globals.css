@@ -9,6 +9,9 @@
   --color-accent-dark:   #b45309;   /* amber-700 */
   --color-primary-text:  #0369a1;   /* text-safe primary on primary-light (same as --color-primary) */
   --color-accent-text:   #b45309;   /* text-safe amber on light surfaces (amber-700, 5.0:1 on white) */
+  --color-error-text:    #dc2626;   /* red-600 on white, text-safe */
+  --color-warning-light: #fef3c7;   /* amber-100 notice surface */
+  --color-private-border: #475569;  /* private-trip card edge on light surfaces */
 
   /* Surfaces — clear visual layers */
   --color-bg:            #ffffff;
@@ -81,6 +84,9 @@
   --color-primary-light: #0c4a6e;
   --color-primary-text: #7dd3fc;   /* text on primary-light: #38bdf8 measured 4.4:1 there */
   --color-accent-text: #fbbf24;    /* amber text on dark surfaces; amber-700 fails here */
+  --color-error-text: #f87171;     /* red text on dark surfaces; red-600 measured ~3.0:1 on #1e293b */
+  --color-warning-light: #3b2a0a;  /* dark amber tint for notices; the light value is amber-100 */
+  --color-private-border: #94a3b8; /* private-trip card edge; #475569 measured 1.9:1 on the surface */
   --color-error-light: #4c1d1d;
 
   /* Shadows — heavier on dark */

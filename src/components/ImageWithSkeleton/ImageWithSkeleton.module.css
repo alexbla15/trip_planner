@@ -26,3 +26,8 @@
 .imageLoaded {
   opacity: 1;
 }
+
+/* Failed load: the broken <img> is removed from layout; the parent's fallback takes over. */
+.imageErrored {
+  display: none;
+}

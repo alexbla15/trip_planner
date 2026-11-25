@@ -1,0 +1,43 @@
+/* Map overlay tokens. Boundary and marker colours are applied through class names,
+   so they resolve per theme instead of being fixed in the Leaflet path options. */
+.map {
+  --map-country-stroke: #B45309;
+  --map-country-fill: #F59E0B;
+  --map-city-stroke: #0369A1;
+  --map-city-fill: #38BDF8;
+  --map-loading-stroke: #94A3B8;
+  --map-loading-fill: #CBD5E1;
+}
+
+[data-theme="dark"] .map {
+  --map-country-stroke: #fbbf24;
+  --map-country-fill: #fbbf24;
+  --map-city-stroke: #7dd3fc;
+  --map-city-fill: #38bdf8;
+  --map-loading-stroke: #64748b;
+  --map-loading-fill: #475569;
+}
+
+/* Selected-country outline — amber, matches the design system's accent hue. */
+.countryBoundary {
+  stroke: var(--map-country-stroke);
+  fill: var(--map-country-fill);
+}
+
+/* Resolved city boundary polygon — sky, matches the design system's primary hue. */
+.cityBoundary,
+.cityMarker {
+  stroke: var(--map-city-stroke);
+  fill: var(--map-city-fill);
+}
+
+/* City marker while its boundary lookup is still in flight — neutral slate. */
+.cityMarkerLoading {
+  stroke: var(--map-loading-stroke);
+  fill: var(--map-loading-fill);
+}
+
+/* Dark theme: invert the light OpenStreetMap basemap, matching the explore page. */
+[data-theme="dark"] .map :global(.leaflet-tile-pane) {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9);
+}

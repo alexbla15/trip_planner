@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
 import {
+  AlertCircle,
   BarChart2,
   MapPinned,
   Landmark,
@@ -54,6 +55,18 @@ interface GlobalAnalytics {
 
 const SKELETON_ROWS = 5;
 
+const STAT_PANEL_ID = "stat-detail-panel";
+
+// Each drill-down's number is a different unit, so the heading names that unit
+// rather than the stat card it was opened from.
+const DETAIL_TITLES: Record<string, string> = {
+  "Total Trips": "Attractions per trip",
+  "Total Attractions": "Attractions by type",
+  "Users": "Attractions per user",
+  "Countries": "Attractions per country",
+  "Cities Covered": "Attractions per city",
+};
+
 export function AnalyticsClient() {
   const [data, setData] = useState<GlobalAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,12 +74,18 @@ export function AnalyticsClient() {
   const [activeStat, setActiveStat] = useState<string | null>(null);
   const [cityCountryFilter, setCityCountryFilter] = useState<string>("all");
 
-  useEffect(() => {
+  const loadAnalytics = useCallback(() => {
+    setLoading(true);
+    setError(false);
     getGlobalAnalytics()
       .then((d) => setData(d as GlobalAnalytics))
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadAnalytics();
+  }, [loadAnalytics]);
 
   function selectStat(label: string) {
     setActiveStat((prev) => (prev === label ? null : label));
@@ -142,10 +161,22 @@ export function AnalyticsClient() {
           </div>
         </div>
         <div className={styles.content}>
-          <div className={styles.emptyState}>
-            <BarChart2 size={48} className={styles.emptyIcon} aria-hidden="true" />
-            <p className={styles.emptyText}>Analytics data not available yet.</p>
-          </div>
+          {error ? (
+            <div className={styles.emptyState}>
+              <AlertCircle size={48} className={styles.errorIcon} aria-hidden="true" />
+              <p className={styles.emptyText} role="alert">
+                We couldn&apos;t load analytics. Check your connection and try again.
+              </p>
+              <button type="button" className={styles.retryButton} onClick={loadAnalytics}>
+                Try again
+              </button>
+            </div>
+          ) : (
+            <div className={styles.emptyState}>
+              <BarChart2 size={48} className={styles.emptyIcon} aria-hidden="true" />
+              <p className={styles.emptyText}>Analytics data not available yet.</p>
+            </div>
+          )}
         </div>
       </main>
     );
@@ -159,6 +190,12 @@ export function AnalyticsClient() {
     { icon: Building2, label: "Cities Covered",    value: data.summary.uniqueCitiesCovered },
   ] : [];
 
+  const showDetailPanel =
+    !!activeStat &&
+    !loading &&
+    (showCountriesMap || (showCitiesMap && mappedCities.length > 0) || detailRows.length > 0);
+  const detailTitle = activeStat ? (DETAIL_TITLES[activeStat] ?? activeStat) : "";
+
   return (
     <main className={styles.page}>
       {/* Hero */}
@@ -166,7 +203,7 @@ export function AnalyticsClient() {
         <div className={styles.heroInner}>
           <h1 className={styles.heroTitle}>Platform Analytics</h1>
           <p className={styles.heroSubtitle}>
-            Real-time platform activity across all TripPlanner users.
+            Platform activity across all TripPlanner users.
           </p>
           <span className={styles.publicBadge}>
             <Globe size={13} aria-hidden="true" />
@@ -183,19 +220,18 @@ export function AnalyticsClient() {
           skeletonCount={5}
           activeStat={activeStat}
           onStatClick={selectStat}
-          panelId="stat-detail-panel"
+          panelId={showDetailPanel ? STAT_PANEL_ID : undefined}
         />
 
         {/* ── Stat detail panel ── */}
-        {activeStat && !loading &&
-          (showCountriesMap || (showCitiesMap && mappedCities.length > 0) || detailRows.length > 0) && (
+        {showDetailPanel && (
           <div
-            id="stat-detail-panel"
+            id={STAT_PANEL_ID}
             className={`${styles.card} ${styles.detailPanel}`}
             role="region"
-            aria-label={`${activeStat} details`}
+            aria-label={`${detailTitle} details`}
           >
-            <p className={styles.detailPanelHeading}>{activeStat}</p>
+            <p className={styles.detailPanelHeading}>{detailTitle}</p>
 
             {showCitiesMap && cityCountryOptions.length > 0 && (
               <CountryFilterSelect

@@ -31,7 +31,7 @@ export function TripCard({ trip }: TripCardProps) {
         )}
       </div>
       <div className={styles.body}>
-        <h3 className={styles.destination}>{name}</h3>
+        <h3 className={styles.destination} title={name}>{name}</h3>
         <p className={styles.country}>{country}</p>
         <div className={styles.dates}>
           <Calendar size={14} className={styles.datesIcon} aria-hidden="true" />

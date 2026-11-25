@@ -19,6 +19,7 @@ import {
   CITY_MARKER_STYLE,
   CITY_MARKER_LOADING_STYLE,
 } from "./CitiesMap.constants";
+import styles from "./CitiesMap.module.css";
 import "leaflet/dist/leaflet.css";
 
 fixLeafletDefaultIcon();
@@ -100,6 +101,7 @@ export function CitiesMap({ cities, selectedCountry, countLabel = "attraction" }
   return (
     <MapContainer
       {...mapProps}
+      className={styles.map}
       style={{ height: "100%", width: "100%" }}
       zoomControl
       scrollWheelZoom={false}

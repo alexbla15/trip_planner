@@ -85,14 +85,19 @@
   overflow: visible;
 }
 
+/* Slice separators follow the card surface so they read as gaps in both themes.
+   Set in CSS rather than as a stroke attribute, since SVG presentation attributes
+   do not resolve var(). */
 .slice {
   cursor: pointer;
+  stroke: var(--color-surface);
   transition: filter var(--duration-fast) var(--easing-out),
     stroke-width var(--duration-fast) var(--easing-out);
 }
 
 .sliceHovered {
   cursor: pointer;
+  stroke: var(--color-surface);
   filter: brightness(1.18) drop-shadow(0 1px 4px rgba(0,0,0,0.2));
   stroke-width: 3;
   transition: filter var(--duration-fast) var(--easing-out),
@@ -100,6 +105,7 @@
 }
 
 .sliceSelected {
+  stroke: var(--color-surface);
   stroke-width: 3;
   filter: brightness(1.08) drop-shadow(0 0 4px rgba(0,0,0,0.25));
 }
@@ -123,6 +129,12 @@
   padding: 3px 6px;
   border-radius: var(--radius-md);
   transition: background var(--duration-fast) var(--easing-out);
+}
+
+.legendItem:focus-visible,
+.subLegendItem:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .legendItemHovered {
@@ -175,8 +187,8 @@
 }
 
 .legendPct {
-  font-size: 11px;
-  color: var(--color-text-tertiary);
+  font-size: 12px;
+  color: var(--color-text-secondary);
   margin-left: 2px;
 }
 
