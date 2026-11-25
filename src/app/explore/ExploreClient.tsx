@@ -1941,7 +1941,7 @@ export function ExploreClient() {
                 {cityAttractions.length !== 1 ? "s" : ""}
               </p>
 
-              {cityAttractions.length === 0 && (
+              {cityAttractions.length === 0 && !attractionsLoading && (
                 <p className={styles.worldPrompt}>
                   No attractions in {selectedCity} yet.
                   <br />
@@ -1949,7 +1949,7 @@ export function ExploreClient() {
                 </p>
               )}
 
-              {filteredAttractions.length === 0 && cityAttractions.length > 0 && (
+              {filteredAttractions.length === 0 && cityAttractions.length > 0 && !attractionsLoading && (
                 <>
                   <p className={styles.worldPrompt}>No attractions match the selected filters.</p>
                   {hasActiveFilters && (
@@ -2180,7 +2180,7 @@ export function ExploreClient() {
                 aria-label="Search attractions by name"
               />
             </div>
-            {gridAttractions.length === 0 ? (
+            {gridAttractions.length === 0 && !attractionsLoading ? (
               <>
                 <p className={styles.worldPrompt}>No attractions match the selected filters.</p>
                 {hasActiveFilters && (

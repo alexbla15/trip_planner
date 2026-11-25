@@ -160,7 +160,7 @@
 .cityPillCount {
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   background: var(--color-border-subtle);
   border-radius: var(--radius-full);
   padding: 1px 7px;
@@ -243,7 +243,7 @@
 .chipActive {
   background: var(--color-primary-light);
   border-color: var(--color-primary);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   font-weight: 600;
 }
 .chip:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
@@ -616,6 +616,12 @@
   z-index: -1;
 }
 
+/* Dark theme: the OpenStreetMap basemap is light, so invert it into a dark basemap.
+   Markers live in their own pane and are not affected. */
+[data-theme="dark"] .mapArea :global(.leaflet-tile-pane) {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9);
+}
+
 /* Mobile bar (hidden on desktop) */
 .mobileBar {
   display: none;
@@ -676,7 +682,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255,255,255,0.7);
+  /* Page-background wash, not white: a hard-coded white made the dark grid go pale grey */
+  background: color-mix(in srgb, var(--color-bg) 70%, transparent);
   z-index: 500;
   pointer-events: none;
 }
@@ -862,6 +869,10 @@
   .backdrop {
     display: block;
     z-index: 999;
+  }
+  /* Clear the floating Map/Grid toggle above the search field */
+  .gridArea {
+    padding-top: 72px;
   }
   /* Touch targets: 44px minimum on phone widths for the chips, toggles, and pagination
      that were 28–32px (WCAG 2.5.5 / Apple HIG). */
