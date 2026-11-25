@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, ArrowUpRight, Calendar, BadgeCheck, ChevronLeft, ChevronRight, Ban, Store } from "lucide-react";
 import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
 import { renderTypeIcon } from "@/components/IconPicker";
@@ -47,39 +47,6 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
   const [parentLoading, setParentLoading] = useState(false);
   const [brandModalOpen, setBrandModalOpen] = useState(false);
 
-  // Touch-only equivalent of the desktop hover/focus-within reveal — a left or right
-  // swipe on the card toggles the action buttons visible, since touch devices have no
-  // hover state to trigger them. touchStartXRef tracks the gesture; suppressClickRef
-  // stops the swipe's ending touch from also firing onClick (which would otherwise
-  // navigate into the attraction right as the user was just trying to reveal actions).
-  const [actionsRevealed, setActionsRevealed] = useState(false);
-  const touchStartXRef = useRef<number | null>(null);
-  const suppressClickRef = useRef(false);
-  const SWIPE_THRESHOLD_PX = 30;
-
-  function handleTouchStart(e: React.TouchEvent) {
-    touchStartXRef.current = e.touches[0].clientX;
-  }
-
-  function handleTouchEnd(e: React.TouchEvent) {
-    const startX = touchStartXRef.current;
-    touchStartXRef.current = null;
-    if (startX == null) return;
-    const deltaX = e.changedTouches[0].clientX - startX;
-    if (Math.abs(deltaX) > SWIPE_THRESHOLD_PX) {
-      setActionsRevealed((prev) => !prev);
-      suppressClickRef.current = true;
-    }
-  }
-
-  function handleCardClick() {
-    if (suppressClickRef.current) {
-      suppressClickRef.current = false;
-      return;
-    }
-    onClick(attraction);
-  }
-
   function stopAnd(handler: (attraction: Attraction) => void) {
     return (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -120,21 +87,7 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
   const showActions = !!onAddToTrip || (canEdit && (!!onEdit || !!onDelete)) || !!attraction.websiteUrl;
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      className={styles.card}
-      onClick={handleCardClick}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onClick(attraction);
-        }
-      }}
-      aria-label={`View details for ${attraction.name}${permanentlyClosed ? " (permanently closed)" : ""}`}
-    >
+    <article className={styles.card}>
       <div className={`${styles.photoArea} ${permanentlyClosed ? styles.photoAreaClosed : ""}`}>
         {hasPhoto ? (
           <ImageWithSkeleton
@@ -162,17 +115,17 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
 
         <div className={styles.badges}>
           {attraction.verified && (
-            <span className={`${styles.badge} ${styles.badgeVerified}`} title="Verified by an admin">
+            <span className={`${styles.badge} ${styles.badgeVerified}`} title="Verified by an admin" aria-label="Verified by an admin">
               <BadgeCheck size={12} aria-hidden="true" />
             </span>
           )}
           {attraction.isVisited && (
-            <span className={styles.badge} title="Visited">
+            <span className={styles.badge} title="Visited" aria-label="Visited">
               <Check size={12} aria-hidden="true" />
             </span>
           )}
           {attraction.usedInTripNames && attraction.usedInTripNames.length > 0 && (
-            <span className={`${styles.badge} ${styles.badgeTrip}`} title="Already in one of your trips">
+            <span className={`${styles.badge} ${styles.badgeTrip}`} title="Already in one of your trips" aria-label="Already in one of your trips">
               <Luggage size={12} aria-hidden="true" />
             </span>
           )}
@@ -189,55 +142,19 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
             </button>
           )}
         </div>
-
-        {showActions && (
-          <div className={`${styles.actions} ${actionsRevealed ? styles.actionsRevealed : ""}`}>
-            <WebsiteLinkButton
-              url={attraction.websiteUrl}
-              variant="compact"
-              className={styles.actionBtnLink}
-            />
-            {onAddToTrip && (
-              <button
-                type="button"
-                className={`${styles.actionBtn} ${styles.actionBtnAdd}`}
-                onClick={stopAnd(onAddToTrip)}
-                title="Add to my trip"
-                aria-label={`Add ${attraction.name} to a trip`}
-              >
-                <Plus size={13} aria-hidden="true" />
-              </button>
-            )}
-            {canEdit && onEdit && (
-              <button
-                type="button"
-                className={styles.actionBtn}
-                onClick={stopAnd(onEdit)}
-                title="Edit attraction"
-                aria-label={`Edit ${attraction.name}`}
-              >
-                <Pencil size={13} aria-hidden="true" />
-              </button>
-            )}
-            {canEdit && onDelete && (
-              <button
-                type="button"
-                className={`${styles.actionBtn} ${styles.actionBtnDelete}`}
-                onClick={stopAnd(onDelete)}
-                title="Delete attraction"
-                aria-label={`Delete ${attraction.name}`}
-              >
-                <Trash2 size={13} aria-hidden="true" />
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
       <div className={styles.body}>
         <span className={styles.nameRow}>
           <span className={styles.typeIcon} aria-hidden="true">{icon}</span>
-          <span className={styles.name}>{attraction.name}</span>
+          <button
+            type="button"
+            className={styles.titleBtn}
+            onClick={() => onClick(attraction)}
+            aria-label={`View details for ${attraction.name}${permanentlyClosed ? " (permanently closed)" : ""}`}
+          >
+            <span className={styles.name}>{attraction.name}</span>
+          </button>
           {attraction.brandId && attraction.brandName && (
             <button
               type="button"
@@ -287,6 +204,51 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
           </div>
         )}
       </div>
+
+      {/* Actions sit after the body in DOM order: on desktop they overlay the photo's
+          top-left corner (absolute to the card); on touch they become a bottom row. */}
+      {showActions && (
+        <div className={styles.actions}>
+          <WebsiteLinkButton
+            url={attraction.websiteUrl}
+            variant="compact"
+            className={styles.actionBtnLink}
+          />
+          {onAddToTrip && (
+            <button
+              type="button"
+              className={`${styles.actionBtn} ${styles.actionBtnAdd}`}
+              onClick={stopAnd(onAddToTrip)}
+              title="Add to my trip"
+              aria-label={`Add ${attraction.name} to a trip`}
+            >
+              <Plus size={13} aria-hidden="true" />
+            </button>
+          )}
+          {canEdit && onEdit && (
+            <button
+              type="button"
+              className={styles.actionBtn}
+              onClick={stopAnd(onEdit)}
+              title="Edit attraction"
+              aria-label={`Edit ${attraction.name}`}
+            >
+              <Pencil size={13} aria-hidden="true" />
+            </button>
+          )}
+          {canEdit && onDelete && (
+            <button
+              type="button"
+              className={`${styles.actionBtn} ${styles.actionBtnDelete}`}
+              onClick={stopAnd(onDelete)}
+              title="Delete attraction"
+              aria-label={`Delete ${attraction.name}`}
+            >
+              <Trash2 size={13} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      )}
 
       {childrenExpanded && (
         <div className={styles.childrenSection}>
@@ -349,6 +311,6 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
           onDeleted={() => onBrandDeleted?.(attraction.brandId!)}
         />
       )}
-    </div>
+    </article>
   );
 }

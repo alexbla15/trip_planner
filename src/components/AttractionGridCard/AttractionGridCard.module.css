@@ -1,4 +1,5 @@
 .card {
+  position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -17,9 +18,32 @@
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
 }
-.card:focus-visible {
+
+/* The card's one stretched link: its ::after covers the whole card, so a click or tap
+   anywhere on the card opens details. Every other control in the card is positioned
+   above this layer (z-index 1), so it stays independently clickable. */
+.titleBtn {
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.titleBtn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.titleBtn:focus-visible {
+  outline: none;
+}
+.titleBtn:focus-visible::after {
   outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline-offset: -4px;
 }
 
 .photoArea {
@@ -107,6 +131,7 @@
 
 .badges {
   position: absolute;
+  z-index: 1;
   top: 8px;
   right: 8px;
   display: flex;
@@ -160,6 +185,7 @@
    opacity (not display) is what's toggled. */
 .actions {
   position: absolute;
+  z-index: 1;
   top: 8px;
   left: 8px;
   display: flex;
@@ -174,31 +200,26 @@
   transform: translateY(0);
 }
 
-/* Touch-device equivalent of the hover reveal above — toggled by a left/right swipe on
-   the card (see AttractionGridCard.tsx's touch handlers), since touch has no hover state. */
-.actionsRevealed {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* On phone-width viewports, the swipe-revealed actions are the ONLY way to reach them
-   (no hover) — the 24px buttons sized for a precise mouse pointer are below the 44×44px
-   minimum touch target and hard to tap accurately. Below ~480px the grid is effectively
-   one card per row (see ExploreClient.module.css's .grid, minmax(180px, 1fr)), so there's
-   always room for 4 buttons at this size without clipping against the card's own
-   `overflow: hidden`. Scoped to .actionsRevealed only — desktop's hover-revealed .actions
-   stays at the original compact size. */
-@media (max-width: 480px) {
-  .actionsRevealed {
-    gap: 8px;
+/* Touch has no hover, so the actions are always visible as a bottom row beneath the card
+   body, with 44px targets. Desktop keeps the compact hover/focus overlay above. */
+@media (hover: none) {
+  .actions {
+    position: relative;
+    top: auto;
+    left: auto;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0 12px 12px;
+    opacity: 1;
+    transform: none;
   }
-  .actionsRevealed .actionBtn,
-  .actionsRevealed .actionBtnLink.actionBtnLink {
+  .actions .actionBtn,
+  .actions .actionBtnLink.actionBtnLink {
     width: 44px;
     height: 44px;
   }
-  .actionsRevealed .actionBtn svg,
-  .actionsRevealed .actionBtnLink.actionBtnLink svg {
+  .actions .actionBtn svg,
+  .actions .actionBtnLink.actionBtnLink svg {
     width: 18px;
     height: 18px;
   }
@@ -354,6 +375,8 @@
    — only the brand link uses this (the parent chip below uses .parentLine, its own full
    text line). */
 .nameIconBtn {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -380,6 +403,8 @@
    as the same kind of fact; matches the accent color used for the same "nesting"
    concept in AttractionDetailModal's childCountBadge. */
 .parentLine {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -409,6 +434,8 @@
    card's own box (and, in a CSS Grid layout, only this card's row) rather than
    affecting sibling cards. */
 .childrenSection {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   border-top: 1px solid var(--color-border-subtle);

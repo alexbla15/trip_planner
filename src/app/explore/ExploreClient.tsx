@@ -137,6 +137,8 @@ export function ExploreClient() {
   const [tripPickerOpen, setTripPickerOpen] = useState(false);
   const [attractionForTripPicker, setAttractionForTripPicker] = useState<Attraction | null>(null);
   const [sidebarOpen, setSidebarOpen]             = useState(false);
+  // Phone-only: the filter sections collapse behind one "Filters" disclosure (desktop always shows them).
+  const [filtersExpanded, setFiltersExpanded]     = useState(false);
 
   // Map vs grid view, available at every level including world view — world's grid
   // renders from worldAttractions (fetched lazily, see the effect below) rather than the
@@ -848,6 +850,16 @@ export function ExploreClient() {
 
   const hasActiveFilters = selectedCategories.length > 0 || selectedTypes.length > 0 || selectedFoodStyles.length > 0 || selectedShopStyles.length > 0 || visitedFilter !== "all" || tripUsageFilter !== "all" || verifiedFilter !== "all";
   const activeFilterCount = selectedCategories.length + selectedTypes.length + selectedFoodStyles.length + selectedShopStyles.length + (visitedFilter !== "all" ? 1 : 0) + (tripUsageFilter !== "all" ? 1 : 0) + (verifiedFilter !== "all" ? 1 : 0);
+  // Shared by every "Clear filters" control, including the empty-state recovery buttons.
+  const clearAllFilters = () => {
+    setSelectedCategories([]);
+    setSelectedTypes([]);
+    setSelectedFoodStyles([]);
+    setSelectedShopStyles([]);
+    setVisitedFilter("all");
+    setTripUsageFilter("all");
+    setVerifiedFilter("all");
+  };
 
   // Note: visitedFilter is deliberately NOT reset by any of these — it's a page-level
   // filter (applies to which countries/cities are even listed, via visibleCities), not a
@@ -1431,6 +1443,30 @@ export function ExploreClient() {
             </button>
           </div>
 
+          <div className={styles.filterGroup}>
+          <button
+            type="button"
+            className={styles.filterGroupToggle}
+            onClick={() => setFiltersExpanded((v) => !v)}
+            aria-expanded={filtersExpanded}
+            aria-controls="explore-filter-group-body"
+          >
+            <SlidersHorizontal size={14} aria-hidden="true" />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className={styles.chipFilterBadge}>{activeFilterCount}</span>
+            )}
+            <ChevronDown
+              size={14}
+              aria-hidden="true"
+              className={`${styles.chipFilterChevron} ${filtersExpanded ? styles.chipFilterChevronOpen : ""}`}
+            />
+          </button>
+          <div
+            id="explore-filter-group-body"
+            className={`${styles.filterGroupBody} ${filtersExpanded ? styles.filterGroupBodyOpen : ""}`}
+          >
+
           {/* Visited status + "used in my trips" are both private per-user facts, hidden
               entirely for anonymous visitors. Collapsible so the sidebar stays compact
               when not in use — matching AttractionFilter's collapsible chip pattern
@@ -1726,6 +1762,8 @@ export function ExploreClient() {
               </div>
             </div>
           )}
+          </div>
+          </div>
         </div>
 
         {/* ── Scrollable content area ── */}
@@ -1755,11 +1793,20 @@ export function ExploreClient() {
                   Be the first to add one!
                 </p>
               ) : !citiesLoading && countries.length === 0 ? (
-                <p className={styles.worldPrompt}>
-                  No destinations match the selected filters.
-                  <br />
-                  Try a different one above.
-                </p>
+                <>
+                  <p className={styles.worldPrompt}>
+                    No destinations match the selected filters.
+                    <br />
+                    Try a different one above.
+                  </p>
+                  {hasActiveFilters && (
+                    <div className={styles.emptyRecovery}>
+                      <button type="button" className={styles.emptyClearBtn} onClick={clearAllFilters}>
+                        Clear filters
+                      </button>
+                    </div>
+                  )}
+                </>
               ) : (
                 <p className={styles.worldPrompt}>
                   Choose a country from the map or list below to see available cities.
@@ -1894,8 +1941,25 @@ export function ExploreClient() {
                 {cityAttractions.length !== 1 ? "s" : ""}
               </p>
 
+              {cityAttractions.length === 0 && (
+                <p className={styles.worldPrompt}>
+                  No attractions in {selectedCity} yet.
+                  <br />
+                  Use Add Attraction below to add the first one.
+                </p>
+              )}
+
               {filteredAttractions.length === 0 && cityAttractions.length > 0 && (
-                <p className={styles.worldPrompt}>No attractions match the selected filters.</p>
+                <>
+                  <p className={styles.worldPrompt}>No attractions match the selected filters.</p>
+                  {hasActiveFilters && (
+                    <div className={styles.emptyRecovery}>
+                      <button type="button" className={styles.emptyClearBtn} onClick={clearAllFilters}>
+                        Clear filters
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
@@ -2008,11 +2072,11 @@ export function ExploreClient() {
         {/* ── Footer: pinned at the bottom outside scroll ── */}
         {(view === "world" || view === "country" || view === "region" || view === "city") && (
           <div className={styles.sidebarFooter}>
-            {hasActiveFilters && (view === "city" || view === "region" || view === "country") && (
+            {hasActiveFilters && (
               <button
                 type="button"
                 className={styles.clearBtn}
-                onClick={() => { setSelectedCategories([]); setSelectedTypes([]); setSelectedFoodStyles([]); setSelectedShopStyles([]); setVisitedFilter("all"); setTripUsageFilter("all"); }}
+                onClick={clearAllFilters}
               >
                 Clear filters
               </button>
@@ -2117,7 +2181,16 @@ export function ExploreClient() {
               />
             </div>
             {gridAttractions.length === 0 ? (
-              <p className={styles.worldPrompt}>No attractions match the selected filters.</p>
+              <>
+                <p className={styles.worldPrompt}>No attractions match the selected filters.</p>
+                {hasActiveFilters && (
+                  <div className={styles.emptyRecovery}>
+                    <button type="button" className={styles.emptyClearBtn} onClick={clearAllFilters}>
+                      Clear filters
+                    </button>
+                  </div>
+                )}
+              </>
             ) : (
               <>
                 <div className={styles.grid}>
