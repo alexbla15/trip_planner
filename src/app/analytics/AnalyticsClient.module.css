@@ -65,6 +65,48 @@
   padding: 28px;
 }
 
+/* Explorers table tools: name search and the show/hide-inactive toggle */
+.explorerTools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.explorerSearch {
+  flex: 1 1 220px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 14px;
+}
+.explorerSearch:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+.explorerToggle {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.explorerToggle[aria-pressed="true"] {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary-text);
+}
+.explorerToggle:hover { border-color: var(--color-primary); }
+.explorerToggle:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
 .sectionEmpty {
   font-size: 14px;
   color: var(--color-text-tertiary);

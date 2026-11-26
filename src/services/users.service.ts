@@ -10,7 +10,8 @@ export async function getCurrentUser(token: string): Promise<UserProfile> {
 
 export async function updateCurrentUser(
   token: string,
-  patch: { name: string; avatarUrl?: string },
+  // avatarUrl: a path to set it, null to clear it (the user shows initials instead).
+  patch: { name: string; avatarUrl?: string | null },
 ): Promise<unknown> {
   const res = await fetch("/api/users/me", {
     method: "PUT",

@@ -95,12 +95,26 @@ export function AnalyticsClient() {
   const rawTypes = data?.categoryDistribution ?? [];
 
   const topUsers = data?.topUsers ?? [];
+  const [explorerQuery, setExplorerQuery] = useState("");
+  const [showInactiveExplorers, setShowInactiveExplorers] = useState(false);
+  // Users with no attractions are hidden by default: they are rows of zeros that add noise.
+  // The toggle shows how many are hidden, so nothing disappears silently.
+  const inactiveExplorerCount = topUsers.filter((u) => u.attractionsCount === 0).length;
+  const visibleTopUsers = useMemo(() => {
+    const q = explorerQuery.trim().toLowerCase();
+    return topUsers.filter(
+      (u) =>
+        (showInactiveExplorers || u.attractionsCount > 0) &&
+        (!q || u.name.toLowerCase().includes(q)),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topUsers, explorerQuery, showInactiveExplorers]);
   const {
     page: topUsersPage,
     totalPages: topUsersTotalPages,
     paginatedItems: paginatedTopUsers,
     goToPage: goToTopUsersPage,
-  } = usePagination(topUsers, TABLE_PAGE_SIZE);
+  } = usePagination(visibleTopUsers, TABLE_PAGE_SIZE);
 
   const detailRows = useMemo((): RankedListItem[] => {
     if (!activeStat || !data) return [];
@@ -273,7 +287,7 @@ export function AnalyticsClient() {
           icon={Trophy}
           title="Top Explorers"
           collapsible
-          headingCount={loading ? undefined : data!.topUsers.length}
+          headingCount={loading ? undefined : visibleTopUsers.length}
         >
           {loading ? (
             <div aria-hidden="true">
@@ -286,9 +300,35 @@ export function AnalyticsClient() {
                 </div>
               ))}
             </div>
-          ) : data!.topUsers.length === 0 ? (
+          ) : topUsers.length === 0 ? (
             <p className={styles.sectionEmpty}>No explorer data yet.</p>
           ) : (
+            <>
+              <div className={styles.explorerTools}>
+                <input
+                  type="search"
+                  className={styles.explorerSearch}
+                  value={explorerQuery}
+                  onChange={(e) => setExplorerQuery(e.target.value)}
+                  placeholder="Search explorers by name…"
+                  aria-label="Search explorers by name"
+                />
+                {inactiveExplorerCount > 0 && (
+                  <button
+                    type="button"
+                    className={styles.explorerToggle}
+                    aria-pressed={showInactiveExplorers}
+                    onClick={() => setShowInactiveExplorers((v) => !v)}
+                  >
+                    {showInactiveExplorers
+                      ? "Hide users with no attractions"
+                      : `Show ${inactiveExplorerCount} with no attractions`}
+                  </button>
+                )}
+              </div>
+              {visibleTopUsers.length === 0 ? (
+                <p className={styles.sectionEmpty}>No explorers match.</p>
+              ) : (
             <div className={styles.tableWrapper}>
               <table className={styles.table}>
                 <thead>
@@ -323,6 +363,8 @@ export function AnalyticsClient() {
               </table>
               <Pagination page={topUsersPage} totalPages={topUsersTotalPages} onPageChange={goToTopUsersPage} />
             </div>
+              )}
+            </>
           )}
         </SectionCard>
       </div>

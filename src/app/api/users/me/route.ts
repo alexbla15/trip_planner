@@ -30,18 +30,25 @@ export const GET = withApiHandler("GET /api/users/me", async (req: Request) => {
 export const PUT = withApiHandler("PUT /api/users/me", async (req: Request) => {
   const payload = getUserFromRequest(req);
   const body = await req.json();
-  const { name, avatarUrl } = body as { name?: string; avatarUrl?: string };
+  const { name, avatarUrl } = body as { name?: string; avatarUrl?: string | null };
 
   await dbConnect();
 
-  const update: Record<string, string> = {};
-  if (name?.trim()) update.name = name.trim();
-  if (avatarUrl?.trim()) update.avatarUrl = avatarUrl.trim();
+  // avatarUrl: null clears the avatar (the user shows initials); a non-empty string sets it;
+  // anything else leaves it unchanged.
+  const set: Record<string, string> = {};
+  const unset: Record<string, 1> = {};
+  if (name?.trim()) set.name = name.trim();
+  if (avatarUrl === null) unset.avatarUrl = 1;
+  else if (typeof avatarUrl === "string" && avatarUrl.trim()) set.avatarUrl = avatarUrl.trim();
 
-  const user = await User.findByIdAndUpdate(payload.userId, update, {
-    new: true,
-    select: "-password",
-  });
+  const mutation: Record<string, unknown> = {};
+  if (Object.keys(set).length) mutation.$set = set;
+  if (Object.keys(unset).length) mutation.$unset = unset;
+
+  const user = Object.keys(mutation).length
+    ? await User.findByIdAndUpdate(payload.userId, mutation, { new: true, select: "-password" })
+    : await User.findById(payload.userId).select("-password");
 
   if (!user) {
     throw notFound("User not found");

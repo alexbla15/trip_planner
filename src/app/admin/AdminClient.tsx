@@ -785,7 +785,7 @@ export function AdminClient() {
           title="Attraction Categories"
           headingCount={catRecords.length}
           collapsible
-          defaultOpen={false}
+          defaultOpen={true}
           actions={
             !catAdding && !catEditingId && (
               <>
@@ -911,7 +911,7 @@ export function AdminClient() {
           title="Attraction Types"
           headingCount={types.length}
           collapsible
-          defaultOpen={false}
+          defaultOpen={true}
           actions={
             !adding && !editingId && (
               <button className={styles.addBtn} onClick={() => setAdding(true)} aria-label="Add type" title="Add type">
@@ -1040,7 +1040,7 @@ export function AdminClient() {
           title="Travel Moods"
           headingCount={moodTags.length}
           collapsible
-          defaultOpen={false}
+          defaultOpen={true}
           actions={
             !moodAdding && !moodEditingId && (
               <>
@@ -1141,7 +1141,7 @@ export function AdminClient() {
           title="Food Styles"
           headingCount={foodStyleRecords.length}
           collapsible
-          defaultOpen={false}
+          defaultOpen={true}
           actions={
             !foodStyleAdding && !foodStyleEditingId && (
               <button className={styles.addBtn} onClick={() => setFoodStyleAdding(true)} aria-label="Add food style" title="Add food style">
@@ -1239,7 +1239,7 @@ export function AdminClient() {
           title="Brands"
           headingCount={brandRecords.length}
           collapsible
-          defaultOpen={false}
+          defaultOpen={true}
           actions={
             <button className={styles.addBtn} onClick={() => setAddingBrand(true)} aria-label="Add brand" title="Add brand">
               <Plus size={14} aria-hidden="true" /> <span className={styles.addBtnLabel}>Add brand</span>
@@ -1334,7 +1334,7 @@ export function AdminClient() {
           title="Shop Styles"
           headingCount={shopStyleRecords.length}
           collapsible
-          defaultOpen={false}
+          defaultOpen={true}
           actions={
             !shopStyleAdding && !shopStyleEditingId && (
               <button className={styles.addBtn} onClick={() => setShopStyleAdding(true)} aria-label="Add shop style" title="Add shop style">

@@ -165,7 +165,8 @@ export function ProfileClient() {
     setSaving(true);
     setSaveError("");
     try {
-      await updateCurrentUser(token, { name: editName, avatarUrl: editAvatarUrl || undefined });
+      // An empty selection means "Initials": send null so the saved avatar is cleared.
+      await updateCurrentUser(token, { name: editName, avatarUrl: editAvatarUrl === "" ? null : editAvatarUrl });
       await login(token);
       setIsEditing(false);
       toast.success("Profile updated");
@@ -308,6 +309,20 @@ export function ProfileClient() {
                   <div className={styles.editField}>
                     <label className={styles.editLabel}>Avatar</label>
                     <div className={styles.avatarPicker} role="group" aria-label="Choose avatar">
+                      <button
+                        type="button"
+                        className={`${styles.avatarOption} ${styles.avatarOptionInitials} ${editAvatarUrl === "" ? styles.avatarOptionSelected : ""}`}
+                        onClick={() => setEditAvatarUrl("")}
+                        aria-pressed={editAvatarUrl === ""}
+                        aria-label="Initials, no picture"
+                      >
+                        <span className={styles.avatarInitials} aria-hidden="true">{userInitial}</span>
+                        {editAvatarUrl === "" && (
+                          <span className={styles.avatarCheck} aria-hidden="true">
+                            <Check size={12} />
+                          </span>
+                        )}
+                      </button>
                       {AVATARS.map((src) => (
                         <button
                           key={src}

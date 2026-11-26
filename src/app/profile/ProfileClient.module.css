@@ -234,6 +234,21 @@
   padding: 4px 0;
 }
 
+/* "Initials" choice: the user's letter on a tinted disc, shown when no picture is set. */
+.avatarOption.avatarOptionInitials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-light);
+}
+
+.avatarInitials {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-primary-text);
+}
+
 .avatarOption {
   position: relative;
   width: 56px;
