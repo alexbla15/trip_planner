@@ -11,6 +11,7 @@ export const ATTRACTION_TYPES: AttractionType[] = [
   "Theatre",
   "Religious",
   "Landmark",
+  "Tower",
   "Park",
   "Beach",
   "Zoo",
@@ -44,7 +45,7 @@ export const ATTRACTION_TYPES: AttractionType[] = [
 
 export const TYPE_CATEGORIES: Record<string, AttractionType[]> = {
   "Food & Drink":    ["Restaurant", "Bar", "Café", "Supermarket", "Food Truck"],
-  "Culture":         ["Museum", "Gallery", "Theatre", "Religious", "Landmark"],
+  "Culture":         ["Museum", "Gallery", "Theatre", "Religious", "Landmark", "Tower"],
   "Nature & Outdoor":["Park", "Beach", "Zoo", "Hiking"],
   "Entertainment":   ["Cinema", "Concert", "Casino", "Amusement Park", "Water Park", "Escape Room", "Stand-Up Comedy", "Nightclub"],
   "Shopping":        ["Mall", "Store", "Market"],

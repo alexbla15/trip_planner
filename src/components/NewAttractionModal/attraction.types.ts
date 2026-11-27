@@ -9,6 +9,7 @@ export type AttractionType =
   | "Theatre"
   | "Religious"
   | "Landmark"
+  | "Tower"
   | "Park"
   | "Beach"
   | "Zoo"

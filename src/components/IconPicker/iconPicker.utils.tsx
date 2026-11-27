@@ -11,7 +11,7 @@ import {
   CreditCard, Gift, Gem, BadgePercent, Barcode, ShoppingBasket,
 
   // Culture & Art
-  Landmark, Castle, LibraryBig, BookOpen, BookMarked, ScrollText, Feather,
+  Landmark, Castle, TowerControl, LibraryBig, BookOpen, BookMarked, ScrollText, Feather,
   Palette, PaintbrushVertical, Brush, ImageIcon, Aperture, Film, Image, Video,
   Clapperboard, Theater, Ticket, Drama, Mic, Mic2, Music, Music2, Music4,
   Headphones, Radio, Disc3, Guitar, Piano,
@@ -114,6 +114,7 @@ export const ICON_REGISTRY: Record<string, LucideIcon> = {
   // ── Culture & Art ─────────────────────────────────────────────────────────
   Landmark,
   Castle,
+  TowerControl,
   LibraryBig,
   BookOpen,
   BookMarked,

@@ -12,7 +12,7 @@ const TYPE_ICON_NAMES: Record<string, string> = {
   Restaurant: "Utensils", Bar: "Wine", Café: "Coffee",
   Supermarket: "ShoppingCart", "Food Truck": "Truck",
   Museum: "Building2", Gallery: "ImageIcon", Theatre: "Ticket",
-  Religious: "Church", Landmark: "Landmark",
+  Religious: "Church", Landmark: "Landmark", Tower: "TowerControl",
   Park: "TreePine", Beach: "Waves", Zoo: "Footprints", Hiking: "Mountain",
   Cinema: "Clapperboard", Concert: "Mic2", Casino: "Dices",
   "Amusement Park": "FerrisWheel", "Water Park": "Droplets",
