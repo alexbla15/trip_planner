@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { X, Search, Plus, MapPin, ChevronDown, AlertCircle } from "lucide-react";
+import { X, Search, Plus, MapPin, AlertCircle } from "lucide-react";
 import { useGlobalAttractions } from "@/contexts/AttractionsContext";
 import { NewAttractionModal, COUNTRIES } from "@/components/NewAttractionModal";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { CountryFlag } from "@/components/CountryFlag";
+import { CountryCombobox } from "@/components/CountryCombobox";
 import { useAttractionTypes, useAttractionCategoryTypeFilter } from "@/hooks";
 import { AttractionFilter } from "@/components/AttractionFilter";
 import type { AttractionFormData } from "@/components/NewAttractionModal";
@@ -178,18 +179,13 @@ export function AttractionPickerModal({
         {/* Filters */}
         <div className={styles.filters}>
           <div className={styles.filterSelectWrapper}>
-            <select
+            <CountryCombobox
               value={countryFilter}
-              onChange={(e) => setCountryFilter(e.target.value)}
-              className={styles.filterSelect}
-              aria-label="Filter by country"
-            >
-              <option value="">All countries</option>
-              {COUNTRIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-            <ChevronDown size={14} className={styles.filterSelectIcon} aria-hidden="true" />
+              options={COUNTRIES}
+              onChange={setCountryFilter}
+              emptyLabel="All countries"
+              ariaLabel="Filter by country"
+            />
           </div>
 
           <div className={styles.filterSearchWrapper}>

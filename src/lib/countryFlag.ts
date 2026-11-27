@@ -26,6 +26,16 @@ const ALIASES: Record<string, string> = {
   "north korea": "KP",
   burma: "MM",
   palestine: "PS",
+  brunei: "BN",
+  "cabo verde": "CV",
+  "congo (brazzaville)": "CG",
+  "congo (kinshasa)": "CD",
+  laos: "LA",
+  micronesia: "FM",
+  moldova: "MD",
+  "são tomé and príncipe": "ST",
+  "sao tome and principe": "ST",
+  syria: "SY",
 };
 
 /**

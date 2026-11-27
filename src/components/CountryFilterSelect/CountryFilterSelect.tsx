@@ -1,15 +1,17 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { CountryCombobox } from "@/components/CountryCombobox";
 import styles from "./CountryFilterSelect.module.css";
 
 interface CountryFilterSelectProps {
+  /** "all" for no filter, otherwise a country name. */
   value: string;
   options: string[];
   onChange: (value: string) => void;
   label?: string;
 }
 
+/** Country filter with flags; "all" means every country. Same API as before. */
 export function CountryFilterSelect({
   value,
   options,
@@ -18,18 +20,13 @@ export function CountryFilterSelect({
 }: CountryFilterSelectProps) {
   return (
     <div className={styles.wrapper}>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={styles.select}
-        aria-label={label}
-      >
-        <option value="all">All countries</option>
-        {options.map((c) => (
-          <option key={c} value={c}>{c}</option>
-        ))}
-      </select>
-      <ChevronDown size={14} className={styles.icon} aria-hidden="true" />
+      <CountryCombobox
+        value={value === "all" ? "" : value}
+        options={options}
+        onChange={(next) => onChange(next === "" ? "all" : next)}
+        emptyLabel="All countries"
+        ariaLabel={label}
+      />
     </div>
   );
 }

@@ -134,8 +134,7 @@
 }
 
 .inlineFlag {
-  margin-right: 6px;
-  vertical-align: -1px;
+  flex-shrink: 0;
 }
 
 .cityPill {
@@ -193,6 +192,9 @@
 .backBtn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 
 .cityHeading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 20px;
   font-weight: 700;
   color: var(--color-text-primary);

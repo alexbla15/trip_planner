@@ -1,8 +1,9 @@
 "use client";
 
 import type { ChangeEvent } from "react";
-import { PenLine, Globe, Calendar, Clock, DollarSign, Sparkles, FileText, AlertCircle, ChevronDown } from "lucide-react";
+import { PenLine, Globe, Calendar, Clock, DollarSign, Sparkles, FileText, AlertCircle } from "lucide-react";
 import { MoodTagButton, COUNTRIES, CurrencySelect } from "@/components";
+import { CountryCombobox } from "@/components/CountryCombobox";
 import { useMoodTags } from "@/hooks";
 import { NOTES_MAX } from "@/lib";
 import type { TripDetailsFormProps } from "./TripDetailsForm.types";
@@ -78,21 +79,16 @@ export function TripDetailsForm({
           <span className={styles.required} aria-hidden="true"> *</span>
         </label>
         <div className={styles.selectWrapper}>
-          <select
+          <CountryCombobox
             id={`${idPrefix}-country`}
             value={country}
-            onChange={(e) => onCountryChange(e.target.value)}
+            options={COUNTRIES}
+            onChange={onCountryChange}
             onBlur={() => onBlur("country")}
-            className={`${styles.select} ${touched.country && !country ? styles.inputError : ""}`}
-            aria-required="true"
-            aria-describedby={touched.country && !country ? `${idPrefix}-error-country` : undefined}
-          >
-            <option value="">Select a country…</option>
-            {COUNTRIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-          <ChevronDown size={16} className={styles.selectIcon} aria-hidden="true" />
+            placeholder="Select a country…"
+            invalid={touched.country && !country}
+            describedBy={touched.country && !country ? `${idPrefix}-error-country` : undefined}
+          />
         </div>
         {touched.country && !country && (
           <p id={`${idPrefix}-error-country`} className={styles.errorMsg} role="alert">
