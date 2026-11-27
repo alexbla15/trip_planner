@@ -22,6 +22,7 @@ import type { Trip } from "@/types/trip";
 import { matchesVerifiedFilter, type VerifiedFilterValue } from "@/lib";
 import { EXPLORE_GRID_CARD_MIN_WIDTH_PX, EXPLORE_GRID_GAP_PX, EXPLORE_GRID_ROWS_PER_PAGE, EXPLORE_GRID_MIN_PAGE_SIZE } from "@/config/ui";
 import { parseExploreUrlState, buildExploreSearchParams } from "./ExploreClient.utils";
+import { CountryFlag } from "@/components/CountryFlag";
 import styles from "./ExploreClient.module.css";
 
 interface LocationSearchResult {
@@ -1836,7 +1837,7 @@ export function ExploreClient() {
                       className={styles.cityPill}
                       onClick={() => handleCountrySelect(c)}
                     >
-                      {c.name}
+                      <CountryFlag country={c.name} className={styles.inlineFlag} />{c.name}
                       <span className={styles.cityPillCount}>{c.count}</span>
                     </button>
                   ))}
@@ -1852,7 +1853,7 @@ export function ExploreClient() {
                 <ChevronLeft size={15} aria-hidden="true" />
                 World view
               </button>
-              <h2 className={styles.cityHeading}>{selectedCountry}</h2>
+              <h2 className={styles.cityHeading}><CountryFlag country={selectedCountry} className={styles.inlineFlag} />{selectedCountry}</h2>
               <p className={styles.cityCount}>
                 {regionsInCountry.length > 0
                   ? `${regionsInCountry.length} region${regionsInCountry.length !== 1 ? "s" : ""} · ${unregionedCitiesInCountry.length} cit${unregionedCitiesInCountry.length !== 1 ? "ies" : "y"}`
@@ -1905,6 +1906,7 @@ export function ExploreClient() {
             <>
               <button type="button" className={styles.backBtn} onClick={handleBackFromRegion}>
                 <ChevronLeft size={15} aria-hidden="true" />
+                <CountryFlag country={selectedCountry} />
                 {selectedCountry}
               </button>
               <h2 className={styles.cityHeading}>{selectedRegion}</h2>
@@ -1940,7 +1942,7 @@ export function ExploreClient() {
             <>
               <button type="button" className={styles.backBtn} onClick={handleBackFromCity}>
                 <ChevronLeft size={15} aria-hidden="true" />
-                {selectedRegion ?? selectedCountry}
+                {!selectedRegion && <CountryFlag country={selectedCountry} />}{selectedRegion ?? selectedCountry}
               </button>
               <h2 className={styles.cityHeading}>{selectedCity}</h2>
               <p className={styles.cityCount}>

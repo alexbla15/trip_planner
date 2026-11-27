@@ -82,6 +82,7 @@ import { formatDisplayDate, currencySymbol, formatPrice, getTripDays, formatDayL
 import { ATTRACTIONS_PAGE_SIZE } from "@/config/ui";
 import type { Trip, CustomExpense } from "@/types/trip";
 import type { Attraction } from "@/types/attraction";
+import { CountryFlag } from "@/components/CountryFlag";
 import styles from "./TripDetailClient.module.css";
 
 const TRIP_TABS = [
@@ -1118,7 +1119,7 @@ export function TripDetailClient({ tripId }: TripDetailClientProps) {
                         <Globe size={14} aria-hidden="true" />
                         Country
                       </dt>
-                      <dd className={styles.infoValue}>{country}</dd>
+                      <dd className={styles.infoValue}><CountryFlag country={country} className={styles.inlineFlag} />{country}</dd>
                     </div>
 
                     <div className={styles.infoItem}>

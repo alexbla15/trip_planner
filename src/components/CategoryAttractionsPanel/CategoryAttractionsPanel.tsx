@@ -5,6 +5,7 @@ import { Search, MapPin, SearchX, X } from "lucide-react";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { AttractionDetailModal } from "@/components/AttractionDetailModal";
 import { Pagination } from "@/components/Pagination";
+import { CountryFlag } from "@/components/CountryFlag";
 import { useAttractionTypes } from "@/hooks";
 import { searchAttractionsByType } from "@/services";
 import { TABLE_PAGE_SIZE } from "@/config/ui";
@@ -122,7 +123,7 @@ export function CategoryAttractionsPanel({
                   <div className={styles.resultInfo}>
                     <span className={styles.resultName}>{attraction.name}</span>
                     <span className={styles.resultMeta}>
-                      {[attraction.city, attraction.country].filter(Boolean).join(", ")}
+                      {attraction.city}{attraction.city && attraction.country ? ", " : ""}<CountryFlag country={attraction.country} className={styles.inlineFlag} />{attraction.country}
                     </span>
                   </div>
                 </button>

@@ -26,6 +26,7 @@ import { SearchableSelect } from "@/components/SearchableSelect";
 import { searchLocation } from "@/services";
 import { AttractionTypePicker } from "@/components/AttractionTypePicker";
 import { CoverImageField } from "@/components";
+import { CountryFlag } from "@/components/CountryFlag";
 import type { PhotoCrop } from "@/lib";
 import { ModalShell } from "@/components/Modal";
 import { MapPicker } from "./MapPicker";
@@ -647,7 +648,7 @@ export function NewAttractionModal({ isOpen, onClose, onSave, defaultCountry, pr
                 className={styles.readOnlyField}
                 aria-label={`Country: ${defaultCountry} (locked to trip destination)`}
               >
-                {defaultCountry}
+                <CountryFlag country={defaultCountry} className={styles.inlineFlag} />{defaultCountry}
               </div>
             ) : (
               <SearchableSelect

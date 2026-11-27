@@ -130,7 +130,7 @@ export function AnalyticsClient() {
       case "Users":
         return data.topUsers.map((u) => ({ name: u.name, count: u.attractionsCount }));
       case "Countries":
-        return (data.topCountries ?? []).map((c) => ({ name: c._id || "Unknown", count: c.count }));
+        return (data.topCountries ?? []).map((c) => ({ name: c._id || "Unknown", count: c.count, nameIsCountry: true }));
       case "Cities Covered":
         return (data.topCities ?? [])
           .filter((c) => cityCountryFilter === "all" || c.country === cityCountryFilter)
@@ -138,6 +138,7 @@ export function AnalyticsClient() {
             name: c._id || "Unknown",
             count: c.count,
             subtitle: c.country,
+            subtitleIsCountry: true,
           }));
       default:
         return [];

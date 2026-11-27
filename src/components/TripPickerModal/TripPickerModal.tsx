@@ -6,6 +6,7 @@ import { X, MapPinned, Globe, Loader2, AlertCircle } from "lucide-react";
 import { listTrips } from "@/services";
 import { formatDisplayDate } from "@/lib";
 import { PrivateChip } from "@/components/PrivateChip";
+import { CountryFlag } from "@/components/CountryFlag";
 import type { Trip } from "@/types/trip";
 import styles from "./TripPickerModal.module.css";
 
@@ -123,7 +124,7 @@ export function TripPickerModal({ isOpen, onClose, onSelect, token, country }: T
                         {trip.isPrivate && <PrivateChip />}
                       </span>
                       <span className={styles.itemMeta}>
-                        {trip.country}
+                        <CountryFlag country={trip.country} className={styles.inlineFlag} />{trip.country}
                         {trip.startDate && trip.endDate
                           ? ` · ${formatDisplayDate(trip.startDate)} – ${formatDisplayDate(trip.endDate)}`
                           : ""}

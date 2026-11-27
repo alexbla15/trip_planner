@@ -321,6 +321,11 @@
   margin: 0;
 }
 
+.inlineFlag {
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
 .previewCountry {
   font-size: 13px;
   color: var(--color-text-tertiary);

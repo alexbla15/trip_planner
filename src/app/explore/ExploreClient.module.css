@@ -133,6 +133,11 @@
   margin-bottom: 8px;
 }
 
+.inlineFlag {
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
 .cityPill {
   height: 36px;
   padding: 0 12px;

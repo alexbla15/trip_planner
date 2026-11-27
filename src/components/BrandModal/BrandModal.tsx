@@ -6,6 +6,7 @@ import { ModalShell } from "@/components/Modal";
 import { SearchableSelect } from "@/components/SearchableSelect";
 import { CoverImageField } from "@/components/CoverImageField";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
+import { CountryFlag } from "@/components/CountryFlag";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { AttractionDetailModal } from "@/components/AttractionDetailModal";
 import { NewAttractionModal, attractionToFormData } from "@/components/NewAttractionModal";
@@ -511,7 +512,7 @@ export function BrandModal({ isOpen, onClose, brandId, onDeleted, createMode = f
                               {rowLabel}
                             </td>
                             <td>{a.parentAttractionName || "—"}</td>
-                            <td>{a.country || "—"}</td>
+                            <td>{a.country && <CountryFlag country={a.country} className={styles.inlineFlag} />}{a.country || "—"}</td>
                             <td>{a.city || "—"}</td>
                           </tr>
                         );

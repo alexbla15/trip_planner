@@ -67,6 +67,11 @@
   white-space: nowrap;
 }
 
+.inlineFlag {
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
 .count {
   font-variant-numeric: tabular-nums;
   font-weight: 700;

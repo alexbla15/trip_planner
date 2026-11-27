@@ -6,6 +6,7 @@ import { X, Search, Plus, MapPin, ChevronDown, AlertCircle } from "lucide-react"
 import { useGlobalAttractions } from "@/contexts/AttractionsContext";
 import { NewAttractionModal, COUNTRIES } from "@/components/NewAttractionModal";
 import { renderTypeIcon } from "@/components/IconPicker";
+import { CountryFlag } from "@/components/CountryFlag";
 import { useAttractionTypes, useAttractionCategoryTypeFilter } from "@/hooks";
 import { AttractionFilter } from "@/components/AttractionFilter";
 import type { AttractionFormData } from "@/components/NewAttractionModal";
@@ -272,7 +273,7 @@ export function AttractionPickerModal({
                         <span className={styles.itemName}>{a.name}</span>
                         <span className={styles.itemMeta}>
                           {a.types.join(", ")}
-                          {a.country ? ` · ${a.country}` : ""}
+                          {a.country ? <> · <CountryFlag country={a.country} className={styles.inlineFlag} />{a.country}</> : ""}
                           {a.city ? `, ${a.city}` : ""}
                         </span>
                       </div>

@@ -23,6 +23,7 @@ import {
 } from "@/components";
 import type { AttractionFormData } from "@/components";
 import { useAttractionTypes } from "@/hooks";
+import { CountryFlag } from "@/components/CountryFlag";
 import { useAuth } from "@/contexts/AuthContext";
 import { createTrip, ApiError } from "@/services";
 import { NOTES_MAX, getDurationDays, getDateError, getNotesCountLevel } from "@/lib";
@@ -278,7 +279,7 @@ export function NewTripClient() {
                             <span className={styles.attractionName}>{a.name}</span>
                             <span className={styles.attractionMeta}>
                               {a.types.join(", ")}
-                              {a.country ? ` · ${a.country}` : ""}
+                              {a.country ? <> · <CountryFlag country={a.country} className={styles.inlineFlag} />{a.country}</> : ""}
                             </span>
                           </div>
                           <button

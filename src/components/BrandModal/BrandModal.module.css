@@ -468,6 +468,11 @@ button.typeChip {
   font-variant-numeric: tabular-nums;
 }
 
+.inlineFlag {
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
 .locationIcon {
   color: var(--color-text-tertiary);
   flex-shrink: 0;

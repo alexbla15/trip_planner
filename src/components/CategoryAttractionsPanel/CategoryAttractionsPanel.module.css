@@ -261,6 +261,11 @@
   text-overflow: ellipsis;
 }
 
+.inlineFlag {
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
 .resultMeta {
   font-size: 12px;
   color: var(--color-text-tertiary);

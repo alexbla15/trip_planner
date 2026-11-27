@@ -566,6 +566,11 @@
   color: var(--color-text-tertiary);
 }
 
+.inlineFlag {
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
 .infoValue {
   font-size: 14px;
   font-weight: 600;

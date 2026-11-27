@@ -216,11 +216,13 @@ export function ProfileClient() {
             name: c._id || "Unknown",
             count: c.count,
             subtitle: c.country,
+            subtitleIsCountry: true,
           }));
       case "Countries":
         return (analytics.topCountries ?? []).map((c) => ({
           name: c._id || "Unknown",
           count: c.count,
+          nameIsCountry: true,
         }));
       default:
         return [];

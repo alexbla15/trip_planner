@@ -18,6 +18,7 @@ export type { RouteErrorProps } from "./RouteError";
 export { TripCard, TripCardSkeleton } from "./TripCard";
 export type { TripCardProps } from "./TripCard";
 export { NewTripCard } from "./NewTripCard";
+export { CountryFlag } from "./CountryFlag";
 export { ExploreCard } from "./ExploreCard";
 export type { ExploreCardProps } from "./ExploreCard";
 export { ExploreSection } from "./ExploreSection";

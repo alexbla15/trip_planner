@@ -34,6 +34,7 @@ import {
 import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
 import { Spinner } from "@/components/Spinner";
+import { CountryFlag } from "@/components/CountryFlag";
 import { BrandModal } from "@/components/BrandModal";
 import { useModalZIndex } from "@/components/Modal";
 import { getAttraction, getChildAttractions, getOtherLocationsInCity, getNearbyAttractions } from "@/services";
@@ -707,7 +708,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                   </div>
                   <p className={styles.locationCaption}>
                     <MapPin size={11} aria-hidden="true" />
-                    {[attraction.city, attraction.country].filter(Boolean).join(", ")}
+                    {attraction.city}{attraction.city && attraction.country ? ", " : ""}<CountryFlag country={attraction.country} className={styles.inlineFlag} />{attraction.country}
                     <span className={styles.locationCoords}>
                       {attraction.coordinates.lat.toFixed(5)}, {attraction.coordinates.lng.toFixed(5)}
                     </span>
@@ -824,7 +825,7 @@ export function AttractionDetailModal({ attraction, onClose, onEditTime, canEdit
                 <span className={styles.infoIconBubble}><Globe size={15} aria-hidden="true" /></span>
                 <span className={styles.infoText}>
                   <span className={styles.infoLabel}>Country</span>
-                  <span className={styles.infoValue}>{attraction.country}</span>
+                  <span className={styles.infoValue}><CountryFlag country={attraction.country} className={styles.inlineFlag} />{attraction.country}</span>
                 </span>
               </div>
             )}

@@ -119,6 +119,11 @@
 
 .required { color: var(--color-error); }
 
+.inlineFlag {
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
 .readOnlyField {
   height: 44px;
   padding: 0 12px;

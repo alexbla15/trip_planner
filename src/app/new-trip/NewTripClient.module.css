@@ -316,6 +316,11 @@
   text-overflow: ellipsis;
 }
 
+.inlineFlag {
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
 .attractionMeta {
   font-size: 12px;
   color: var(--color-text-tertiary);

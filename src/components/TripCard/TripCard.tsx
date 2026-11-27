@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Calendar } from "lucide-react";
+import { CountryFlag } from "@/components/CountryFlag";
 import { MoodTagChip } from "@/components/MoodTagChip";
 import { PrivateChip } from "@/components/PrivateChip";
 import { formatDisplayDate } from "@/lib";
@@ -32,7 +33,7 @@ export function TripCard({ trip }: TripCardProps) {
       </div>
       <div className={styles.body}>
         <h3 className={styles.destination} title={name}>{name}</h3>
-        <p className={styles.country}>{country}</p>
+        <p className={styles.country}><CountryFlag country={country} />{country}</p>
         <div className={styles.dates}>
           <Calendar size={14} className={styles.datesIcon} aria-hidden="true" />
           <span>

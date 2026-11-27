@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Check, Luggage, MapPin, Plus, Pencil, Trash2, Layers, ArrowUpRight, Calendar, BadgeCheck, ChevronLeft, ChevronRight, Ban, Store } from "lucide-react";
 import { ImageWithSkeleton } from "@/components/ImageWithSkeleton";
+import { CountryFlag } from "@/components/CountryFlag";
+import { countryFlagSrc } from "@/lib/countryFlag";
 import { renderTypeIcon } from "@/components/IconPicker";
 import { WebsiteLinkButton } from "@/components/WebsiteLinkButton";
 import { Spinner } from "@/components/Spinner";
@@ -186,7 +188,11 @@ export function AttractionGridCard({ attraction, onClick, currentUserId, token, 
         )}
         {attraction.city && (
           <span className={styles.meta}>
-            <MapPin size={11} aria-hidden="true" />
+            {countryFlagSrc(attraction.country) ? (
+              <CountryFlag country={attraction.country} />
+            ) : (
+              <MapPin size={11} aria-hidden="true" />
+            )}
             {attraction.city}
           </span>
         )}

@@ -6,6 +6,7 @@ import {
   FileText, ChevronDown, AlertCircle, Loader2, Check,
 } from "lucide-react";
 import { CurrencySelect } from "@/components/CurrencySelect";
+import { CountryFlag } from "@/components/CountryFlag";
 import { ModalShell } from "@/components/Modal";
 import { toDateValue } from "@/lib";
 import { MapPicker } from "@/components/NewAttractionModal";
@@ -216,7 +217,7 @@ export function AddResidenceModal({
           Country
         </span>
         <div className={styles.readOnlyField} aria-label={`Country: ${tripCountry} (locked to trip)`}>
-          {tripCountry}
+          <CountryFlag country={tripCountry} className={styles.inlineFlag} />{tripCountry}
         </div>
       </div>
 

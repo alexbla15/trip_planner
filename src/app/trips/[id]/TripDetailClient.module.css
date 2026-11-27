@@ -378,6 +378,11 @@
   letter-spacing: 0.5px;
 }
 
+.inlineFlag {
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
 .infoValue {
   font-size: 15px;
   font-weight: 500;

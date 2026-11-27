@@ -1,0 +1,12 @@
+/* A 4:3 flag at the height the parent sets (default 12px). The hairline keeps light flags
+   (white bands, pale fields) from dissolving into the card surface in either theme. */
+.flag {
+  --flag-h: 12px;
+  display: inline-block;
+  flex-shrink: 0;
+  width: calc(var(--flag-h) * 4 / 3);
+  height: var(--flag-h);
+  border-radius: 2px;
+  object-fit: cover;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-text-primary) 18%, transparent);
+}

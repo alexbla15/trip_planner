@@ -26,6 +26,7 @@ import {
   toDateValue,
 } from "@/lib";
 import type { Trip } from "@/types/trip";
+import { CountryFlag } from "@/components/CountryFlag";
 import styles from "./EditTripClient.module.css";
 
 interface EditTripClientProps {
@@ -322,7 +323,7 @@ export function EditTripClient({ tripId }: EditTripClientProps) {
               <p className={tripName ? styles.previewName : styles.previewNamePlaceholder}>
                 {tripName || "Trip name"}
               </p>
-              {country && <p className={styles.previewCountry}>{country}</p>}
+              {country && <p className={styles.previewCountry}><CountryFlag country={country} className={styles.inlineFlag} />{country}</p>}
               {startDate && endDate && !dateError && (
                 <div className={styles.previewDates}>
                   <Calendar size={13} aria-hidden="true" />
