@@ -1243,7 +1243,32 @@ export async function updateTripAttractionSchedule(
   const isCustomSlot = attractionId.startsWith("cs-");
   const isFlight = attractionId.startsWith("fl-");
 
-  const { pathPrefix, variant } = locateScheduleEntry(trip, attractionId);
+  let { pathPrefix, variant } = locateScheduleEntry(trip, attractionId);
+
+  // Scheduling an entry onto a day must land it in that day's LIVE schedule (the active
+  // alternative, if one is set), not wherever the entry happened to be before — otherwise
+  // an unscheduled attraction assigned from an alternative view ends up on the main
+  // schedule. Move the whole entry to the target map when the write location changes.
+  if (body.plannedDate !== undefined) {
+    const target = resolveWriteTarget(trip, body.plannedDate, attractionId);
+    if (target.pathPrefix !== pathPrefix) {
+      const raw = trip.toObject({ flattenMaps: true }) as unknown as {
+        schedules?: Record<string, Record<string, unknown>>;
+        dayAlternatives?: Record<string, { schedules?: Record<string, Record<string, unknown>> }>;
+      };
+      const currentEntry = variant
+        ? raw.dayAlternatives?.[dayAltKey(variant.day, variant.altId)]?.schedules?.[attractionId]
+        : raw.schedules?.[attractionId];
+      if (currentEntry) {
+        await Trip.findByIdAndUpdate(tripId, {
+          $set: { [target.pathPrefix]: { ...currentEntry, plannedDate: body.plannedDate } },
+          $unset: { [pathPrefix]: "" },
+        });
+        pathPrefix = target.pathPrefix;
+        variant = target.variant;
+      }
+    }
+  }
 
   // Build a $set using deep dot-notation paths so MongoDB patches fields in-place.
   const scheduleSet: Record<string, unknown> = {};
